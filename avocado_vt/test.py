@@ -47,16 +47,17 @@ from avocado_vt import utils
 # users to specify their autotest from a git clone location.
 AUTOTEST_PATH = None
 
-if 'AUTOTEST_PATH' in os.environ:
-    AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
-    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
-    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, 'setup_modules.py')
+if "AUTOTEST_PATH" in os.environ:
+    AUTOTEST_PATH = os.path.expanduser(os.environ["AUTOTEST_PATH"])
+    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), "client")
+    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, "setup_modules.py")
     if not os.path.exists(SETUP_MODULES_PATH):
-        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
-                               "%s missing." % SETUP_MODULES_PATH)
-    SETUP_MODULES = load_source('autotest_setup_modules', SETUP_MODULES_PATH)
-    SETUP_MODULES.setup(base_path=CLIENT_DIR,
-                        root_module_name="autotest.client")
+        raise EnvironmentError(
+            "Although AUTOTEST_PATH has been declared, "
+            "%s missing." % SETUP_MODULES_PATH
+        )
+    SETUP_MODULES = load_source("autotest_setup_modules", SETUP_MODULES_PATH)
+    SETUP_MODULES.setup(base_path=CLIENT_DIR, root_module_name="autotest.client")
 
 
 def cleanup_env(env_filename, env_version):
@@ -88,7 +89,7 @@ class VirtTest(test.Test, utils.TestUtils):
         """
         self.__vt_params = None
         self.bindir = data_dir.get_root_dir()
-        self.virtdir = os.path.join(self.bindir, 'shared')
+        self.virtdir = os.path.join(self.bindir, "shared")
         # self.__vt_params must be initialized after super
         vt_params = utils_params.Params(kwargs.pop("vt_params", None))
         # for timeout use Avocado-vt timeout as default but allow
@@ -102,11 +103,12 @@ class VirtTest(test.Test, utils.TestUtils):
         self.background_errors.clear()
 
         if "methodName" not in kwargs:
-            kwargs["methodName"] = 'runTest'
+            kwargs["methodName"] = "runTest"
         super(VirtTest, self).__init__(**kwargs)
 
-        self.builddir = os.path.join(self.workdir, 'backends',
-                                     vt_params.get("vm_type", ""))
+        self.builddir = os.path.join(
+            self.workdir, "backends", vt_params.get("vm_type", "")
+        )
         self.tmpdir = os.path.dirname(self.workdir)
         self.__vt_params = vt_params
         self.debugdir = self.logdir
@@ -139,8 +141,8 @@ class VirtTest(test.Test, utils.TestUtils):
         Avocado to allow skips let's say our tests run during setUp
         phase and report the status in test.
         """
-        env_lang = os.environ.get('LANG')
-        os.environ['LANG'] = 'C'
+        env_lang = os.environ.get("LANG")
+        os.environ["LANG"] = "C"
         try:
             self._runTest()
             self.__status = "PASS"
@@ -148,18 +150,21 @@ class VirtTest(test.Test, utils.TestUtils):
         # into avocado (skips, warns and errors will display correctly)
         except exceptions.TestSkipError:
             self.__exc_info = sys.exc_info()
-            raise   # This one has to be raised in setUp
+            raise  # This one has to be raised in setUp
         except:  # nopep8 Old-style exceptions are not inherited from Exception()
             self.__exc_info = sys.exc_info()
             self.__status = self.__exc_info[1]
         finally:
             # Clean libvirtd debug logs if the test is not fail or error
             if self.params.get("libvirtd_log_cleanup", "no") == "yes":
-                if (self.params.get("vm_type") == 'libvirt' and
-                        self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
+                if (
+                    self.params.get("vm_type") == "libvirt"
+                    and self.params.get("enable_libvirtd_debug_log", "yes") == "yes"
+                ):
                     libvirtd_log = self.params["libvirtd_debug_file"]
-                    if ("TestFail" not in str(self.__exc_info) and
-                            "TestError" not in str(self.__exc_info)):
+                    if "TestFail" not in str(
+                        self.__exc_info
+                    ) and "TestError" not in str(self.__exc_info):
                         if libvirtd_log and os.path.isfile(libvirtd_log):
                             self.log.info("cleaning libvirtd logs...")
                             os.remove(libvirtd_log)
@@ -167,26 +172,31 @@ class VirtTest(test.Test, utils.TestUtils):
                         # tar the libvirtd log and archive
                         self.log.info("archiving libvirtd debug logs")
                         from virttest import utils_package
+
                         if utils_package.package_install("tar"):
                             if os.path.isfile(libvirtd_log):
-                                archive = os.path.join(os.path.dirname(
-                                    libvirtd_log), "libvirtd.tar.gz")
-                                cmd = ("tar -zcf %s -P %s"
-                                       % (pipes.quote(archive),
-                                          pipes.quote(libvirtd_log)))
+                                archive = os.path.join(
+                                    os.path.dirname(libvirtd_log), "libvirtd.tar.gz"
+                                )
+                                cmd = "tar -zcf %s -P %s" % (
+                                    pipes.quote(archive),
+                                    pipes.quote(libvirtd_log),
+                                )
                                 if process.system(cmd) == 0:
                                     os.remove(libvirtd_log)
                             else:
-                                self.log.error("Unable to find log file: %s",
-                                               libvirtd_log)
+                                self.log.error(
+                                    "Unable to find log file: %s", libvirtd_log
+                                )
                         else:
-                            self.log.error("Unable to find tar to compress libvirtd "
-                                           "logs")
+                            self.log.error(
+                                "Unable to find tar to compress libvirtd " "logs"
+                            )
 
             if env_lang:
-                os.environ['LANG'] = env_lang
+                os.environ["LANG"] = env_lang
             else:
-                del os.environ['LANG']
+                del os.environ["LANG"]
 
     def runTest(self):
         """
@@ -210,21 +220,25 @@ class VirtTest(test.Test, utils.TestUtils):
         self._log_parameters()
 
         # Warn of this special condition in related location in output & logs
-        if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
+        if os.getuid() == 0 and params.get("nettype", "user") == "user":
             self.log.warning("")
-            self.log.warning("Testing with nettype='user' while running "
-                             "as root may produce unexpected results!!!")
+            self.log.warning(
+                "Testing with nettype='user' while running "
+                "as root may produce unexpected results!!!"
+            )
             self.log.warning("")
 
         subtest_dirs = self._get_subtest_dirs()
 
         # Get the test routine corresponding to the specified
         # test type
-        self.log.debug("Searching for test modules that match "
-                       "'type = %s' and 'provider = %s' "
-                       "on this cartesian dict",
-                       params.get("type"),
-                       params.get("provider", None))
+        self.log.debug(
+            "Searching for test modules that match "
+            "'type = %s' and 'provider = %s' "
+            "on this cartesian dict",
+            params.get("type"),
+            params.get("provider", None),
+        )
 
         t_types = params.get("type").split()
 
@@ -233,13 +247,16 @@ class VirtTest(test.Test, utils.TestUtils):
         test_modules = utils.find_test_modules(t_types, subtest_dirs)
 
         # Open the environment file
-        env_filename = os.path.join(data_dir.get_tmp_dir(),
-                                    params.get("env", "env"))
+        env_filename = os.path.join(data_dir.get_tmp_dir(), params.get("env", "env"))
         env = utils_env.Env(env_filename, self.env_version)
         if params.get_boolean("job_env_cleanup", "yes"):
-            self.runner_queue.put({"func_at_exit": cleanup_env,
-                                   "args": (env_filename, self.env_version),
-                                   "once": True})
+            self.runner_queue.put(
+                {
+                    "func_at_exit": cleanup_env,
+                    "args": (env_filename, self.env_version),
+                    "once": True,
+                }
+            )
 
         test_passed = False
         t_type = None
@@ -257,7 +274,8 @@ class VirtTest(test.Test, utils.TestUtils):
                     for t_type in t_types:
                         test_module = test_modules[t_type]
                         run_func = utils_misc.get_test_entrypoint_func(
-                            t_type, test_module)
+                            t_type, test_module
+                        )
                         try:
                             # pylint: disable-next=E1102
                             run_func(self, params, env)
@@ -267,11 +285,12 @@ class VirtTest(test.Test, utils.TestUtils):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise exceptions.TestWarn("funcatexit failed with: %s" %
-                                                  error_message)
+                        raise exceptions.TestWarn(
+                            "funcatexit failed with: %s" % error_message
+                        )
 
                 except:  # nopep8 Old-style exceptions are not inherited from Exception()
-                    stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
+                    stacktrace.log_exc_info(sys.exc_info(), "avocado.test")
                     if t_type is not None:
                         error_message = funcatexit.run_exitfuncs(env, t_type)
                         if error_message:
@@ -286,20 +305,23 @@ class VirtTest(test.Test, utils.TestUtils):
                 # Post-process
                 try:
                     try:
-                        params['test_passed'] = str(test_passed)
+                        params["test_passed"] = str(test_passed)
                         env_process.postprocess(self, params, env)
                     except:  # nopep8 Old-style exceptions are not inherited from Exception()
 
-                        stacktrace.log_exc_info(sys.exc_info(),
-                                                'avocado.test')
+                        stacktrace.log_exc_info(sys.exc_info(), "avocado.test")
                         if test_passed:
                             raise
-                        self.log.error("Exception raised during "
-                                       "postprocessing: %s",
-                                       sys.exc_info()[1])
+                        self.log.error(
+                            "Exception raised during " "postprocessing: %s",
+                            sys.exc_info()[1],
+                        )
                 finally:
-                    if self._safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
-                        env.destroy()   # Force-clean as it can't be stored
+                    if (
+                        self._safe_env_save(env)
+                        or params.get("env_cleanup", "no") == "yes"
+                    ):
+                        env.destroy()  # Force-clean as it can't be stored
 
         except Exception as e:
             if params.get("abort_on_error") != "yes":
@@ -312,10 +334,15 @@ class VirtTest(test.Test, utils.TestUtils):
                         continue
                     self.log.info("VM '%s' is alive.", vm.name)
                     for m in vm.monitors:
-                        self.log.info("It has a %s monitor unix socket at: %s",
-                                      m.protocol, m.filename)
-                    self.log.info("The command line used to start it was:\n%s",
-                                  vm.make_create_command())
+                        self.log.info(
+                            "It has a %s monitor unix socket at: %s",
+                            m.protocol,
+                            m.filename,
+                        )
+                    self.log.info(
+                        "The command line used to start it was:\n%s",
+                        vm.make_create_command(),
+                    )
                 raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed

@@ -10,9 +10,9 @@ from avocado.utils import process
 from avocado.utils import distro
 
 
-ubuntu = distro.detect().name == 'Ubuntu'
+ubuntu = distro.detect().name == "Ubuntu"
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class SelinuxError(Exception):
@@ -20,6 +20,7 @@ class SelinuxError(Exception):
     """
     Error selinux utility functions.
     """
+
     pass
 
 
@@ -35,8 +36,9 @@ class SeCmdError(SelinuxError):
         self.detail = detail
 
     def __str__(self):
-        return str("Execute command %s failed.\n"
-                   "Detail: %s .\n" % (self.cmd, self.detail))
+        return str(
+            "Execute command %s failed.\n" "Detail: %s .\n" % (self.cmd, self.detail)
+        )
 
 
 class SemanageError(SelinuxError):
@@ -46,19 +48,19 @@ class SemanageError(SelinuxError):
     """
 
     def __str__(self):
-        return ("The semanage command is not available, "
-                "please install policycoreutils "
-                "or equivalent for your platform.")
+        return (
+            "The semanage command is not available, "
+            "please install policycoreutils "
+            "or equivalent for your platform."
+        )
 
 
 class RestoreconError(SelinuxError):
-
     def __str__(self):
-        return ("Output from the restorecon command"
-                "does not match the expected format")
+        return "Output from the restorecon command" "does not match the expected format"
 
 
-STATUS_LIST = ['enforcing', 'permissive', 'disabled']
+STATUS_LIST = ["enforcing", "permissive", "disabled"]
 
 
 def get_status(selinux_force=False):
@@ -73,9 +75,9 @@ def get_status(selinux_force=False):
     """
     if ubuntu and not selinux_force:
         LOG.warning("Ubuntu doesn't support selinux by default")
-        return 'disabled'
+        return "disabled"
 
-    cmd = 'getenforce'
+    cmd = "getenforce"
     try:
         result = process.run(cmd, ignore_status=True)
     except OSError:
@@ -90,8 +92,9 @@ def get_status(selinux_force=False):
         else:
             continue
 
-    raise SelinuxError("result of 'getenforce' (%s)is not expected."
-                       % result.stdout_text)
+    raise SelinuxError(
+        "result of 'getenforce' (%s)is not expected." % result.stdout_text
+    )
 
 
 def set_status(status, selinux_force=False):
@@ -118,8 +121,10 @@ def set_status(status, selinux_force=False):
         return
     else:
         if current_status == "disabled" or status == "disabled":
-            raise SelinuxError("Please modify /etc/selinux/config and "
-                               "reboot host to set selinux to %s." % status)
+            raise SelinuxError(
+                "Please modify /etc/selinux/config and "
+                "reboot host to set selinux to %s." % status
+            )
         else:
             cmd = "setenforce %s" % status
             result = process.run(cmd, ignore_status=True)
@@ -128,9 +133,10 @@ def set_status(status, selinux_force=False):
             else:
                 current_status = get_status(selinux_force)
                 if not status == current_status:
-                    raise SelinuxError("Status of selinux is set to %s,"
-                                       "but not expected %s. "
-                                       % (current_status, status))
+                    raise SelinuxError(
+                        "Status of selinux is set to %s,"
+                        "but not expected %s. " % (current_status, status)
+                    )
                 else:
                     pass
 
@@ -177,7 +183,7 @@ def is_enforcing(selinux_force=False):
         LOG.warning("Ubuntu doesn't support selinux by default")
         return False
 
-    return (get_status(selinux_force) == "enforcing")
+    return get_status(selinux_force) == "enforcing"
 
 
 def is_permissive(selinux_force=False):
@@ -190,7 +196,7 @@ def is_permissive(selinux_force=False):
         LOG.warning("Ubuntu doesn't support selinux by default")
         return False
 
-    return (get_status(selinux_force) == "permissive")
+    return get_status(selinux_force) == "permissive"
 
 
 def get_context_from_str(context):
@@ -200,9 +206,11 @@ def get_context_from_str(context):
     :param context: SELinux context string
     :raise SelinuxError: if there is no context in context.
     """
-    context_pattern = (r"[a-z,_]*_u:[a-z,_]*_r:[a-z,_]*_t"
-                       # non-greedy/non-group match on optional MLS range
-                       r"(?:\:[s,\-,0-9,:[c,\,,0-9]*]*)?")
+    context_pattern = (
+        r"[a-z,_]*_u:[a-z,_]*_r:[a-z,_]*_t"
+        # non-greedy/non-group match on optional MLS range
+        r"(?:\:[s,\-,0-9,:[c,\,,0-9]*]*)?"
+    )
     if re.search(context_pattern, context):
         context_list = re.findall(context_pattern, context)
         return context_list[0]
@@ -219,8 +227,9 @@ def get_type_from_context(context):
     """
     # Raise exception if not a context string
     get_context_from_str(context)
-    type_pattern = (r"[a-z,_]*_u:[a-z,_]*_r:([a-z,_]*_t)"
-                    r"(?:\:[s,\-,0-9,:[c,\,,0-9]*]*)?")
+    type_pattern = (
+        r"[a-z,_]*_u:[a-z,_]*_r:([a-z,_]*_t)" r"(?:\:[s,\-,0-9,:[c,\,,0-9]*]*)?"
+    )
     return re.search(type_pattern, context).group(1)
 
 
@@ -264,17 +273,17 @@ def set_context_of_file(filename, context, selinux_force=False):
 
     context = context.strip()
     # setfattr used for consistency with getfattr use above
-    cmd = ("setfattr --name security.selinux --value \"%s\" %s"
-           % (context, filename))
+    cmd = 'setfattr --name security.selinux --value "%s" %s' % (context, filename)
     result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         raise SeCmdError(cmd, result.stdout_text)
 
     context_result = get_context_of_file(filename)
     if not context == context_result:
-        raise SelinuxError("Context of %s after chcon is %s, "
-                           "but not expected %s."
-                           % (filename, context_result, context))
+        raise SelinuxError(
+            "Context of %s after chcon is %s, "
+            "but not expected %s." % (filename, context_result, context)
+        )
 
     LOG.debug("Set context of %s success.", filename)
 
@@ -289,8 +298,7 @@ def check_context_of_file(filename, label, selinux_force=False):
     """
     se_label = get_context_of_file(filename, selinux_force)
     if se_label is not None:
-        LOG.debug("Context of shared filename '%s' is '%s'" %
-                  (filename, se_label))
+        LOG.debug("Context of shared filename '%s' is '%s'" % (filename, se_label))
         if label not in se_label:
             return False
     else:
@@ -310,12 +318,13 @@ def get_context_of_process(pid):
     output = attr_file.read()
     return get_context_from_str(output)
 
+
 # Force uniform handling if semanage not found (used in unittests)
 
 
 def _no_semanage(cmdresult):
     if cmdresult.exit_status == 127:
-        if cmdresult.stdout_text.lower().count('command not found'):
+        if cmdresult.stdout_text.lower().count("command not found"):
             raise SemanageError()
 
 
@@ -337,29 +346,30 @@ def get_defcon(local=False, selinux_force=False):
         result = process.run("semanage fcontext --list", ignore_status=True)
     _no_semanage(result)
     if result.exit_status != 0:
-        raise SeCmdError('semanage', result.stderr_text)
-    result_list = result.stdout_text.strip().split('\n')
+        raise SeCmdError("semanage", result.stderr_text)
+    result_list = result.stdout_text.strip().split("\n")
     # Need to process top-down instead of bottom-up
     result_list.reverse()
     first_line = result_list.pop()
     # First column name has a space in it
-    column_names = [name.strip().lower().replace(' ', '_')
-                    for name in first_line.split('  ')
-                    if len(name) > 0]
+    column_names = [
+        name.strip().lower().replace(" ", "_")
+        for name in first_line.split("  ")
+        if len(name) > 0
+    ]
     # Shorten first column name
     column_names[0] = column_names[0].replace("selinux_", "")
     fcontexts = []
     for line in result_list:
         if len(line) < 1:  # skip blank lines
             continue
-        column_data = [name.strip()
-                       for name in line.split('  ')
-                       if len(name) > 0]
+        column_data = [name.strip() for name in line.split("  ") if len(name) > 0]
         # Enumerating data raises exception if no column_names match
-        fcontext = dict([(column_names[idx], data)
-                         for idx, data in enumerate(column_data)])
+        fcontext = dict(
+            [(column_names[idx], data) for idx, data in enumerate(column_data)]
+        )
         # find/set functions only accept type, not full context string
-        fcontext['context'] = get_type_from_context(fcontext['context'])
+        fcontext["context"] = get_type_from_context(fcontext["context"])
         fcontexts.append(fcontext)
     return fcontexts
 
@@ -371,7 +381,7 @@ def find_defcon_idx(defcon, pathname):
     # Default context path regexes only work on canonical paths
     pathname = os.path.realpath(pathname)
     for default_context in defcon:
-        if bool(re.search(default_context['fcontext'], pathname)):
+        if bool(re.search(default_context["fcontext"], pathname)):
             return defcon.index(default_context)
     return None
 
@@ -384,7 +394,7 @@ def find_defcon(defcon, pathname):
     pathname = os.path.realpath(pathname)
     idx = find_defcon_idx(defcon, pathname)
     if idx is not None:
-        return get_type_from_context(defcon[idx]['context'])
+        return get_type_from_context(defcon[idx]["context"])
     else:
         return None
 
@@ -397,7 +407,7 @@ def find_pathregex(defcon, pathname):
     pathname = os.path.realpath(pathname)
     idx = find_defcon_idx(defcon, pathname)
     if idx is not None:
-        return defcon[idx]['fcontext']
+        return defcon[idx]["fcontext"]
     else:
         return None
 
@@ -419,9 +429,9 @@ def set_defcon(context_type, pathregex, context_range=None, selinux_force=False)
 
     cmd = "semanage fcontext --add"
     if context_type:
-        cmd += ' -t %s' % context_type
+        cmd += " -t %s" % context_type
     if context_range:
-        cmd += ' -r %s' % context_range
+        cmd += " -r %s" % context_range
     if pathregex:
         cmd += ' "%s"' % pathregex
     result = process.run(cmd, ignore_status=True)
@@ -446,13 +456,14 @@ def del_defcon(context_type, pathregex, selinux_force=False):
         LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
-    cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
+    cmd = "semanage fcontext --delete -t %s '%s'" % (context_type, pathregex)
     result = process.run(cmd, ignore_status=True)
     result.stdout = result.stdout_text
     result.stderr = result.stderr_text
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, result.stderr_text)
+
 
 # Process pathname/dirdesc in uniform way for all defcon functions + unittests
 
@@ -471,19 +482,21 @@ def _run_restorecon(pathname, dirdesc, readonly=True, force=False, selinux_force
         LOG.warning("Ubuntu doesn't support selinux by default")
         return 0
 
-    cmd = 'restorecon -v'
+    cmd = "restorecon -v"
     if dirdesc:
-        cmd += 'R'
+        cmd += "R"
     if readonly:
-        cmd += 'n'
+        cmd += "n"
     if force:
-        cmd += 'F'
+        cmd += "F"
     cmd += ' "%s"' % pathname
     # Always returns 0, even if contexts wrong
     return process.run(cmd).stdout_text.strip()
 
 
-def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selinux_force=False):
+def verify_defcon(
+    pathname, dirdesc=False, readonly=True, forcedesc=False, selinux_force=False
+):
     """
     Verify contexts of pathspec (and/or below, if dirdesc) match default
 
@@ -499,10 +512,14 @@ def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selin
         LOG.warning("Ubuntu doesn't support selinux by default")
         return False
     # Default context path regexes only work on canonical paths
-    changes = _run_restorecon(pathname, dirdesc,
-                              readonly=readonly, force=forcedesc,
-                              selinux_force=selinux_force)
-    if changes.count('restorecon reset'):
+    changes = _run_restorecon(
+        pathname,
+        dirdesc,
+        readonly=readonly,
+        force=forcedesc,
+        selinux_force=selinux_force,
+    )
+    if changes.count("restorecon reset"):
         return False
     else:
         return True
@@ -510,12 +527,13 @@ def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selin
 
 # Provide uniform formatting for diff and apply functions
 
+
 def _format_changes(changes):
     result = []
     if changes:  # Empty string or None - return empty list
         # Could be many changes, need efficient line searching
-        regex = re.compile('^restorecon reset (.+) context (.+)->(.+)')
-        for change_line in changes.split('\n'):
+        regex = re.compile("^restorecon reset (.+) context (.+)->(.+)")
+        for change_line in changes.split("\n"):
             mobj = regex.search(change_line)
             if mobj is None:
                 raise RestoreconError()
@@ -534,8 +552,9 @@ def diff_defcon(pathname, dirdesc=False, selinux_force=False):
     :param dirdesc: True to descend into sub-directories
     :return: List of tuple(pathname, from context, to context)
     """
-    return _format_changes(_run_restorecon(pathname, dirdesc,
-                                           selinux_force=selinux_force))
+    return _format_changes(
+        _run_restorecon(pathname, dirdesc, selinux_force=selinux_force)
+    )
 
 
 def apply_defcon(pathname, dirdesc=False, selinux_force=False):
@@ -546,8 +565,9 @@ def apply_defcon(pathname, dirdesc=False, selinux_force=False):
     :param dirdesc: True to descend into sub-directories
     :return: List of changes applied tuple(pathname, from context, to context)
     """
-    return _format_changes(_run_restorecon(pathname, dirdesc, readonly=False,
-                                           selinux_force=selinux_force))
+    return _format_changes(
+        _run_restorecon(pathname, dirdesc, readonly=False, selinux_force=selinux_force)
+    )
 
 
 def transmogrify_usr_local(pathregex):
@@ -557,8 +577,8 @@ def transmogrify_usr_local(pathregex):
     # Whoa! don't mess with short path regex's
     if len(pathregex) < 3:
         return pathregex
-    if pathregex.count('usr/local'):
-        pathregex = pathregex.replace('usr/local/', r'usr/(local/)?')
+    if pathregex.count("usr/local"):
+        pathregex = pathregex.replace("usr/local/", r"usr/(local/)?")
     return pathregex
 
 
@@ -570,6 +590,6 @@ def transmogrify_sub_dirs(pathregex):
     if len(pathregex) < 3:
         return pathregex
     # Doesn't work with path having trailing slash
-    if pathregex.endswith('/'):
+    if pathregex.endswith("/"):
         pathregex = pathregex[0:-1]
-    return pathregex + r'(/.*)?'
+    return pathregex + r"(/.*)?"

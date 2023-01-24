@@ -12,31 +12,35 @@ from avocado_vt import test
 # Compatibility with avocado 92.0 LTS version, this can be removed when
 # the 92.0 support will be dropped.
 try:
-    from avocado.core.nrunner import (BaseRunner,
-                                      BaseRunnerApp,
-                                      RUNNER_RUN_CHECK_INTERVAL)
+    from avocado.core.nrunner import (
+        BaseRunner,
+        BaseRunnerApp,
+        RUNNER_RUN_CHECK_INTERVAL,
+    )
     from avocado.core.nrunner import main as nrunner_main
     from avocado.core.runners.utils import messages
+
     LTS = True
 except ImportError:
     from avocado.core.nrunner.app import BaseRunnerApp
-    from avocado.core.nrunner.runner import (BaseRunner,
-                                             RUNNER_RUN_CHECK_INTERVAL)
+    from avocado.core.nrunner.runner import BaseRunner, RUNNER_RUN_CHECK_INTERVAL
     from avocado.core.utils import messages
+
     LTS = False
 
 
 class VirtTest(test.VirtTest):
-
     def __init__(self, queue, runnable):
         self.queue = queue
-        base_logdir = getattr(runnable, 'output_dir', None)
+        base_logdir = getattr(runnable, "output_dir", None)
         vt_params = runnable.kwargs
-        vt_params['job_env_cleanup'] = 'no'
-        kwargs = {'name': TestID(1, runnable.uri),
-                  'config': runnable.config,
-                  'base_logdir': base_logdir,
-                  'vt_params': vt_params}
+        vt_params["job_env_cleanup"] = "no"
+        kwargs = {
+            "name": TestID(1, runnable.uri),
+            "config": runnable.config,
+            "base_logdir": base_logdir,
+            "vt_params": vt_params,
+        }
         super().__init__(**kwargs)
 
     def _save_log_dir(self):
@@ -47,7 +51,7 @@ class VirtTest(test.VirtTest):
             basedir = os.path.relpath(root, start=self.logdir)
             for file in files:
                 file_path = os.path.join(root, file)
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     base_path = os.path.join(basedir, file)
                     while True:
                         # Read data in manageable chunks rather than
@@ -55,8 +59,7 @@ class VirtTest(test.VirtTest):
                         in_data = f.read(200000)
                         if not in_data:
                             break
-                        self.queue.put(messages.FileMessage.get(in_data,
-                                                                base_path))
+                        self.queue.put(messages.FileMessage.get(in_data, base_path))
 
     def runTest(self):
         status = "PASS"
@@ -69,7 +72,7 @@ class VirtTest(test.VirtTest):
                 raise self.__status  # pylint: disable-msg=E0702
         except exceptions.TestBaseException as detail:
             status = detail.status
-            fail_reason = (astring.to_text(detail))
+            fail_reason = astring.to_text(detail)
             if status == "ERROR" or status not in teststatus.STATUSES:
                 status = "ERROR"
                 self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
@@ -78,13 +81,15 @@ class VirtTest(test.VirtTest):
         except Exception as detail:
             status = "ERROR"
             try:
-                fail_reason = (astring.to_text(detail))
+                fail_reason = astring.to_text(detail)
             except TypeError:
-                fail_reason = ("Unable to get exception, check the traceback "
-                               "in `debug.log` for details.")
+                fail_reason = (
+                    "Unable to get exception, check the traceback "
+                    "in `debug.log` for details."
+                )
             self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
         finally:
-            if 'avocado_test_' in self.logdir:
+            if "avocado_test_" in self.logdir:
                 self._save_log_dir()
             self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
@@ -101,13 +106,16 @@ class VTTestRunner(BaseRunner):
 
      * kwargs: all the VT specific parameters
     """
-    name = 'avocado-vt'
-    description = 'nrunner application for Avocado-VT tests'
 
-    CONFIGURATION_USED = ['datadir.paths.cache_dirs',
-                          'core.show',
-                          'job.output.loglevel',
-                          'job.run.store_logging_stream']
+    name = "avocado-vt"
+    description = "nrunner application for Avocado-VT tests"
+
+    CONFIGURATION_USED = [
+        "datadir.paths.cache_dirs",
+        "core.show",
+        "job.output.loglevel",
+        "job.run.store_logging_stream",
+    ]
 
     DEFAULT_TIMEOUT = 86400
 
@@ -116,12 +124,16 @@ class VTTestRunner(BaseRunner):
             self.runnable = runnable
 
         yield messages.StartedMessage.get()
-        if self.runnable.config.get(
-            "run.max_parallel_tasks", self.runnable.config.get(
-                "nrunner.max_parallel_tasks", 1)) != 1:
-            yield messages.FinishedMessage.get('cancel',
-                                               fail_reason="parallel run is not"
-                                               " allowed for vt tests")
+        if (
+            self.runnable.config.get(
+                "run.max_parallel_tasks",
+                self.runnable.config.get("nrunner.max_parallel_tasks", 1),
+            )
+            != 1
+        ):
+            yield messages.FinishedMessage.get(
+                "cancel", fail_reason="parallel run is not" " allowed for vt tests"
+            )
         else:
             try:
                 queue = multiprocessing.SimpleQueue()
@@ -135,22 +147,20 @@ class VTTestRunner(BaseRunner):
                     else:
                         message = queue.get()
                         yield message
-                        if message.get('status') == 'finished':
+                        if message.get("status") == "finished":
                             break
             except Exception:
                 yield messages.StderrMessage.get(traceback.format_exc())
-                yield messages.FinishedMessage.get('error')
+                yield messages.FinishedMessage.get("error")
 
 
 class RunnerApp(BaseRunnerApp):
-    PROG_NAME = 'avocado-runner-avocado-vt'
-    PROG_DESCRIPTION = 'nrunner application for Avocado-VT tests'
+    PROG_NAME = "avocado-runner-avocado-vt"
+    PROG_DESCRIPTION = "nrunner application for Avocado-VT tests"
     if LTS:
-        RUNNABLE_KINDS_CAPABLE = {
-            'avocado-vt': VTTestRunner
-        }
+        RUNNABLE_KINDS_CAPABLE = {"avocado-vt": VTTestRunner}
     else:
-        RUNNABLE_KINDS_CAPABLE = ['avocado-vt']
+        RUNNABLE_KINDS_CAPABLE = ["avocado-vt"]
 
 
 def main():
@@ -161,5 +171,5 @@ def main():
         app.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

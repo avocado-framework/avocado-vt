@@ -1,4 +1,4 @@
-'''
+"""
 passfd.py: Python library to pass file descriptors across UNIX domain sockets
 
 This simple extension provides two functions to pass and receive file
@@ -17,7 +17,7 @@ For more information, see one of the R. Stevens' books:
 
  - Richard Stevens: Advanced Programming in the UNIX Environment,
    Addison-Wesley, 1993; chapter 15.3
-'''
+"""
 
 #
 # Copyright (C) 2010 Martina Ferrari <tina@tina.pm>
@@ -39,14 +39,14 @@ For more information, see one of the R. Stevens' books:
 
 import socket
 
-from virttest import _passfd    # pylint: disable=E0611
+from virttest import _passfd  # pylint: disable=E0611
 
 
 def __check_socket(sock):
-    if hasattr(sock, 'family') and sock.family != socket.AF_UNIX:
+    if hasattr(sock, "family") and sock.family != socket.AF_UNIX:
         raise ValueError("Only AF_UNIX sockets are allowed")
 
-    if hasattr(sock, 'fileno'):
+    if hasattr(sock, "fileno"):
         sock = sock.fileno()
 
     if not isinstance(sock, int):
@@ -104,8 +104,9 @@ def recvfd(sock, msg_buf=4096):
 
     # -1 should raise OSError
     if ret == -2:
-        raise RuntimeError("The message received did not contain exactly one" +
-                           " file descriptor")
+        raise RuntimeError(
+            "The message received did not contain exactly one" + " file descriptor"
+        )
     if ret == -3:
         raise RuntimeError("The received file descriptor is not valid")
     assert ret >= 0

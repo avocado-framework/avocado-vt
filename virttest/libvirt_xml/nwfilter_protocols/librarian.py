@@ -8,10 +8,32 @@ from virttest.libvirt_xml import base
 
 
 # Avoid accidental names like __init__, librarian, and/or other support modules
-FILTER_TYPES = ['mac', 'vlan', 'stp', 'arp', 'rarp', 'ip', 'ipv6',
-                'tcp', 'udp', 'sctp', 'icmp', 'igmp', 'esp', 'ah',
-                'udplite', 'all', 'tcp_ipv6', 'udp_ipv6', 'sctp_ipv6',
-                'icmpv6', 'esp_ipv6', 'ah_ipv6', 'udplite_ipv6', 'all_ipv6']
+FILTER_TYPES = [
+    "mac",
+    "vlan",
+    "stp",
+    "arp",
+    "rarp",
+    "ip",
+    "ipv6",
+    "tcp",
+    "udp",
+    "sctp",
+    "icmp",
+    "igmp",
+    "esp",
+    "ah",
+    "udplite",
+    "all",
+    "tcp_ipv6",
+    "udp_ipv6",
+    "sctp_ipv6",
+    "icmpv6",
+    "esp_ipv6",
+    "ah_ipv6",
+    "udplite_ipv6",
+    "all_ipv6",
+]
 
 
 def get(name):

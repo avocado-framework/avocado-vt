@@ -9,11 +9,10 @@ from avocado.utils import process
 from . import utils_net
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class Machine(object):
-
     def __init__(self, vm=None, src=None):
         self.vm = vm
         self.session = None
@@ -65,7 +64,7 @@ class Machine(object):
         """
         if self.is_virtual() and type(ifname) is int:
             ifname = self.vm.virtnet[ifname].g_nic_name
-        return utils_net.ipv6_from_mac_addr(self.addrs[ifname]['mac'])
+        return utils_net.ipv6_from_mac_addr(self.addrs[ifname]["mac"])
 
     def ping(self, dst, iface=None, count=1, vlan=0, ipv=None):
         """
@@ -75,12 +74,9 @@ class Machine(object):
         if ipv is None or ":" in dst:
             command = "ping6"
             if iface is None:
-                raise exceptions.TestError(
-                    "For ipv6 ping, interface can't be None")
+                raise exceptions.TestError("For ipv6 ping, interface can't be None")
             if self.vm:
-                iface = self.get_if_vlan_name(
-                    self.vm.virtnet[iface].g_nic_name,
-                    vlan)
+                iface = self.get_if_vlan_name(self.vm.virtnet[iface].g_nic_name, vlan)
             else:
                 iface = self.get_if_vlan_name(iface, vlan)
 
@@ -100,8 +96,10 @@ class Machine(object):
         :param iface: Interface on which should be added vlan.
         :param vlan_id: Id of vlan.
         """
-        self.cmd("ip link add link %s name %s-vl%s type vlan id %s" %
-                 (iface, iface, vlan_id, vlan_id))
+        self.cmd(
+            "ip link add link %s name %s-vl%s type vlan id %s"
+            % (iface, iface, vlan_id, vlan_id)
+        )
 
     def del_vlan_iface(self, iface, vlan_id):
         """
@@ -132,8 +130,7 @@ class Machine(object):
         """
         ret = dict()
         vlans = self.cmd("cat /proc/net/vlan/config")
-        v = re.findall("^(\S+)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*$",
-                       vlans, re.MULTILINE)
+        v = re.findall("^(\S+)\s*\|\s*(\S+)\s*\|\s*(\S+)\s*$", vlans, re.MULTILINE)
         for vl_ifname, vl_id, ifname in v:
             if ifname in ret:
                 ret[ifname][int(vl_id)] = vl_ifname
@@ -151,12 +148,11 @@ class Machine(object):
             if vlan_id in vlans[ifname]:
                 return vlans[ifname][vlan_id]
             else:
-                raise utils_net.VlanError(ifname,
-                                          "Interface %s has no vlan with"
-                                          " id %s" % (ifname, vlan_id))
+                raise utils_net.VlanError(
+                    ifname, "Interface %s has no vlan with" " id %s" % (ifname, vlan_id)
+                )
         else:
-            raise utils_net.VlanError(ifname,
-                                      "Interface %s has no vlans" % (ifname))
+            raise utils_net.VlanError(ifname, "Interface %s has no vlans" % (ifname))
 
     def prepare_directory(self, path, cleanup=False):
         """
@@ -189,19 +185,18 @@ class Machine(object):
 
         pack_dir = None
         if package_name.endswith("tar.gz"):
-            pack_dir = package_name[0:-len(".tar.gz")]
-            unpack_cmd = ("tar -xvzf %s; cd %s;" % (package_name, pack_dir))
+            pack_dir = package_name[0 : -len(".tar.gz")]
+            unpack_cmd = "tar -xvzf %s; cd %s;" % (package_name, pack_dir)
         elif package_name.endswith("tgz"):
-            pack_dir = package_name[0:-len(".tgz")]
-            unpack_cmd = ("tar -xvzf %s; cd %s;" % (package_name, pack_dir))
+            pack_dir = package_name[0 : -len(".tgz")]
+            unpack_cmd = "tar -xvzf %s; cd %s;" % (package_name, pack_dir)
         elif package_name.endswith(("tar.bz2")):
-            pack_dir = package_name[0:-len(".tar.br2")]
-            unpack_cmd = ("tar -xvjf %s; cd %s;" % (package_name, pack_dir))
+            pack_dir = package_name[0 : -len(".tar.br2")]
+            unpack_cmd = "tar -xvjf %s; cd %s;" % (package_name, pack_dir)
 
         self.copy_to(os.path.join(path, package_name), self.src)
         self.cmd("sync")
-        self.cmd("cd %s; %s ./configure && make;" % (self.src, unpack_cmd),
-                 timeout=240)
+        self.cmd("cd %s; %s ./configure && make;" % (self.src, unpack_cmd), timeout=240)
         self.cmd("sync")
 
     def __getattr__(self, name):

@@ -32,7 +32,7 @@ from virttest import qemu_monitor
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def guest_active(vm):
@@ -64,15 +64,16 @@ def get_numa_status(numa_node_info, qemu_pid, debug=True):
     qemu_cpu = []
     cpus = cpuutil.get_pid_cpus(qemu_pid)
     for node_id in node_list:
-        qemu_memory_status = utils_memory.read_from_numa_maps(qemu_pid,
-                                                              "N%d" % node_id)
+        qemu_memory_status = utils_memory.read_from_numa_maps(qemu_pid, "N%d" % node_id)
         memory = sum([int(_) for _ in list(qemu_memory_status.values())])
         qemu_memory.append(memory)
         cpu = [_ for _ in cpus if _ in numa_node_info.nodes[node_id].cpus]
         qemu_cpu.append(cpu)
         if debug:
-            LOG.debug("qemu-kvm process using %s pages and cpu %s in "
-                      "node %s" % (memory, " ".join(cpu), node_id))
+            LOG.debug(
+                "qemu-kvm process using %s pages and cpu %s in "
+                "node %s" % (memory, " ".join(cpu), node_id)
+            )
     return (qemu_memory, qemu_cpu)
 
 
@@ -85,19 +86,19 @@ def pin_vm_threads(vm, node):
     """
     if len(vm.vcpu_threads) + len(vm.vhost_threads) < len(node.cpus):
         for i in vm.vcpu_threads:
-            LOG.info("pin vcpu thread(%s) to cpu(%s)" %
-                     (i, node.pin_cpu(i)))
+            LOG.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
         for i in vm.vhost_threads:
-            LOG.info("pin vhost thread(%s) to cpu(%s)" %
-                     (i, node.pin_cpu(i)))
-    elif (len(vm.vcpu_threads) <= len(node.cpus) and
-          len(vm.vhost_threads) <= len(node.cpus)):
+            LOG.info("pin vhost thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+    elif len(vm.vcpu_threads) <= len(node.cpus) and len(vm.vhost_threads) <= len(
+        node.cpus
+    ):
         for i in vm.vcpu_threads:
-            LOG.info("pin vcpu thread(%s) to cpu(%s)" %
-                     (i, node.pin_cpu(i)))
+            LOG.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
         for i in vm.vhost_threads:
-            LOG.info("pin vhost thread(%s) to extra cpu(%s)" %
-                     (i, node.pin_cpu(i, extra=True)))
+            LOG.info(
+                "pin vhost thread(%s) to extra cpu(%s)"
+                % (i, node.pin_cpu(i, extra=True))
+            )
     else:
         LOG.info("Skip pinning, no enough nodes")
 
@@ -137,21 +138,23 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     """
 
     win_verifier_flags = vm.params.get("windows_verifier_flags")
-    verifier_status = _check_driver_verifier(session, driver,
-                                             win_verifier_flags)[0]
+    verifier_status = _check_driver_verifier(session, driver, win_verifier_flags)[0]
     if not verifier_status:
-        error_context.context("Enable %s driver verifier" % driver,
-                              LOG.info)
+        error_context.context("Enable %s driver verifier" % driver, LOG.info)
         if win_verifier_flags:
             verifier_setup_cmd = "verifier /flags %s /driver %s.sys" % (
-                                 win_verifier_flags, ".sys ".join(driver.split()))
+                win_verifier_flags,
+                ".sys ".join(driver.split()),
+            )
         else:
             verifier_setup_cmd = "verifier /standard /driver %s.sys" % (
-                                 ".sys ".join(driver.split()))
+                ".sys ".join(driver.split())
+            )
         session.cmd(verifier_setup_cmd, timeout=timeout, ignore_all_errors=True)
         session = vm.reboot(session)
-        verifier_status, output = _check_driver_verifier(session, driver,
-                                                         win_verifier_flags)
+        verifier_status, output = _check_driver_verifier(
+            session, driver, win_verifier_flags
+        )
         if not verifier_status:
             msg = "%s verifier is not enabled, details: %s" % (driver, output)
             raise exceptions.TestFail(msg)
@@ -173,9 +176,7 @@ def clear_win_driver_verifier(driver, vm, timeout=300):
         if verifier_status:
             LOG.info("Clear driver verifier")
             verifier_clear_cmd = "verifier /reset"
-            session.cmd(verifier_clear_cmd,
-                        timeout=timeout,
-                        ignore_all_errors=True)
+            session.cmd(verifier_clear_cmd, timeout=timeout, ignore_all_errors=True)
             session = vm.reboot(session)
     finally:
         session.close()
@@ -204,8 +205,10 @@ def windrv_verify_running(session, test, driver, timeout=300):
 
     for drv in driver.split():
         error_context.context("Check %s driver state." % drv, LOG.info)
-        driver_check_cmd = (r'wmic sysdriver where PathName="C:\\Windows\\System32'
-                            r'\\drivers\\%s.sys" get State /value') % drv
+        driver_check_cmd = (
+            r'wmic sysdriver where PathName="C:\\Windows\\System32'
+            r'\\drivers\\%s.sys" get State /value'
+        ) % drv
 
         if not utils_misc.wait_for(_check_driver_stat, timeout, 0, 5):
             test.error("%s driver is not running" % drv)
@@ -252,8 +255,12 @@ def setup_runlevel(params, session):
         tmp_runlevel = session.cmd(cmd)
         tmp_runlevel = tmp_runlevel.split()[-1]
         if tmp_runlevel != expect_runlevel:
-            LOG.warn("Changing runlevel from %s to %s failed (%s)!",
-                     ori_runlevel, expect_runlevel, tmp_runlevel)
+            LOG.warn(
+                "Changing runlevel from %s to %s failed (%s)!",
+                ori_runlevel,
+                expect_runlevel,
+                tmp_runlevel,
+            )
 
 
 class GuestSuspend(object):
@@ -262,6 +269,7 @@ class GuestSuspend(object):
     Suspend guest, supports both Linux and Windows.
 
     """
+
     SUSPEND_TYPE_MEM = "mem"
     SUSPEND_TYPE_DISK = "disk"
 
@@ -274,8 +282,7 @@ class GuestSuspend(object):
         self.vm = vm
         self.params = params
         self.login_timeout = float(self.params.get("login_timeout", 360))
-        self.services_up_timeout = float(self.params.get("services_up_timeout",
-                                                         30))
+        self.services_up_timeout = float(self.params.get("services_up_timeout", 30))
         self.os_type = self.params.get("os_type")
 
     def _get_session(self):
@@ -307,8 +314,7 @@ class GuestSuspend(object):
         """
         suspend_bg_program_setup_cmd = args.get("suspend_bg_program_setup_cmd")
 
-        error_context.context(
-            "Run a background program as a flag", LOG.info)
+        error_context.context("Run a background program as a flag", LOG.info)
         session = self._get_session()
         self._open_session_list.append(session)
 
@@ -324,13 +330,11 @@ class GuestSuspend(object):
         """
         suspend_bg_program_chk_cmd = args.get("suspend_bg_program_chk_cmd")
 
-        error_context.context(
-            "Verify background program is running", LOG.info)
+        error_context.context("Verify background program is running", LOG.info)
         session = self._get_session()
         s, _ = self._session_cmd_close(session, suspend_bg_program_chk_cmd)
         if s:
-            raise exceptions.TestFail(
-                "Background program is dead. Suspend failed.")
+            raise exceptions.TestFail("Background program is dead. Suspend failed.")
 
     @error_context.context_aware
     def kill_bg_program(self, **args):
@@ -346,8 +350,7 @@ class GuestSuspend(object):
 
     @error_context.context_aware
     def _check_guest_suspend_log(self, **args):
-        error_context.context("Check whether guest supports suspend",
-                              LOG.info)
+        error_context.context("Check whether guest supports suspend", LOG.info)
         suspend_support_chk_cmd = args.get("suspend_support_chk_cmd")
 
         session = self._get_session()
@@ -363,8 +366,7 @@ class GuestSuspend(object):
     @error_context.context_aware
     def start_suspend(self, **args):
         suspend_start_cmd = args.get("suspend_start_cmd")
-        error_context.context(
-            "Start suspend [%s]" % (suspend_start_cmd), LOG.info)
+        error_context.context("Start suspend [%s]" % (suspend_start_cmd), LOG.info)
 
         session = self._get_session()
         self._open_session_list.append(session)
@@ -398,8 +400,7 @@ class GuestSuspend(object):
         session = self._get_session()
         s, o = self._session_cmd_close(session, suspend_log_chk_cmd)
         if s:
-            raise exceptions.TestError(
-                "Could not find suspend log. [%s]" % (o))
+            raise exceptions.TestError("Could not find suspend log. [%s]" % (o))
 
     @error_context.context_aware
     def action_before_suspend(self, **args):
@@ -408,8 +409,7 @@ class GuestSuspend(object):
 
     @error_context.context_aware
     def action_during_suspend(self, **args):
-        error_context.context(
-            "Sleep a while before resuming guest", LOG.info)
+        error_context.context("Sleep a while before resuming guest", LOG.info)
 
         time.sleep(10)
         if self.os_type == "windows":
@@ -451,12 +451,11 @@ class MemoryBaseTest(object):
         mem_str = "%sM" % vm.params.get("mem", "0")
         total_mem = self.normalize_mem_size(mem_str)
         pc_dimms = filter(lambda x: isinstance(x, PC_DIMM), vm.devices)
-        obj_ids = map(lambda x: x.get_param('memdev'), pc_dimms)
+        obj_ids = map(lambda x: x.get_param("memdev"), pc_dimms)
         obj_devs = map(lambda x: vm.devices.get_by_qid(x)[0], obj_ids)
-        obj_size = map(lambda x: x.get_param('size'), obj_devs)
+        obj_size = map(lambda x: x.get_param("size"), obj_devs)
         total_mem += sum(map(self.normalize_mem_size, obj_size))
-        LOG.info("Assigned %s%s " % (total_mem, self.UNIT) +
-                 "memory to '%s'" % vm.name)
+        LOG.info("Assigned %s%s " % (total_mem, self.UNIT) + "memory to '%s'" % vm.name)
         return total_mem
 
     @classmethod
@@ -484,7 +483,7 @@ class MemoryBaseTest(object):
         :return: physical memory report by guest OS in MB
         """
         if vm.params.get("os_type") == "windows":
-            cmd = 'wmic ComputerSystem get TotalPhysicalMemory'
+            cmd = "wmic ComputerSystem get TotalPhysicalMemory"
         else:
             cmd = "grep 'MemTotal:' /proc/meminfo"
         return vm.get_memory_size(cmd)
@@ -582,13 +581,14 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param dev: Qdevice object.
         """
         error_context.context("Update VM object after hotplug memory")
-        dev_type, name = dev.get_qid().split('-')
+        dev_type, name = dev.get_qid().split("-")
         if isinstance(dev, qdevices.Memory):
-            backend = self.params.object_params(name).get("backend_mem",
-                                                          "memory-backend-ram")
+            backend = self.params.object_params(name).get(
+                "backend_mem", "memory-backend-ram"
+            )
             attrs = dev.__attributes__[backend][:]
         else:
-            dimm_type = dev.get_param('driver')
+            dimm_type = dev.get_param("driver")
             attrs = dev.__attributes__[dimm_type][:]
         params = self.params.copy_from_keys(attrs)
         for attr in attrs:
@@ -614,7 +614,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param dev: Qdevice object
         """
         error_context.context("Update VM object after unplug memory")
-        dev_type, name = dev.get_qid().split('-')
+        dev_type, name = dev.get_qid().split("-")
         mem_devs = vm.params.objects("mem_devs")
         if dev in vm.devices:
             vm.devices.remove(dev)
@@ -699,8 +699,8 @@ class MemoryHotplugTest(MemoryBaseTest):
         if not isinstance(vm.monitor, qemu_monitor.QMPMonitor):
             raise NotImplementedError
         for info in vm.monitor.info("memory-devices"):
-            if str(info['data']['id']) == qid:
-                address = info['data']['addr']
+            if str(info["data"]["id"]) == qid:
+                address = info["data"]["addr"]
                 LOG.info("Memory address: %s" % address)
                 return address
 
@@ -730,18 +730,18 @@ class MemoryHotplugTest(MemoryBaseTest):
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
         vm_mem_size = self.get_vm_mem(vm)
         if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
-            msg = ("Assigned '%s MB' memory to '%s'"
-                   "but, '%s MB' memory detect by OS" %
-                   (vm_mem_size, vm.name, guest_mem_size))
+            msg = (
+                "Assigned '%s MB' memory to '%s'"
+                "but, '%s MB' memory detect by OS"
+                % (vm_mem_size, vm.name, guest_mem_size)
+            )
             raise exceptions.TestFail(msg)
 
     @error_context.context_aware
-    def memory_operate(self, vm, memory, operation='online'):
-        error_context.context(
-            "%s %s in guest OS" %
-            (operation, memory), LOG.info)
+    def memory_operate(self, vm, memory, operation="online"):
+        error_context.context("%s %s in guest OS" % (operation, memory), LOG.info)
         mem_sys_path = "/sys/devices/system/memory/%s" % memory
-        mem_state_path = os.path.join(mem_sys_path, 'state')
+        mem_state_path = os.path.join(mem_sys_path, "state")
         session = self.get_session(vm)
         session.cmd("echo '%s' > %s" % (operation, mem_state_path))
         output = session.cmd_output_safe("cat %s" % mem_state_path)
@@ -751,7 +751,7 @@ class MemoryHotplugTest(MemoryBaseTest):
     def get_memory_state(self, vm, memory):
         """Get memorys state in guest OS"""
         mem_sys_path = "/sys/devices/system/memory/%s" % memory
-        mem_state_path = os.path.join(mem_sys_path, 'state')
+        mem_state_path = os.path.join(mem_sys_path, "state")
         session = self.get_session(vm)
         status, output = session.cmd_status_output("cat %s" % mem_state_path)
         if status != 0:
@@ -760,8 +760,9 @@ class MemoryHotplugTest(MemoryBaseTest):
 
     def get_offline_memorys(self, vm):
         """Get unusable memory in guest OS"""
+
         def is_offline_memory(x):
-            return self.get_memory_state(vm, x) == 'offline'
+            return self.get_memory_state(vm, x) == "offline"
 
         memorys = self.get_all_memorys(vm)
         return set(filter(is_offline_memory, memorys))

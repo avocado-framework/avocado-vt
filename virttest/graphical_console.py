@@ -12,9 +12,9 @@ from virttest import data_dir
 from virttest import ppm_utils
 
 
-_STR_DASH = '-'
+_STR_DASH = "-"
 
-KEYMAP_DIR = os.path.join(data_dir.get_shared_dir(), 'keymaps')
+KEYMAP_DIR = os.path.join(data_dir.get_shared_dir(), "keymaps")
 
 
 def get_keymap(keymap_file):
@@ -63,6 +63,7 @@ def uniform_linear(duration, rate):
                 break
             yield (round(x), round(y))
         yield (end_x, end_y)
+
     return motion
 
 
@@ -70,6 +71,7 @@ class UnsupportedKeyError(Exception):
     """
     Unsupported Key Error for Console
     """
+
     pass
 
 
@@ -77,6 +79,7 @@ class BaseConsole(object):
     """
     Base Console
     """
+
     KEY_DOWN = 1
     KEY_UP = 0
 
@@ -93,7 +96,7 @@ class BaseConsole(object):
         self._width, self._height = self.screen_size
         # TODO: screen size is changeable, should ensure they were synchronized before access.
         if not self._pointer_pos:
-            self._set_pointer_pos((self._width//2, self._height//2))
+            self._set_pointer_pos((self._width // 2, self._height // 2))
         # TODO: logfile trace
 
     def key_press(self, keystroke, interval=0):
@@ -335,6 +338,7 @@ class DummyConsole(BaseConsole):
     """
     Dummy console
     """
+
     pass
 
 
@@ -343,6 +347,7 @@ class QMPConsole(BaseConsole):
     """
     QMP console
     """
+
     KEY_DOWN = True
     KEY_UP = False
 
@@ -410,10 +415,10 @@ class QMPConsole(BaseConsole):
             keys = [keys]
         for key in keys:
             k = self._key_convert(key)
-            event = {"type": "key",
-                     "data": {"down": down,
-                              "key": {"type": "qcode",
-                                      "data": k}}}
+            event = {
+                "type": "key",
+                "data": {"down": down, "key": {"type": "qcode", "data": k}},
+            }
             events.append(event)
         self._vm.qmp_monitors[0].input_send_event(events)
 
@@ -425,9 +430,7 @@ class QMPConsole(BaseConsole):
         :param btn: Mouse button.
         """
 
-        events = [{"type": "btn",
-                   "data": {"down": event,
-                            "button": btn}}]
+        events = [{"type": "btn", "data": {"down": event, "button": btn}}]
         self._vm.monitor.input_send_event(events)
 
     def _scroll_event(self, scroll):
@@ -453,13 +456,11 @@ class QMPConsole(BaseConsole):
         """
 
         x, y = self._translate_pos_qmp(pos, absolute)
-        mtype = 'abs' if absolute else 'rel'
-        events = [{"type": mtype,
-                   "data": {"axis": "x",
-                            "value": int(x)}},
-                  {"type": mtype,
-                   "data": {"axis": "y",
-                            "value": int(y)}}]
+        mtype = "abs" if absolute else "rel"
+        events = [
+            {"type": mtype, "data": {"axis": "x", "value": int(x)}},
+            {"type": mtype, "data": {"axis": "y", "value": int(y)}},
+        ]
         self._vm.monitor.input_send_event(events)
         self._set_pointer_pos(pos)
 
@@ -491,8 +492,9 @@ class QMPConsole(BaseConsole):
         Returns a tuple of 2 integers
         """
 
-        tmp_dir = os.path.join(data_dir.get_tmp_dir(),
-                               "graphic_console_%s" % self._vm.name)
+        tmp_dir = os.path.join(
+            data_dir.get_tmp_dir(), "graphic_console_%s" % self._vm.name
+        )
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
         image = os.path.join(tmp_dir, "screendump")

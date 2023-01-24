@@ -64,17 +64,15 @@ PROCFS_NET_PATH = "/proc/net/dev"
 sock = None
 sockfd = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class NetError(Exception):
-
     def __init__(self, *args):
         Exception.__init__(self, *args)
 
 
 class TAPModuleError(NetError):
-
     def __init__(self, devname, action="open", details=None):
         NetError.__init__(self, devname)
         self.devname = devname
@@ -89,7 +87,6 @@ class TAPModuleError(NetError):
 
 
 class TAPNotExistError(NetError):
-
     def __init__(self, ifname):
         NetError.__init__(self, ifname)
         self.ifname = ifname
@@ -99,7 +96,6 @@ class TAPNotExistError(NetError):
 
 
 class TAPCreationError(NetError):
-
     def __init__(self, ifname, details=None):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
@@ -113,7 +109,6 @@ class TAPCreationError(NetError):
 
 
 class MacvtapCreationError(NetError):
-
     def __init__(self, ifname, base_interface, details=None):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
@@ -129,7 +124,6 @@ class MacvtapCreationError(NetError):
 
 
 class MacvtapGetBaseInterfaceError(NetError):
-
     def __init__(self, ifname=None, details=None):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
@@ -145,7 +139,6 @@ class MacvtapGetBaseInterfaceError(NetError):
 
 
 class TAPBringUpError(NetError):
-
     def __init__(self, ifname):
         NetError.__init__(self, ifname)
         self.ifname = ifname
@@ -155,7 +148,6 @@ class TAPBringUpError(NetError):
 
 
 class TAPBringDownError(NetError):
-
     def __init__(self, ifname):
         NetError.__init__(self, ifname)
         self.ifname = ifname
@@ -165,7 +157,6 @@ class TAPBringDownError(NetError):
 
 
 class BRAddIfError(NetError):
-
     def __init__(self, ifname, brname, details):
         NetError.__init__(self, ifname, brname, details)
         self.ifname = ifname
@@ -173,12 +164,14 @@ class BRAddIfError(NetError):
         self.details = details
 
     def __str__(self):
-        return ("Can't add interface %s to bridge %s: %s" %
-                (self.ifname, self.brname, self.details))
+        return "Can't add interface %s to bridge %s: %s" % (
+            self.ifname,
+            self.brname,
+            self.details,
+        )
 
 
 class BRDelIfError(NetError):
-
     def __init__(self, ifname, brname, details):
         NetError.__init__(self, ifname, brname, details)
         self.ifname = ifname
@@ -186,46 +179,49 @@ class BRDelIfError(NetError):
         self.details = details
 
     def __str__(self):
-        return ("Can't remove interface %s from bridge %s: %s" %
-                (self.ifname, self.brname, self.details))
+        return "Can't remove interface %s from bridge %s: %s" % (
+            self.ifname,
+            self.brname,
+            self.details,
+        )
 
 
 class IfNotInBridgeError(NetError):
-
     def __init__(self, ifname, details):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
         self.details = details
 
     def __str__(self):
-        return ("Interface %s is not present on any bridge: %s" %
-                (self.ifname, self.details))
+        return "Interface %s is not present on any bridge: %s" % (
+            self.ifname,
+            self.details,
+        )
 
 
 class OpenflowSwitchError(NetError):
-
     def __init__(self, brname):
         NetError.__init__(self, brname)
         self.brname = brname
 
     def __str__(self):
-        return ("Only support openvswitch, make sure your env support ovs, "
-                "and your bridge %s is an openvswitch" % self.brname)
+        return (
+            "Only support openvswitch, make sure your env support ovs, "
+            "and your bridge %s is an openvswitch" % self.brname
+        )
 
 
 class BRNotExistError(NetError):
-
     def __init__(self, brname, details):
         NetError.__init__(self, brname, details)
         self.brname = brname
         self.details = details
 
     def __str__(self):
-        return ("Bridge %s does not exist: %s" % (self.brname, self.details))
+        return "Bridge %s does not exist: %s" % (self.brname, self.details)
 
 
 class IfChangeBrError(NetError):
-
     def __init__(self, ifname, old_brname, new_brname, details):
         NetError.__init__(self, ifname, old_brname, new_brname, details)
         self.ifname = ifname
@@ -234,12 +230,15 @@ class IfChangeBrError(NetError):
         self.details = details
 
     def __str__(self):
-        return ("Can't move interface %s from bridge %s to bridge %s: %s" %
-                (self.ifname, self.new_brname, self.oldbrname, self.details))
+        return "Can't move interface %s from bridge %s to bridge %s: %s" % (
+            self.ifname,
+            self.new_brname,
+            self.oldbrname,
+            self.details,
+        )
 
 
 class IfChangeAddrError(NetError):
-
     def __init__(self, ifname, ipaddr, details):
         NetError.__init__(self, ifname, ipaddr, details)
         self.ifname = ifname
@@ -247,24 +246,26 @@ class IfChangeAddrError(NetError):
         self.details = details
 
     def __str__(self):
-        return ("Can't change interface IP address %s from interface %s: %s" %
-                (self.ifname, self.ipaddr, self.details))
+        return "Can't change interface IP address %s from interface %s: %s" % (
+            self.ifname,
+            self.ipaddr,
+            self.details,
+        )
 
 
 class BRIpError(NetError):
-
     def __init__(self, brname):
         NetError.__init__(self, brname)
         self.brname = brname
 
     def __str__(self):
-        return ("Bridge %s doesn't have an IP address assigned. It's"
-                " impossible to start dnsmasq for this bridge." %
-                (self.brname))
+        return (
+            "Bridge %s doesn't have an IP address assigned. It's"
+            " impossible to start dnsmasq for this bridge." % (self.brname)
+        )
 
 
 class VMIPV6NeighNotFoundError(NetError):
-
     def __init__(self, ipv6_address):
         NetError.__init__(self, ipv6_address)
         self.ipv6_address = ipv6_address
@@ -274,7 +275,6 @@ class VMIPV6NeighNotFoundError(NetError):
 
 
 class VMIPV6AdressError(NetError):
-
     def __init__(self, error_info):
         NetError.__init__(self, error_info)
         self.error_info = error_info
@@ -284,7 +284,6 @@ class VMIPV6AdressError(NetError):
 
 
 class HwAddrSetError(NetError):
-
     def __init__(self, ifname, mac):
         NetError.__init__(self, ifname, mac)
         self.ifname = ifname
@@ -295,7 +294,6 @@ class HwAddrSetError(NetError):
 
 
 class HwAddrGetError(NetError):
-
     def __init__(self, ifname):
         NetError.__init__(self, ifname)
         self.ifname = ifname
@@ -305,7 +303,6 @@ class HwAddrGetError(NetError):
 
 
 class IPAddrGetError(NetError):
-
     def __init__(self, mac_addr, details=None):
         NetError.__init__(self, mac_addr)
         self.mac_addr = mac_addr
@@ -318,7 +315,6 @@ class IPAddrGetError(NetError):
 
 
 class IPAddrSetError(NetError):
-
     def __init__(self, mac_addr, ip_addr, details=None):
         NetError.__init__(self, mac_addr, ip_addr)
         self.mac_addr = mac_addr
@@ -326,14 +322,15 @@ class IPAddrSetError(NetError):
         self.details = details
 
     def __str__(self):
-        details_msg = "Cannot set IP %s to guest mac ['%s']." % (self.ip_addr,
-                                                                 self.mac_addr)
+        details_msg = "Cannot set IP %s to guest mac ['%s']." % (
+            self.ip_addr,
+            self.mac_addr,
+        )
         details_msg += " Error info: %s" % self.details
         return details_msg
 
 
 class HwOperstarteGetError(NetError):
-
     def __init__(self, ifname, details=None):
         NetError.__init__(self, ifname)
         self.ifname = ifname
@@ -344,32 +341,28 @@ class HwOperstarteGetError(NetError):
 
 
 class VlanError(NetError):
-
     def __init__(self, ifname, details):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
         self.details = details
 
     def __str__(self):
-        return ("Vlan error on interface %s: %s" %
-                (self.ifname, self.details))
+        return "Vlan error on interface %s: %s" % (self.ifname, self.details)
 
 
 class VMNetError(NetError):
-
     def __str__(self):
-        return ("VMNet instance items must be dict-like and contain "
-                "a 'nic_name' mapping")
+        return (
+            "VMNet instance items must be dict-like and contain " "a 'nic_name' mapping"
+        )
 
 
 class DbNoLockError(NetError):
-
     def __str__(self):
         return "Attempt made to access database with improper locking"
 
 
 class DelLinkError(NetError):
-
     def __init__(self, ifname, details=None):
         NetError.__init__(self, ifname, details)
         self.ifname = ifname
@@ -392,26 +385,25 @@ def warp_init_del(func):
             globals()["sock"].close()
             globals()["sock"] = None
             globals()["sockfd"] = None
+
     return new_func
 
 
 class Interface(object):
 
-    ''' Class representing a Linux network device. '''
+    """Class representing a Linux network device."""
 
     def __init__(self, name):
         self.name = name
 
     def __repr__(self):
-        return "<%s %s at 0x%x>" % (self.__class__.__name__,
-                                    self.name, id(self))
+        return "<%s %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
 
     @warp_init_del
     def set_iface_flag(self, flag, active=True):
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name.encode(), 0)
-        flags = struct.unpack('16sh',
-                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
+        ifreq = struct.pack("16sh", self.name.encode(), 0)
+        flags = struct.unpack("16sh", fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
         if active:
@@ -419,14 +411,13 @@ class Interface(object):
         else:
             flags = flags & ~flag
 
-        ifreq = struct.pack('16sh', self.name.encode(), flags)
+        ifreq = struct.pack("16sh", self.name.encode(), flags)
         fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
 
     @warp_init_del
     def is_iface_flag_on(self, flag):
-        ifreq = struct.pack('16sh', self.name.encode(), 0)
-        flags = struct.unpack('16sh',
-                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
+        ifreq = struct.pack("16sh", self.name.encode(), 0)
+        flags = struct.unpack("16sh", fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
 
         if flags & flag:
             return True
@@ -434,65 +425,63 @@ class Interface(object):
             return False
 
     def up(self):
-        '''
+        """
         Bring up the bridge interface. Equivalent to ifconfig [iface] up.
-        '''
+        """
         self.set_iface_flag(arch.IFF_UP)
 
     def down(self):
-        '''
+        """
         Bring down the bridge interface. Equivalent to ifconfig [iface] down.
-        '''
+        """
         self.set_iface_flag(arch.IFF_UP, active=False)
 
     def is_up(self):
-        '''
+        """
         Return True if the interface is up, False otherwise.
-        '''
+        """
         return self.is_iface_flag_on(arch.IFF_UP)
 
     def promisc_on(self):
-        '''
+        """
         Enable promiscuous mode on the interface.
         Equivalent to ip link set [iface] promisc on.
-        '''
+        """
         self.set_iface_flag(arch.IFF_PROMISC)
 
     def promisc_off(self):
-        '''
+        """
         Disable promiscuous mode on the interface.
         Equivalent to ip link set [iface] promisc off.
-        '''
+        """
         self.set_iface_flag(arch.IFF_PROMISC, active=False)
 
     def is_promisc(self):
-        '''
+        """
         Return True if the interface promiscuous mode is on, False otherwise.
-        '''
+        """
         return self.is_iface_flag_on(arch.IFF_PROMISC)
 
     @warp_init_del
     def get_mac(self):
-        '''
+        """
         Obtain the device's mac address.
-        '''
-        ifreq = struct.pack('16sH14s', self.name.encode(),
-                            socket.AF_UNIX, b'\x00' * 14)
+        """
+        ifreq = struct.pack("16sH14s", self.name.encode(), socket.AF_UNIX, b"\x00" * 14)
         res = fcntl.ioctl(sockfd, arch.SIOCGIFHWADDR, ifreq)
-        address = struct.unpack('16sH14s', res)[2]
-        mac = struct.unpack('6B8x', address)
+        address = struct.unpack("16sH14s", res)[2]
+        mac = struct.unpack("6B8x", address)
 
-        return ":".join(['%02X' % i for i in mac])
+        return ":".join(["%02X" % i for i in mac])
 
     @warp_init_del
     def set_mac(self, newmac):
-        '''
+        """
         Set the device's mac address. Device must be down for this to
         succeed.
-        '''
-        macbytes = [int(i, 16) for i in newmac.split(':')]
-        ifreq = struct.pack('16sH6B8x', self.name.encode(),
-                            socket.AF_UNIX, *macbytes)
+        """
+        macbytes = [int(i, 16) for i in newmac.split(":")]
+        ifreq = struct.pack("16sH6B8x", self.name.encode(), socket.AF_UNIX, *macbytes)
         fcntl.ioctl(sockfd, arch.SIOCSIFHWADDR, ifreq)
 
     @warp_init_del
@@ -500,13 +489,12 @@ class Interface(object):
         """
         Get ip address of this interface
         """
-        ifreq = struct.pack('16sH14s', self.name.encode(),
-                            socket.AF_INET, b'\x00' * 14)
+        ifreq = struct.pack("16sH14s", self.name.encode(), socket.AF_INET, b"\x00" * 14)
         try:
             res = fcntl.ioctl(sockfd, arch.SIOCGIFADDR, ifreq)
         except IOError:
             return None
-        ip = struct.unpack('16sH2x4s8x', res)[2]
+        ip = struct.unpack("16sH2x4s8x", res)[2]
 
         return socket.inet_ntoa(ip)
 
@@ -516,8 +504,14 @@ class Interface(object):
         Set the ip address of the interface
         """
         ipbytes = socket.inet_aton(newip)
-        ifreq = struct.pack('16sH2s4s8s', self.name.encode(),
-                            socket.AF_INET, b'\x00' * 2, ipbytes, b'\x00' * 8)
+        ifreq = struct.pack(
+            "16sH2s4s8s",
+            self.name.encode(),
+            socket.AF_INET,
+            b"\x00" * 2,
+            ipbytes,
+            b"\x00" * 8,
+        )
         fcntl.ioctl(sockfd, arch.SIOCSIFADDR, ifreq)
 
     @warp_init_del
@@ -526,15 +520,15 @@ class Interface(object):
         Get ip network netmask
         """
         if not CTYPES_SUPPORT:
-            raise exceptions.TestSkipError("Getting the netmask requires "
-                                           "python > 2.4")
-        ifreq = struct.pack('16sH14s', self.name.encode(),
-                            socket.AF_INET, b'\x00' * 14)
+            raise exceptions.TestSkipError(
+                "Getting the netmask requires " "python > 2.4"
+            )
+        ifreq = struct.pack("16sH14s", self.name.encode(), socket.AF_INET, b"\x00" * 14)
         try:
             res = fcntl.ioctl(sockfd, arch.SIOCGIFNETMASK, ifreq)
         except IOError:
             return 0
-        netmask = socket.ntohl(struct.unpack('16sH2xI8x', res)[2])
+        netmask = socket.ntohl(struct.unpack("16sH2xI8x", res)[2])
 
         return 32 - int(math.log(ctypes.c_uint32(~netmask).value + 1, 2))
 
@@ -544,40 +538,45 @@ class Interface(object):
         Set netmask
         """
         if not CTYPES_SUPPORT:
-            raise exceptions.TestSkipError("Setting the netmask requires "
-                                           "python > 2.4")
+            raise exceptions.TestSkipError(
+                "Setting the netmask requires " "python > 2.4"
+            )
         netmask = ctypes.c_uint32(~((2 ** (32 - netmask)) - 1)).value
         nmbytes = socket.htonl(netmask)
-        ifreq = struct.pack('16sH2si8s', self.name.encode(),
-                            socket.AF_INET, b'\x00' * 2, nmbytes, b'\x00' * 8)
+        ifreq = struct.pack(
+            "16sH2si8s",
+            self.name.encode(),
+            socket.AF_INET,
+            b"\x00" * 2,
+            nmbytes,
+            b"\x00" * 8,
+        )
         fcntl.ioctl(sockfd, arch.SIOCSIFNETMASK, ifreq)
 
     @warp_init_del
     def get_mtu(self):
-        '''
+        """
         Get MTU size of the interface
-        '''
-        ifreq = struct.pack('16sH14s', self.name.encode(),
-                            socket.AF_INET, b'\x00' * 14)
+        """
+        ifreq = struct.pack("16sH14s", self.name.encode(), socket.AF_INET, b"\x00" * 14)
         res = fcntl.ioctl(sockfd, arch.SIOCGIFMTU, ifreq)
 
-        return struct.unpack('16sH14s', res)[1]
+        return struct.unpack("16sH14s", res)[1]
 
     @warp_init_del
     def set_mtu(self, newmtu):
-        '''
+        """
         Set MTU size of the interface
-        '''
-        ifreq = struct.pack('16sH14s', self.name.encode(),
-                            newmtu, b'\x00' * 14)
+        """
+        ifreq = struct.pack("16sH14s", self.name.encode(), newmtu, b"\x00" * 14)
         fcntl.ioctl(sockfd, arch.SIOCSIFMTU, ifreq)
 
     @warp_init_del
     def get_index(self):
-        '''
+        """
         Convert an interface name to an index value.
-        '''
-        ifreq = struct.pack('16si', self.name.encode(), 0)
+        """
+        ifreq = struct.pack("16si", self.name.encode(), 0)
         res = fcntl.ioctl(sockfd, arch.SIOCGIFINDEX, ifreq)
         return struct.unpack("16si", res)[1]
 
@@ -604,10 +603,24 @@ class Interface(object):
             stats = [int(a) for a in spl_re.split(stats_str.strip())]
             break
 
-        titles = ["rx_bytes", "rx_packets", "rx_errs", "rx_drop", "rx_fifo",
-                  "rx_frame", "rx_compressed", "rx_multicast", "tx_bytes",
-                  "tx_packets", "tx_errs", "tx_drop", "tx_fifo", "tx_colls",
-                  "tx_carrier", "tx_compressed"]
+        titles = [
+            "rx_bytes",
+            "rx_packets",
+            "rx_errs",
+            "rx_drop",
+            "rx_fifo",
+            "rx_frame",
+            "rx_compressed",
+            "rx_multicast",
+            "tx_bytes",
+            "tx_packets",
+            "tx_errs",
+            "tx_drop",
+            "tx_fifo",
+            "tx_colls",
+            "tx_carrier",
+            "tx_compressed",
+        ]
         return dict(zip(titles, stats))
 
     def is_brport(self):
@@ -618,7 +631,7 @@ class Interface(object):
         return os.path.exists(os.path.join(path, "brport"))
 
     def __netlink_pack(self, msgtype, flags, seq, pid, data):
-        '''
+        """
         Pack with Netlink message header and data
         into Netlink package
         :msgtype:  Message types: e.g. RTM_DELLINK
@@ -627,18 +640,16 @@ class Interface(object):
         :pid: Process ID
         :data:  data
         :return: return the package
-        '''
-        return struct.pack('IHHII', 16 + len(data),
-                           msgtype, flags, seq, pid) + data
+        """
+        return struct.pack("IHHII", 16 + len(data), msgtype, flags, seq, pid) + data
 
     def __netlink_unpack(self, data):
-        '''
+        """
         Unpack the data from kernel
-        '''
+        """
         out = []
         while data:
-            length, msgtype, flags, seq, pid = struct.unpack('IHHII',
-                                                             data[:16])
+            length, msgtype, flags, seq, pid = struct.unpack("IHHII", data[:16])
             if len(data) < length:
                 raise RuntimeError("Buffer overrun!")
             out.append((msgtype, flags, seq, pid, data[16:length]))
@@ -647,31 +658,31 @@ class Interface(object):
         return out
 
     def dellink(self):
-        '''
+        """
         Delete the interface. Equivalent to 'ip link delete NAME'.
-        '''
+        """
         # create socket
-        sock = socket.socket(socket.AF_NETLINK,
-                             socket.SOCK_RAW,
-                             arch.NETLINK_ROUTE)
+        sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, arch.NETLINK_ROUTE)
 
         # Get the interface index
         interface_index = self.get_index()
 
         # send data to socket
-        sock.send(self.__netlink_pack(msgtype=arch.RTM_DELLINK,
-                                      flags=arch.NLM_F_REQUEST | arch.NLM_F_ACK,
-                                      seq=1, pid=0,
-                                      data=struct.pack('BxHiII',
-                                                       arch.AF_PACKET,
-                                                       0, interface_index, 0, 0)))
+        sock.send(
+            self.__netlink_pack(
+                msgtype=arch.RTM_DELLINK,
+                flags=arch.NLM_F_REQUEST | arch.NLM_F_ACK,
+                seq=1,
+                pid=0,
+                data=struct.pack("BxHiII", arch.AF_PACKET, 0, interface_index, 0, 0),
+            )
+        )
 
         # receive data from socket
         try:
             while True:
                 data_recv = sock.recv(1024)
-                for msgtype, flags, mseq, pid, data in \
-                        self.__netlink_unpack(data_recv):
+                for msgtype, flags, mseq, pid, data in self.__netlink_unpack(data_recv):
                     if msgtype == arch.NLMSG_ERROR:
                         (err_no,) = struct.unpack("i", data[:4])
                         if err_no == 0:
@@ -704,9 +715,11 @@ class Macvtap(Interface):
         return "/dev/tap%s" % self.get_index()
 
     def ip_link_ctl(self, params, ignore_status=False):
-        return process.run('%s %s' %
-                           (utils_path.find_command("ip"), " ".join(params)),
-                           ignore_status=ignore_status, verbose=False)
+        return process.run(
+            "%s %s" % (utils_path.find_command("ip"), " ".join(params)),
+            ignore_status=ignore_status,
+            verbose=False,
+        )
 
     def create(self, device, mode="vepa"):
         """
@@ -717,8 +730,20 @@ class Macvtap(Interface):
         """
         path = os.path.join(SYSFS_NET_PATH, self.tapname)
         if not os.path.exists(path):
-            self.ip_link_ctl(["link", "add", "link", device, "name",
-                              self.tapname, "type", "macvtap", "mode", mode])
+            self.ip_link_ctl(
+                [
+                    "link",
+                    "add",
+                    "link",
+                    device,
+                    "name",
+                    self.tapname,
+                    "type",
+                    "macvtap",
+                    "mode",
+                    mode,
+                ]
+            )
 
     def delete(self):
         path = os.path.join(SYSFS_NET_PATH, self.tapname)
@@ -739,18 +764,18 @@ class IPAddress(object):
     Class to manipulate IPv4 or IPv6 address.
     """
 
-    def __init__(self, ip_str='', info=''):
-        self.addr = ''
-        self.iface = ''
+    def __init__(self, ip_str="", info=""):
+        self.addr = ""
+        self.iface = ""
         self.scope = 0
         self.packed_addr = None
 
         if info:
             try:
-                self.iface = info['iface']
-                self.addr = info['addr']
-                self.version = info['version']
-                self.scope = info['scope']
+                self.iface = info["iface"]
+                self.addr = info["addr"]
+                self.version = info["version"]
+                self.scope = info["scope"]
             except KeyError:
                 pass
 
@@ -758,7 +783,7 @@ class IPAddress(object):
             self.canonicalize(ip_str)
 
     def __str__(self):
-        if self.version == 'ipv6':
+        if self.version == "ipv6":
             return "%s%%%s" % (self.addr, self.scope)
         else:
             return self.addr
@@ -768,21 +793,21 @@ class IPAddress(object):
         Parse an IP string for listen to IPAddress content.
         """
         try:
-            if ':' in ip_str:
-                self.version = 'ipv6'
-                if '%' in ip_str:
-                    ip_str, scope = ip_str.split('%')
+            if ":" in ip_str:
+                self.version = "ipv6"
+                if "%" in ip_str:
+                    ip_str, scope = ip_str.split("%")
                     self.scope = int(scope)
                 self.packed_addr = socket.inet_pton(socket.AF_INET6, ip_str)
                 self.addr = socket.inet_ntop(socket.AF_INET6, self.packed_addr)
             else:
-                self.version = 'ipv4'
+                self.version = "ipv4"
                 self.packed_addr = socket.inet_pton(socket.AF_INET, ip_str)
                 self.addr = socket.inet_ntop(socket.AF_INET, self.packed_addr)
         except socket.error as detail:
-            if 'illegal IP address' in str(detail):
+            if "illegal IP address" in str(detail):
                 self.addr = ip_str
-                self.version = 'hostname'
+                self.version = "hostname"
 
     def listening_on(self, port, max_retry=30):
         """
@@ -795,7 +820,7 @@ class IPAddress(object):
             """
 
             port = int(port)
-            if self.version == 'ipv6':
+            if self.version == "ipv6":
                 sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
                 sock.settimeout(1.0)
                 result = sock.connect_ex((self.addr, port, 0, self.scope))
@@ -840,8 +865,7 @@ def raw_ping(command, timeout, session, output_func):
     """
     if session is None:
         LOG.info("The command of Ping is: %s", command)
-        process = aexpect.run_bg(command, output_func=output_func,
-                                 timeout=timeout)
+        process = aexpect.run_bg(command, output_func=output_func, timeout=timeout)
 
         # Send SIGINT signal to notify the timeout of running ping process,
         # Because ping have the ability to catch the SIGINT signal so we can
@@ -857,8 +881,9 @@ def raw_ping(command, timeout, session, output_func):
     else:
         output = ""
         try:
-            output = session.cmd_output(command, timeout=timeout,
-                                        print_func=output_func)
+            output = session.cmd_output(
+                command, timeout=timeout, print_func=output_func
+            )
         except aexpect.ShellTimeoutError:
             # Send ctrl+c (SIGINT) through ssh session
             session.send("\003")
@@ -884,10 +909,22 @@ def raw_ping(command, timeout, session, output_func):
         return status, output
 
 
-def ping(dest=None, count=None, interval=None, interface=None,
-         packetsize=None, ttl=None, hint=None, adaptive=False,
-         broadcast=False, flood=False, timeout=0,
-         output_func=LOG.debug, session=None, force_ipv4=False):
+def ping(
+    dest=None,
+    count=None,
+    interval=None,
+    interface=None,
+    packetsize=None,
+    ttl=None,
+    hint=None,
+    adaptive=False,
+    broadcast=False,
+    flood=False,
+    timeout=0,
+    output_func=LOG.debug,
+    session=None,
+    force_ipv4=False,
+):
     """
     Wrapper of ping.
 
@@ -951,12 +988,11 @@ def ping(dest=None, count=None, interval=None, interface=None,
             command += " -b"
         if flood:
             command += " -f -q"
-            command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout,
-                                                                 command)
+            command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout, command)
             output_func = None
             timeout += 1
         if force_ipv4:
-            command += ' -4'
+            command += " -4"
 
     return raw_ping(command, timeout, session, output_func)
 
@@ -993,9 +1029,11 @@ def get_macvtap_base_iface(base_interface=None):
                 break
 
     if not tap_base_device:
-        err_msg = ("Could not find a valid physical interface to create "
-                   "macvtap, make sure the interface is up and it does not "
-                   "belong to any bridge.")
+        err_msg = (
+            "Could not find a valid physical interface to create "
+            "macvtap, make sure the interface is up and it does not "
+            "belong to any bridge."
+        )
         raise MacvtapGetBaseInterfaceError(details=err_msg)
     return tap_base_device
 
@@ -1040,8 +1078,7 @@ def open_macvtap(macvtap_object, queues=1):
     return ":".join(tapfds)
 
 
-def create_and_open_macvtap(ifname, mode="vepa", queues=1, base_if=None,
-                            mac_addr=None):
+def create_and_open_macvtap(ifname, mode="vepa", queues=1, base_if=None, mac_addr=None):
     """
     Create a new macvtap device, open it, and return the fds
 
@@ -1056,7 +1093,6 @@ def create_and_open_macvtap(ifname, mode="vepa", queues=1, base_if=None,
 
 
 class Bridge(object):
-
     def get_structure(self):
         """
         Get bridge list.
@@ -1066,8 +1102,9 @@ class Bridge(object):
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
             try:
-                if (not os.path.isdir(br_iface_path) or
-                        "bridge" not in os.listdir(br_iface_path)):
+                if not os.path.isdir(br_iface_path) or "bridge" not in os.listdir(
+                    br_iface_path
+                ):
                     continue
             except OSError as e:
                 if e.errno == errno.ENOENT:
@@ -1097,10 +1134,10 @@ class Bridge(object):
         :param br: Name of bridge
         """
         if br:
-            return self.get_structure()[br]['iface']
+            return self.get_structure()[br]["iface"]
         interface_list = []
         for br in self.list_br():
-            for (value) in self.get_structure()[br]['iface']:
+            for value in self.get_structure()[br]["iface"]:
                 interface_list.append(value)
         return interface_list
 
@@ -1113,7 +1150,7 @@ class Bridge(object):
         """
         bridge = None
         for br in self.list_br():
-            if port_name in self.get_structure()[br]['iface']:
+            if port_name in self.get_structure()[br]["iface"]:
                 bridge = br
         return bridge
 
@@ -1174,7 +1211,7 @@ class Bridge(object):
         """
         bridge_stp = None
         try:
-            bridge_stp = self.get_structure()[brname]['stp']
+            bridge_stp = self.get_structure()[brname]["stp"]
         except KeyError:
             LOG.error("Not find bridge %s", brname)
         return bridge_stp
@@ -1194,7 +1231,7 @@ def __init_openvswitch():
         try:
             __ovs = factory(openvswitch.OpenVSwitchSystem)()
             __ovs.init_system()
-            if (not __ovs.check()):
+            if not __ovs.check():
                 raise Exception("Check of OpenVSwitch failed.")
         except Exception as e:
             LOG.error("Host does not support OpenVSwitch: %s", e)
@@ -1202,8 +1239,7 @@ def __init_openvswitch():
     return __ovs
 
 
-def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
-                        queue_size=None):
+def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names, queue_size=None):
     """
     Setup vhostuser interface with openvswitch and dpdk
 
@@ -1213,8 +1249,7 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
     :param port_names: list name of port need to add to bridge
     :param queue_size: size of the multiqueue
     """
-    clean_ovs_env(selinux_mode="permissive", page_size=hp_num,
-                  clean_ovs=True)
+    clean_ovs_env(selinux_mode="permissive", page_size=hp_num, clean_ovs=True)
 
     # Install openvswitch
     for pkg in ["openvswitch2.15", "openvswitch2.11", "openvswitch"]:
@@ -1239,8 +1274,9 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
     return ovs
 
 
-def clean_ovs_env(run_dir="/var/run/openvswitch", selinux_mode=None,
-                  page_size=None, clean_ovs=False):
+def clean_ovs_env(
+    run_dir="/var/run/openvswitch", selinux_mode=None, page_size=None, clean_ovs=False
+):
     """
     Cleanup ovs environment
 
@@ -1347,7 +1383,7 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
 
         if vnet_mq_probe(int(tapfds[i])):
             flags |= arch.IFF_MULTI_QUEUE
-        elif (int(queues) > 1):
+        elif int(queues) > 1:
             raise TAPCreationError(ifname, "Host doesn't support MULTI_QUEUE")
 
         if vnet_hdr and vnet_hdr_probe(int(tapfds[i])):
@@ -1359,7 +1395,7 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
         except IOError as details:
             raise TAPCreationError(ifname, details)
 
-    return ':'.join(tapfds)
+    return ":".join(tapfds)
 
 
 def is_virtual_network_dev(dev_name):
@@ -1407,9 +1443,11 @@ def get_net_if(runner=local_runner, state=".*", qdisc=".*", optional=".*"):
     # As the runner converts stdout to unicode on Python2,
     # it has to be converted to string for struct.pack().
     result = str(runner(cmd))
-    return re.findall(r"^\d+: (\S+?)[@:].*%s.*%s.*state %s.*$" % (optional, qdisc, state),
-                      result,
-                      re.MULTILINE)
+    return re.findall(
+        r"^\d+: (\S+?)[@:].*%s.*%s.*state %s.*$" % (optional, qdisc, state),
+        result,
+        re.MULTILINE,
+    )
 
 
 def get_sorted_net_if():
@@ -1448,13 +1486,12 @@ def get_remote_host_net_ifs(session, state=None):
         state = ".*"
     cmd_output = session.cmd_status_output(cmd)
     if cmd_output[0]:
-        exceptions.TestError("Failed to fetch %s from remote"
-                             "machine" % cmd)
+        exceptions.TestError("Failed to fetch %s from remote" "machine" % cmd)
     else:
         result = cmd_output[1].strip()
-    host_interfaces = re.findall(r"^\d+: (\S+?)[@:].*state %s.*$" % (state),
-                                 result,
-                                 re.MULTILINE)
+    host_interfaces = re.findall(
+        r"^\d+: (\S+?)[@:].*state %s.*$" % (state), result, re.MULTILINE
+    )
     for each_path in host_interfaces:
         path = os.path.join(SYSFS_NET_PATH, each_path)
         cmd = "ls %s" % path
@@ -1481,9 +1518,11 @@ def get_net_if_addrs(if_name, runner=None):
         runner = local_runner
     cmd = "ip addr show %s" % (if_name)
     result = runner(cmd)
-    return {"ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
-            "ipv6": re.findall("inet6 (.+?)/...?", result, re.MULTILINE),
-            "mac": re.findall("link/ether (.+?) ", result, re.MULTILINE)}
+    return {
+        "ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
+        "ipv6": re.findall("inet6 (.+?)/...?", result, re.MULTILINE),
+        "mac": re.findall("link/ether (.+?) ", result, re.MULTILINE),
+    }
 
 
 def get_net_if_addrs_win(session, mac_addr):
@@ -1494,11 +1533,13 @@ def get_net_if_addrs_win(session, mac_addr):
     :param mac_addr:  guest nic mac address
     :return: List ip addresses of network interface.
     """
-    ip_address = get_windows_nic_attribute(session, "macaddress",
-                                           mac_addr, "IPAddress",
-                                           global_switch="nicconfig")
-    return {"ipv4": re.findall(r'"(\d+\.\d+\.\d+\.\d+)"', ip_address),
-            "ipv6": re.findall(r'"(\w+:[^\s,"]+)"', ip_address)}
+    ip_address = get_windows_nic_attribute(
+        session, "macaddress", mac_addr, "IPAddress", global_switch="nicconfig"
+    )
+    return {
+        "ipv4": re.findall(r'"(\d+\.\d+\.\d+\.\d+)"', ip_address),
+        "ipv6": re.findall(r'"(\w+:[^\s,"]+)"', ip_address),
+    }
 
 
 def get_net_if_and_addrs(runner=None):
@@ -1512,8 +1553,9 @@ def get_net_if_and_addrs(runner=None):
     return ret
 
 
-def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
-                      linklocal=False, timeout=1):
+def get_guest_ip_addr(
+    session, mac_addr, os_type="linux", ip_version="ipv4", linklocal=False, timeout=1
+):
     """
     Get guest ip addresses by serial session
 
@@ -1533,8 +1575,7 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
             if os_type == "linux":
                 nic_ifname = get_linux_ifname(session, mac_addr)
                 info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
-                nic_address = get_net_if_addrs(nic_ifname,
-                                               session.cmd_output)
+                nic_address = get_net_if_addrs(nic_ifname, session.cmd_output)
             elif os_type == "windows":
                 info_cmd = "ipconfig /all"
                 nic_address = get_net_if_addrs_win(session, mac_addr)
@@ -1550,11 +1591,17 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
 
             try:
                 if linklocal:
-                    return [x for x in nic_address[ip_version]
-                            if x.lower().startswith(linklocal_prefix)][0]
+                    return [
+                        x
+                        for x in nic_address[ip_version]
+                        if x.lower().startswith(linklocal_prefix)
+                    ][0]
                 else:
-                    return [x for x in nic_address[ip_version]
-                            if not x.lower().startswith(linklocal_prefix)][0]
+                    return [
+                        x
+                        for x in nic_address[ip_version]
+                        if not x.lower().startswith(linklocal_prefix)
+                    ][0]
             except IndexError:
                 time.sleep(1)
         except Exception as err:
@@ -1580,8 +1627,7 @@ def convert_netmask(mask):
     return sum(map(int, list(bin_str)))
 
 
-def set_guest_ip_addr(session, mac, ip_addr,
-                      netmask="255.255.255.0", os_type="linux"):
+def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="linux"):
     """
     Get guest ip addresses by serial session, for linux guest, please
     ensure target interface not controlled by NetworkManager service,
@@ -1600,19 +1646,19 @@ def set_guest_ip_addr(session, mac, ip_addr,
             nic_ifname = get_linux_ifname(session, mac)
             if session.cmd_status("which ip") != 0:
                 info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
-                cmd = ("ifconfig %s %s netmask %s" %
-                       (nic_ifname, ip_addr, netmask))
+                cmd = "ifconfig %s %s netmask %s" % (nic_ifname, ip_addr, netmask)
             else:
                 if "." in netmask:
                     netmask = convert_netmask(netmask)
                 info_cmd = "ip addr show; ethtool -s %s" % nic_ifname
-                cmd = ("ip addr add %s/%s dev %s" %
-                       (ip_addr, netmask, nic_ifname))
+                cmd = "ip addr add %s/%s dev %s" % (ip_addr, netmask, nic_ifname)
             session.cmd(cmd, timeout=360)
         elif os_type == "windows":
             info_cmd = "ipconfig /all"
-            cmd = ("wmic nicconfig where MACAddress='%s' call "
-                   "enablestatic '%s','%s'" % (mac, ip_addr, netmask))
+            cmd = (
+                "wmic nicconfig where MACAddress='%s' call "
+                "enablestatic '%s','%s'" % (mac, ip_addr, netmask)
+            )
             session.cmd(cmd, timeout=360)
         else:
             info_cmd = ""
@@ -1639,8 +1685,9 @@ def get_guest_nameserver(session):
     return output
 
 
-def restart_guest_network(session, mac_addr=None, os_type="linux",
-                          ip_version="ipv4", timeout=240):
+def restart_guest_network(
+    session, mac_addr=None, os_type="linux", ip_version="ipv4", timeout=240
+):
     """
     Restart guest network by serial session
 
@@ -1667,15 +1714,13 @@ def restart_guest_network(session, mac_addr=None, os_type="linux",
                 restart_cmd += "dhclient"
     elif os_type == "windows":
         if ip_version == "ipv6":
-            restart_cmd = 'ipconfig /renew6'
+            restart_cmd = "ipconfig /renew6"
         else:
-            restart_cmd = 'ipconfig /renew'
+            restart_cmd = "ipconfig /renew"
         if mac_addr:
-            nic_connectionid = get_windows_nic_attribute(session,
-                                                         "macaddress",
-                                                         mac_addr,
-                                                         "netconnectionid",
-                                                         timeout=120)
+            nic_connectionid = get_windows_nic_attribute(
+                session, "macaddress", mac_addr, "netconnectionid", timeout=120
+            )
             restart_cmd += ' "%s"' % nic_connectionid
     session.cmd_output_safe(restart_cmd, timeout=timeout)
 
@@ -1763,8 +1808,9 @@ def get_network_cfg_file(iface_name, vm=None):
     return iface_cfg_file
 
 
-def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
-                          vm=None, ip_addr=None, **dargs):
+def create_network_script(
+    iface_name, mac_addr, boot_proto, net_mask, vm=None, ip_addr=None, **dargs
+):
     """
     Form network script with its respective network param for vm or Host.
 
@@ -1787,44 +1833,59 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
         status, output = session.cmd_status_output(cmd)
         if "ubuntu" in distro:
             if iface_name in output.strip():
-                LOG.error("network script file for %s already exists in "
-                          "guest %s", iface_name, script_file)
+                LOG.error(
+                    "network script file for %s already exists in " "guest %s",
+                    iface_name,
+                    script_file,
+                )
                 return
         else:
             if not status:
-                LOG.error("network script file for %s already exists in "
-                          "guest %s", iface_name, script_file)
+                LOG.error(
+                    "network script file for %s already exists in " "guest %s",
+                    iface_name,
+                    script_file,
+                )
                 return
     else:
         distro = platform.platform().lower()
         if "ubuntu" in distro:
             if iface_name in process.run(cmd).stdout_text.strip():
-                LOG.error("network script file for %s already exists in "
-                          "host %s", iface_name, script_file)
+                LOG.error(
+                    "network script file for %s already exists in " "host %s",
+                    iface_name,
+                    script_file,
+                )
                 return
         else:
             if os.path.isfile(script_file):
-                LOG.error("network script file for %s already exists in "
-                          "host %s", iface_name, script_file)
+                LOG.error(
+                    "network script file for %s already exists in " "host %s",
+                    iface_name,
+                    script_file,
+                )
                 return
     if "ubuntu" in distro:
-        network_param_list = ['auto %s' % iface_name, 'iface %s inet %s' %
-                              (iface_name, boot_proto), 'netmask %s' %
-                              net_mask]
-        if ip_addr and (boot_proto.strip().lower() != 'dhcp'):
-            network_param_list.append('address %s' % ip_addr)
+        network_param_list = [
+            "auto %s" % iface_name,
+            "iface %s inet %s" % (iface_name, boot_proto),
+            "netmask %s" % net_mask,
+        ]
+        if ip_addr and (boot_proto.strip().lower() != "dhcp"):
+            network_param_list.append("address %s" % ip_addr)
     else:
-        network_param_list = ['NAME=%s' % iface_name, 'BOOTPROTO=%s' %
-                              boot_proto, 'NETMASK=%s' % net_mask,
-                              'HWADDR=%s' % mac_addr]
-        if ip_addr and (boot_proto.strip().lower() != 'dhcp'):
-            network_param_list.append('IPADDR=%s' % ip_addr)
+        network_param_list = [
+            "NAME=%s" % iface_name,
+            "BOOTPROTO=%s" % boot_proto,
+            "NETMASK=%s" % net_mask,
+            "HWADDR=%s" % mac_addr,
+        ]
+        if ip_addr and (boot_proto.strip().lower() != "dhcp"):
+            network_param_list.append("IPADDR=%s" % ip_addr)
         if "suse" in distro.lower():
-            network_param_list.append("STARTMODE=%s" %
-                                      dargs.get("start_mode", "auto"))
+            network_param_list.append("STARTMODE=%s" % dargs.get("start_mode", "auto"))
         else:
-            network_param_list.append("ONBOOT=%s" % dargs.get("on_boot",
-                                                              "yes"))
+            network_param_list.append("ONBOOT=%s" % dargs.get("on_boot", "yes"))
 
     cmd = "echo '%s' >> %s"
     for each in network_param_list:
@@ -1852,8 +1913,9 @@ def ipv6_from_mac_addr(mac_addr):
     return ":".join(map(lambda x: x.lstrip("0"), mac_address.split(":")))
 
 
-def refresh_neigh_table(interface_name=None, neigh_address="ff02::1",
-                        session=None, timeout=60.0, **dargs):
+def refresh_neigh_table(
+    interface_name=None, neigh_address="ff02::1", session=None, timeout=60.0, **dargs
+):
     """
     Refresh host neighbours table, if interface_name is assigned only refresh
     neighbours of this interface, else refresh the all the neighbours.
@@ -1870,18 +1932,19 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1",
         interfaces.remove("lo")
 
     for interface in interfaces:
-        refresh_cmd = "ping6 -c 2 -I %s %s > /dev/null" % (interface,
-                                                           neigh_address)
+        refresh_cmd = "ping6 -c 2 -I %s %s > /dev/null" % (interface, neigh_address)
         func(refresh_cmd, timeout=timeout, **dargs)
 
 
-def get_neighbours_info(neigh_address="", interface_name=None, session=None,
-                        timeout=60.0, **dargs):
+def get_neighbours_info(
+    neigh_address="", interface_name=None, session=None, timeout=60.0, **dargs
+):
     """
     Get the neighbours information
     """
-    refresh_neigh_table(interface_name, neigh_address, session=session,
-                        timeout=timeout, **dargs)
+    refresh_neigh_table(
+        interface_name, neigh_address, session=session, timeout=timeout, **dargs
+    )
     func = process.getoutput
     if session:
         func = session.cmd_output
@@ -1904,14 +1967,14 @@ def get_neighbours_info(neigh_address="", interface_name=None, session=None,
     return all_neigh
 
 
-def neigh_reachable(neigh_address, attach_if=None, session=None, timeout=60.0,
-                    **dargs):
+def neigh_reachable(neigh_address, attach_if=None, session=None, timeout=60.0, **dargs):
     """
     Check the neighbour is reachable
     """
     try:
-        get_neighbours_info(neigh_address, attach_if, session=session,
-                            timeout=timeout, **dargs)
+        get_neighbours_info(
+            neigh_address, attach_if, session=session, timeout=timeout, **dargs
+        )
     except VMIPV6NeighNotFoundError:
         return False
     return True
@@ -1921,16 +1984,18 @@ def get_neigh_attch_interface(neigh_address, session=None, timeout=60.0, **dargs
     """
     Get the interface which can reach the neigh_address
     """
-    return get_neighbours_info(neigh_address, session=session, timeout=timeout,
-                               **dargs)[neigh_address]["attach_if"]
+    return get_neighbours_info(
+        neigh_address, session=session, timeout=timeout, **dargs
+    )[neigh_address]["attach_if"]
 
 
 def get_neigh_mac(neigh_address, session=None, timeout=60.0, **dargs):
     """
     Get neighbour mac by his address
     """
-    return get_neighbours_info(neigh_address, session=session, timeout=timeout,
-                               **dargs)[neigh_address]["mac"]
+    return get_neighbours_info(
+        neigh_address, session=session, timeout=timeout, **dargs
+    )[neigh_address]["mac"]
 
 
 def check_add_dnsmasq_to_br(br_name, tmpdir):
@@ -1960,14 +2025,20 @@ def check_add_dnsmasq_to_br(br_name, tmpdir):
     leases = ("%s.leases") % (br_ips[0])
 
     if not (set(br_ips) & set(dnsmasq_listen)):
-        LOG.debug("There is no dnsmasq on br %s."
-                  "Starting new one." % (br_name))
-        process.run("/usr/sbin/dnsmasq --strict-order --bind-interfaces"
-                    " --pid-file=%s --conf-file= --except-interface lo"
-                    " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
-                    " --dhcp-lease-max=127 --dhcp-no-override" %
-                    (os.path.join(tmpdir, pidfile), br_ips[0], dhcp_ip_start,
-                     dhcp_ip_end, (os.path.join(tmpdir, leases))))
+        LOG.debug("There is no dnsmasq on br %s." "Starting new one." % (br_name))
+        process.run(
+            "/usr/sbin/dnsmasq --strict-order --bind-interfaces"
+            " --pid-file=%s --conf-file= --except-interface lo"
+            " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
+            " --dhcp-lease-max=127 --dhcp-no-override"
+            % (
+                os.path.join(tmpdir, pidfile),
+                br_ips[0],
+                dhcp_ip_start,
+                dhcp_ip_end,
+                (os.path.join(tmpdir, leases)),
+            )
+        )
         return pidfile
     return None
 
@@ -2035,8 +2106,9 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
         br_manager_new.add_port(new_bridge, ifname.ifname)
         ifname.netdst = new_bridge
     else:
-        raise ValueError("Network interface %s is wrong type %s." %
-                         (ifname, new_bridge))
+        raise ValueError(
+            "Network interface %s is wrong type %s." % (ifname, new_bridge)
+        )
 
 
 def ovs_br_exists(brname, ovs=None):
@@ -2214,8 +2286,12 @@ def if_set_macaddress(ifname, mac):
     if mac_dev.lower() == mac.lower():
         return
 
-    ifr = struct.pack("16sH14s", ifname.encode(), 1,
-                      b"".join([chr(int(m, 16)) for m in mac.split(":")]))
+    ifr = struct.pack(
+        "16sH14s",
+        ifname.encode(),
+        1,
+        b"".join([chr(int(m, 16)) for m in mac.split(":")]),
+    )
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFHWADDR, ifr)
     except IOError as e:
@@ -2230,31 +2306,45 @@ class IPv6Manager(propcan.PropCanBase):
     Setup and cleanup IPv6 environment.
     """
 
-    __slots__ = ('server_ip', 'server_user', 'server_pwd', 'server_ifname',
-                 'client_ifname', 'client_ipv6_addr', 'server_ipv6_addr',
-                 'client', 'port', 'runner', 'prompt', 'session',
-                 'auto_recover', 'check_ipv6_connectivity', 'client_ipv6_added',
-                 'server_ipv6_added')
+    __slots__ = (
+        "server_ip",
+        "server_user",
+        "server_pwd",
+        "server_ifname",
+        "client_ifname",
+        "client_ipv6_addr",
+        "server_ipv6_addr",
+        "client",
+        "port",
+        "runner",
+        "prompt",
+        "session",
+        "auto_recover",
+        "check_ipv6_connectivity",
+        "client_ipv6_added",
+        "server_ipv6_added",
+    )
 
     def __init__(self, *args, **dargs):
         init_dict = dict(*args, **dargs)
-        init_dict['server_ip'] = init_dict.get('server_ip', 'SERVER.IP')
-        init_dict['server_user'] = init_dict.get('server_user', 'root')
-        init_dict['server_pwd'] = init_dict.get('server_pwd', None)
-        init_dict['server_ifname'] = init_dict.get('server_ifname', 'eth0')
-        init_dict['server_ipv6_addr'] = init_dict.get('server_ipv6_addr')
-        init_dict['client_ifname'] = init_dict.get('client_ifname', 'eth0')
-        init_dict['client_ipv6_addr'] = init_dict.get('client_ipv6_addr')
-        init_dict['client'] = init_dict.get('client', 'ssh')
-        init_dict['port'] = init_dict.get('port', 22)
-        init_dict['prompt'] = init_dict.get('prompt', r"[\#\$]\s*$")
-        init_dict['auto_recover'] = init_dict.get('auto_recover', False)
-        init_dict['check_ipv6_connectivity'] = \
-            init_dict.get('check_ipv6_connectivity', 'yes')
-        init_dict['client_ipv6_added'] = False
-        init_dict['server_ipv6_added'] = False
+        init_dict["server_ip"] = init_dict.get("server_ip", "SERVER.IP")
+        init_dict["server_user"] = init_dict.get("server_user", "root")
+        init_dict["server_pwd"] = init_dict.get("server_pwd", None)
+        init_dict["server_ifname"] = init_dict.get("server_ifname", "eth0")
+        init_dict["server_ipv6_addr"] = init_dict.get("server_ipv6_addr")
+        init_dict["client_ifname"] = init_dict.get("client_ifname", "eth0")
+        init_dict["client_ipv6_addr"] = init_dict.get("client_ipv6_addr")
+        init_dict["client"] = init_dict.get("client", "ssh")
+        init_dict["port"] = init_dict.get("port", 22)
+        init_dict["prompt"] = init_dict.get("prompt", r"[\#\$]\s*$")
+        init_dict["auto_recover"] = init_dict.get("auto_recover", False)
+        init_dict["check_ipv6_connectivity"] = init_dict.get(
+            "check_ipv6_connectivity", "yes"
+        )
+        init_dict["client_ipv6_added"] = False
+        init_dict["server_ipv6_added"] = False
 
-        self.__dict_set__('session', None)
+        self.__dict_set__("session", None)
         super(IPv6Manager, self).__init__(init_dict)
 
     def __del__(self):
@@ -2266,8 +2356,7 @@ class IPv6Manager(propcan.PropCanBase):
             try:
                 self.cleanup()
             except Exception:
-                raise exceptions.TestError(
-                    "Failed to cleanup test environment")
+                raise exceptions.TestError("Failed to cleanup test environment")
 
     def _new_session(self):
         """
@@ -2281,34 +2370,31 @@ class IPv6Manager(propcan.PropCanBase):
         password = self.server_pwd
 
         try:
-            session = remote.wait_for_login(client, host, port,
-                                            username, password, prompt)
+            session = remote.wait_for_login(
+                client, host, port, username, password, prompt
+            )
         except remote.LoginTimeoutError:
-            raise exceptions.TestError(
-                "Got a timeout error when login to server.")
+            raise exceptions.TestError("Got a timeout error when login to server.")
         except remote.LoginAuthenticationError:
-            raise exceptions.TestError(
-                "Authentication failed to login to server.")
+            raise exceptions.TestError("Authentication failed to login to server.")
         except remote.LoginProcessTerminatedError:
-            raise exceptions.TestError(
-                "Host terminates during login to server.")
+            raise exceptions.TestError("Host terminates during login to server.")
         except remote.LoginError:
-            raise exceptions.TestError(
-                "Some error occurs login to client server.")
+            raise exceptions.TestError("Some error occurs login to client server.")
         return session
 
     def get_session(self):
         """
         Make sure the session is alive and available
         """
-        session = self.__dict_get__('session')
+        session = self.__dict_get__("session")
 
         if (session is not None) and (session.is_alive()):
             return session
         else:
             session = self._new_session()
 
-        self.__dict_set__('session', session)
+        self.__dict_set__("session", session)
         return session
 
     def close_session(self):
@@ -2328,8 +2414,7 @@ class IPv6Manager(propcan.PropCanBase):
             ipv6_addr_list = get_net_if_addrs(self.client_ifname).get("ipv6")
             LOG.debug("Local IPv6 address list: %s", ipv6_addr_list)
         else:
-            ipv6_addr_list = get_net_if_addrs(self.server_ifname,
-                                              runner).get("ipv6")
+            ipv6_addr_list = get_net_if_addrs(self.server_ifname, runner).get("ipv6")
             LOG.debug("remote IPv6 address list: %s", ipv6_addr_list)
 
         return ipv6_addr_list
@@ -2349,9 +2434,11 @@ class IPv6Manager(propcan.PropCanBase):
         command = "ping6 -I %s %s -c %s" % (client_ifname, server_ipv6, count)
         result = process.run(command, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestSkipError("The '%s' destination is "
-                                           "unreachable: %s", server_ipv6,
-                                           result.stderr_text)
+            raise exceptions.TestSkipError(
+                "The '%s' destination is " "unreachable: %s",
+                server_ipv6,
+                result.stderr_text,
+            )
         else:
             LOG.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -2372,9 +2459,9 @@ class IPv6Manager(propcan.PropCanBase):
         # flush local ip6tables rules
         result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestFail("%s on local host:%s" %
-                                      (test_fail_err,
-                                       result.stderr_text))
+            raise exceptions.TestFail(
+                "%s on local host:%s" % (test_fail_err, result.stderr_text)
+            )
         else:
             LOG.info("%s on the local host", flush_cmd_pass)
 
@@ -2399,17 +2486,15 @@ class IPv6Manager(propcan.PropCanBase):
             local_ipv6_addr_list = self.get_addr_list()
 
             # the ipv6 address looks like this '3efe::101/64'
-            ipv6_addr_src = self.client_ipv6_addr.split('/')[0]
-            ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
+            ipv6_addr_src = self.client_ipv6_addr.split("/")[0]
+            ipv6_addr_des = self.server_ipv6_addr.split("/")[0]
 
             # configure global IPv6 address for local host
             if ipv6_addr_src not in local_ipv6_addr_list:
                 set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
                 self.client_ipv6_added = True
             else:
-                LOG.debug(
-                    "Skip to add the existing ipv6 address %s",
-                    ipv6_addr_src)
+                LOG.debug("Skip to add the existing ipv6 address %s", ipv6_addr_src)
 
             self.session = self.get_session()
             runner = self.session.cmd_output
@@ -2417,27 +2502,21 @@ class IPv6Manager(propcan.PropCanBase):
 
             # configure global IPv6 address for remote host
             if ipv6_addr_des not in remote_ipv6_addr_list:
-                set_net_if_ip(
-                    self.server_ifname,
-                    self.server_ipv6_addr,
-                    runner)
+                set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
                 self.server_ipv6_added = True
             else:
-                LOG.debug(
-                    "Skip to add the existing ipv6 address %s",
-                    ipv6_addr_des)
+                LOG.debug("Skip to add the existing ipv6 address %s", ipv6_addr_des)
 
             # check IPv6 network connectivity
             if self.check_ipv6_connectivity == "yes":
                 # the ipv6 address looks like this '3efe::101/64'
-                ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
+                ipv6_addr_des = self.server_ipv6_addr.split("/")[0]
                 self.check_connectivity(self.client_ifname, ipv6_addr_des)
             # flush ip6tables both local and remote host
             self.flush_ip6tables()
         except Exception as e:
             self.close_session()
-            raise exceptions.TestError(
-                "Failed to setup IPv6 environment!!:%s", e)
+            raise exceptions.TestError("Failed to setup IPv6 environment!!:%s", e)
 
     def cleanup(self):
         """
@@ -2447,8 +2526,8 @@ class IPv6Manager(propcan.PropCanBase):
         local_ipv6_addr_list = self.get_addr_list()
 
         # the ipv6 address looks like this '3efe::101/64'
-        ipv6_addr_src = self.client_ipv6_addr.split('/')[0]
-        ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
+        ipv6_addr_src = self.client_ipv6_addr.split("/")[0]
+        ipv6_addr_des = self.server_ipv6_addr.split("/")[0]
 
         # delete global IPv6 address from local host
         if (ipv6_addr_src in local_ipv6_addr_list) and self.client_ipv6_added:
@@ -2493,6 +2572,7 @@ def ieee_eui_assignment(eui_bits):
 
     :param eui_bits: The number of EUI bits.
     """
+
     def assignment(oui_bits, prefix=0, repeat=False):
         """
         The template of assignment.
@@ -2503,7 +2583,7 @@ def ieee_eui_assignment(eui_bits):
         """
         # Using UUID1 combine with `__file__` to avoid getting the same hash
         data = uuid.uuid1().hex + __file__
-        data = hashlib.sha256(data.encode()).digest()[:(eui_bits // 8)]
+        data = hashlib.sha256(data.encode()).digest()[: (eui_bits // 8)]
         sample = 0
         for num in bytearray(data):
             sample <<= 8
@@ -2518,6 +2598,7 @@ def ieee_eui_assignment(eui_bits):
             prefix <<= pbits
             base = prefix | (base & pmask)
         return ieee_eui_generator(base, mask, start, repeat=repeat)
+
     return assignment
 
 
@@ -2531,8 +2612,17 @@ class VirtIface(propcan.PropCan, object):
     Networking information for single guest interface and host connection.
     """
 
-    __slots__ = ['nic_name', 'g_nic_name', 'mac', 'nic_model', 'ip',
-                 'nettype', 'netdst', 'queues', 'net_driver']
+    __slots__ = [
+        "nic_name",
+        "g_nic_name",
+        "mac",
+        "nic_model",
+        "ip",
+        "nettype",
+        "netdst",
+        "queues",
+        "net_driver",
+    ]
     # Using MA-S assignment here, that means we can have at most 4096 unique
     # identifiers (MAC addresses) on the same job instance. We may consider
     # using bigger blocks for large-scale deployment, such as microVM
@@ -2574,7 +2664,7 @@ class VirtIface(propcan.PropCan, object):
         Convert list of string bytes to int list
         """
         if isinstance(mac, (str, unicode)):
-            mac = mac.split(':')
+            mac = mac.split(":")
         # strip off any trailing empties
         for rindex in xrange(len(mac), 0, -1):
             if not mac[rindex - 1].strip():
@@ -2595,9 +2685,10 @@ class VirtIface(propcan.PropCan, object):
                 assert value <= 0xFF
                 mac[byte_str_index] = value
         except AssertionError:
-            raise TypeError("%s %s is not a valid MAC format "
-                            "string or list" % (str(mac.__class__),
-                                                str(mac)))
+            raise TypeError(
+                "%s %s is not a valid MAC format "
+                "string or list" % (str(mac.__class__), str(mac))
+            )
         return mac
 
     @classmethod
@@ -2621,7 +2712,7 @@ class VirtIface(propcan.PropCan, object):
         """
         out = []
         while number > 0:
-            out.insert(0, number & 0xff)
+            out.insert(0, number & 0xFF)
             number >>= 8
         if not out:
             out.append(0)
@@ -2663,6 +2754,7 @@ class LibvirtIface(VirtIface):
     """
     Networking information specific to libvirt
     """
+
     __slots__ = []
 
 
@@ -2671,11 +2763,22 @@ class QemuIface(VirtIface):
     """
     Networking information specific to Qemu
     """
-    __slots__ = ['vlan', 'device_id', 'ifname', 'tapfds',
-                 'tapfd_ids', 'netdev_id', 'tftp',
-                 'romfile', 'nic_extra_params',
-                 'netdev_extra_params', 'queues', 'vhostfds',
-                 'vectors']
+
+    __slots__ = [
+        "vlan",
+        "device_id",
+        "ifname",
+        "tapfds",
+        "tapfd_ids",
+        "netdev_id",
+        "tftp",
+        "romfile",
+        "nic_extra_params",
+        "netdev_extra_params",
+        "queues",
+        "vhostfds",
+        "vectors",
+    ]
 
 
 class VMNet(list):
@@ -2695,9 +2798,12 @@ class VMNet(list):
         Initialize from list-like virtiface_list using container_class
         """
         if container_class != VirtIface and (
-                not issubclass(container_class, VirtIface)):
-            raise TypeError("Container class must be Base_VirtIface "
-                            "or subclass not a %s" % str(container_class))
+            not issubclass(container_class, VirtIface)
+        ):
+            raise TypeError(
+                "Container class must be Base_VirtIface "
+                "or subclass not a %s" % str(container_class)
+            )
         self.container_class = container_class
         super(VMNet, self).__init__([])
         if isinstance(virtiface_list, list):
@@ -2720,12 +2826,11 @@ class VMNet(list):
     def __setitem__(self, index_or_name, value):
         if not isinstance(value, dict):
             raise VMNetError
-        if self.container_class.name_is_valid(value['nic_name']):
+        if self.container_class.name_is_valid(value["nic_name"]):
             if isinstance(index_or_name, six.string_types):
                 index_or_name = self.nic_name_index(index_or_name)
             self.process_mac(value)
-            super(VMNet, self).__setitem__(index_or_name,
-                                           self.container_class(value))
+            super(VMNet, self).__setitem__(index_or_name, self.container_class(value))
         else:
             raise VMNetError
 
@@ -2743,44 +2848,47 @@ class VMNet(list):
         # so that unittests can run independently for each subclass.
         self.vm_name = vm_name
         self.params = params.object_params(self.vm_name)
-        self.vm_type = self.params.get('vm_type', 'default')
-        self.driver_type = self.params.get('driver_type', 'default')
-        for key, value in list(VMNetStyle(self.vm_type,
-                                          self.driver_type).items()):
+        self.vm_type = self.params.get("vm_type", "default")
+        self.driver_type = self.params.get("driver_type", "default")
+        for key, value in list(VMNetStyle(self.vm_type, self.driver_type).items()):
             setattr(self, key, value)
 
     def process_mac(self, value):
         """
         Strips 'mac' key from value if it's not valid
         """
-        original_mac = mac = value.get('mac')
+        original_mac = mac = value.get("mac")
         if mac:
-            mac = value['mac'] = value['mac'].lower()
-            if len(mac.split(':')
-                   ) == 6 and self.container_class.mac_is_valid(mac):
+            mac = value["mac"] = value["mac"].lower()
+            if len(mac.split(":")) == 6 and self.container_class.mac_is_valid(mac):
                 return
             else:
-                del value['mac']  # don't store invalid macs
+                del value["mac"]  # don't store invalid macs
                 # Notify user about these, but don't go crazy
                 if self.__class__.DISCARD_WARNINGS >= 0:
-                    LOG.warning('Discarded invalid mac "%s" for nic "%s" '
-                                'from input, %d warnings remaining.'
-                                % (original_mac,
-                                   value.get('nic_name'),
-                                   self.__class__.DISCARD_WARNINGS))
+                    LOG.warning(
+                        'Discarded invalid mac "%s" for nic "%s" '
+                        "from input, %d warnings remaining."
+                        % (
+                            original_mac,
+                            value.get("nic_name"),
+                            self.__class__.DISCARD_WARNINGS,
+                        )
+                    )
                     self.__class__.DISCARD_WARNINGS -= 1
 
     def mac_list(self):
         """
         Return a list of all mac addresses used by defined interfaces
         """
-        return [nic.mac for nic in self if hasattr(nic, 'mac')]
+        return [nic.mac for nic in self if hasattr(nic, "mac")]
 
     def append(self, value):
         newone = self.container_class(value)
-        newone_name = newone['nic_name']
+        newone_name = newone["nic_name"]
         if newone.name_is_valid(newone_name) and (
-                newone_name not in self.nic_name_list()):
+            newone_name not in self.nic_name_list()
+        ):
             self.process_mac(newone)
             super(VMNet, self).append(newone)
         else:
@@ -2796,8 +2904,9 @@ class VMNet(list):
         try:
             return nic_name_list.index(name)
         except ValueError:
-            raise IndexError("Can't find nic named '%s' among '%s'" %
-                             (name, nic_name_list))
+            raise IndexError(
+                "Can't find nic named '%s' among '%s'" % (name, nic_name_list)
+            )
 
     def nic_name_list(self):
         """
@@ -2806,7 +2915,7 @@ class VMNet(list):
         namelist = []
         for item in self:
             # Rely on others to throw exceptions on 'None' names
-            namelist.append(item['nic_name'])
+            namelist.append(item["nic_name"])
         return namelist
 
     def nic_lookup(self, prop_name, prop_value):
@@ -2834,26 +2943,26 @@ class VMNetStyle(dict):
 
     # Keyd first by vm_type, then by driver_type.
     VMNet_Style_Map = {
-        'default': {
-            'default': {
-                'mac_prefix': '9a',
-                'container_class': QemuIface,
+        "default": {
+            "default": {
+                "mac_prefix": "9a",
+                "container_class": QemuIface,
             }
         },
-        'libvirt': {
-            'default': {
-                'mac_prefix': '9a',
-                'container_class': LibvirtIface,
+        "libvirt": {
+            "default": {
+                "mac_prefix": "9a",
+                "container_class": LibvirtIface,
             },
-            'qemu': {
-                'mac_prefix': '52:54:00',
-                'container_class': LibvirtIface,
+            "qemu": {
+                "mac_prefix": "52:54:00",
+                "container_class": LibvirtIface,
             },
-            'xen': {
-                'mac_prefix': '00:16:3e',
-                'container_class': LibvirtIface,
-            }
-        }
+            "xen": {
+                "mac_prefix": "00:16:3e",
+                "container_class": LibvirtIface,
+            },
+        },
     }
 
     def __new__(cls, vm_type, driver_type):
@@ -2861,18 +2970,15 @@ class VMNetStyle(dict):
 
     @classmethod
     def get_vm_type_map(cls, vm_type):
-        return cls.VMNet_Style_Map.get(vm_type,
-                                       cls.VMNet_Style_Map['default'])
+        return cls.VMNet_Style_Map.get(vm_type, cls.VMNet_Style_Map["default"])
 
     @classmethod
     def get_driver_type_map(cls, vm_type_map, driver_type):
-        return vm_type_map.get(driver_type,
-                               vm_type_map['default'])
+        return vm_type_map.get(driver_type, vm_type_map["default"])
 
     @classmethod
     def get_style(cls, vm_type, driver_type):
-        style = cls.get_driver_type_map(cls.get_vm_type_map(vm_type),
-                                        driver_type)
+        style = cls.get_driver_type_map(cls.get_vm_type_map(vm_type), driver_type)
         return style
 
 
@@ -2898,18 +3004,18 @@ class ParamsNet(VMNet):
         self.subclass_pre_init(params, vm_name)
         # use temporary list to initialize
         result_list = []
-        nic_name_list = self.params.objects('nics')
+        nic_name_list = self.params.objects("nics")
         for nic_name in nic_name_list:
             nic_name = str(nic_name)
             # nic name is only in params scope
-            nic_dict = {'nic_name': nic_name}
+            nic_dict = {"nic_name": nic_name}
             nic_params = self.params.object_params(nic_name)
             # set default values for the nic
             nic_params = self.__set_default_params__(nic_name, nic_params)
             # avoid processing unsupported properties
             proplist = list(self.container_class().__all_slots__)
             # nic_name was already set, remove from __slots__ list copy
-            del proplist[proplist.index('nic_name')]
+            del proplist[proplist.index("nic_name")]
             for propertea in proplist:
                 # Merge existing propertea values if they exist
                 try:
@@ -2922,17 +3028,19 @@ class ParamsNet(VMNet):
                 # FIXME: We need a mapping handler to map cartesian params
                 # to nic attributes, here is just a workaround to map
                 # param nic_romfile to romfile attribute only
-                if propertea == 'romfile':
-                    nic_dict['romfile'] = nic_params.get('nic_romfile', existing_value)
+                if propertea == "romfile":
+                    nic_dict["romfile"] = nic_params.get("nic_romfile", existing_value)
                 else:
                     nic_dict[propertea] = nic_params.get(propertea, existing_value)
 
                 if propertea == "netdst" and "shell:" in nic_dict[propertea]:
                     nic_dict[propertea] = process.getoutput(
-                        nic_dict[propertea].split(':', 1)[1])
+                        nic_dict[propertea].split(":", 1)[1]
+                    )
                     if not nic_dict[propertea]:
                         raise exceptions.TestError(
-                            "netdst is null, please check the shell command")
+                            "netdst is null, please check the shell command"
+                        )
             result_list.append(nic_dict)
         VMNet.__init__(self, self.container_class, result_list)
 
@@ -2944,13 +3052,13 @@ class ParamsNet(VMNet):
         param: nic_params: params contain nic properties(like dict)
         """
         default_params = {}
-        default_params['queues'] = 1
-        default_params['tftp'] = None
-        default_params['nic_romfile'] = None
-        default_params['nic_extra_params'] = ''
-        default_params['netdev_extra_params'] = ''
-        nic_name_list = self.params.objects('nics')
-        default_params['vlan'] = str(nic_name_list.index(nic_name))
+        default_params["queues"] = 1
+        default_params["tftp"] = None
+        default_params["nic_romfile"] = None
+        default_params["nic_extra_params"] = ""
+        default_params["netdev_extra_params"] = ""
+        nic_name_list = self.params.objects("nics")
+        default_params["vlan"] = str(nic_name_list.index(nic_name))
         for key, val in list(default_params.items()):
             nic_params.setdefault(key, val)
 
@@ -2960,9 +3068,9 @@ class ParamsNet(VMNet):
         """
         Generator over mac addresses found in params
         """
-        for nic_name in self.params.get('nics'):
+        for nic_name in self.params.get("nics"):
             nic_obj_params = self.params.object_params(nic_name)
-            mac = nic_obj_params.get('mac')
+            mac = nic_obj_params.get("mac")
             if mac:
                 yield mac
             else:
@@ -2975,7 +3083,7 @@ class ParamsNet(VMNet):
         nic = self[index_or_name]
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
-        params_mac = nic_params.get('mac')
+        params_mac = nic_params.get("mac")
         if params_mac and self.container_class.mac_is_valid(params_mac):
             new_mac = params_mac.lower()
         else:
@@ -2989,7 +3097,7 @@ class ParamsNet(VMNet):
         nic = self[index_or_name]
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
-        params_ip = nic_params.get('ip')
+        params_ip = nic_params.get("ip")
         if params_ip:
             new_ip = params_ip
         else:
@@ -3025,24 +3133,23 @@ class DbNet(VMNet):
         self.unlock_db()
         proplist = list(self.container_class().__all_slots__)
         # nic_name was already set, remove from __slots__ list copy
-        del proplist[proplist.index('nic_name')]
+        del proplist[proplist.index("nic_name")]
         nic_name_list = self.nic_name_list()
         for db_nic in entry:
-            nic_name = db_nic['nic_name']
+            nic_name = db_nic["nic_name"]
             if nic_name in nic_name_list:
                 for propertea in proplist:
                     # only set properties in db but not in self
                     if propertea in db_nic:
-                        self[nic_name].set_if_none(
-                            propertea, db_nic[propertea])
+                        self[nic_name].set_if_none(propertea, db_nic[propertea])
         if entry:
             VMNet.__init__(self, self.container_class, entry)
         # Assume self.update_db() called elsewhere
 
     def lock_db(self):
-        if not hasattr(self, 'lock'):
+        if not hasattr(self, "lock"):
             self.lock = utils_misc.lock_file(self.db_lockfile)
-            if not hasattr(self, 'db'):
+            if not hasattr(self, "db"):
                 self.db = shelve.open(self.db_filename)
             else:
                 raise DbNoLockError
@@ -3050,10 +3157,10 @@ class DbNet(VMNet):
             raise DbNoLockError
 
     def unlock_db(self):
-        if hasattr(self, 'db'):
+        if hasattr(self, "db"):
             self.db.close()
             del self.db
-            if hasattr(self, 'lock'):
+            if hasattr(self, "lock"):
                 utils_misc.unlock_file(self.lock)
                 del self.lock
             else:
@@ -3075,17 +3182,18 @@ class DbNet(VMNet):
         try:
             eval_result = eval(db_entry, {}, {})
         except SyntaxError:
-            raise ValueError("Error parsing entry for %s from "
-                             "database '%s'" % (self.db_key,
-                                                self.db_filename))
+            raise ValueError(
+                "Error parsing entry for %s from "
+                "database '%s'" % (self.db_key, self.db_filename)
+            )
         if not isinstance(eval_result, list):
-            raise ValueError("Unexpected database data: %s" % (
-                str(eval_result)))
+            raise ValueError("Unexpected database data: %s" % (str(eval_result)))
         result = []
         for result_dict in eval_result:
             if not isinstance(result_dict, dict):
-                raise ValueError("Unexpected database sub-entry data %s" % (
-                    str(result_dict)))
+                raise ValueError(
+                    "Unexpected database sub-entry data %s" % (str(result_dict))
+                )
             result.append(result_dict)
         return result
 
@@ -3119,7 +3227,7 @@ class DbNet(VMNet):
         try:
             for db_key in list(self.db.keys()):
                 for nic in self.db_entry(db_key):
-                    mac = nic.get('mac')
+                    mac = nic.get("mac")
                     if mac:
                         yield mac
                     else:
@@ -3147,12 +3255,12 @@ class VirtNet(DbNet, ParamsNet):
     """
     Persistent collection of VM's networking information.
     """
+
     # __init__ must not presume clean state, it should behave
     # assuming there is existing properties/data on the instance
     # and take steps to preserve or update it as appropriate.
 
-    def __init__(self, params, vm_name, db_key,
-                 db_filename=ADDRESS_POOL_FILENAME):
+    def __init__(self, params, vm_name, db_key, db_filename=ADDRESS_POOL_FILENAME):
         """
         Load networking info. from db, then from params, then update db.
 
@@ -3172,9 +3280,16 @@ class VirtNet(DbNet, ParamsNet):
     # names for pickling works. The possibility also remains open
     # for extensions via style-class updates.
     def __getstate__(self):
-        state = {'container_items': VMNet.__getstate__(self)}
-        for attrname in ['params', 'vm_name', 'db_key', 'db_filename',
-                         'vm_type', 'driver_type', 'db_lockfile']:
+        state = {"container_items": VMNet.__getstate__(self)}
+        for attrname in [
+            "params",
+            "vm_name",
+            "db_key",
+            "db_filename",
+            "vm_type",
+            "driver_type",
+            "db_lockfile",
+        ]:
             state[attrname] = getattr(self, attrname)
         for style_attr in list(VMNetStyle(self.vm_type, self.driver_type).keys()):
             state[style_attr] = getattr(self, style_attr)
@@ -3182,10 +3297,10 @@ class VirtNet(DbNet, ParamsNet):
 
     def __setstate__(self, state):
         for key in list(state.keys()):
-            if key == 'container_items':
+            if key == "container_items":
                 continue  # handle outside loop
             setattr(self, key, state.pop(key))
-        VMNet.__setstate__(self, state.pop('container_items'))
+        VMNet.__setstate__(self, state.pop("container_items"))
 
     def __eq__(self, other):
         if len(self) != len(other):
@@ -3217,9 +3332,11 @@ class VirtNet(DbNet, ParamsNet):
         :raise: NetError if mac generation failed
         """
         nic = self[nic_index_or_name]
-        if 'mac' in nic:
-            LOG.warning("Overwriting mac %s for nic %s with random"
-                        % (nic.mac, str(nic_index_or_name)))
+        if "mac" in nic:
+            LOG.warning(
+                "Overwriting mac %s for nic %s with random"
+                % (nic.mac, str(nic_index_or_name))
+            )
         self.free_mac_address(nic_index_or_name)
         attempts_remaining = attempts
         while attempts_remaining > 0:
@@ -3233,15 +3350,19 @@ class VirtNet(DbNet, ParamsNet):
             else:
                 attempts_remaining -= 1
                 self.unlock_db()
-        raise NetError("%s/%s MAC generation failed with prefix %s after %d "
-                       "attempts for NIC %s on VM %s (%s)" % (
-                           self.vm_type,
-                           self.driver_type,
-                           self.mac_prefix,
-                           attempts,
-                           str(nic_index_or_name),
-                           self.vm_name,
-                           self.db_key))
+        raise NetError(
+            "%s/%s MAC generation failed with prefix %s after %d "
+            "attempts for NIC %s on VM %s (%s)"
+            % (
+                self.vm_type,
+                self.driver_type,
+                self.mac_prefix,
+                attempts,
+                str(nic_index_or_name),
+                self.vm_name,
+                self.db_key,
+            )
+        )
 
     def free_mac_address(self, nic_index_or_name):
         """
@@ -3250,7 +3371,7 @@ class VirtNet(DbNet, ParamsNet):
         :param nic_index_or_name: index number or name of NIC
         """
         nic = self[nic_index_or_name]
-        if 'mac' in nic:
+        if "mac" in nic:
             # Reset to params definition if any, or None
             self.reset_mac(nic_index_or_name)
         self.update_db()
@@ -3263,9 +3384,11 @@ class VirtNet(DbNet, ParamsNet):
         :raise: NetError if mac already assigned
         """
         nic = self[nic_index_or_name]
-        if 'mac' in nic:
-            LOG.warning("Overwriting mac %s for nic %s with %s"
-                        % (nic.mac, str(nic_index_or_name), mac))
+        if "mac" in nic:
+            LOG.warning(
+                "Overwriting mac %s for nic %s with %s"
+                % (nic.mac, str(nic_index_or_name), mac)
+            )
         nic.mac = mac.lower()
         self.update_db()
 
@@ -3303,10 +3426,11 @@ def parse_arp(session=None, timeout=60.0, **dargs):
     ret = {}
     arp_file_path = "/proc/net/arp"
     if session:
-        arp_cache = session.cmd_output("cat %s" % arp_file_path,
-                                       timeout=timeout, **dargs)
+        arp_cache = session.cmd_output(
+            "cat %s" % arp_file_path, timeout=timeout, **dargs
+        )
     else:
-        with open(arp_file_path, 'r') as arp_file:
+        with open(arp_file_path, "r") as arp_file:
             arp_cache = arp_file.read()
 
     for line in arp_cache.splitlines():
@@ -3317,8 +3441,11 @@ def parse_arp(session=None, timeout=60.0, **dargs):
             flag = parsed_elements[2]
         except IndexError:
             # Check if data is missing
-            raise OSError("Read invalid data from %s host arp file" %
-                          "remote" if session else "local")
+            raise OSError(
+                "Read invalid data from %s host arp file" % "remote"
+                if session
+                else "local"
+            )
 
         # Skip the header
         if mac.count(":") != 5:
@@ -3333,8 +3460,7 @@ def parse_arp(session=None, timeout=60.0, **dargs):
     return ret
 
 
-def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
-                                session=None):
+def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None, session=None):
     """
     Make sure a given IP address belongs to one of the given
     MAC addresses.
@@ -3348,6 +3474,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
     :param session: ShellSession object of remote host
     :return: True if ip is assigned to a MAC address in macs.
     """
+
     def __arping(ip, macs, dev, timeout, session=None, **dargs):
         func = process.getoutput
         if session:
@@ -3367,11 +3494,14 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         cmd = "%s --help" % arping_bin
         if "-C count" in func(cmd, timeout=timeout, **dargs):
             regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
-            arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
-                                                       dev, ip)
+            arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (
+                arping_bin,
+                int(timeout),
+                dev,
+                ip,
+            )
         else:
-            arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
-                                                      dev, ip)
+            arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout), dev, ip)
         try:
             o = func(arping_cmd, **dargs)
         except (process.CmdError, aexpect.ShellError):
@@ -3404,7 +3534,11 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         if session:
             ip_cmd = func("which ip", timeout=timeout, **dargs).strip()
         ip_cmd = "%s route get %s; %s -%d route | grep default" % (
-            ip_cmd, ip, ip_cmd, ip_ver)
+            ip_cmd,
+            ip,
+            ip_cmd,
+            ip_ver,
+        )
         output = func(ip_cmd, timeout=timeout, **dargs)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
@@ -3415,19 +3549,23 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
     verify_func = __verify_neigh if ip_ver == 6 else __arping
     for dev in devs:
         # VM might take some time to respond after migration
-        return bool(utils_misc.wait_for(lambda: verify_func(ip, macs, dev,
-                                                            timeout,
-                                                            session=session, **dargs),
-                                        timeout))
+        return bool(
+            utils_misc.wait_for(
+                lambda: verify_func(ip, macs, dev, timeout, session=session, **dargs),
+                timeout,
+            )
+        )
 
 
 def generate_mac_address_simple():
     r = random.SystemRandom()
-    mac = "9a:%02x:%02x:%02x:%02x:%02x" % (r.randint(0x00, 0xff),
-                                           r.randint(0x00, 0xff),
-                                           r.randint(0x00, 0xff),
-                                           r.randint(0x00, 0xff),
-                                           r.randint(0x00, 0xff))
+    mac = "9a:%02x:%02x:%02x:%02x:%02x" % (
+        r.randint(0x00, 0xFF),
+        r.randint(0x00, 0xFF),
+        r.randint(0x00, 0xFF),
+        r.randint(0x00, 0xFF),
+        r.randint(0x00, 0xFF),
+    )
     return mac
 
 
@@ -3446,10 +3584,8 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
         network_num = "10.0.0.0"
     if not exclude_ips and network_prefix == "24":
         exclude_ips.add(network_num)
-        exclude_ips.add('.'.join(network_num.split('.')[0:3]) + ".%s" %
-                        str(1))
-        exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
-                         str(255)))
+        exclude_ips.add(".".join(network_num.split(".")[0:3]) + ".%s" % str(1))
+        exclude_ips.add((".".join(network_num.split(".")[0:3]) + ".%s" % str(255)))
     network = pyipaddr.ip_network("%s/%s" % (network_num, network_prefix))
     for ip_address in network:
         if str(ip_address) not in exclude_ips:
@@ -3465,35 +3601,43 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     :raise NetError: When failed to fetch IP address.
     """
     if ip_ver == "ipv6":
+        # pylint: disable=I1101
         ver = netifaces.AF_INET6
         linklocal_prefix = "fe80"
     else:
+        # pylint: disable=I1101
         ver = netifaces.AF_INET
         linklocal_prefix = "169.254"
     try:
+        # pylint: disable=I1101
         addr = netifaces.ifaddresses(ifname).get(ver)
     # FIXME: The kind of exceptions caught should be more specific
     except:
         # TODO: NetError is a very general usage,it will be changed to a
         # more friendly way in the future
-        raise NetError(
-            "Error while retrieving IP address from interface %s." % ifname)
+        raise NetError("Error while retrieving IP address from interface %s." % ifname)
 
     if addr is not None:
         try:
             if linklocal:
-                return [a['addr'] for a in addr
-                        if a['addr'].lower().startswith(linklocal_prefix)][0]
+                return [
+                    a["addr"]
+                    for a in addr
+                    if a["addr"].lower().startswith(linklocal_prefix)
+                ][0]
             else:
-                return [a['addr'] for a in addr
-                        if not a['addr'].lower().startswith(linklocal_prefix)][0]
+                return [
+                    a["addr"]
+                    for a in addr
+                    if not a["addr"].lower().startswith(linklocal_prefix)
+                ][0]
         except IndexError:
-            LOG.warning("No IP address configured for "
-                        "the network interface %s !", ifname)
+            LOG.warning(
+                "No IP address configured for " "the network interface %s !", ifname
+            )
             return None
     else:
-        LOG.warning("No IP address configured for the network interface"
-                    "%s !", ifname)
+        LOG.warning("No IP address configured for the network interface" "%s !", ifname)
         return None
 
 
@@ -3511,16 +3655,18 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
     """
     net_dev = ""
     if params:
-        host_ip = params.get('host_ip_addr', None)
+        host_ip = params.get("host_ip_addr", None)
         if host_ip:
-            LOG.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
+            LOG.debug("Use IP address at config %s=%s", "host_ip_addr", host_ip)
             return host_ip
         net_dev = params.get("netdst")
     if not net_dev:
         net_dev = get_default_gateway(iface_name=True)
-    LOG.warning("No IP address of host was provided, using IP address"
-                " on %s interface", net_dev)
-    single_dev = net_dev.split('\n')[0].strip()
+    LOG.warning(
+        "No IP address of host was provided, using IP address" " on %s interface",
+        net_dev,
+    )
+    single_dev = net_dev.split("\n")[0].strip()
     return get_ip_address_by_interface(single_dev, ip_ver, linklocal)
 
 
@@ -3539,23 +3685,23 @@ def get_all_ips():
         else:
             if ip_addr is not None:
                 ip_info = {
-                    'iface': iface,
-                    'addr': ip_addr,
-                    'version': 'ipv4',
+                    "iface": iface,
+                    "addr": ip_addr,
+                    "version": "ipv4",
                 }
                 ips.append(IPAddress(info=ip_info))
 
     # Get all ipv6 IPs.
-    if_inet6_fp = open('/proc/net/if_inet6', 'r')
+    if_inet6_fp = open("/proc/net/if_inet6", "r")
     for line in if_inet6_fp.readlines():
         # ipv6_ip, dev_no, len_prefix, scope, iface_flag, iface
         ipv6_ip, dev_no, _, _, _, iface = line.split()
-        ipv6_ip = ":".join([ipv6_ip[i:i + 4] for i in range(0, 32, 4)])
+        ipv6_ip = ":".join([ipv6_ip[i : i + 4] for i in range(0, 32, 4)])
         ip_info = {
-            'iface': iface,
-            'addr': ipv6_ip,
-            'version': 'ipv6',
-            'scope': int(dev_no, 16)
+            "iface": iface,
+            "addr": ipv6_ip,
+            "version": "ipv6",
+            "scope": int(dev_no, 16),
         }
         ips.append(IPAddress(info=ip_info))
     if_inet6_fp.close()
@@ -3606,7 +3752,7 @@ def get_linux_ipaddr(session, nic):
     cmd = "ifconfig %s || ip address show %s" % (nic, nic)
     out = session.cmd_output_safe(cmd)
     addrs = re.findall(rex, out, re.M)
-    addrs = map(lambda x: x[1].split('/')[0], addrs)
+    addrs = map(lambda x: x[1].split("/")[0], addrs)
     addrs = map(lambda x: pyipaddr.ip_address(x), addrs)
     ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
     ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
@@ -3619,6 +3765,7 @@ def windows_mac_ip_maps(session):
     """
     Windows get MAC IP addresses maps
     """
+
     def str2ipaddr(str_ip):
         try:
             return pyipaddr.ip_address(str_ip)
@@ -3684,6 +3831,7 @@ def get_linux_ifname(session, mac_address=""):
     :raise exceptions.TestError in case it was not possible to determine the
             interface name.
     """
+
     def _process_output(cmd, reg_pattern):
         sys_ifname = ["lo", "sit0", "virbr0"]
         try:
@@ -3706,8 +3854,9 @@ def get_linux_ifname(session, mac_address=""):
         return i
 
     # No luck, try ip link
-    i = _process_output("ip link | grep -B1 '%s' -i" % mac_address,
-                        r"\d+:\s+(\w+):\s+.*")
+    i = _process_output(
+        "ip link | grep -B1 '%s' -i" % mac_address, r"\d+:\s+(\w+):\s+.*"
+    )
     if i is not None:
         return i
 
@@ -3718,8 +3867,9 @@ def get_linux_ifname(session, mac_address=""):
         return i
 
     # If we came empty handed, let's raise an error
-    raise exceptions.TestError("Failed to determine interface name with "
-                               "mac %s" % mac_address)
+    raise exceptions.TestError(
+        "Failed to determine interface name with " "mac %s" % mac_address
+    )
 
 
 def get_linux_iface_info(mac, session=None):
@@ -3730,7 +3880,7 @@ def get_linux_iface_info(mac, session=None):
     :param session: session of given vm, default to None
     :return: dict-type info of interface, None if not get any
     """
-    ip_cmd = 'ip -json a'
+    ip_cmd = "ip -json a"
 
     try:
         if session:
@@ -3738,13 +3888,13 @@ def get_linux_iface_info(mac, session=None):
         else:
             ip_output_str = process.run(ip_cmd).stdout_text.strip()
         ip_info = json.loads(ip_output_str)
-        LOG.debug('interfaces inside vm:\n %s', ip_info)
+        LOG.debug("interfaces inside vm:\n %s", ip_info)
     except Exception as why:
-        LOG.error('Failed to get interfaces inside vm. Reason: %s', str(why))
+        LOG.error("Failed to get interfaces inside vm. Reason: %s", str(why))
         return None
 
     for iface in ip_info:
-        if iface.get('address') == mac:
+        if iface.get("address") == mac:
             return iface
     return None
 
@@ -3769,8 +3919,9 @@ def update_mac_ip_address(vm, timeout=240):
         LOG.warn("Error occur when update VM address cache: %s", str(e))
 
 
-def get_windows_nic_attribute(session, key, value, target, timeout=240,
-                              global_switch="nic"):
+def get_windows_nic_attribute(
+    session, key, value, target, timeout=240, global_switch="nic"
+):
     """
     Get the windows nic attribute using wmic. All the support key you can
     using wmic to have a check.
@@ -3784,8 +3935,10 @@ def get_windows_nic_attribute(session, key, value, target, timeout=240,
     cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
     status, out = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
-        err_msg = ("Execute guest shell command('%s') "
-                   "failed with error: '%s'" % (cmd, out))
+        err_msg = "Execute guest shell command('%s') " "failed with error: '%s'" % (
+            cmd,
+            out,
+        )
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     # First line is header, return second line
@@ -3805,17 +3958,14 @@ def set_win_guest_nic_status(session, connection_id, status, timeout=240):
 
 
 def disable_windows_guest_network(session, connection_id, timeout=240):
-    return set_win_guest_nic_status(session, connection_id,
-                                    "DISABLED", timeout)
+    return set_win_guest_nic_status(session, connection_id, "DISABLED", timeout)
 
 
 def enable_windows_guest_network(session, connection_id, timeout=240):
-    return set_win_guest_nic_status(session, connection_id,
-                                    "ENABLED", timeout)
+    return set_win_guest_nic_status(session, connection_id, "ENABLED", timeout)
 
 
-def restart_windows_guest_network(session, connection_id, timeout=240,
-                                  mode="netsh"):
+def restart_windows_guest_network(session, connection_id, timeout=240, mode="netsh"):
     """
     Restart guest's network via serial console. mode "netsh" can not
     works in winxp system
@@ -3831,8 +3981,9 @@ def restart_windows_guest_network(session, connection_id, timeout=240,
         restart_windows_guest_network_by_devcon(session, connection_id)
 
 
-def restart_windows_guest_network_by_key(session, key, value, timeout=240,
-                                         mode="netsh"):
+def restart_windows_guest_network_by_key(
+    session, key, value, timeout=240, mode="netsh"
+):
     """
     Restart the guest network by nic Attribute like connectionid,
     interfaceindex, "netsh" can not work in winxp system.
@@ -3858,8 +4009,7 @@ def restart_windows_guest_network_by_key(session, key, value, timeout=240,
     restart_windows_guest_network(session, id, timeout, mode)
 
 
-def set_guest_network_status_by_devcon(session, status, netdevid,
-                                       timeout=240):
+def set_guest_network_status_by_devcon(session, status, netdevid, timeout=240):
     """
     using devcon to enable/disable the network device.
     using it must download the devcon.exe, and put it under c:\
@@ -3870,8 +4020,8 @@ def set_guest_network_status_by_devcon(session, status, netdevid,
 
 def restart_windows_guest_network_by_devcon(session, netdevid, timeout=240):
 
-    set_guest_network_status_by_devcon(session, 'disable', netdevid)
-    set_guest_network_status_by_devcon(session, 'enable', netdevid)
+    set_guest_network_status_by_devcon(session, "disable", netdevid)
+    set_guest_network_status_by_devcon(session, "enable", netdevid)
 
 
 def get_host_iface():
@@ -3880,7 +4030,7 @@ def get_host_iface():
     :return: a list of the interfaces in host
     :rtype: builtin.list
     """
-    proc_net_file = open(PROCFS_NET_PATH, 'r')
+    proc_net_file = open(PROCFS_NET_PATH, "r")
     host_iface_info = proc_net_file.read()
     proc_net_file.close()
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
@@ -3911,8 +4061,7 @@ def get_default_gateway(iface_name=False, session=None):
     return output
 
 
-def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
-                                    runner=None):
+def check_listening_port_by_service(service, port, listen_addr="0.0.0.0", runner=None):
     """
     Check TCP/IP listening by service
     """
@@ -3930,29 +4079,28 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
             output = process.run(cmd, shell=True).stdout_text
         else:
             if not runner(find_netstat_cmd):
-                raise exceptions.TestSkipError("Missing netstat command on "
-                                               "remote")
+                raise exceptions.TestSkipError("Missing netstat command on " "remote")
             output = runner(cmd)
     except process.CmdError:
         LOG.error("Failed to run command '%s'", cmd)
 
     if not re.search(find_str, output, re.M):
-        raise exceptions.TestFail(
-            "Failed to listen %s: %s" %
-            (find_str, output))
+        raise exceptions.TestFail("Failed to listen %s: %s" % (find_str, output))
     LOG.info("The listening is active: %s", output)
 
 
-def check_listening_port_remote_by_service(server_ip, server_user, server_pwd,
-                                           service, port, listen_addr):
+def check_listening_port_remote_by_service(
+    server_ip, server_user, server_pwd, service, port, listen_addr
+):
     """
     Check remote TCP/IP listening by service
     """
     # setup remote session
     session = None
     try:
-        session = remote.wait_for_login('ssh', server_ip, '22', server_user,
-                                        server_pwd, r"[\#\$]\s*$")
+        session = remote.wait_for_login(
+            "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+        )
         runner = session.cmd_output
         check_listening_port_by_service(service, port, listen_addr, runner)
     except Exception:
@@ -3970,9 +4118,12 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
                        default is '1 seconds'
     :param runner: command runner, it's a remote session
     """
-    cmd = "iptables -A INPUT -s %s -m time --kerneltz --timestart \
+    cmd = (
+        "iptables -A INPUT -s %s -m time --kerneltz --timestart \
            $(date +%%H:%%M:%%S) --timestop $(date --date='+%s' +%%H:%%M:%%S) \
-           -j DROP" % (ip_addr, block_time)
+           -j DROP"
+        % (ip_addr, block_time)
+    )
     list_rules = "iptables -L"
     find_iptables = "which iptables"
     try:
@@ -3982,12 +4133,12 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
             except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
             output = local_runner(cmd, shell=True)
-            LOG.debug("List current iptables rules:\n%s",
-                      local_runner(list_rules))
+            LOG.debug("List current iptables rules:\n%s", local_runner(list_rules))
         else:
             if not runner(find_iptables):
-                raise exceptions.TestSkipError("Missing 'iptables' command on "
-                                               "remote")
+                raise exceptions.TestSkipError(
+                    "Missing 'iptables' command on " "remote"
+                )
             output = runner(cmd)
             LOG.debug("List current iptables rules:\n%s", runner(list_rules))
     except process.CmdError:
@@ -4034,11 +4185,13 @@ def _get_traceview_path(session, params):
     :return: the proper traceview path
     """
 
-    traceview_path_template = params.get("traceview_path_template",
-                                         "WIN_UTILS:\\traceview\\%s\\%%PROCESSOR_ARCHITECTURE%%\\traceview.exe")
+    traceview_path_template = params.get(
+        "traceview_path_template",
+        "WIN_UTILS:\\traceview\\%s\\%%PROCESSOR_ARCHITECTURE%%\\traceview.exe",
+    )
     traceview_ver = "win10"
     os_version = system.version(session)
-    main_ver = int(os_version.split('.')[0])
+    main_ver = int(os_version.split(".")[0])
     if main_ver < 10:
         traceview_ver = "win8"
     traceview_path_template = traceview_path_template % traceview_ver
@@ -4113,12 +4266,12 @@ def _get_msis_queues_from_traceview_output(output):
     """
     info_str = "Start checking dump content for MSIs&queues info"
     LOG.info(info_str)
-    search_exp = r'No MSIX, using (\d+) queue'
+    search_exp = r"No MSIX, using (\d+) queue"
     # special case for vectors = 0
     queue_when_no_msi = re.search(search_exp, output)
     if queue_when_no_msi:
         return (0, int(queue_when_no_msi.group(1)))
-    search_exp = r'(\d+) MSIs, (\d+) queues'
+    search_exp = r"(\d+) MSIs, (\d+) queues"
     search_res = re.search(search_exp, output)
     if not search_res:
         return (None, None)
@@ -4154,9 +4307,9 @@ def _wait_for_traceview_dump_finished(session, dump_file_path, timeout=100):
             return False
         return True
 
-    utils_misc.wait_for(lambda: _check_file_size_unchanged(),
-                        timeout=timeout,
-                        step=10.0)
+    utils_misc.wait_for(
+        lambda: _check_file_size_unchanged(), timeout=timeout, step=10.0
+    )
     kill_cmd = "taskkill /im traceview.exe"
     session.cmd(kill_cmd)
 
@@ -4182,13 +4335,20 @@ def dump_traceview_log_windows(params, vm, timeout=360):
     session = vm.wait_for_login(timeout=timeout)
     # prepare traceview environment
     pdb_local_path, traceview_local_path = _prepare_traceview_windows(
-        params, session, timeout)
+        params, session, timeout
+    )
     session.close()
-    start_traceview_cmd = "%s -start test_session -pdb %s -level 5 -flag 0x1fff -f %s" % (
-        traceview_local_path, pdb_local_path, log_path)
+    start_traceview_cmd = (
+        "%s -start test_session -pdb %s -level 5 -flag 0x1fff -f %s"
+        % (traceview_local_path, pdb_local_path, log_path)
+    )
     stop_traceview_cmd = "%s -stop test_session" % traceview_local_path
     dump_cmd = "%s -process %s -pdb %s -o %s" % (
-        traceview_local_path, log_path, pdb_local_path, dump_file)
+        traceview_local_path,
+        log_path,
+        pdb_local_path,
+        dump_file,
+    )
     # start traceview
     LOG.info("Start trace view with pdb file")
     session_serial = vm.wait_for_serial_login(timeout=timeout)
@@ -4199,7 +4359,8 @@ def dump_traceview_log_windows(params, vm, timeout=360):
         LOG.info("Restart guest nic")
         mac = vm.get_mac_address(0)
         connection_id = get_windows_nic_attribute(
-            session_serial, "macaddress", mac, "netconnectionid")
+            session_serial, "macaddress", mac, "netconnectionid"
+        )
         restart_windows_guest_network(session_serial, connection_id)
         # stop traceview
         LOG.info("Stop traceview")
@@ -4211,11 +4372,11 @@ def dump_traceview_log_windows(params, vm, timeout=360):
         if status:
             LOG.error("Cann't dump log file %s: %s" % (log_path, output))
         _wait_for_traceview_dump_finished(session_serial, dump_file)
-        status, output = session_serial.cmd_status_output(
-            "type %s" % dump_file)
+        status, output = session_serial.cmd_status_output("type %s" % dump_file)
         if status:
             raise exceptions.TestError(
-                "Cann't read dumped file %s: %s" % (dump_file, output))
+                "Cann't read dumped file %s: %s" % (dump_file, output)
+            )
         return output
     finally:
         session_serial.close()
@@ -4251,7 +4412,7 @@ def set_netkvm_param_value(vm, param, value):
     session = vm.wait_for_serial_login(timeout=360)
     try:
         LOG.info("Set %s to %s" % (param, value))
-        cmd = 'netsh netkvm setparam 0 param=%s value=%s'
+        cmd = "netsh netkvm setparam 0 param=%s value=%s"
         cmd = cmd % (param, value)
         status, output = session.cmd_status_output(cmd)
         if status:
@@ -4262,7 +4423,8 @@ def set_netkvm_param_value(vm, param, value):
         LOG.info("Restart nic to apply changes")
         dev_mac = vm.virtnet[0].mac
         connection_id = get_windows_nic_attribute(
-            session, "macaddress", dev_mac, "netconnectionid")
+            session, "macaddress", dev_mac, "netconnectionid"
+        )
         restart_windows_guest_network(session, connection_id)
         time.sleep(10)
     finally:
@@ -4281,14 +4443,14 @@ def get_netkvm_param_value(vm, param):
     session = vm.wait_for_serial_login(timeout=360)
     try:
         LOG.info("Get the value of %s" % param)
-        cmd = 'netsh netkvm getparam 0 param=%s' % param
+        cmd = "netsh netkvm getparam 0 param=%s" % param
         status, output = session.cmd_status_output(cmd)
         if status:
             err = "Error occured when get value of %s. " % param
             err += "With status=%s, output=%s" % (status, output)
             raise exceptions.TestError(err)
         lines = output.strip().splitlines()
-        value = lines[0].strip().split('=')[1].strip()
+        value = lines[0].strip().split("=")[1].strip()
         return value
     finally:
         session.close()
@@ -4316,18 +4478,23 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
-    res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
-                                       ignore_status=False, session=session)[0]
+    res = utils_misc.cmd_status_output(
+        "which ovs-vsctl", shell=True, ignore_status=False, session=session
+    )[0]
     if res == 1:
-        raise exceptions.TestError("ovs-vsctl: command not found, please make "
-                                   "sure the openvswitch or openvswitch2 pkg "
-                                   "is installed.")
-    cmd = "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"\
-          "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+        raise exceptions.TestError(
+            "ovs-vsctl: command not found, please make "
+            "sure the openvswitch or openvswitch2 pkg "
+            "is installed."
+        )
+    cmd = (
+        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"
+        "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+    )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
-    return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
-                                        ignore_status=ignore_status,
-                                        session=session)
+    return utils_misc.cmd_status_output(
+        tmux_cmd, shell=True, verbose=True, ignore_status=ignore_status, session=session
+    )
 
 
 def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
@@ -4352,18 +4519,23 @@ def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
-    res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
-                                       ignore_status=False, session=session)[0]
+    res = utils_misc.cmd_status_output(
+        "which ovs-vsctl", shell=True, ignore_status=False, session=session
+    )[0]
     if res == 1:
-        raise exceptions.TestError("ovs-vsctl: command not found, please make "
-                                   "sure the openvswitch or openvswitch2 pkg "
-                                   "is installed.")
-    cmd = "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};dhclient -r;"\
-          "sleep 5 ;dhclient {1}".format(ovs_bridge_name, iface_name)
+        raise exceptions.TestError(
+            "ovs-vsctl: command not found, please make "
+            "sure the openvswitch or openvswitch2 pkg "
+            "is installed."
+        )
+    cmd = (
+        "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};dhclient -r;"
+        "sleep 5 ;dhclient {1}".format(ovs_bridge_name, iface_name)
+    )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
-    return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
-                                        ignore_status=ignore_status,
-                                        session=session)
+    return utils_misc.cmd_status_output(
+        tmux_cmd, shell=True, verbose=True, ignore_status=ignore_status, session=session
+    )
 
 
 def get_channel_info(session, interface):
@@ -4389,9 +4561,9 @@ def get_channel_info(session, interface):
             settings = maximum
         elif line.count("Current"):
             settings = current
-        parameter = line.split(':')[0].strip()
+        parameter = line.split(":")[0].strip()
         if parameter in ["RX", "TX", "Other", "Combined"]:
-            settings[parameter] = line.split(':')[1].strip()
+            settings[parameter] = line.split(":")[1].strip()
     return maximum, current
 
 
@@ -4414,7 +4586,7 @@ def set_channel(session, interface, parameter, value):
     _, current = get_channel_info(session, interface)
     LOG.debug("After set, the current value is %s" % current)
     try:
-        if int(current['Combined']) == int(value):
+        if int(current["Combined"]) == int(value):
             return True
         else:
             LOG.error("Setting passed, but checking failed:%s", current)
@@ -4423,7 +4595,9 @@ def set_channel(session, interface, parameter, value):
     return False
 
 
-def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False, remove_addr_on_dev=True):
+def create_linux_bridge_tmux(
+    linux_bridge_name, iface_name=None, ignore_status=False, remove_addr_on_dev=True
+):
     """
     Create linux bridge and connect a physical interface to the bridge via tmux command on local host.
     Note: If iface_name is specified, it should be the one in current connection. Or you will break current
@@ -4441,24 +4615,30 @@ def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     """
     # Create bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(['tmux', 'dhcp-client', 'net-tools']):
+    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"]):
         raise exceptions.TestError("Failed to install the required packages.")
     if os.path.exists(br_path):
         s, o = delete_linux_bridge_tmux(linux_bridge_name, iface_name)
         if s:
-            raise exceptions.TestError("Create bridge fail as there is already interface named '%s' on the host "
-                                       "and can not delete with error: %s" % (linux_bridge_name, o))
+            raise exceptions.TestError(
+                "Create bridge fail as there is already interface named '%s' on the host "
+                "and can not delete with error: %s" % (linux_bridge_name, o)
+            )
     if iface_name:
-        shell_cmd = "ip link add name {0} type bridge; ip link set {1} up; " \
-                    "ip link set {1} master {0}; ip link set {0} up; " \
-                    "pkill dhclient; sleep 6; " \
-                    "dhclient {0};".format(linux_bridge_name, iface_name)
+        shell_cmd = (
+            "ip link add name {0} type bridge; ip link set {1} up; "
+            "ip link set {1} master {0}; ip link set {0} up; "
+            "pkill dhclient; sleep 6; "
+            "dhclient {0};".format(linux_bridge_name, iface_name)
+        )
         if remove_addr_on_dev:
             shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
         cmd = 'tmux -c "%s"' % shell_cmd
     else:
-        cmd = 'ip link add %s type bridge' % linux_bridge_name
-    return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
+        cmd = "ip link add %s type bridge" % linux_bridge_name
+    return utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, ignore_status=ignore_status
+    )
 
 
 def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False):
@@ -4473,17 +4653,23 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     """
     # Delete the linux bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(['tmux', 'dhcp-client', 'procps-ng', 'net-tools']):
+    if not utils_package.package_install(
+        ["tmux", "dhcp-client", "procps-ng", "net-tools"]
+    ):
         raise exceptions.TestError("Failed to install the required packages.")
     if not os.path.exists(br_path):
         LOG.info("There is no bridge named '%s' on the host" % linux_bridge_name)
         return
     if iface_name:
-        cmd = 'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; ' \
-              'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
+        cmd = (
+            'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; '
+            'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
+        )
     else:
-        cmd = 'ip link delete %s' % linux_bridge_name
-    return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
+        cmd = "ip link delete %s" % linux_bridge_name
+    return utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, ignore_status=ignore_status
+    )
 
 
 def check_filter_rules(ifname, bandwidth, expect_none=False):
@@ -4513,13 +4699,13 @@ def check_filter_rules(ifname, bandwidth, expect_none=False):
     LOG.debug("bandwidth from setting:%s" % str(bandwidth))
     try:
         if "average" in bandwidth:
-            if tc_police.group(2) == 'M':
+            if tc_police.group(2) == "M":
                 tc_average = int(tc_police.group(1)) * 1000
             else:
                 tc_average = int(tc_police.group(1))
             assert tc_average == int(bandwidth["average"]) * 8
         if "burst" in bandwidth:
-            if tc_police.group(4) == 'M':
+            if tc_police.group(4) == "M":
                 tc_burst = int(tc_police.group(3)) * 1024
             else:
                 tc_burst = int(tc_police.group(3))
@@ -4542,7 +4728,10 @@ def check_class_rules(ifname, rule_id, bandwidth):
     cmd = "tc class show dev %s" % ifname
     class_output = process.run(cmd, shell=True).stdout_text
     LOG.debug("Bandwidth class output: %s", class_output)
-    class_pattern = (r"class htb %s.*rate (\d+)(K?M?)bit ceil (\d+)(K?M?)bit burst (\d+)(K?M?)b.*" % rule_id)
+    class_pattern = (
+        r"class htb %s.*rate (\d+)(K?M?)bit ceil (\d+)(K?M?)bit burst (\d+)(K?M?)b.*"
+        % rule_id
+    )
     tc_htb = re.search(class_pattern, class_output, re.M)
     if not tc_htb:
         LOG.error("Can't find outbound setting for htb %s", rule_id)
@@ -4556,19 +4745,19 @@ def check_class_rules(ifname, rule_id, bandwidth):
         rate = int(bandwidth["average"]) * 8
     try:
         if rate:
-            if tc_htb.group(2) == 'M':
+            if tc_htb.group(2) == "M":
                 rate_check = int(tc_htb.group(1)) * 1000
             else:
                 rate_check = int(tc_htb.group(1))
             assert rate_check == rate
         if "peak" in bandwidth:
-            if tc_htb.group(4) == 'M':
+            if tc_htb.group(4) == "M":
                 ceil_check = int(tc_htb.group(3)) * 1000
             else:
                 ceil_check = int(tc_htb.group(3))
             assert ceil_check == int(bandwidth["peak"]) * 8
         if "burst" in bandwidth:
-            if tc_htb.group(6) == 'M':
+            if tc_htb.group(6) == "M":
                 tc_burst = int(tc_htb.group(5)) * 1024
             else:
                 tc_burst = int(tc_htb.group(5))

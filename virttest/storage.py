@@ -32,7 +32,7 @@ from virttest import ceph
 from virttest import nvme
 from virttest import data_dir
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def preprocess_images(bindir, params, env):
@@ -88,16 +88,22 @@ def file_exists(params, filename_path):
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
         keyring_conf = params.get("image_ceph_keyring_conf")
-        return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                                    ceph_conf, keyring_conf, rbd_namespace_name)
+        return ceph.rbd_image_exist(
+            ceph_monitor,
+            rbd_pool_name,
+            rbd_image_name,
+            ceph_conf,
+            keyring_conf,
+            rbd_namespace_name,
+        )
 
-    if params.get('enable_nvme') == 'yes':
+    if params.get("enable_nvme") == "yes":
         return nvme.file_exists(params, filename_path)
 
-    if params.get('enable_ssh') == 'yes':
+    if params.get("enable_ssh") == "yes":
         return storage_ssh.file_exists(params, filename_path)
 
-    if params.get('enable_curl') == 'yes':
+    if params.get("enable_curl") == "yes":
         return curl.file_exists(params, filename_path)
 
     return os.path.exists(filename_path)
@@ -118,19 +124,25 @@ def file_remove(params, filename_path):
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
         keyring_conf = params.get("image_ceph_keyring_conf")
-        return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                                 ceph_conf, keyring_conf, rbd_namespace_name)
+        return ceph.rbd_image_rm(
+            ceph_monitor,
+            rbd_pool_name,
+            rbd_image_name,
+            ceph_conf,
+            keyring_conf,
+            rbd_namespace_name,
+        )
 
     if params.get("gluster_brick"):
         # TODO: Add implementation for gluster_brick
         return
 
-    if params.get('storage_type') in ('iscsi', 'lvm', 'iscsi-direct'):
+    if params.get("storage_type") in ("iscsi", "lvm", "iscsi-direct"):
         # TODO: Add implementation for iscsi/lvm
         return
 
     # skip removing raw device
-    if params.get('image_raw_device') == 'yes':
+    if params.get("image_raw_device") == "yes":
         return
 
     if os.path.exists(filename_path):
@@ -184,55 +196,59 @@ def get_image_filename(params, root_dir, basename=False):
         image_format = params.get("image_format", "qcow2")
         if enable_curl:
             # required libcurl params
-            curl_protocol = params['curl_protocol']
-            curl_server = params['curl_server']
-            curl_path = params['curl_path']
+            curl_protocol = params["curl_protocol"]
+            curl_server = params["curl_server"]
+            curl_path = params["curl_path"]
 
             # optional libcurl params
-            curl_user = params.get('curl_username')
-            curl_passwd = params.get('curl_password')
+            curl_user = params.get("curl_username")
+            curl_passwd = params.get("curl_password")
 
-            return curl.get_image_filename(curl_protocol, curl_server,
-                                           curl_path, curl_user, curl_passwd)
+            return curl.get_image_filename(
+                curl_protocol, curl_server, curl_path, curl_user, curl_passwd
+            )
         if enable_nbd:
             return nbd.get_image_filename(params)
         if enable_iscsi:
-            if storage_type == 'iscsi-direct':
-                portal = params.get('portal_ip')
-                target = params.get('target')
-                lun = params.get('lun', 0)
-                user = params.get('chap_user')
-                password = params.get('chap_passwd')
-                return iscsi.get_image_filename(portal, target, lun,
-                                                user, password)
+            if storage_type == "iscsi-direct":
+                portal = params.get("portal_ip")
+                target = params.get("target")
+                lun = params.get("lun", 0)
+                user = params.get("chap_user")
+                password = params.get("chap_passwd")
+                return iscsi.get_image_filename(portal, target, lun, user, password)
         if enable_gluster:
             return gluster.get_image_filename(params, image_name, image_format)
         if enable_ceph:
             rbd_pool_name = params["rbd_pool_name"]
             rbd_namespace_name = params.get("rbd_namespace_name")
-            rbd_image_name = "%s.%s" % (image_name.split("/")[-1],
-                                        image_format)
-            ceph_conf = params.get('ceph_conf')
-            ceph_monitor = params.get('ceph_monitor')
-            return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
-                                           rbd_image_name, ceph_conf,
-                                           rbd_namespace_name)
+            rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
+            ceph_conf = params.get("ceph_conf")
+            ceph_monitor = params.get("ceph_monitor")
+            return ceph.get_image_filename(
+                ceph_monitor,
+                rbd_pool_name,
+                rbd_image_name,
+                ceph_conf,
+                rbd_namespace_name,
+            )
         if enable_nvme:
-            address = params['nvme_pci_address']
-            namespace = params.get('nvme_namespace', 1)
+            address = params["nvme_pci_address"]
+            namespace = params.get("nvme_namespace", 1)
             return nvme.get_image_filename(address, namespace)
         if enable_ssh:
             # required libssh options
-            server = params['image_ssh_host']
-            ssh_image_path = params['image_ssh_path']
+            server = params["image_ssh_host"]
+            ssh_image_path = params["image_ssh_path"]
 
             # optional libssh options
-            user = params.get('image_ssh_user')
-            port = params.get('image_ssh_port')
-            host_key_check = params.get('image_ssh_host_key_check')
+            user = params.get("image_ssh_user")
+            port = params.get("image_ssh_port")
+            host_key_check = params.get("image_ssh_host_key_check")
 
-            return storage_ssh.get_image_filename(server, ssh_image_path,
-                                                  user, port, host_key_check)
+            return storage_ssh.get_image_filename(
+                server, ssh_image_path, user, port, host_key_check
+            )
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         LOG.warn("image_name parameter not set.")
@@ -251,16 +267,18 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
            image_format -- the format of the image (qcow2, raw etc)
     :raise VMDeviceError: When no matching disk found (in indirect method).
     """
+
     def sort_cmp(first, second):
         """
         This function used for sort to suit for this test, first sort by len
         then by value.
         """
+
         def cmp(x, y):
             return (x > y) - (x < y)
 
-        first_contains_digit = re.findall(r'[vhs]d[a-z]*[\d]+', first)
-        second_contains_digit = re.findall(r'[vhs]d[a-z]*[\d]+', second)
+        first_contains_digit = re.findall(r"[vhs]d[a-z]*[\d]+", first)
+        second_contains_digit = re.findall(r"[vhs]d[a-z]*[\d]+", second)
 
         if not first_contains_digit and not second_contains_digit:
             if len(first) > len(second):
@@ -283,30 +301,31 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
     if indirect_image_select:
         re_name = image_name
         indirect_image_select = int(indirect_image_select)
-        matching_images = process.run("ls -1d %s" % re_name,
-                                      shell=True).stdout_text
-        matching_images = sorted(matching_images.split('\n'),
-                                 key=functools.cmp_to_key(sort_cmp))
-        if matching_images[-1] == '':
+        matching_images = process.run("ls -1d %s" % re_name, shell=True).stdout_text
+        matching_images = sorted(
+            matching_images.split("\n"), key=functools.cmp_to_key(sort_cmp)
+        )
+        if matching_images[-1] == "":
             matching_images = matching_images[:-1]
         try:
             image_name = matching_images[indirect_image_select]
         except IndexError:
-            raise virt_vm.VMDeviceError("No matching disk found for "
-                                        "name = '%s', matching = '%s' and "
-                                        "selector = '%s'" %
-                                        (re_name, matching_images,
-                                         indirect_image_select))
-        for protected in params.get('indirect_image_blacklist', '').split(' '):
+            raise virt_vm.VMDeviceError(
+                "No matching disk found for "
+                "name = '%s', matching = '%s' and "
+                "selector = '%s'" % (re_name, matching_images, indirect_image_select)
+            )
+        for protected in params.get("indirect_image_blacklist", "").split(" "):
             match_image = re.match(protected, image_name)
             if match_image and match_image.group(0) == image_name:
                 # We just need raise an error if it is totally match, such as
                 # sda sda1 and so on, but sdaa should not raise an error.
-                raise virt_vm.VMDeviceError("Matching disk is in blacklist. "
-                                            "name = '%s', matching = '%s' and "
-                                            "selector = '%s'" %
-                                            (re_name, matching_images,
-                                             indirect_image_select))
+                raise virt_vm.VMDeviceError(
+                    "Matching disk is in blacklist. "
+                    "name = '%s', matching = '%s' and "
+                    "selector = '%s'"
+                    % (re_name, matching_images, indirect_image_select)
+                )
 
     image_format = params.get("image_format", "qcow2")
     if params.get("image_raw_device") == "yes":
@@ -339,14 +358,18 @@ def get_iso_filename(cdrom_params, root_dir, basename=False):
 
     if enable_nvme:
         return None
-    elif any((enable_nbd, enable_gluster, enable_ceph,
-              enable_iscsi, enable_curl, enable_ssh)):
+    elif any(
+        (enable_nbd, enable_gluster, enable_ceph, enable_iscsi, enable_curl, enable_ssh)
+    ):
         return get_image_filename(cdrom_params, None, basename)
     else:
         iso = cdrom_params.get("cdrom")
         if iso:
-            iso = os.path.basename(iso) if basename else utils_misc.get_path(
-                root_dir, iso)
+            iso = (
+                os.path.basename(iso)
+                if basename
+                else utils_misc.get_path(root_dir, iso)
+            )
         return iso
 
 
@@ -382,8 +405,9 @@ class ImageSecret(object):
         image_secret = params.get("image_secret")
         image_format = params.get("image_format")
         image_encryption = params.get("image_encryption")
-        if ((image_format == "qcow2" and image_encryption == "luks") or
-                image_format == "luks"):
+        if (
+            image_format == "qcow2" and image_encryption == "luks"
+        ) or image_format == "luks":
             return cls(image, image_secret)
 
     def save_to_file(self):
@@ -407,7 +431,7 @@ class Cookie(object):
         self.image = image
         self.data = cookie_data
         self.data_format = cookie_data_format
-        self.aid = '%s_cookie_secret' % self.image
+        self.aid = "%s_cookie_secret" % self.image
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
         self.save_to_file()
 
@@ -440,35 +464,35 @@ class StorageAuth(object):
                      libcurl: password, sslverify, timeout, readahead, cookie
         """
         self.image = image
-        self.aid = '%s_access' % self.image
+        self.aid = "%s_access" % self.image
         self.storage_type = storage_type
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
         self.data_format = data_format
 
-        if self.storage_type == 'iscsi-direct':
+        if self.storage_type == "iscsi-direct":
             self._chap_passwd = data
-            self.iscsi_initiator = info.get('initiator')
-        elif self.storage_type == 'ceph':
+            self.iscsi_initiator = info.get("initiator")
+        elif self.storage_type == "ceph":
             self._ceph_key = data
-        elif self.storage_type == 'glusterfs-direct':
-            self.peers = info['peers']
+        elif self.storage_type == "glusterfs-direct":
+            self.peers = info["peers"]
 
             # TODO: logfile and debug will be moved to a class,
             # they'll be defined as common options for all backends
-            self.debug = info['debug']
-            self.logfile = info['logfile']
-        elif self.storage_type == 'nbd':
+            self.debug = info["debug"]
+            self.logfile = info["logfile"]
+        elif self.storage_type == "nbd":
             # TODO: now we only support tls-creds-x509, we can add a
             # param 'nbd_tls_creds_object' to differentiate objects,
             # e.g. tls-creds-psk
-            self.tls_creds = info['tls_creds']
-            self.reconnect_delay = info['reconnect_delay']
-        elif self.storage_type == 'curl':
+            self.tls_creds = info["tls_creds"]
+            self.reconnect_delay = info["reconnect_delay"]
+        elif self.storage_type == "curl":
             self._password = data
-            self.cookie = info['cookie']
-            self.sslverify = info['sslverify']
-            self.readahead = info['readahead']
-            self.timeout = info['timeout']
+            self.cookie = info["cookie"]
+            self.sslverify = info["sslverify"]
+            self.readahead = info["readahead"]
+            self.timeout = info["timeout"]
 
         if self.data is not None:
             self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
@@ -476,11 +500,11 @@ class StorageAuth(object):
 
     @property
     def data(self):
-        if self.storage_type == 'iscsi-direct':
+        if self.storage_type == "iscsi-direct":
             return self._chap_passwd
-        elif self.storage_type == 'ceph':
+        elif self.storage_type == "ceph":
             return self._ceph_key
-        elif self.storage_type == 'curl':
+        elif self.storage_type == "curl":
             return self._password
         else:
             return None
@@ -506,61 +530,101 @@ class StorageAuth(object):
         enable_curl = params.get("enable_curl") == "yes"
 
         if enable_iscsi:
-            if storage_type == 'iscsi-direct':
-                initiator = params.get('initiator')
-                data = params.get('chap_passwd')
-                data_format = params.get('data_format', 'raw')
-                auth = cls(image, data, data_format, storage_type,
-                           initiator=initiator) if data or initiator else None
+            if storage_type == "iscsi-direct":
+                initiator = params.get("initiator")
+                data = params.get("chap_passwd")
+                data_format = params.get("data_format", "raw")
+                auth = (
+                    cls(image, data, data_format, storage_type, initiator=initiator)
+                    if data or initiator
+                    else None
+                )
         elif enable_ceph:
-            data = params.get('ceph_key')
-            data_format = params.get('data_format', 'base64')
-            auth = cls(image, data, data_format,
-                       storage_type) if data else None
+            data = params.get("ceph_key")
+            data_format = params.get("data_format", "base64")
+            auth = cls(image, data, data_format, storage_type) if data else None
         elif enable_gluster:
-            if storage_type == 'glusterfs-direct':
-                peers = json.loads(params.get('gluster_peers', '[]'))
-                debug = params.get('gluster_debug')
-                logfile = params.get('gluster_logfile')
-                auth = cls(image, None, None, storage_type,
-                           debug=debug, logfile=logfile,
-                           peers=peers) if debug or logfile or peers else None
+            if storage_type == "glusterfs-direct":
+                peers = json.loads(params.get("gluster_peers", "[]"))
+                debug = params.get("gluster_debug")
+                logfile = params.get("gluster_logfile")
+                auth = (
+                    cls(
+                        image,
+                        None,
+                        None,
+                        storage_type,
+                        debug=debug,
+                        logfile=logfile,
+                        peers=peers,
+                    )
+                    if debug or logfile or peers
+                    else None
+                )
         elif enable_nbd:
             # tls-creds is supported for ip only
-            tls_creds = params.get(
-                'nbd_client_tls_creds') if params.get('nbd_server') else None
-            reconnect_delay = params.get('nbd_reconnect_delay')
-            auth = cls(
-                image, None, None, storage_type,
-                tls_creds=tls_creds, reconnect_delay=reconnect_delay
-            ) if tls_creds or reconnect_delay else None
+            tls_creds = (
+                params.get("nbd_client_tls_creds") if params.get("nbd_server") else None
+            )
+            reconnect_delay = params.get("nbd_reconnect_delay")
+            auth = (
+                cls(
+                    image,
+                    None,
+                    None,
+                    storage_type,
+                    tls_creds=tls_creds,
+                    reconnect_delay=reconnect_delay,
+                )
+                if tls_creds or reconnect_delay
+                else None
+            )
         elif enable_curl:
             # cookie data in a secure way, only for http/https
-            cookie = Cookie(
-                image, params['curl_cookie_secret'],
-                params.get('curl_cookie_secret_format', 'raw'),
-            ) if params.get('curl_cookie_secret') else None
+            cookie = (
+                Cookie(
+                    image,
+                    params["curl_cookie_secret"],
+                    params.get("curl_cookie_secret_format", "raw"),
+                )
+                if params.get("curl_cookie_secret")
+                else None
+            )
 
             # sslverify, only for https/ftps
-            sslverify = params.get('curl_sslverify')
+            sslverify = params.get("curl_sslverify")
 
             # size of the read-ahead cache
-            readahead = int(float(
-                utils_numeric.normalize_data_size(params['curl_readahead'],
-                                                  order_magnitude="B")
-            )) if params.get('curl_readahead') else None
+            readahead = (
+                int(
+                    float(
+                        utils_numeric.normalize_data_size(
+                            params["curl_readahead"], order_magnitude="B"
+                        )
+                    )
+                )
+                if params.get("curl_readahead")
+                else None
+            )
 
             # timeout for connections in seconds
-            timeout = params.get('curl_timeout')
+            timeout = params.get("curl_timeout")
 
             # password
-            data = params.get('curl_password')
-            data_format = params.get('curl_password_format', 'raw')
+            data = params.get("curl_password")
+            data_format = params.get("curl_password_format", "raw")
 
             if any((data, cookie, sslverify, readahead, timeout)):
-                auth = cls(image, data, data_format, storage_type,
-                           cookie=cookie, sslverify=sslverify,
-                           readahead=readahead, timeout=timeout)
+                auth = cls(
+                    image,
+                    data,
+                    data_format,
+                    storage_type,
+                    cookie=cookie,
+                    sslverify=sslverify,
+                    readahead=readahead,
+                    timeout=timeout,
+                )
 
         return auth
 
@@ -615,8 +679,7 @@ def retrieve_access_info(image, params):
     images = image_chain if image_chain else [image]
 
     for img in images:
-        auth = StorageAuth.auth_info_define_by_params(
-            img, params.object_params(img))
+        auth = StorageAuth.auth_info_define_by_params(img, params.object_params(img))
         if auth is not None:
             access_info[img] = auth
 
@@ -649,13 +712,30 @@ def retrieve_secrets(image, params):
 class ImageEncryption(object):
     """Image encryption configuration."""
 
-    __slots__ = ("format", "key_secret", "base_key_secrets",
-                 "cipher_alg", "cipher_mode", "ivgen_alg",
-                 "ivgen_hash_alg", "hash_alg", "iter_time")
+    __slots__ = (
+        "format",
+        "key_secret",
+        "base_key_secrets",
+        "cipher_alg",
+        "cipher_mode",
+        "ivgen_alg",
+        "ivgen_hash_alg",
+        "hash_alg",
+        "iter_time",
+    )
 
-    def __init__(self, encryption_format, key_secret, base_key_secrets,
-                 cipher_alg, cipher_mode, ivgen_alg, ivgen_hash_alg, hash_alg,
-                 iter_time):
+    def __init__(
+        self,
+        encryption_format,
+        key_secret,
+        base_key_secrets,
+        cipher_alg,
+        cipher_mode,
+        ivgen_alg,
+        ivgen_hash_alg,
+        hash_alg,
+        iter_time,
+    ):
         """
         Initialize image encryption configuration.
 
@@ -696,8 +776,17 @@ class ImageEncryption(object):
         ivgen_hash_alg = params.get("image_ivgen_hash_alg")
         hash_alg = params.get("image_hash_alg")
         iter_time = params.get("image_iter_time")
-        return cls(encryption_format, key_secret, key_secrets, cipher_alg,
-                   cipher_mode, ivgen_alg, ivgen_hash_alg, hash_alg, iter_time)
+        return cls(
+            encryption_format,
+            key_secret,
+            key_secrets,
+            cipher_alg,
+            cipher_mode,
+            ivgen_alg,
+            ivgen_hash_alg,
+            hash_alg,
+            iter_time,
+        )
 
     @property
     def image_key_secrets(self):
@@ -721,20 +810,24 @@ def copy_nfs_image(params, root_dir, basename=False):
         # check for image availability in NFS shared path
         base_dir = params["nfs_mount_dir"]
         dst = get_image_filename(params, base_dir, basename=basename)
-        if (not os.path.isfile(dst) or
-                utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
+        if (
+            not os.path.isfile(dst)
+            or utils_misc.get_image_info(dst)["lcounts"].lower() == "true"
+        ):
             source = get_image_filename(params, root_dir)
-            LOG.debug("Checking for image available in image data "
-                      "path - %s", source)
+            LOG.debug("Checking for image available in image data " "path - %s", source)
             # check for image availability in images data directory
-            if (os.path.isfile(source) and not
-                    utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
+            if (
+                os.path.isfile(source)
+                and not utils_misc.get_image_info(source)["lcounts"].lower() == "true"
+            ):
                 LOG.debug("Copying guest image from %s to %s", source, dst)
                 shutil.copy(source, dst)
             else:
-                raise exceptions.TestSetupFail("Guest image is unavailable"
-                                               "/corrupted in %s and %s" %
-                                               (source, dst))
+                raise exceptions.TestSetupFail(
+                    "Guest image is unavailable"
+                    "/corrupted in %s and %s" % (source, dst)
+                )
 
 
 class OptionMissing(Exception):
@@ -770,14 +863,13 @@ class QemuImg(object):
         self.size = params.get("image_size", "10G")
         self.storage_type = params.get("storage_type", "local fs")
         self.check_output = params.get("check_output") == "yes"
-        self.image_blkdebug_filename = get_image_blkdebug_filename(params,
-                                                                   root_dir)
+        self.image_blkdebug_filename = get_image_blkdebug_filename(params, root_dir)
         self.remote_keywords = params.get(
-            "remote_image",
-            "gluster iscsi rbd nbd nvme http https ftp ftps"
+            "remote_image", "gluster iscsi rbd nbd nvme http https ftp ftps"
         ).split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
-            tag, params)
+            tag, params
+        )
         image_chain = params.get("image_chain")
         self.tag = tag
         self.root_dir = root_dir
@@ -793,20 +885,20 @@ class QemuImg(object):
                     self.base_tag = image_chain[index - 1]
         if self.base_tag:
             base_params = params.object_params(self.base_tag)
-            self.base_image_filename = get_image_filename(base_params,
-                                                          root_dir)
+            self.base_image_filename = get_image_filename(base_params, root_dir)
             self.base_format = base_params.get("image_format")
         if self.snapshot_tag:
             ss_params = params.object_params(self.snapshot_tag)
-            self.snapshot_image_filename = get_image_filename(ss_params,
-                                                              root_dir)
+            self.snapshot_image_filename = get_image_filename(ss_params, root_dir)
             self.snapshot_format = ss_params.get("image_format")
 
         self.image_access = ImageAccessInfo.access_info_define_by_params(
-            self.tag, self.params)
+            self.tag, self.params
+        )
 
         self.data_file = self.external_data_file_defined_by_params(
-            params, root_dir, tag)
+            params, root_dir, tag
+        )
 
     @classmethod
     def external_data_file_defined_by_params(cls, params, root_dir, tag):
@@ -816,19 +908,23 @@ class QemuImg(object):
         if not enable_data_file:
             return
         if image_format != "qcow2":
-            raise ValueError("The %s format does not support external "
-                             "data file" % image_format)
+            raise ValueError(
+                "The %s format does not support external " "data file" % image_format
+            )
         image_size = params["image_size"]
         base_name = os.path.basename(params["image_name"])
-        data_file_path = params.get("image_data_file_path",
-                                    os.path.join(root_dir, "images",
-                                                 "%s.data_file"
-                                                 % base_name))
+        data_file_path = params.get(
+            "image_data_file_path",
+            os.path.join(root_dir, "images", "%s.data_file" % base_name),
+        )
         data_file_params = utils_params.Params(
-            {"image_name": data_file_path,
-             "image_format": "raw",
-             "image_size": image_size,
-             "image_raw_device": "yes"})
+            {
+                "image_name": data_file_path,
+                "image_format": "raw",
+                "image_size": image_size,
+                "image_raw_device": "yes",
+            }
+        )
         return cls(data_file_params, root_dir, "%s_data_file" % tag)
 
     def check_option(self, option):
@@ -851,8 +947,7 @@ class QemuImg(object):
 
         return False
 
-    def backup_image(self, params, root_dir, action, good=True,
-                     skip_existing=False):
+    def backup_image(self, params, root_dir, action, good=True, skip_existing=False):
         """
         Backup or restore a disk image, depending on the action chosen.
 
@@ -866,6 +961,7 @@ class QemuImg(object):
                image_name -- the name of the image file, without extension
                image_format -- the format of the image (qcow2, raw etc)
         """
+
         def get_backup_set(filename, backup_dir, action, good):
             """
             Get all sources and destinations required for each backup.
@@ -874,16 +970,15 @@ class QemuImg(object):
                 os.makedirs(backup_dir)
             basename = os.path.basename(filename)
             bkp_set = []
-            if action not in ('backup', 'restore'):
-                LOG.error("No backup sets for action: %s, state: %s",
-                          action, good)
+            if action not in ("backup", "restore"):
+                LOG.error("No backup sets for action: %s, state: %s", action, good)
                 return bkp_set
             if good:
                 src = filename
                 dst = os.path.join(backup_dir, "%s.backup" % basename)
-                if action == 'backup':
+                if action == "backup":
                     bkp_set = [[src, dst]]
-                elif action == 'restore':
+                elif action == "restore":
                     bkp_set = [[dst, src]]
             else:
                 # We have to make 2 backups, one of the bad image, another one
@@ -891,29 +986,26 @@ class QemuImg(object):
                 src_bad = filename
                 src_good = os.path.join(backup_dir, "%s.backup" % basename)
                 hsh = utils_misc.generate_random_string(4)
-                dst_bad = (os.path.join(backup_dir, "%s.bad.%s" %
-                                        (basename, hsh)))
-                dst_good = (os.path.join(backup_dir, "%s.good.%s" %
-                                         (basename, hsh)))
-                if action == 'backup':
+                dst_bad = os.path.join(backup_dir, "%s.bad.%s" % (basename, hsh))
+                dst_good = os.path.join(backup_dir, "%s.good.%s" % (basename, hsh))
+                if action == "backup":
                     bkp_set = [[src_bad, dst_bad], [src_good, dst_good]]
-                elif action == 'restore':
+                elif action == "restore":
                     bkp_set = [[src_good, src_bad]]
             return bkp_set
 
         backup_dir = params.get("backup_dir", "")
         if not os.path.isabs(backup_dir):
             backup_dir = os.path.join(root_dir, backup_dir)
-        backup_set = get_backup_set(self.image_filename, backup_dir,
-                                    action, good)
+        backup_set = get_backup_set(self.image_filename, backup_dir, action, good)
         if self.is_remote_image():
             backup_func = self.copy_data_remote
-        elif params.get('image_raw_device') == 'yes':
+        elif params.get("image_raw_device") == "yes":
             backup_func = self.copy_data_raw
         else:
             backup_func = self.copy_data_file
 
-        if action == 'backup':
+        if action == "backup":
             backup_size = 0
             for src, dst in backup_set:
                 if os.path.isfile(src):
@@ -922,32 +1014,39 @@ class QemuImg(object):
                     # TODO: get the size of block/remote images
                     if self.size:
                         backup_size += int(
-                            float(utils_numeric.normalize_data_size(
-                                self.size, order_magnitude="B"))
+                            float(
+                                utils_numeric.normalize_data_size(
+                                    self.size, order_magnitude="B"
+                                )
+                            )
                         )
 
             s = os.statvfs(backup_dir)
             image_dir_free_disk_size = s.f_bavail * s.f_bsize
-            LOG.info("backup image size: %d, available size: %d.",
-                     backup_size, image_dir_free_disk_size)
-            if not self.is_disk_size_enough(backup_size,
-                                            image_dir_free_disk_size):
+            LOG.info(
+                "backup image size: %d, available size: %d.",
+                backup_size,
+                image_dir_free_disk_size,
+            )
+            if not self.is_disk_size_enough(backup_size, image_dir_free_disk_size):
                 return
 
         # backup secret file if presented
         if self.encryption_config.key_secret:
-            bk_set = get_backup_set(self.encryption_config.key_secret.filename,
-                                    secret_dir, action, good)
+            bk_set = get_backup_set(
+                self.encryption_config.key_secret.filename, secret_dir, action, good
+            )
             for src, dst in bk_set:
                 self.copy_data_file(src, dst)
 
         # backup external data file
         if self.data_file:
-            self.data_file.backup_image(self.data_file.params, root_dir,
-                                        action, good, skip_existing)
+            self.data_file.backup_image(
+                self.data_file.params, root_dir, action, good, skip_existing
+            )
 
         for src, dst in backup_set:
-            if action == 'backup' and skip_existing and os.path.exists(dst):
+            if action == "backup" and skip_existing and os.path.exists(dst):
                 LOG.debug("Image backup %s already exists, skipping...", dst)
                 continue
             backup_func(src, dst)
@@ -960,10 +1059,12 @@ class QemuImg(object):
         if self.data_file:
             self.data_file.rm_backup_image()
 
-        backup_dir = utils_misc.get_path(self.root_dir,
-                                         self.params.get("backup_dir", ""))
-        image_name = os.path.join(backup_dir, "%s.backup" %
-                                  os.path.basename(self.image_filename))
+        backup_dir = utils_misc.get_path(
+            self.root_dir, self.params.get("backup_dir", "")
+        )
+        image_name = os.path.join(
+            backup_dir, "%s.backup" % os.path.basename(self.image_filename)
+        )
         LOG.debug("Removing image file %s as requested", image_name)
         if os.path.exists(image_name):
             os.unlink(image_name)
@@ -985,7 +1086,7 @@ class QemuImg(object):
         backup_func = self.copy_data_file
         if self.is_remote_image():
             backup_func = self.copy_data_remote
-        elif params.get('image_raw_device') == 'yes':
+        elif params.get("image_raw_device") == "yes":
             backup_func = self.copy_data_raw
 
         backup_size = 0
@@ -995,14 +1096,16 @@ class QemuImg(object):
             # TODO: get the size of block/remote images
             if self.size:
                 backup_size += int(
-                    float(utils_numeric.normalize_data_size(
-                        self.size, order_magnitude="B"))
+                    float(
+                        utils_numeric.normalize_data_size(
+                            self.size, order_magnitude="B"
+                        )
+                    )
                 )
         s = os.statvfs(root_dir)
         image_dir_free_disk_size = s.f_bavail * s.f_bsize
         LOG.info("Checking disk size on %s.", root_dir)
-        if not self.is_disk_size_enough(backup_size,
-                                        image_dir_free_disk_size):
+        if not self.is_disk_size_enough(backup_size, image_dir_free_disk_size):
             return
 
         backup_func(src, utils_misc.get_path(root_dir, filename))
@@ -1012,10 +1115,11 @@ class QemuImg(object):
         """Check if available disk size is enough for the data copy."""
         minimum_disk_free = 1.2 * required
         if available < minimum_disk_free:
-            LOG.error("Free space: %s MB", (available / 1048576.))
-            LOG.error("Backup size: %s MB", (required / 1048576.))
-            LOG.error("Minimum free space acceptable: %s MB",
-                      (minimum_disk_free / 1048576.))
+            LOG.error("Free space: %s MB", (available / 1048576.0))
+            LOG.error("Backup size: %s MB", (required / 1048576.0))
+            LOG.error(
+                "Minimum free space acceptable: %s MB", (minimum_disk_free / 1048576.0)
+            )
             LOG.error("Available disk space is not enough. Skipping...")
             return False
         return True
@@ -1036,7 +1140,7 @@ class QemuImg(object):
         """Copy for files."""
         if os.path.isfile(src):
             LOG.debug("Copying %s -> %s", src, dst)
-            _dst = dst + '.part'
+            _dst = dst + ".part"
             shutil.copy(src, _dst)
             os.rename(_dst, dst)
         else:
@@ -1054,7 +1158,9 @@ class QemuImg(object):
         """
         if not params.get("image_name_%s_%s" % (image_name, vm_name)):
             m_image_name = params.get("image_name", "image")
-            vm_image_name = params.get("image_name_%s" % vm_name, "%s_%s" % (m_image_name, vm_name))
+            vm_image_name = params.get(
+                "image_name_%s" % vm_name, "%s_%s" % (m_image_name, vm_name)
+            )
             if params.get("clone_master", "yes") == "yes":
                 image_params = params.object_params(image_name)
                 image_params["image_name"] = vm_image_name
@@ -1070,8 +1176,9 @@ class QemuImg(object):
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
                     LOG.info("Clone master image for vms.")
-                    process.run(params.get("image_clone_command") %
-                                (m_image_fn, image_fn))
+                    process.run(
+                        params.get("image_clone_command") % (m_image_fn, image_fn)
+                    )
             params["image_name_%s" % vm_name] = vm_image_name
             params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
 

@@ -14,7 +14,7 @@ from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.devices import librarian
 from virttest.utils_test import libvirt
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def set_vm_attrs(vmxml, vm_attrs):
@@ -26,14 +26,14 @@ def set_vm_attrs(vmxml, vm_attrs):
     :return the updated vmxml
     """
     for attr, value in list(vm_attrs.items()):
-        LOG.debug('Set %s = %s', attr, value)
+        LOG.debug("Set %s = %s", attr, value)
         setattr(vmxml, attr, int(value) if value.isdigit() else value)
     vmxml.xmltreefile.write()
     vmxml.sync()
     return vmxml
 
 
-def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
+def check_guest_xml(vm_name, pat_in_dumpxml, option="", status_error=False):
     """
     Check the given pattern in the vm dumpxml
 
@@ -46,8 +46,11 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
     ret_stdout = virsh.dumpxml(vm_name, extra=option).stdout.strip()
     match = re.search(pat_in_dumpxml, ret_stdout)
     found = True if match else False
-    prefix_found = '' if found else 'not '
-    msg = "The pattern '%s' is %sfound in the vm dumpxml" % (pat_in_dumpxml, prefix_found)
+    prefix_found = "" if found else "not "
+    msg = "The pattern '%s' is %sfound in the vm dumpxml" % (
+        pat_in_dumpxml,
+        prefix_found,
+    )
     if found ^ status_error:
         LOG.debug(msg)
     else:

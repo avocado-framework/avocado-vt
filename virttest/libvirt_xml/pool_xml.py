@@ -13,7 +13,7 @@ from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
 from virttest import element_tree as ET
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class SourceXML(base.LibvirtXMLBase):
@@ -23,121 +23,168 @@ class SourceXML(base.LibvirtXMLBase):
     attributes which dependent on pool type.
     """
 
-    __slots__ = ('device_path', 'vg_name', 'host_name', 'dir_path',
-                 'adp_type', 'adp_name', 'adp_parent', 'adp_wwnn',
-                 'adp_wwpn', 'format_type', 'hosts', 'auth_type',
-                 'auth_username', 'secret_usage', 'secret_uuid',
-                 'iqn_name', 'protocol_ver')
+    __slots__ = (
+        "device_path",
+        "vg_name",
+        "host_name",
+        "dir_path",
+        "adp_type",
+        "adp_name",
+        "adp_parent",
+        "adp_wwnn",
+        "adp_wwpn",
+        "format_type",
+        "hosts",
+        "auth_type",
+        "auth_username",
+        "secret_usage",
+        "secret_uuid",
+        "iqn_name",
+        "protocol_ver",
+    )
 
     def __init__(self, virsh_instance=base.virsh):
         """
         Create new SourceXML instance.
         """
-        accessors.XMLAttribute(property_name='device_path',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='device',
-                               attribute='path')
-        accessors.XMLElementText(property_name='vg_name',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='name')
-        accessors.XMLAttribute(property_name='host_name',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='host',
-                               attribute='name')
-        accessors.XMLAttribute(property_name='dir_path',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='dir',
-                               attribute='path')
-        accessors.XMLAttribute(property_name='adp_type',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='adapter',
-                               attribute='type')
-        accessors.XMLAttribute(property_name='adp_name',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='adapter',
-                               attribute='name')
-        accessors.XMLAttribute(property_name='adp_parent',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='adapter',
-                               attribute='parent')
-        accessors.XMLAttribute(property_name='adp_wwnn',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='adapter',
-                               attribute='wwnn')
-        accessors.XMLAttribute(property_name='adp_wwpn',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='adapter',
-                               attribute='wwpn')
-        accessors.XMLAttribute(property_name='format_type',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='format',
-                               attribute='type')
-        accessors.XMLElementList('hosts', self, parent_xpath='/',
-                                 marshal_from=self.marshal_from_host,
-                                 marshal_to=self.marshal_to_host)
-        accessors.XMLAttribute(property_name='auth_type',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='auth',
-                               attribute='type')
-        accessors.XMLAttribute(property_name='auth_username',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='auth',
-                               attribute='username')
-        accessors.XMLAttribute(property_name='secret_usage',
-                               libvirtxml=self,
-                               parent_xpath='/auth',
-                               tag_name='secret',
-                               attribute='usage')
-        accessors.XMLAttribute(property_name='secret_uuid',
-                               libvirtxml=self,
-                               parent_xpath='/auth',
-                               tag_name='secret',
-                               attribute='uuid')
-        accessors.XMLAttribute(property_name='iqn_name',
-                               libvirtxml=self,
-                               parent_xpath='/initiator',
-                               tag_name='iqn',
-                               attribute='name')
-        accessors.XMLAttribute(property_name='protocol_ver',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='protocol',
-                               attribute='ver')
+        accessors.XMLAttribute(
+            property_name="device_path",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="device",
+            attribute="path",
+        )
+        accessors.XMLElementText(
+            property_name="vg_name", libvirtxml=self, parent_xpath="/", tag_name="name"
+        )
+        accessors.XMLAttribute(
+            property_name="host_name",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="host",
+            attribute="name",
+        )
+        accessors.XMLAttribute(
+            property_name="dir_path",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="dir",
+            attribute="path",
+        )
+        accessors.XMLAttribute(
+            property_name="adp_type",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="adapter",
+            attribute="type",
+        )
+        accessors.XMLAttribute(
+            property_name="adp_name",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="adapter",
+            attribute="name",
+        )
+        accessors.XMLAttribute(
+            property_name="adp_parent",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="adapter",
+            attribute="parent",
+        )
+        accessors.XMLAttribute(
+            property_name="adp_wwnn",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="adapter",
+            attribute="wwnn",
+        )
+        accessors.XMLAttribute(
+            property_name="adp_wwpn",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="adapter",
+            attribute="wwpn",
+        )
+        accessors.XMLAttribute(
+            property_name="format_type",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="format",
+            attribute="type",
+        )
+        accessors.XMLElementList(
+            "hosts",
+            self,
+            parent_xpath="/",
+            marshal_from=self.marshal_from_host,
+            marshal_to=self.marshal_to_host,
+        )
+        accessors.XMLAttribute(
+            property_name="auth_type",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="auth",
+            attribute="type",
+        )
+        accessors.XMLAttribute(
+            property_name="auth_username",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="auth",
+            attribute="username",
+        )
+        accessors.XMLAttribute(
+            property_name="secret_usage",
+            libvirtxml=self,
+            parent_xpath="/auth",
+            tag_name="secret",
+            attribute="usage",
+        )
+        accessors.XMLAttribute(
+            property_name="secret_uuid",
+            libvirtxml=self,
+            parent_xpath="/auth",
+            tag_name="secret",
+            attribute="uuid",
+        )
+        accessors.XMLAttribute(
+            property_name="iqn_name",
+            libvirtxml=self,
+            parent_xpath="/initiator",
+            tag_name="iqn",
+            attribute="name",
+        )
+        accessors.XMLAttribute(
+            property_name="protocol_ver",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="protocol",
+            attribute="ver",
+        )
 
         super(SourceXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = u"<source></source>"
+        self.xml = "<source></source>"
 
     @staticmethod
     def marshal_from_host(item, index, libvirtxml):
         """Convert a dictionary into a tag + attributes"""
-        del index           # not used
-        del libvirtxml      # not used
+        del index  # not used
+        del libvirtxml  # not used
         if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of host "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('host', dict(item))  # return copy of dict, not reference
+            raise xcepts.LibvirtXMLError(
+                "Expected a dictionary of host " "attributes, not a %s" % str(item)
+            )
+        return ("host", dict(item))  # return copy of dict, not reference
 
     @staticmethod
     def marshal_to_host(tag, attr_dict, index, libvirtxml):
         """Convert a tag + attributes into a dictionary"""
-        del index                    # not used
-        del libvirtxml               # not used
-        if tag != 'host':
-            return None              # skip this one
-        return dict(attr_dict)       # return copy of dict, not reference
+        del index  # not used
+        del libvirtxml  # not used
+        if tag != "host":
+            return None  # skip this one
+        return dict(attr_dict)  # return copy of dict, not reference
 
 
 class PoolXMLBase(base.LibvirtXMLBase):
@@ -164,88 +211,111 @@ class PoolXMLBase(base.LibvirtXMLBase):
             string, target path of pool
     """
 
-    __slots__ = ('pool_type', 'name', 'uuid', 'capacity',
-                 'allocation', 'available', 'source', 'target_path',
-                 'mode', 'owner', 'group')
+    __slots__ = (
+        "pool_type",
+        "name",
+        "uuid",
+        "capacity",
+        "allocation",
+        "available",
+        "source",
+        "target_path",
+        "mode",
+        "owner",
+        "group",
+    )
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
     __schema_name__ = "pool"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute(property_name='pool_type',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='pool',
-                               attribute='type')
-        accessors.XMLElementText(property_name='name',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='name')
-        accessors.XMLElementText(property_name='uuid',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='uuid')
-        accessors.XMLElementInt(property_name='capacity',
-                                libvirtxml=self,
-                                parent_xpath='/',
-                                tag_name='capacity')
-        accessors.XMLElementInt(property_name='allocation',
-                                libvirtxml=self,
-                                parent_xpath='/',
-                                tag_name='allocation')
-        accessors.XMLElementInt(property_name='available',
-                                libvirtxml=self,
-                                parent_xpath='/',
-                                tag_name='available')
-        accessors.XMLElementText(property_name='target_path',
-                                 libvirtxml=self,
-                                 parent_xpath='/target',
-                                 tag_name='path')
-        accessors.XMLElementText(property_name='mode',
-                                 libvirtxml=self,
-                                 parent_xpath='/target/permissions',
-                                 tag_name='mode')
-        accessors.XMLElementInt(property_name='owner',
-                                libvirtxml=self,
-                                parent_xpath='/target/permissions',
-                                tag_name='owner')
-        accessors.XMLElementInt(property_name='group',
-                                libvirtxml=self,
-                                parent_xpath='/target/permissions',
-                                tag_name='group')
+        accessors.XMLAttribute(
+            property_name="pool_type",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="pool",
+            attribute="type",
+        )
+        accessors.XMLElementText(
+            property_name="name", libvirtxml=self, parent_xpath="/", tag_name="name"
+        )
+        accessors.XMLElementText(
+            property_name="uuid", libvirtxml=self, parent_xpath="/", tag_name="uuid"
+        )
+        accessors.XMLElementInt(
+            property_name="capacity",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="capacity",
+        )
+        accessors.XMLElementInt(
+            property_name="allocation",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="allocation",
+        )
+        accessors.XMLElementInt(
+            property_name="available",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="available",
+        )
+        accessors.XMLElementText(
+            property_name="target_path",
+            libvirtxml=self,
+            parent_xpath="/target",
+            tag_name="path",
+        )
+        accessors.XMLElementText(
+            property_name="mode",
+            libvirtxml=self,
+            parent_xpath="/target/permissions",
+            tag_name="mode",
+        )
+        accessors.XMLElementInt(
+            property_name="owner",
+            libvirtxml=self,
+            parent_xpath="/target/permissions",
+            tag_name="owner",
+        )
+        accessors.XMLElementInt(
+            property_name="group",
+            libvirtxml=self,
+            parent_xpath="/target/permissions",
+            tag_name="group",
+        )
         super(PoolXMLBase, self).__init__(virsh_instance=virsh_instance)
 
     def get_source(self):
-        xmltreefile = self.__dict_get__('xml')
+        xmltreefile = self.__dict_get__("xml")
         try:
-            source_root = xmltreefile.reroot('/source')
+            source_root = xmltreefile.reroot("/source")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
-        sourcexml = SourceXML(virsh_instance=self.__dict_get__('virsh'))
+        sourcexml = SourceXML(virsh_instance=self.__dict_get__("virsh"))
         sourcexml.xmltreefile = source_root
         return sourcexml
 
     def del_source(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/source')
+        xmltreefile = self.__dict_get__("xml")
+        element = xmltreefile.find("/source")
         if element is not None:
             xmltreefile.remove(element)
             xmltreefile.write()
 
     def set_source(self, value):
         if not issubclass(type(value), SourceXML):
-            raise xcepts.LibvirtXMLError(
-                "Value must be a SourceXML or subclass")
-        xmltreefile = self.__dict_get__('xml')
+            raise xcepts.LibvirtXMLError("Value must be a SourceXML or subclass")
+        xmltreefile = self.__dict_get__("xml")
         self.del_source()
         root = xmltreefile.getroot()
         root.append(value.xmltreefile.getroot())
         xmltreefile.write()
 
     def add_source(self, tag, attr, text=None):
-        xmltreefile = self.__dict_get__('xml')
+        xmltreefile = self.__dict_get__("xml")
         try:
-            node = xmltreefile.find('/source')
+            node = xmltreefile.find("/source")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         if node is not None:
@@ -268,7 +338,7 @@ class PoolcapabilityXML(base.LibvirtXMLBase):
     def __init__(self, virsh_instance=base.virsh):
         super(PoolcapabilityXML, self).__init__(virsh_instance)
         # calls set_xml accessor method
-        self['xml'] = self.__dict_get__('virsh').pool_capabilities()
+        self["xml"] = self.__dict_get__("virsh").pool_capabilities()
 
     def get_pool_capabilities(self):
         """
@@ -278,52 +348,52 @@ class PoolcapabilityXML(base.LibvirtXMLBase):
          <vol_default_format>:[<vol_value>,...]}}
         """
         pool_cal = {}
-        pool_default_format_name = ''
-        vol_default_format_name = ''
-        poolxmltreefile = self.__dict_get__('xml')
-        for pooltype in poolxmltreefile.findall('pool'):
-            pool_type = pooltype.get('type')
+        pool_default_format_name = ""
+        vol_default_format_name = ""
+        poolxmltreefile = self.__dict_get__("xml")
+        for pooltype in poolxmltreefile.findall("pool"):
+            pool_type = pooltype.get("type")
             pool_type_info = pool_cal.get(pool_type, {})
-            if pooltype.find('poolOptions') is not None:
-                pool_options = pooltype.find('poolOptions')
-                pool_enum = pool_options.find('enum')
-                for default_pool_format in pool_options.findall('defaultFormat'):
-                    pool_default_format_name = default_pool_format.get('type')
+            if pooltype.find("poolOptions") is not None:
+                pool_options = pooltype.find("poolOptions")
+                pool_enum = pool_options.find("enum")
+                for default_pool_format in pool_options.findall("defaultFormat"):
+                    pool_default_format_name = default_pool_format.get("type")
                 pool_list = []
-                for pool_value in pool_enum.findall('value'):
+                for pool_value in pool_enum.findall("value"):
                     pool_value_name = pool_value.text
                     pool_list.append(pool_value_name)
                 pool_type_info[pool_default_format_name] = pool_list
-                if pooltype.find('volOptions') is not None:
-                    vol_options = pooltype.find('volOptions')
-                    enum_name = vol_options.find('enum')
-                    for default_vol_format in vol_options.findall('defaultFormat'):
-                        vol_default_format_name = default_vol_format.get('type')
+                if pooltype.find("volOptions") is not None:
+                    vol_options = pooltype.find("volOptions")
+                    enum_name = vol_options.find("enum")
+                    for default_vol_format in vol_options.findall("defaultFormat"):
+                        vol_default_format_name = default_vol_format.get("type")
                     vol_list = []
-                    for vol_value in enum_name.findall('value'):
+                    for vol_value in enum_name.findall("value"):
                         vol_value_name = vol_value.text
                         vol_list.append(vol_value_name)
                     pool_type_info[vol_default_format_name] = vol_list
                 else:
-                    pool_type_info['vol_default_format_name'] = []
+                    pool_type_info["vol_default_format_name"] = []
                 pool_cal[pool_type] = pool_type_info
             else:
-                pool_type_info['pool_default_format_name'] = []
+                pool_type_info["pool_default_format_name"] = []
                 vol_list = []
-                if pooltype.find('volOptions') is not None:
-                    vol_options = pooltype.find('volOptions')
-                    enum_name = vol_options.find('enum')
-                    for default_vol_format in vol_options.findall('defaultFormat'):
-                        vol_default_format_name = default_vol_format.get('type')
-                        if pool_type == 'rbd':
+                if pooltype.find("volOptions") is not None:
+                    vol_options = pooltype.find("volOptions")
+                    enum_name = vol_options.find("enum")
+                    for default_vol_format in vol_options.findall("defaultFormat"):
+                        vol_default_format_name = default_vol_format.get("type")
+                        if pool_type == "rbd":
                             vol_list.append()
                         else:
-                            for vol_value in enum_name.findall('value'):
+                            for vol_value in enum_name.findall("value"):
                                 vol_value_name = vol_value.text
                                 vol_list.append(vol_value_name)
                             pool_type_info[vol_default_format_name] = vol_list
                 else:
-                    pool_type_info['vol_default_format_name'] = []
+                    pool_type_info["vol_default_format_name"] = []
                 pool_cal[pool_type] = pool_type_info
         return pool_cal
 
@@ -336,12 +406,12 @@ class PoolXML(PoolXMLBase):
 
     __slots__ = []
 
-    def __init__(self, pool_type='dir', virsh_instance=base.virsh):
+    def __init__(self, pool_type="dir", virsh_instance=base.virsh):
         """
         Initialize new instance with empty XML
         """
         super(PoolXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = u"<pool type='%s'></pool>" % pool_type
+        self.xml = "<pool type='%s'></pool>" % pool_type
 
     @staticmethod
     def new_from_dumpxml(name, virsh_instance=base.virsh):
@@ -353,7 +423,7 @@ class PoolXML(PoolXMLBase):
         :return: new initialized PoolXML instance
         """
         pool_xml = PoolXML(virsh_instance=virsh_instance)
-        pool_xml['xml'] = virsh_instance.pool_dumpxml(name)
+        pool_xml["xml"] = virsh_instance.pool_dumpxml(name)
         return pool_xml
 
     @staticmethod
@@ -377,13 +447,13 @@ class PoolXML(PoolXMLBase):
         """
         pool_xml = PoolXML.new_from_dumpxml(name, virsh_instance)
         pool_details = {}
-        pool_details['type'] = pool_xml.pool_type
-        pool_details['uuid'] = pool_xml.uuid
-        pool_details['capacity'] = pool_xml.capacity
-        pool_details['allocation'] = pool_xml.allocation
-        pool_details['available'] = pool_xml.available
+        pool_details["type"] = pool_xml.pool_type
+        pool_details["uuid"] = pool_xml.uuid
+        pool_details["capacity"] = pool_xml.capacity
+        pool_details["allocation"] = pool_xml.allocation
+        pool_details["available"] = pool_xml.available
         if pool_xml.pool_type != "gluster":
-            pool_details['target_path'] = pool_xml.target_path
+            pool_details["target_path"] = pool_xml.target_path
         return pool_details
 
     def pool_undefine(self):
@@ -402,9 +472,9 @@ class PoolXML(PoolXMLBase):
         """
         result = self.virsh.pool_define(self.xml)
         if result.exit_status:
-            LOG.error("Define %s failed.\n"
-                      "Detail: %s.", self.name,
-                      result.stderr_text)
+            LOG.error(
+                "Define %s failed.\n" "Detail: %s.", self.name, result.stderr_text
+            )
             return False
         return True
 
@@ -448,15 +518,14 @@ class PoolXML(PoolXMLBase):
         error_msg = "Error reported while defining pool:\n"
         try:
             if not poolxml.pool_define():
-                raise xcepts.LibvirtXMLError(error_msg + "%s"
-                                             % poolxml.get('xml'))
+                raise xcepts.LibvirtXMLError(error_msg + "%s" % poolxml.get("xml"))
         except process.CmdError as detail:
             del poolxml
             # Allow exceptions thrown here since state will be undefined
             backup.pool_define()
             raise xcepts.LibvirtXMLError(error_msg + "%s" % detail)
         if not poolxml.pool_define():
-            LOG.info("Pool xml: %s" % poolxml.get('xml'))
+            LOG.info("Pool xml: %s" % poolxml.get("xml"))
             _cleanup(details="Define pool %s failed" % new_name)
         if start_pool:
             pool_ins.start_pool(new_name)

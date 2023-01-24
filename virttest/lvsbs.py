@@ -15,7 +15,7 @@ class SandboxService(object):
     Management for a single new/existing sandboxed service
     """
 
-    def __init__(self, params, service_name, uri='lxc:///'):
+    def __init__(self, params, service_name, uri="lxc:///"):
         """Initialize connection to sandbox service with name and parameters"""
         # Intended workflow is:
         #   Use virt-sandbox-service for create/destroy
@@ -23,16 +23,16 @@ class SandboxService(object):
         #   Use virsh for list/edit/modify manipulation
         self.virsh = virsh.Virsh(uri=uri, ignore_status=True)
         self.command = lvsb_base.SandboxCommandBase(params, service_name)
-        self.command.BINARY_PATH_PARAM = params.get('virt_sandbox_service_binary',
-                                                    "virt-sandbox-service")
-        self.command.add_optarg('--connect', uri)
+        self.command.BINARY_PATH_PARAM = params.get(
+            "virt_sandbox_service_binary", "virt-sandbox-service"
+        )
+        self.command.add_optarg("--connect", uri)
         # We need to pass self.service_name to service.Factory.create_service to
         # create a service. Then we will get a SpecificServiceManager object as
         # self.service. But SpecificServiceManager is not pickleable, save init
         # args here.
         self._run = process.run
-        self.service = service.Factory.create_service(self.service_name,
-                                                      run=self._run)
+        self.service = service.Factory.create_service(self.service_name, run=self._run)
         # make self.start() --> self.service.start()
         self._bind_service_commands()
 
@@ -45,18 +45,17 @@ class SandboxService(object):
     def __getstate__(self):
         """Serialize instance for pickling"""
         # SandboxCommandBase is directly pickleable
-        return {'command': self.command, 'run': self._run, 'virsh': dict(virsh)}
+        return {"command": self.command, "run": self._run, "virsh": dict(virsh)}
 
     def __setstate__(self, state):
         """Actualize instance from state"""
         # virsh is it's own dict of init params
-        self.virsh = virsh.Virsh(**state['virsh'])
+        self.virsh = virsh.Virsh(**state["virsh"])
         # already used it's own get/sets state methods when unpickling state
-        self.command = state['command']
+        self.command = state["command"]
         # Recreate SpecificServiceManager from the init args
-        self._run = state['run']
-        self.service = service.Factory.create_service(self.service_name,
-                                                      run=self._run)
+        self._run = state["run"]
+        self.service = service.Factory.create_service(self.service_name, run=self._run)
         self._bind_service_commands()
 
     # Enforce read-only at all levels
@@ -79,10 +78,10 @@ class SandboxService(object):
     uri = property(__get_uri__, __set_uri__, __del_uri__)
 
     def create(self):
-        return self.command.run(extra='create')
+        return self.command.run(extra="create")
 
     def destroy(self):
-        return self.command.run(extra='destroy')
+        return self.command.run(extra="destroy")
 
     # Specialized list calls can just call self.virsh.dom_list() directly
     @property  # behave like attribute to make value-access easier
@@ -101,8 +100,10 @@ class SandboxService(object):
             else:
                 assert len(column_names) > 0
                 # raises exception when column_names & value count mismatch
-                items = [(column_names[index].lower(), value.lower())
-                         for index, value in line.strip().split()]
+                items = [
+                    (column_names[index].lower(), value.lower())
+                    for index, value in line.strip().split()
+                ]
                 # combine [('id',99), ('name', 'foobar'), ('state', 'running')]
                 result.append(dict(items))
         return result

@@ -9,8 +9,13 @@ scheme that setuptools uses.  If "git describe" returns an error
 rather than in a git working copy), then we fall back on reading the
 contents of the RELEASE-VERSION file.
 """
-__all__ = ("get_git_version", "get_version", "get_top_commit",
-           "get_current_branch", "get_pretty_version_info")
+__all__ = (
+    "get_git_version",
+    "get_version",
+    "get_top_commit",
+    "get_current_branch",
+    "get_pretty_version_info",
+)
 
 import os
 
@@ -19,7 +24,7 @@ from avocado.utils import process
 from virttest import data_dir
 
 _ROOT_PATH = data_dir.get_root_dir()
-RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
+RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, "RELEASE-VERSION")
 
 global _GIT_VERSION_CACHE, _VERSION_CACHE, _TOP_COMMIT_CACHE
 global _CURRENT_BRANCH_CACHE, _PRETTY_VERSION_CACHE
@@ -41,8 +46,7 @@ def _execute_git_command(command):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            return process.run(command,
-                               shell=True, verbose=False).stdout_text.strip()
+            return process.run(command, shell=True, verbose=False).stdout_text.strip()
         finally:
             os.chdir(cwd)
     except process.CmdError:
@@ -54,8 +58,7 @@ def get_git_version(abbrev=4):
     if _GIT_VERSION_CACHE is not None:
         return _GIT_VERSION_CACHE
 
-    _GIT_VERSION_CACHE = _execute_git_command('git describe --abbrev=%d' %
-                                              abbrev)
+    _GIT_VERSION_CACHE = _execute_git_command("git describe --abbrev=%d" % abbrev)
 
     return _GIT_VERSION_CACHE
 
@@ -66,7 +69,8 @@ def get_top_commit():
         return _TOP_COMMIT_CACHE
 
     _TOP_COMMIT_CACHE = _execute_git_command(
-        "git show --summary --pretty='%H' | head -1")
+        "git show --summary --pretty='%H' | head -1"
+    )
 
     return _TOP_COMMIT_CACHE
 
@@ -75,8 +79,7 @@ def get_current_branch():
     global _CURRENT_BRANCH_CACHE
     if _CURRENT_BRANCH_CACHE is not None:
         return _CURRENT_BRANCH_CACHE
-    _CURRENT_BRANCH_CACHE = _execute_git_command('git rev-parse '
-                                                 '--abbrev-ref HEAD')
+    _CURRENT_BRANCH_CACHE = _execute_git_command("git rev-parse " "--abbrev-ref HEAD")
     return _CURRENT_BRANCH_CACHE
 
 
@@ -115,12 +118,14 @@ def get_version(abbrev=4):
 
     if version is None:
         try:
-            cmd_result = process.run("rpm -q avocado-plugins-vt "
-                                     "--queryformat '%{VERSION}'",
-                                     shell=True, verbose=False)
-            return '%s (RPM install)' % cmd_result.stdout_text
+            cmd_result = process.run(
+                "rpm -q avocado-plugins-vt " "--queryformat '%{VERSION}'",
+                shell=True,
+                verbose=False,
+            )
+            return "%s (RPM install)" % cmd_result.stdout_text
         except process.CmdError:
-            return 'unknown'
+            return "unknown"
 
     if version != release_version:
         _write_release_version(version)

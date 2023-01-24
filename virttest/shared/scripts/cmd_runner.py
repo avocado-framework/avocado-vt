@@ -14,18 +14,17 @@ import string
 
 def getstatusoutput(cmd):
     """Return (status, output) of executing cmd in a shell."""
-    pipe = os.popen('{ ' + cmd + '; } 2>&1', 'r')
+    pipe = os.popen("{ " + cmd + "; } 2>&1", "r")
     text = pipe.read()
     sts = pipe.close()
     if sts is None:
         sts = 0
-    if text[-1:] == '\n':
+    if text[-1:] == "\n":
         text = text[:-1]
     return sts, text
 
 
 class Runner(object):
-
     def __init__(self):
         """
         Set the global parameter for thread clean up
@@ -76,12 +75,13 @@ class Runner(object):
         """
         Main thread for testing, will do clean up afterwards
         """
-        pid_file = "/tmp/pid_file_%s" % "".join(random.sample(string.letters,
-                                                              4))
-        monitor = threading.Thread(target=self.monitor_thread, args=(m_cmd,
-                                                                     pid_file, r_path))
-        test_runner = threading.Thread(target=self.test_thread, args=(m_cmd,
-                                                                      t_cmd, pid_file))
+        pid_file = "/tmp/pid_file_%s" % "".join(random.sample(string.letters, 4))
+        monitor = threading.Thread(
+            target=self.monitor_thread, args=(m_cmd, pid_file, r_path)
+        )
+        test_runner = threading.Thread(
+            target=self.test_thread, args=(m_cmd, t_cmd, pid_file)
+        )
 
         monitor.start()
         test_runner.start()
@@ -92,7 +92,7 @@ class Runner(object):
             self.kill_thread_flag = False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 4:
         this = os.path.basename(sys.argv[0])
         print("Usage: %s <monitor_cmd> <test_cmd> <test_path> <timeout>" % this)

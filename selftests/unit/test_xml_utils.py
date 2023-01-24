@@ -9,7 +9,7 @@ import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import xml_utils
@@ -17,13 +17,12 @@ from virttest import element_tree as ElementTree
 
 
 class xml_test_data(unittest.TestCase):
-
     def get_tmp_files(self, prefix, sufix):
-        path_string = os.path.join('/tmp', "%s*%s" % (prefix, sufix))
+        path_string = os.path.join("/tmp", "%s*%s" % (prefix, sufix))
         return glob.glob(path_string)
 
     def setUp(self):
-        xml_utils.TMPPFX = 'xml_utils_unittest_temp_'
+        xml_utils.TMPPFX = "xml_utils_unittest_temp_"
         # Compacted to save excess scrolling
         self.TEXT_REPLACE_KEY = "TEST_XML_TEXT_REPLACE"
         self.XMLSTR = """<?xml version='1.0' encoding='UTF-8'?><capabilities><host>
@@ -48,8 +47,9 @@ class xml_test_data(unittest.TestCase):
         /usr/libexec/qemu-kvm</emulator></domain></arch><features><cpuselection
         /><deviceboot/><pae/><nonpae/><acpi default='on' toggle='yes'/><apic
         default='on' toggle='no'/></features></guest></capabilities>"""
-        (fd, self.XMLFILE) = tempfile.mkstemp(suffix=xml_utils.TMPSFX,
-                                              prefix=xml_utils.TMPPFX)
+        (fd, self.XMLFILE) = tempfile.mkstemp(
+            suffix=xml_utils.TMPSFX, prefix=xml_utils.TMPPFX
+        )
         os.write(fd, self.XMLSTR)
         os.close(fd)
         self.canonicalize_test_xml()
@@ -58,7 +58,7 @@ class xml_test_data(unittest.TestCase):
         os.unlink(self.XMLFILE)
         leftovers = self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX)
         if len(leftovers) > 0:
-            self.fail('Leftover files: %s' % str(leftovers))
+            self.fail("Leftover files: %s" % str(leftovers))
 
     def canonicalize_test_xml(self):
         et = ElementTree.parse(self.XMLFILE)
@@ -83,13 +83,11 @@ class xml_test_data(unittest.TestCase):
 
 
 class test_ElementTree(xml_test_data):
-
     def test_bundled_elementtree(self):
         self.assertEqual(xml_utils.ElementTree.VERSION, ElementTree.VERSION)
 
 
 class test_TempXMLFile(xml_test_data):
-
     def test_prefix_sufix(self):
         filename = os.path.basename(self.XMLFILE)
         self.assert_(filename.startswith(xml_utils.TMPPFX))
@@ -106,6 +104,7 @@ class test_TempXMLFile(xml_test_data):
         def out_of_scope_tempxmlfile():
             tmpf = xml_utils.TempXMLFile()
             return tmpf.name
+
         self.assertRaises(OSError, os.stat, out_of_scope_tempxmlfile())
 
     def test_TempXMLFile_explicit(self):
@@ -155,6 +154,7 @@ class test_XMLBackup(xml_test_data):
         def out_of_scope_xmlbackup():
             tmpf = self.class_to_test(self.XMLFILE)
             return tmpf.name
+
         filename = out_of_scope_xmlbackup()
         self.assertRaises(OSError, os.unlink, filename)
 
@@ -186,23 +186,21 @@ class test_XMLTreeFile(xml_test_data):
 
     def test_sourcebackupfile_closed_file(self):
         xml = self.class_to_test(self.XMLFILE)
-        self.assertRaises(ValueError, xml.sourcebackupfile.write, 'foobar')
+        self.assertRaises(ValueError, xml.sourcebackupfile.write, "foobar")
 
     def test_sourcebackupfile_closed_string(self):
         xml = self.class_to_test(self.XMLSTR)
-        self.assertRaises(ValueError, xml.sourcebackupfile.write, 'foobar')
+        self.assertRaises(ValueError, xml.sourcebackupfile.write, "foobar")
 
     def test_init_str(self):
         xml = self.class_to_test(self.XMLSTR)
         self.assert_(xml.sourcefilename is not None)
-        self.assertEqual(xml.sourcebackupfile.name,
-                         xml.sourcefilename)
+        self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_init_xml(self):
         xml = self.class_to_test(self.XMLFILE)
         self.assert_(xml.sourcefilename is not None)
-        self.assertEqual(xml.sourcebackupfile.name,
-                         xml.sourcefilename)
+        self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_restore_from_string(self):
         xmlbackup = self.class_to_test(self.XMLSTR)
@@ -223,8 +221,8 @@ class test_XMLTreeFile(xml_test_data):
         bu_tmps = tmps.backup_copy()
         self.assertTrue(self.is_same_contents(bu_tmpf.name, tmpf.name))
         self.assertTrue(self.is_same_contents(bu_tmps.name, tmps.name))
-        tmpf.remove_by_xpath('guest/arch/wordsize')
-        tmps.find('guest/arch/wordsize').text = 'FOOBAR'
+        tmpf.remove_by_xpath("guest/arch/wordsize")
+        tmps.find("guest/arch/wordsize").text = "FOOBAR"
         tmpf.write()
         tmps.write()
         self.assertFalse(self.is_same_contents(bu_tmpf.name, tmpf.name))
@@ -234,7 +232,7 @@ class test_XMLTreeFile(xml_test_data):
 
     def test_write_default(self):
         xmlbackup = self.class_to_test(self.XMLFILE)
-        wordsize = xmlbackup.find('guest/arch/wordsize')
+        wordsize = xmlbackup.find("guest/arch/wordsize")
         self.assertTrue(wordsize is not None)
         self.assertEqual(int(wordsize.text), 32)
         wordsize.text = str(64)
@@ -251,7 +249,7 @@ class test_XMLTreeFile(xml_test_data):
     def test_write_other_changed(self):
         xmlbackup = self.class_to_test(self.XMLSTR)
         otherfile = xml_utils.TempXMLFile()
-        wordsize = xmlbackup.find('guest/arch/wordsize')
+        wordsize = xmlbackup.find("guest/arch/wordsize")
         wordsize.text = str(64)
         xmlbackup.write(otherfile)
         otherfile.close()
@@ -262,7 +260,7 @@ class test_XMLTreeFile(xml_test_data):
 
     def test_read_other_changed(self):
         xmlbackup = self.class_to_test(self.XMLSTR)
-        wordsize = xmlbackup.find('guest/arch/wordsize')
+        wordsize = xmlbackup.find("guest/arch/wordsize")
         wordsize.text = str(64)
         otherfile = xml_utils.TempXMLFile()
         xmlbackup.write(otherfile)
@@ -286,27 +284,26 @@ class test_XMLTreeFile(xml_test_data):
     def test_get_xpath(self):
         # 2.6 ElementPath doesn't support predicates as in 2.7 :(
         # (it blindly returns the first match)
-        self.assertEqual(*self.get_xpath_elements('guest/arch/wordsize'))
-        self.assertEqual(*self.get_xpath_elements('guest/arch/machine'))
-        self.assertEqual(*self.get_xpath_elements('host/cpu/arch'))
+        self.assertEqual(*self.get_xpath_elements("guest/arch/wordsize"))
+        self.assertEqual(*self.get_xpath_elements("guest/arch/machine"))
+        self.assertEqual(*self.get_xpath_elements("host/cpu/arch"))
 
     def test_create_by_xpath(self):
         testxml = self.class_to_test(self.XMLSTR)
-        self.assertTrue(testxml.find('host/cpu') is not None)
-        self.assertFalse(testxml.find('host/cpu/foo') is not None)
-        testxml.create_by_xpath('host/cpu/foo/bar')
-        self.assertTrue(testxml.find('host/cpu/foo/bar') is not None)
-        self.assertFalse(testxml.find('host/cpu/foo/baz') is not None)
-        testxml.create_by_xpath('host/cpu/foo/bar/baz')
-        self.assertTrue(testxml.find('host/cpu/foo/bar/baz') is not None)
+        self.assertTrue(testxml.find("host/cpu") is not None)
+        self.assertFalse(testxml.find("host/cpu/foo") is not None)
+        testxml.create_by_xpath("host/cpu/foo/bar")
+        self.assertTrue(testxml.find("host/cpu/foo/bar") is not None)
+        self.assertFalse(testxml.find("host/cpu/foo/baz") is not None)
+        testxml.create_by_xpath("host/cpu/foo/bar/baz")
+        self.assertTrue(testxml.find("host/cpu/foo/bar/baz") is not None)
         # something totally new
-        self.assertFalse(testxml.find('foo/bar/baz') is not None)
-        testxml.create_by_xpath('foo/bar/baz')
-        self.assertTrue(testxml.find('foo/bar/baz') is not None)
+        self.assertFalse(testxml.find("foo/bar/baz") is not None)
+        testxml.create_by_xpath("foo/bar/baz")
+        self.assertTrue(testxml.find("foo/bar/baz") is not None)
 
 
 class test_templatized_xml(xml_test_data):
-
     def setUp(self):
         self.MAPPING = {"foo": "bar", "bar": "baz", "baz": "foo"}
         self.FULLREPLACE = """<$foo $bar="$baz">${baz}${foo}${bar}</$foo>"""

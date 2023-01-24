@@ -4,6 +4,7 @@ import struct
 import os
 import signal
 import sys
+
 # -*- coding: utf-8 -*-
 
 """
@@ -14,10 +15,13 @@ Script used to join machine into multicast groups.
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("""%s [mgroup_count] [prefix] [suffix]
+        print(
+            """%s [mgroup_count] [prefix] [suffix]
         mgroup_count: count of multicast addresses
         prefix: multicast address prefix
-        suffix: multicast address suffix""" % sys.argv[0])
+        suffix: multicast address suffix"""
+            % sys.argv[0]
+        )
         sys.exit()
 
     mgroup_count = int(sys.argv[1])
@@ -28,8 +32,7 @@ if __name__ == "__main__":
     for i in range(mgroup_count):
         mcast = prefix + "." + str(suffix + i)
         try:
-            mreq = struct.pack("4sl", socket.inet_aton(mcast),
-                               socket.INADDR_ANY)
+            mreq = struct.pack("4sl", socket.inet_aton(mcast), socket.INADDR_ANY)
             s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         except Exception:
             s.close()

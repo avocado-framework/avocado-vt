@@ -2,6 +2,7 @@ import os
 import logging
 import threading
 import functools
+
 try:
     from collections import UserDict as IterableUserDict
 except ImportError:
@@ -20,7 +21,7 @@ from virttest import ip_sniffing
 
 ENV_VERSION = 1
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_env_version():
@@ -40,10 +41,12 @@ def lock_safe(function):
 
     :param function: Function to wrap.
     """
+
     @functools.wraps(function)
     def wrapper(env, *args, **kwargs):
         with env.save_lock:
             return function(env, *args, **kwargs)
+
     return wrapper
 
 
@@ -241,25 +244,29 @@ class Env(IterableUserDict):
             remote_opts = None
             session = None
             if remote_pp:
-                client = params.get('remote_shell_client', 'ssh')
-                remote_opts = (params['remote_node_address'],
-                               params.get('remote_shell_port', '22'),
-                               params['remote_node_user'],
-                               params['remote_node_password'],
-                               params.get('remote_shell_prompt', '#'))
+                client = params.get("remote_shell_client", "ssh")
+                remote_opts = (
+                    params["remote_node_address"],
+                    params.get("remote_shell_port", "22"),
+                    params["remote_node_user"],
+                    params["remote_node_password"],
+                    params.get("remote_shell_prompt", "#"),
+                )
                 session = remote.remote_login(client, *remote_opts)
             for s_cls in sniffers:
                 if s_cls.is_supported(session):
-                    self._sniffer = s_cls(self.data["address_cache"],
-                                          "ip-sniffer.log",
-                                          remote_opts)
+                    self._sniffer = s_cls(
+                        self.data["address_cache"], "ip-sniffer.log", remote_opts
+                    )
                     break
             if session:
                 session.close()
 
         if not self._sniffer:
-            raise exceptions.TestError("Can't find any supported ip sniffer! "
-                                       "%s" % [s.command for s in sniffers])
+            raise exceptions.TestError(
+                "Can't find any supported ip sniffer! "
+                "%s" % [s.command for s in sniffers]
+            )
 
         self._sniffer.start()
 

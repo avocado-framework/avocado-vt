@@ -12,8 +12,12 @@ from . import base_installer
 from . import qemu_installer
 from . import libvirt_installer
 
-__all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
-           'run_installers']
+__all__ = [
+    "InstallerRegistry",
+    "INSTALLER_REGISTRY",
+    "make_installer",
+    "run_installers",
+]
 
 
 class InstallerRegistry(dict):
@@ -39,7 +43,7 @@ class InstallerRegistry(dict):
     installer if set to true.
     """
 
-    DEFAULT_VIRT_NAME = 'base'
+    DEFAULT_VIRT_NAME = "base"
 
     def __init__(self, **kwargs):
         dict.__init__(self, **kwargs)
@@ -99,44 +103,26 @@ INSTALLER_REGISTRY = InstallerRegistry()
 #
 # Register base installers
 #
-INSTALLER_REGISTRY.register('yum',
-                            base_installer.YumInstaller)
-INSTALLER_REGISTRY.register('koji',
-                            base_installer.KojiInstaller)
-INSTALLER_REGISTRY.register('git_repo',
-                            base_installer.GitRepoInstaller)
-INSTALLER_REGISTRY.register('local_src',
-                            base_installer.LocalSourceDirInstaller)
-INSTALLER_REGISTRY.register('local_tar',
-                            base_installer.LocalSourceTarInstaller)
-INSTALLER_REGISTRY.register('remote_tar',
-                            base_installer.RemoteSourceTarInstaller)
+INSTALLER_REGISTRY.register("yum", base_installer.YumInstaller)
+INSTALLER_REGISTRY.register("koji", base_installer.KojiInstaller)
+INSTALLER_REGISTRY.register("git_repo", base_installer.GitRepoInstaller)
+INSTALLER_REGISTRY.register("local_src", base_installer.LocalSourceDirInstaller)
+INSTALLER_REGISTRY.register("local_tar", base_installer.LocalSourceTarInstaller)
+INSTALLER_REGISTRY.register("remote_tar", base_installer.RemoteSourceTarInstaller)
 
 #
 # Register KVM specific installers
 #
-INSTALLER_REGISTRY.register('yum',
-                            base_installer.YumInstaller,
-                            'qemu')
-INSTALLER_REGISTRY.register('koji',
-                            base_installer.KojiInstaller,
-                            'qemu')
-INSTALLER_REGISTRY.register('git_repo',
-                            qemu_installer.GitRepoInstaller,
-                            'qemu')
-INSTALLER_REGISTRY.register('local_src',
-                            qemu_installer.LocalSourceDirInstaller,
-                            'qemu')
-INSTALLER_REGISTRY.register('local_tar',
-                            qemu_installer.LocalSourceTarInstaller,
-                            'qemu')
-INSTALLER_REGISTRY.register('remote_tar',
-                            qemu_installer.RemoteSourceTarInstaller,
-                            'qemu')
+INSTALLER_REGISTRY.register("yum", base_installer.YumInstaller, "qemu")
+INSTALLER_REGISTRY.register("koji", base_installer.KojiInstaller, "qemu")
+INSTALLER_REGISTRY.register("git_repo", qemu_installer.GitRepoInstaller, "qemu")
+INSTALLER_REGISTRY.register("local_src", qemu_installer.LocalSourceDirInstaller, "qemu")
+INSTALLER_REGISTRY.register("local_tar", qemu_installer.LocalSourceTarInstaller, "qemu")
+INSTALLER_REGISTRY.register(
+    "remote_tar", qemu_installer.RemoteSourceTarInstaller, "qemu"
+)
 
-INSTALLER_REGISTRY.register('git_repo',
-                            libvirt_installer.GitRepoInstaller,
-                            'libvirt')
+INSTALLER_REGISTRY.register("git_repo", libvirt_installer.GitRepoInstaller, "libvirt")
 
 
 def installer_name_split(fullname, virt=None):
@@ -148,7 +134,7 @@ def installer_name_split(fullname, virt=None):
        local_src_foo -> (local_src, foo)
     """
     for mode in INSTALLER_REGISTRY.get_modes(virt):
-        if fullname.startswith('%s_' % mode):
+        if fullname.startswith("%s_" % mode):
             _, _name = fullname.split(mode)
             name = _name[1:]
             return (mode, name)
@@ -175,8 +161,10 @@ def make_installer(fullname, params, test=None):
     mode, name = installer_name_split(fullname, virt)
     if mode is None or name is None:
 
-        error_msg = ('Invalid installer mode or name for "%s". Probably an '
-                     'installer has not been registered' % fullname)
+        error_msg = (
+            'Invalid installer mode or name for "%s". Probably an '
+            "installer has not been registered" % fullname
+        )
         if virt is not None:
             error_msg += ' specifically for virt type "%s"' % virt
 
@@ -184,8 +172,7 @@ def make_installer(fullname, params, test=None):
 
     klass = INSTALLER_REGISTRY.get_installer(mode, virt)
     if klass is None:
-        raise exceptions.TestError(
-            'Installer mode %s is not registered' % mode)
+        raise exceptions.TestError("Installer mode %s is not registered" % mode)
     else:
         return klass(mode, name, test, params)
 

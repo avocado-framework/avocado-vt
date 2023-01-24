@@ -69,9 +69,12 @@ class scheduler:
                 test = self.tests[test_index].copy()
                 test.update(self_dict)
                 test_iterations = int(test.get("iterations", 1))
-                status = run_test_func("kvm", params=test,
-                                       tag=test.get("shortname"),
-                                       iterations=test_iterations)
+                status = run_test_func(
+                    "kvm",
+                    params=test,
+                    tag=test.get("shortname"),
+                    iterations=test_iterations,
+                )
                 w.write("done %s %s\n" % (test_index, status))
                 w.write("ready\n")
 
@@ -159,10 +162,12 @@ class scheduler:
                     # Make sure the test's dependencies are satisfied
                     dependencies_satisfied = True
                     for dep in test["dep"]:
-                        dependencies = [j for j, t in enumerate(self.tests)
-                                        if dep in t["name"]]
-                        bad_status_deps = [j for j in dependencies
-                                           if test_status[j] != "pass"]
+                        dependencies = [
+                            j for j, t in enumerate(self.tests) if dep in t["name"]
+                        ]
+                        bad_status_deps = [
+                            j for j in dependencies if test_status[j] != "pass"
+                        ]
                         if bad_status_deps:
                             dependencies_satisfied = False
                             break
@@ -173,13 +178,19 @@ class scheduler:
                     test_used_mem = int(test.get("used_mem", 128))
                     # First make sure the other workers aren't using too many
                     # CPUs (not including the workers currently shutting down)
-                    uc = (sum(used_cpus) - used_cpus[worker] -
-                          sum(used_cpus[i] for i in closing_workers))
+                    uc = (
+                        sum(used_cpus)
+                        - used_cpus[worker]
+                        - sum(used_cpus[i] for i in closing_workers)
+                    )
                     if uc and uc + test_used_cpus > self.total_cpus:
                         continue
                     # ... or too much memory
-                    um = (sum(used_mem) - used_mem[worker] -
-                          sum(used_mem[i] for i in closing_workers))
+                    um = (
+                        sum(used_mem)
+                        - used_mem[worker]
+                        - sum(used_mem[i] for i in closing_workers)
+                    )
                     if um and um + test_used_mem > self.total_mem:
                         continue
                     # If we reached this point it means there are, or will
@@ -188,11 +199,11 @@ class scheduler:
                     # Now check if the test can be run right now, i.e. if the
                     # other workers, including the ones currently shutting
                     # down, aren't using too many CPUs
-                    uc = (sum(used_cpus) - used_cpus[worker])
+                    uc = sum(used_cpus) - used_cpus[worker]
                     if uc and uc + test_used_cpus > self.total_cpus:
                         continue
                     # ... or too much memory
-                    um = (sum(used_mem) - used_mem[worker])
+                    um = sum(used_mem) - used_mem[worker]
                     if um and um + test_used_mem > self.total_mem:
                         continue
                     # Everything is OK -- run the test

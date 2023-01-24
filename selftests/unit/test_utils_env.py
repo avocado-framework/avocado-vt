@@ -8,7 +8,7 @@ import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import utils_env
@@ -17,15 +17,15 @@ from virttest import utils_misc
 
 
 class FakeVm(object):
-
     def __init__(self, vm_name, params):
         self.name = vm_name
         self.params = params
-        self.vm_type = self.params.get('vm_type')
-        self.driver_type = self.params.get('driver_type')
-        self.instance = ("%s-%s" % (
+        self.vm_type = self.params.get("vm_type")
+        self.driver_type = self.params.get("driver_type")
+        self.instance = "%s-%s" % (
             time.strftime("%Y%m%d-%H%M%S"),
-            utils_misc.generate_random_string(16)))
+            utils_misc.generate_random_string(16),
+        )
 
     def get_params(self):
         return self.params
@@ -35,11 +35,11 @@ class FakeVm(object):
 
 
 class FakeSyncListenServer(object):
-
-    def __init__(self, address='', port=123, tmpdir=None):
-        self.instance = ("%s-%s" % (
+    def __init__(self, address="", port=123, tmpdir=None):
+        self.instance = "%s-%s" % (
             time.strftime("%Y%m%d-%H%M%S"),
-            utils_misc.generate_random_string(16)))
+            utils_misc.generate_random_string(16),
+        )
         self.port = port
 
     def close(self):
@@ -47,7 +47,6 @@ class FakeSyncListenServer(object):
 
 
 class TestEnv(unittest.TestCase):
-
     def setUp(self):
         self.envfilename = "/dev/shm/EnvUnittest" + self.id()
 
@@ -68,13 +67,13 @@ class TestEnv(unittest.TestCase):
         env = utils_env.Env()
         self.assertRaises(utils_env.EnvSaveError, env.save, {})
 
-        params = utils_params.Params({"main_vm": 'rhel7-migration'})
-        vm1 = FakeVm(params['main_vm'], params)
+        params = utils_params.Params({"main_vm": "rhel7-migration"})
+        vm1 = FakeVm(params["main_vm"], params)
         vm1.is_alive()
-        env.register_vm(params['main_vm'], vm1)
+        env.register_vm(params["main_vm"], vm1)
         env.save(filename=self.envfilename)
         env2 = utils_env.Env(filename=self.envfilename)
-        vm2 = env2.get_vm(params['main_vm'])
+        vm2 = env2.get_vm(params["main_vm"])
         vm2.is_alive()
         assert vm1.instance == vm2.instance
 
@@ -97,11 +96,11 @@ class TestEnv(unittest.TestCase):
         4) Verify that the 2 objects are the same.
         """
         env = utils_env.Env(filename=self.envfilename)
-        params = utils_params.Params({"main_vm": 'rhel7-migration'})
-        vm1 = FakeVm(params['main_vm'], params)
+        params = utils_params.Params({"main_vm": "rhel7-migration"})
+        vm1 = FakeVm(params["main_vm"], params)
         vm1.is_alive()
-        env.register_vm(params['main_vm'], vm1)
-        vm2 = env.get_vm(params['main_vm'])
+        env.register_vm(params["main_vm"], vm1)
+        vm2 = env.get_vm(params["main_vm"])
         vm2.is_alive()
         assert vm1 == vm2
 
@@ -114,16 +113,16 @@ class TestEnv(unittest.TestCase):
         5) Verify that the removed vm is no longer in env.
         """
         env = utils_env.Env(filename=self.envfilename)
-        params = utils_params.Params({"main_vm": 'rhel7-migration'})
-        vm1 = FakeVm(params['main_vm'], params)
+        params = utils_params.Params({"main_vm": "rhel7-migration"})
+        vm1 = FakeVm(params["main_vm"], params)
         vm1.is_alive()
-        vm2 = FakeVm('vm2', params)
+        vm2 = FakeVm("vm2", params)
         vm2.is_alive()
-        env.register_vm(params['main_vm'], vm1)
-        env.register_vm('vm2', vm2)
+        env.register_vm(params["main_vm"], vm1)
+        env.register_vm("vm2", vm2)
         assert vm1 in env.get_all_vms()
         assert vm2 in env.get_all_vms()
-        env.unregister_vm('vm2')
+        env.unregister_vm("vm2")
         assert vm1 in env.get_all_vms()
         assert vm2 not in env.get_all_vms()
 
@@ -136,13 +135,13 @@ class TestEnv(unittest.TestCase):
         5) Verify that the sync server is not in the output of get_all_vms.
         """
         env = utils_env.Env(filename=self.envfilename)
-        params = utils_params.Params({"main_vm": 'rhel7-migration'})
-        vm1 = FakeVm(params['main_vm'], params)
+        params = utils_params.Params({"main_vm": "rhel7-migration"})
+        vm1 = FakeVm(params["main_vm"], params)
         vm1.is_alive()
-        vm2 = FakeVm('vm2', params)
+        vm2 = FakeVm("vm2", params)
         vm2.is_alive()
-        env.register_vm(params['main_vm'], vm1)
-        env.register_vm('vm2', vm2)
+        env.register_vm(params["main_vm"], vm1)
+        env.register_vm("vm2", vm2)
         sync1 = FakeSyncListenServer(port=333)
         env.register_syncserver(333, sync1)
         assert vm1 in env.get_all_vms()
@@ -209,8 +208,7 @@ class TestEnv(unittest.TestCase):
                 if termination_event.isSet():
                     break
 
-        changing_thread = threading.Thread(target=update_env,
-                                           args=(env,))
+        changing_thread = threading.Thread(target=update_env, args=(env,))
         changing_thread.start()
         time.sleep(0.3)
         try:
@@ -219,5 +217,5 @@ class TestEnv(unittest.TestCase):
             termination_event.set()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -12,7 +12,7 @@ import aexpect
 from six.moves import xrange
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class SandboxException(Exception):
@@ -61,8 +61,7 @@ class SandboxSession(object):
         if self.connected:
             return self.session.get_id()
         else:
-            raise SandboxException("Can't get id of non-running sandbox "
-                                   "session")
+            raise SandboxException("Can't get id of non-running sandbox " "session")
 
     def new_session(self, command):
         """
@@ -100,8 +99,7 @@ class SandboxSession(object):
         if self.connected:
             self.session.kill(sig=sig)
         else:
-            raise SandboxException("Can't send signal to inactive sandbox "
-                                   "session")
+            raise SandboxException("Can't send signal to inactive sandbox " "session")
 
     def send(self, a_string):
         """Send a_string to session"""
@@ -115,8 +113,7 @@ class SandboxSession(object):
         if self.connected:
             return self.session.get_output()
         else:
-            raise SandboxException("Can't get output from finalized sandbox "
-                                   "session")
+            raise SandboxException("Can't get output from finalized sandbox " "session")
 
     def recvout(self):
         """Return just stdout output"""
@@ -133,8 +130,9 @@ class SandboxSession(object):
         if self.connected:
             return self.session.get_status()
         else:
-            raise SandboxException("Can't get exit code from finalized sandbox "
-                                   "session")
+            raise SandboxException(
+                "Can't get exit code from finalized sandbox " "session"
+            )
 
     def is_running(self):
         """Return True if exit_code() would block"""
@@ -148,8 +146,9 @@ class SandboxSession(object):
         if self.connected:
             self.session.auto_close = boolean
         else:
-            raise SandboxException("Can't set auto_clean on disconnected "
-                                   "sandbox session")
+            raise SandboxException(
+                "Can't set auto_clean on disconnected " "sandbox session"
+            )
 
 
 class SandboxBase(object):
@@ -184,21 +183,23 @@ class SandboxBase(object):
     def __getstate__(self):
         """Serialize instance for pickling"""
         # Regular dictionary format for now, but could change later
-        state = {'params': self.params,
-                 'identifier': self.identifier,
-                 'options': self.options}
+        state = {
+            "params": self.params,
+            "identifier": self.identifier,
+            "options": self.options,
+        }
         # Critical info. to re-connect to session when un-pickle
         if self._session.connected:
-            state['session_id'] = self._session.session_id
+            state["session_id"] = self._session.session_id
         return state
 
     def __setstate__(self, state):
         """Actualize instance from state"""
-        for key in ('identifier', 'params', 'options'):
+        for key in ("identifier", "params", "options"):
             setattr(self, key, state[key])
-        if 'session_id' in state:
+        if "session_id" in state:
             self._session = SandboxSession()
-            self._session.open_session(state['session_id'])
+            self._session.open_session(state["session_id"])
 
     def run(self, extra=None):
         """
@@ -274,7 +275,7 @@ class SandboxCommandBase(SandboxBase):
     Connection to a single new or existing sandboxed command
     """
 
-    BINARY_PATH_PARAM = 'virt_sandbox_binary'
+    BINARY_PATH_PARAM = "virt_sandbox_binary"
 
     # Cache generated name first time it is requested
     _name = None
@@ -290,12 +291,12 @@ class SandboxCommandBase(SandboxBase):
     def __getstate__(self):
         """Serialize instance for pickling"""
         state = super(SandboxCommandBase, self).__getstate__()
-        state['name'] = self._name
+        state["name"] = self._name
         return state
 
     def __setstate__(self, state):
         """Actualize instance from state"""
-        self._name = state.pop('name')
+        self._name = state.pop("name")
         super(SandboxCommandBase, self).__setstate__(state)
 
     def _get_name(self):
@@ -308,8 +309,7 @@ class SandboxCommandBase(SandboxBase):
         # with instance identifier attribute.
         if self._name is None:
             class_name = self.__class__.__name__
-            class_initials = class_name.translate(None,
-                                                  'abcdefghijklmnopqrstuvwxyz')
+            class_initials = class_name.translate(None, "abcdefghijklmnopqrstuvwxyz")
             self._name = "%s_%d" % (class_initials, self.identifier)
         return self._name
 
@@ -354,7 +354,7 @@ class SandboxCommandBase(SandboxBase):
         if self.options is not None:
             command += self.flaten_options(self.options)
         if extra is not None:
-            command += ' ' + extra
+            command += " " + extra
         return command
 
     def add_optarg(self, option, argument):
@@ -383,14 +383,15 @@ class SandboxCommandBase(SandboxBase):
         """
         Append a -- to the end of the current option list
         """
-        self.add_pos('--')
+        self.add_pos("--")
 
     def list_long_options(self):
         """
         Return a list of all long options with an argument
         """
-        return [opt for opt, arg in self.options
-                if opt.startswith('--') and arg is not None]
+        return [
+            opt for opt, arg in self.options if opt.startswith("--") and arg is not None
+        ]
 
     def list_short_options(self):
         """
@@ -400,15 +401,16 @@ class SandboxCommandBase(SandboxBase):
         for opt, arg in self.options:
             if arg is None:
                 continue  # flag or positional
-            if len(opt) > 1 and opt[0] == '-' and opt[1] != '-':
+            if len(opt) > 1 and opt[0] == "-" and opt[1] != "-":
                 result.append(opt)
 
     def list_flags(self):
         """
         Return a list of all flags (options without arguments)
         """
-        return [opt for opt, arg in self.options
-                if opt.startswith('--') and arg is None]
+        return [
+            opt for opt, arg in self.options if opt.startswith("--") and arg is None
+        ]
 
     def list_pos(self):
         """
@@ -441,30 +443,42 @@ class TestSandboxes(object):
         # Parse out aggregate manager class-specific params
         pop = self.params.object_params(self.__class__.__name__)
         # Allows iterating over all sandboxes e.g. with for_each()
-        self.count = int(pop.get('lvsb_count', '1'))
+        self.count = int(pop.get("lvsb_count", "1"))
         # Simple-case is all sandboxes on the local host
-        self.uri = pop.get('lvsb_uri', 'lxc:///')
+        self.uri = pop.get("lvsb_uri", "lxc:///")
         # The command to run inside the sandbox
-        self.command = pop.get('lvsb_command')
+        self.command = pop.get("lvsb_command")
         # Allows iterating for the options
-        self.opts_count = int(pop.get('lvsb_opts_count', '1'))
+        self.opts_count = int(pop.get("lvsb_opts_count", "1"))
         # FIXME: should automatically generate this
-        self.lvsb_option_mapper = {'optarg': {'connect': '-c', 'name': '-n',
-                                              'mount': '-m', 'include': '-i',
-                                              'includefile': '-I', 'network': '-N',
-                                              'security': '-s'},
-                                   'flag': {'help': '-h', 'version': '-V',
-                                            'debug': '-d', 'privileged': '-p',
-                                            'shell': '-l'}}
+        self.lvsb_option_mapper = {
+            "optarg": {
+                "connect": "-c",
+                "name": "-n",
+                "mount": "-m",
+                "include": "-i",
+                "includefile": "-I",
+                "network": "-N",
+                "security": "-s",
+            },
+            "flag": {
+                "help": "-h",
+                "version": "-V",
+                "debug": "-d",
+                "privileged": "-p",
+                "shell": "-l",
+            },
+        }
         # The list to save options
         self.opts = []
         self.flag = []
         for k in list(self.lvsb_option_mapper.keys()):
             # k may be 'optarg' or 'flag'
             for key, value in list(self.lvsb_option_mapper[k].items()):
-                base_name = 'lvsb_%s_options' % key
-                for key_gen, option in params.object_counts('lvsb_opts_count',
-                                                            base_name):
+                base_name = "lvsb_%s_options" % key
+                for key_gen, option in params.object_counts(
+                    "lvsb_opts_count", base_name
+                ):
                     # k is 'optarg'
                     if option and value:
                         self.opts.append((value, option))
@@ -490,8 +504,7 @@ class TestSandboxes(object):
         :param do_sometihng: Called with the item and ``*args``, ``**dargs``
         """
         # Simplify making the same call to every running sandbox
-        return [do_something(sandbox, *args, **dargs)
-                for sandbox in self.sandboxes]
+        return [do_something(sandbox, *args, **dargs) for sandbox in self.sandboxes]
 
     def are_running(self):
         """

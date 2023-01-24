@@ -13,7 +13,7 @@ from avocado.utils import process
 from virttest import data_dir
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def _force_copy(src, dest):
@@ -66,91 +66,100 @@ class GitRepoParamHelper(git.GitRepoHelper):
         methods. That means it's not strictly necessary to call parent's
         __init__().
         """
-        config_prefix = 'git_repo_%s' % self.name
-        LOG.debug('Parsing parameters for git repo %s, configuration '
-                  'prefix is %s' % (self.name, config_prefix))
+        config_prefix = "git_repo_%s" % self.name
+        LOG.debug(
+            "Parsing parameters for git repo %s, configuration "
+            "prefix is %s" % (self.name, config_prefix)
+        )
 
-        self.base_uri = self.params.get('%s_base_uri' % config_prefix)
+        self.base_uri = self.params.get("%s_base_uri" % config_prefix)
         if self.base_uri is None:
-            LOG.debug('Git repo %s base uri is not set' % self.name)
+            LOG.debug("Git repo %s base uri is not set" % self.name)
         else:
-            LOG.debug('Git repo %s base uri: %s' % (self.name, self.base_uri))
+            LOG.debug("Git repo %s base uri: %s" % (self.name, self.base_uri))
 
-        self.uri = self.params.get('%s_uri' % config_prefix)
-        LOG.debug('Git repo %s uri: %s' % (self.name, self.uri))
+        self.uri = self.params.get("%s_uri" % config_prefix)
+        LOG.debug("Git repo %s uri: %s" % (self.name, self.uri))
 
-        self.branch = self.params.get('%s_branch' % config_prefix, 'master')
-        LOG.debug('Git repo %s branch: %s' % (self.name, self.branch))
+        self.branch = self.params.get("%s_branch" % config_prefix, "master")
+        LOG.debug("Git repo %s branch: %s" % (self.name, self.branch))
 
-        self.lbranch = self.params.get('%s_lbranch' % config_prefix)
+        self.lbranch = self.params.get("%s_lbranch" % config_prefix)
         if self.lbranch is None:
             self.lbranch = self.branch
-        LOG.debug('Git repo %s lbranch: %s' % (self.name, self.lbranch))
+        LOG.debug("Git repo %s lbranch: %s" % (self.name, self.lbranch))
 
-        self.commit = self.params.get('%s_commit' % config_prefix)
+        self.commit = self.params.get("%s_commit" % config_prefix)
         if self.commit is None:
-            LOG.debug('Git repo %s commit is not set' % self.name)
+            LOG.debug("Git repo %s commit is not set" % self.name)
         else:
-            LOG.debug('Git repo %s commit: %s' % (self.name, self.commit))
+            LOG.debug("Git repo %s commit: %s" % (self.name, self.commit))
 
-        self.tag = self.params.get('%s_tag' % config_prefix)
+        self.tag = self.params.get("%s_tag" % config_prefix)
         if self.tag is None:
-            LOG.debug('Git repo %s tag is not set' % self.name)
+            LOG.debug("Git repo %s tag is not set" % self.name)
         else:
-            LOG.debug('Git repo %s tag: %s' % (self.name, self.tag))
+            LOG.debug("Git repo %s tag: %s" % (self.name, self.tag))
 
         self.key_file = None
-        tag_signed = self.params.get('%s_tag_signed' % config_prefix)
+        tag_signed = self.params.get("%s_tag_signed" % config_prefix)
         if tag_signed is None:
-            LOG.warning('Git repo %s tag is not signed' % self.name)
-            LOG.warning('This means we will not verify if the key was '
-                        'made by whomever claims to have made it '
-                        '(dangerous)')
+            LOG.warning("Git repo %s tag is not signed" % self.name)
+            LOG.warning(
+                "This means we will not verify if the key was "
+                "made by whomever claims to have made it "
+                "(dangerous)"
+            )
         else:
-            self.key_file = os.path.join(data_dir.get_data_dir(), 'gpg',
-                                         tag_signed)
+            self.key_file = os.path.join(data_dir.get_data_dir(), "gpg", tag_signed)
             if os.path.isfile(self.key_file):
-                LOG.debug('Git repo %s tag %s will be verified with public '
-                          'key file %s', self.name, self.tag, self.key_file)
+                LOG.debug(
+                    "Git repo %s tag %s will be verified with public " "key file %s",
+                    self.name,
+                    self.tag,
+                    self.key_file,
+                )
             else:
-                raise exceptions.TestError('GPG public key file %s not found, '
-                                           'will not proceed with testing' %
-                                           self.key_file)
+                raise exceptions.TestError(
+                    "GPG public key file %s not found, "
+                    "will not proceed with testing" % self.key_file
+                )
 
-        self.cmd = path.find_command('git')
+        self.cmd = path.find_command("git")
 
-        self.recursive = self.params.get('%s_recursive', 'yes')
+        self.recursive = self.params.get("%s_recursive", "yes")
 
     def execute(self):
         super(GitRepoParamHelper, self).execute()
 
         cwd = os.path.curdir
         os.chdir(self.destination_dir)
-        process.system('git remote add origin %s' %
-                       self.uri, ignore_status=True)
-        if self.recursive == 'yes':
-            process.system('git submodule init')
-            process.system('git submodule update')
+        process.system("git remote add origin %s" % self.uri, ignore_status=True)
+        if self.recursive == "yes":
+            process.system("git submodule init")
+            process.system("git submodule update")
 
         if self.tag:
-            process.system('git checkout %s' % self.tag)
+            process.system("git checkout %s" % self.tag)
             if self.key_file is not None:
                 try:
-                    gnupg_home = os.path.join(data_dir.get_tmp_dir(),
-                                              'gnupg')
+                    gnupg_home = os.path.join(data_dir.get_tmp_dir(), "gnupg")
                     if not os.path.isdir(gnupg_home):
                         os.makedirs(gnupg_home)
-                    os.environ['GNUPGHOME'] = gnupg_home
-                    process.system('gpg --import %s' % self.key_file)
-                    LOG.debug('Verifying if tag is actually signed with '
-                              'GPG key ID %s' % self.key_file)
-                    process.system('git tag -v %s' % self.tag)
+                    os.environ["GNUPGHOME"] = gnupg_home
+                    process.system("gpg --import %s" % self.key_file)
+                    LOG.debug(
+                        "Verifying if tag is actually signed with "
+                        "GPG key ID %s" % self.key_file
+                    )
+                    process.system("git tag -v %s" % self.tag)
                 except process.CmdError:
-                    raise exceptions.TestError("GPG signature check for git repo "
-                                               "%s failed" % self.name)
+                    raise exceptions.TestError(
+                        "GPG signature check for git repo " "%s failed" % self.name
+                    )
 
         # Log the top commit message, good for quick reference
-        process.system('git log -1')
+        process.system("git log -1")
 
         os.chdir(cwd)
 
@@ -210,12 +219,14 @@ class LocalSourceDirParamHelper(LocalSourceDirHelper):
         """
         Parses the params items for entries related to source dir
         """
-        config_prefix = 'local_src_%s' % self.name
-        LOG.debug('Parsing parameters for local source %s, configuration '
-                  'prefix is %s' % (self.name, config_prefix))
+        config_prefix = "local_src_%s" % self.name
+        LOG.debug(
+            "Parsing parameters for local source %s, configuration "
+            "prefix is %s" % (self.name, config_prefix)
+        )
 
-        self.path = self.params.get('%s_path' % config_prefix)
-        LOG.debug('Local source directory %s path: %s' % (self.name, self.path))
+        self.path = self.params.get("%s_path" % config_prefix)
+        LOG.debug("Local source directory %s path: %s" % (self.name, self.path))
         self.source = self.path
         self.destination = self.destination_dir
 
@@ -240,10 +251,8 @@ class LocalTarHelper(object):
         if os.path.isfile(self.source) and tarfile.is_tarfile(self.source):
 
             name = os.path.basename(self.destination)
-            temp_dir = os.path.join(os.path.dirname(self.destination),
-                                    '%s.tmp' % name)
-            LOG.debug('Temporary directory for extracting tarball is %s' %
-                      temp_dir)
+            temp_dir = os.path.join(os.path.dirname(self.destination), "%s.tmp" % name)
+            LOG.debug("Temporary directory for extracting tarball is %s" % temp_dir)
 
             if not os.path.isdir(temp_dir):
                 os.makedirs(temp_dir)
@@ -257,8 +266,7 @@ class LocalTarHelper(object):
             #
             tarball_info = tarball.members[0]
             if tarball_info.isdir():
-                content_path = os.path.join(temp_dir,
-                                            tarball_info.name)
+                content_path = os.path.join(temp_dir, tarball_info.name)
             else:
                 content_path = temp_dir
 
@@ -309,12 +317,14 @@ class LocalTarParamHelper(LocalTarHelper):
         """
         Parses the params items for entries related to this local tar helper
         """
-        config_prefix = 'local_tar_%s' % self.name
-        LOG.debug('Parsing parameters for local tar %s, configuration '
-                  'prefix is %s' % (self.name, config_prefix))
+        config_prefix = "local_tar_%s" % self.name
+        LOG.debug(
+            "Parsing parameters for local tar %s, configuration "
+            "prefix is %s" % (self.name, config_prefix)
+        )
 
-        self.path = self.params.get('%s_path' % config_prefix)
-        LOG.debug('Local source tar %s path: %s' % (self.name, self.path))
+        self.path = self.params.get("%s_path" % config_prefix)
+        LOG.debug("Local source tar %s path: %s" % (self.name, self.path))
         self.source = self.path
         self.destination = self.destination_dir
 
@@ -376,12 +386,14 @@ class RemoteTarParamHelper(RemoteTarHelper):
         """
         Parses the params items for entries related to this remote tar helper
         """
-        config_prefix = 'remote_tar_%s' % self.name
-        LOG.debug('Parsing parameters for remote tar %s, configuration '
-                  'prefix is %s' % (self.name, config_prefix))
+        config_prefix = "remote_tar_%s" % self.name
+        LOG.debug(
+            "Parsing parameters for remote tar %s, configuration "
+            "prefix is %s" % (self.name, config_prefix)
+        )
 
-        self.uri = self.params.get('%s_uri' % config_prefix)
-        LOG.debug('Remote source tar %s uri: %s' % (self.name, self.uri))
+        self.uri = self.params.get("%s_uri" % config_prefix)
+        LOG.debug("Remote source tar %s uri: %s" % (self.name, self.uri))
         self.source = self.uri
         self.destination = self.destination_dir
 
@@ -404,8 +416,9 @@ class PatchHelper(object):
         Copies patch files from remote locations to the source directory
         """
         for patch in self.patches:
-            download.get_file(patch, os.path.join(self.source_dir,
-                                                  os.path.basename(patch)))
+            download.get_file(
+                patch, os.path.join(self.source_dir, os.path.basename(patch))
+            )
 
     def patch(self):
         """
@@ -413,8 +426,7 @@ class PatchHelper(object):
         """
         os.chdir(self.source_dir)
         for patch in self.patches:
-            process.system('patch -p1 < %s' % os.path.basename(patch),
-                           shell=True)
+            process.system("patch -p1 < %s" % os.path.basename(patch), shell=True)
 
     def execute(self):
         """
@@ -463,16 +475,14 @@ class PatchParamHelper(PatchHelper):
         methods. That means it's not strictly necessary to call parent's
         __init__().
         """
-        LOG.debug('Parsing patch parameters for prefix %s' % self.prefix)
-        patches_param_key = '%s_patches' % self.prefix
+        LOG.debug("Parsing patch parameters for prefix %s" % self.prefix)
+        patches_param_key = "%s_patches" % self.prefix
 
-        self.patches_str = self.params.get(patches_param_key, '[]')
-        LOG.debug('Patches config for prefix %s: %s' % (self.prefix,
-                                                        self.patches_str))
+        self.patches_str = self.params.get(patches_param_key, "[]")
+        LOG.debug("Patches config for prefix %s: %s" % (self.prefix, self.patches_str))
 
         self.patches = eval(self.patches_str)
-        LOG.debug('Patches for prefix %s: %s' % (self.prefix,
-                                                 ", ".join(self.patches)))
+        LOG.debug("Patches for prefix %s: %s" % (self.prefix, ", ".join(self.patches)))
 
 
 class GnuSourceBuildInvalidSource(Exception):
@@ -480,6 +490,7 @@ class GnuSourceBuildInvalidSource(Exception):
     """
     Exception raised when build source dir/file is not valid
     """
+
     pass
 
 
@@ -491,6 +502,7 @@ class SourceBuildFailed(Exception):
     This serves as feedback for code using
     :class:`virttest.build_helper.BuildHelper`.
     """
+
     pass
 
 
@@ -502,6 +514,7 @@ class SourceBuildParallelFailed(Exception):
     This serves as feedback for code using
     :class:`virttest.build_helper.BuildHelper`.
     """
+
     pass
 
 
@@ -514,8 +527,7 @@ class GnuSourceBuildHelper(object):
     autotools steps: ./configure, make, make install
     """
 
-    def __init__(self, source, build_dir, prefix,
-                 configure_options=[]):
+    def __init__(self, source, build_dir, prefix, configure_options=[]):
         """
         :type source: string
         :param source: source directory or tarball
@@ -546,37 +558,36 @@ class GnuSourceBuildHelper(object):
 
         :return: None
         """
-        env_var = 'PKG_CONFIG_PATH'
+        env_var = "PKG_CONFIG_PATH"
 
-        include_paths = [os.path.join(self.prefix, 'share', 'pkgconfig'),
-                         os.path.join(self.prefix, 'lib', 'pkgconfig')]
+        include_paths = [
+            os.path.join(self.prefix, "share", "pkgconfig"),
+            os.path.join(self.prefix, "lib", "pkgconfig"),
+        ]
 
         if env_var in os.environ:
-            paths = os.environ[env_var].split(':')
+            paths = os.environ[env_var].split(":")
             for include_path in include_paths:
                 if include_path not in paths:
                     paths.append(include_path)
-            os.environ[env_var] = ':'.join(paths)
+            os.environ[env_var] = ":".join(paths)
         else:
-            os.environ[env_var] = ':'.join(include_paths)
+            os.environ[env_var] = ":".join(include_paths)
 
-        LOG.debug('PKG_CONFIG_PATH is: %s' % os.environ['PKG_CONFIG_PATH'])
+        LOG.debug("PKG_CONFIG_PATH is: %s" % os.environ["PKG_CONFIG_PATH"])
 
     def get_configure_path(self):
         """
         Checks if 'configure' exists, if not, return 'autogen.sh' as a fallback
         """
-        configure_path = os.path.abspath(os.path.join(self.source,
-                                                      "configure"))
-        autogen_path = os.path.abspath(os.path.join(self.source,
-                                                    "autogen.sh"))
+        configure_path = os.path.abspath(os.path.join(self.source, "configure"))
+        autogen_path = os.path.abspath(os.path.join(self.source, "autogen.sh"))
         if os.path.exists(configure_path):
             return configure_path
         elif os.path.exists(autogen_path):
             return autogen_path
         else:
-            raise GnuSourceBuildInvalidSource(
-                'configure script does not exist')
+            raise GnuSourceBuildInvalidSource("configure script does not exist")
 
     def get_available_configure_options(self):
         """
@@ -586,8 +597,9 @@ class GnuSourceBuildHelper(object):
 
         :return: list of options accepted by configure script
         """
-        help_raw = process.run('%s --help' % self.get_configure_path(),
-                               ignore_status=True).stdout_text
+        help_raw = process.run(
+            "%s --help" % self.get_configure_path(), ignore_status=True
+        ).stdout_text
         help_output = help_raw.split("\n")
         option_list = []
         for line in help_output:
@@ -608,8 +620,7 @@ class GnuSourceBuildHelper(object):
         enable_debug_option = "--disable-strip"
         if enable_debug_option in self.get_available_configure_options():
             self.configure_options.append(enable_debug_option)
-            LOG.debug('Enabling debug symbols with option: %s' %
-                      enable_debug_option)
+            LOG.debug("Enabling debug symbols with option: %s" % enable_debug_option)
 
     def get_configure_command(self):
         """
@@ -620,15 +631,14 @@ class GnuSourceBuildHelper(object):
         prefix_option = "--prefix=%s" % self.prefix
         options = self.configure_options
         options.append(prefix_option)
-        return "%s %s" % (self.get_configure_path(),
-                          " ".join(options))
+        return "%s %s" % (self.get_configure_path(), " ".join(options))
 
     def configure(self):
         """
         Runs the "configure" script passing appropriate command line options
         """
         configure_command = self.get_configure_command()
-        LOG.info('Running configure on build dir')
+        LOG.info("Running configure on build dir")
         os.chdir(self.build_dir)
         process.system(configure_command)
 
@@ -729,24 +739,21 @@ class LinuxKernelBuildHelper(object):
         """
         Parses the params items for entries related to guest kernel
         """
-        configure_opt_key = '%s_config' % self.prefix
-        self.config = self.params.get(configure_opt_key, '')
+        configure_opt_key = "%s_config" % self.prefix
+        self.config = self.params.get(configure_opt_key, "")
 
-        build_image_key = '%s_build_image' % self.prefix
-        self.build_image = self.params.get(build_image_key,
-                                           'arch/x86/boot/bzImage')
+        build_image_key = "%s_build_image" % self.prefix
+        self.build_image = self.params.get(build_image_key, "arch/x86/boot/bzImage")
 
-        build_target_key = '%s_build_target' % self.prefix
-        self.build_target = self.params.get(build_target_key, 'bzImage')
+        build_target_key = "%s_build_target" % self.prefix
+        self.build_target = self.params.get(build_target_key, "bzImage")
 
-        kernel_path_key = '%s_kernel_path' % self.prefix
-        image_dir = os.path.join(data_dir.get_data_dir(), 'images')
-        default_kernel_path = os.path.join(image_dir,
-                                           self.build_target)
-        self.kernel_path = self.params.get(kernel_path_key,
-                                           default_kernel_path)
+        kernel_path_key = "%s_kernel_path" % self.prefix
+        image_dir = os.path.join(data_dir.get_data_dir(), "images")
+        default_kernel_path = os.path.join(image_dir, self.build_target)
+        self.kernel_path = self.params.get(kernel_path_key, default_kernel_path)
 
-        LOG.info('Parsing Linux kernel build parameters for %s', self.prefix)
+        LOG.info("Parsing Linux kernel build parameters for %s", self.prefix)
 
     def make_guest_kernel(self):
         """
@@ -755,14 +762,13 @@ class LinuxKernelBuildHelper(object):
         os.chdir(self.source)
         LOG.info("Building guest kernel")
         LOG.debug("Kernel config is %s" % self.config)
-        download.get_file(self.config, '.config')
+        download.get_file(self.config, ".config")
 
         # FIXME currently no support for builddir
         # run old config
         process.system('yes "" | make oldconfig > /dev/null', shell=True)
         parallel_make_jobs = multiprocessing.cpu_count()
-        make_command = "make -j %s %s" % (
-            parallel_make_jobs, self.build_target)
+        make_command = "make -j %s %s" % (parallel_make_jobs, self.build_target)
         LOG.info("Running parallel make on src dir")
         process.system(make_command)
 
@@ -839,12 +845,11 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
         methods. That means it's not strictly necessary to call parent's
         __init__().
         """
-        LOG.debug('Parsing gnu_autotools build parameters for %s' % self.name)
+        LOG.debug("Parsing gnu_autotools build parameters for %s" % self.name)
 
-        configure_opt_key = '%s_configure_options' % self.name
-        configure_options = self.params.get(configure_opt_key, '').split()
-        LOG.debug('Configure options for %s: %s' % (self.name,
-                                                    configure_options))
+        configure_opt_key = "%s_configure_options" % self.name
+        configure_options = self.params.get(configure_opt_key, "").split()
+        LOG.debug("Configure options for %s: %s" % (self.name, configure_options))
 
         self.source = self.destination_dir
         self.build_dir = self.destination_dir

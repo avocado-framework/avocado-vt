@@ -16,7 +16,7 @@ def align_value(value, factor=1024):
     return int(math.ceil(float(value) / factor) * factor)
 
 
-def format_size_human_readable(value, binary=False, precision='%.2f'):
+def format_size_human_readable(value, binary=False, precision="%.2f"):
     """
     Format a number of bytesize to a human readable filesize.
 
@@ -25,10 +25,10 @@ def format_size_human_readable(value, binary=False, precision='%.2f'):
     :param precision: format string to specify precision for float
     """
     suffixes = {
-        'decimal': ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'),
-        'binary': ('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
+        "decimal": ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"),
+        "binary": ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"),
     }
-    suffix = suffixes['binary'] if binary else suffixes['decimal']
+    suffix = suffixes["binary"] if binary else suffixes["decimal"]
     base = 1024 if binary else 1000
 
     value = float(value)
@@ -37,7 +37,7 @@ def format_size_human_readable(value, binary=False, precision='%.2f'):
         if value < unit:
             break
     value = value * base / unit
-    format_str = ('%d' if value.is_integer() else precision) + ' %s'
+    format_str = ("%d" if value.is_integer() else precision) + " %s"
     return format_str % (value, s)
 
 
@@ -51,18 +51,18 @@ def normalize_data_size(value_str, order_magnitude="M", factor=1024):
                    Normally could be 1024 or 1000
     :return normalized data size string
     """
+
     def _get_unit_index(m):
         try:
-            return ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'].index(
-                m.upper())
+            return ["B", "K", "M", "G", "T", "P", "E", "Z", "Y"].index(m.upper())
         except ValueError:
             pass
         return 0
 
     def _trim_tailling_zeros(num_str):
         # remove tailing zeros, convert float number str to int str
-        if '.' in num_str:
-            num_str = num_str.rstrip('0').rstrip('.')
+        if "." in num_str:
+            num_str = num_str.rstrip("0").rstrip(".")
         return num_str
 
     regex = r"(\d+\.?\d*)\s*(\w?)"
@@ -71,7 +71,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor=1024):
         value = match.group(1)
         unit = match.group(2)
         if not unit:
-            unit = 'B'
+            unit = "B"
     except TypeError:
         raise ValueError("Invalid data size format 'value_str=%s'" % value_str)
 
@@ -82,4 +82,4 @@ def normalize_data_size(value_str, order_magnitude="M", factor=1024):
         d = Decimal(value) * Decimal(factor ** (from_index - to_index))
     else:
         d = Decimal(value) / Decimal(factor ** (to_index - from_index))
-    return _trim_tailling_zeros('{:f}'.format(d))
+    return _trim_tailling_zeros("{:f}".format(d))

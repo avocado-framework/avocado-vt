@@ -39,15 +39,20 @@ from virttest import arch, storage, data_dir, virt_vm
 from virttest import qemu_storage
 from virttest.qemu_devices.qdevices import QThrottleGroup
 from virttest.qemu_devices import qdevices
-from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
-                                         DeviceInsertError, DeviceRemoveError,
-                                         DeviceUnplugError, none_or_int)
+from virttest.qemu_devices.utils import (
+    DeviceError,
+    DeviceHotplugError,
+    DeviceInsertError,
+    DeviceRemoveError,
+    DeviceUnplugError,
+    none_or_int,
+)
 from virttest.qemu_devices.utils import set_cmdline_format_by_cfg
 from virttest.utils_params import Params
 from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 #
 # Device container (device representation of VM)
@@ -60,97 +65,123 @@ class DevContainer(object):
     """
     Device container class
     """
+
     # General methods
 
-    cache_map = {'writeback': {'write-cache': 'on',
-                               'cache.direct': 'off',
-                               'cache.no-flush': 'off'},
-                 'none': {'write-cache': 'on',
-                          'cache.direct': 'on',
-                          'cache.no-flush': 'off'},
-                 'writethrough': {'write-cache': 'off',
-                                  'cache.direct': 'off',
-                                  'cache.no-flush': 'off'},
-                 'directsync': {'write-cache': 'off',
-                                'cache.direct': 'on',
-                                'cache.no-flush': 'off'},
-                 'unsafe': {'write-cache': 'on',
-                            'cache.direct': 'off',
-                            'cache.no-flush': 'on'}}
+    cache_map = {
+        "writeback": {
+            "write-cache": "on",
+            "cache.direct": "off",
+            "cache.no-flush": "off",
+        },
+        "none": {"write-cache": "on", "cache.direct": "on", "cache.no-flush": "off"},
+        "writethrough": {
+            "write-cache": "off",
+            "cache.direct": "off",
+            "cache.no-flush": "off",
+        },
+        "directsync": {
+            "write-cache": "off",
+            "cache.direct": "on",
+            "cache.no-flush": "off",
+        },
+        "unsafe": {"write-cache": "on", "cache.direct": "off", "cache.no-flush": "on"},
+    }
 
-    BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
-    SMP_DIES_VERSION_SCOPE = '[4.1.0, )'
-    SMP_CLUSTERS_VERSION_SCOPE = '[7.0.0, )'
+    BLOCKDEV_VERSION_SCOPE = "[2.12.0, )"
+    SMP_DIES_VERSION_SCOPE = "[4.1.0, )"
+    SMP_CLUSTERS_VERSION_SCOPE = "[7.0.0, )"
 
-    MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = '[5.1.0, )'
-    MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = '[5.1.0, )'
-    MIGRATION_XBZRLE_CACHE_SIZE_VERSION_SCOPE = '[5.1.0, )'
+    MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = "[5.1.0, )"
+    MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = "[5.1.0, )"
+    MIGRATION_XBZRLE_CACHE_SIZE_VERSION_SCOPE = "[5.1.0, )"
 
-    def __init__(self, qemu_binary, vmname, strict_mode="no",
-                 workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
+    def __init__(
+        self,
+        qemu_binary,
+        vmname,
+        strict_mode="no",
+        workaround_qemu_qmp_crash="no",
+        allow_hotplugged_vm="yes",
+    ):
         """
         :param qemu_binary: qemu binary
         :param vm: related VM
         :param strict_mode: Use strict mode (set optional params)
         """
+
         def get_hmp_cmds(qemu_binary):
-            """ :return: list of human monitor commands """
-            _ = process.run("echo -e 'help\nquit' | %s -monitor "
-                            "stdio -vnc none -S" % qemu_binary,
-                            timeout=10, ignore_status=True,
-                            shell=True, verbose=False).stdout_text
-            _ = re.findall(r'^([^()\|\[\sA-Z]+\|?\w+)', _, re.M)
+            """:return: list of human monitor commands"""
+            _ = process.run(
+                "echo -e 'help\nquit' | %s -monitor "
+                "stdio -vnc none -S" % qemu_binary,
+                timeout=10,
+                ignore_status=True,
+                shell=True,
+                verbose=False,
+            ).stdout_text
+            _ = re.findall(r"^([^()\|\[\sA-Z]+\|?\w+)", _, re.M)
             hmp_cmds = []
             for cmd in _:
-                if '|' not in cmd:
-                    if cmd != 'The':
+                if "|" not in cmd:
+                    if cmd != "The":
                         hmp_cmds.append(cmd)
                 else:
-                    hmp_cmds.extend(cmd.split('|'))
+                    hmp_cmds.extend(cmd.split("|"))
             return hmp_cmds
 
         def get_qmp_cmds(qemu_binary, workaround_qemu_qmp_crash=False):
-            """ :return: list of qmp commands """
+            """:return: list of qmp commands"""
             cmds = None
             if not workaround_qemu_qmp_crash:
-                cmds = process.run('echo -e \''
-                                   '{ "execute": "qmp_capabilities" }\n'
-                                   '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                   '{ "execute": "quit" }\''
-                                   '| %s -qmp stdio -vnc none -S | grep return |'
-                                   ' grep RAND91' % qemu_binary, timeout=10,
-                                   ignore_status=True, shell=True,
-                                   verbose=False).stdout_text.splitlines()
+                cmds = process.run(
+                    "echo -e '"
+                    '{ "execute": "qmp_capabilities" }\n'
+                    '{ "execute": "query-commands", "id": "RAND91" }\n'
+                    '{ "execute": "quit" }\''
+                    "| %s -qmp stdio -vnc none -S | grep return |"
+                    " grep RAND91" % qemu_binary,
+                    timeout=10,
+                    ignore_status=True,
+                    shell=True,
+                    verbose=False,
+                ).stdout_text.splitlines()
             if not cmds:
                 # Some qemu versions crashes when qmp used too early; add sleep
-                cmds = process.run('echo -e \''
-                                   '{ "execute": "qmp_capabilities" }\n'
-                                   '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                   '{ "execute": "quit" }\' | (sleep 1; cat )'
-                                   '| %s -qmp stdio -vnc none -S | grep return |'
-                                   ' grep RAND91' % qemu_binary, timeout=10,
-                                   ignore_status=True, shell=True,
-                                   verbose=False).stdout_text.splitlines()
+                cmds = process.run(
+                    "echo -e '"
+                    '{ "execute": "qmp_capabilities" }\n'
+                    '{ "execute": "query-commands", "id": "RAND91" }\n'
+                    '{ "execute": "quit" }\' | (sleep 1; cat )'
+                    "| %s -qmp stdio -vnc none -S | grep return |"
+                    " grep RAND91" % qemu_binary,
+                    timeout=10,
+                    ignore_status=True,
+                    shell=True,
+                    verbose=False,
+                ).stdout_text.splitlines()
             if cmds:
                 cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
-            if cmds:    # If no mathes, return None
+            if cmds:  # If no mathes, return None
                 return cmds
 
-        self.__state = -1    # -1 synchronized, 0 synchronized after hotplug
+        self.__state = -1  # -1 synchronized, 0 synchronized after hotplug
         self.__qemu_binary = qemu_binary
         self.__execute_qemu_last = None
         self.__execute_qemu_out = ""
         # Check whether we need to add machine_type
-        cmd = ("echo -e 'quit' | %s -monitor stdio -nodefaults -nographic -S"
-               % qemu_binary)
-        result = process.run(cmd, timeout=10,
-                             ignore_status=True,
-                             shell=True,
-                             verbose=False)
+        cmd = (
+            "echo -e 'quit' | %s -monitor stdio -nodefaults -nographic -S" % qemu_binary
+        )
+        result = process.run(
+            cmd, timeout=10, ignore_status=True, shell=True, verbose=False
+        )
         # Some architectures (arm) require machine type to be always set and some
         # hardware/firmware restrictions cause we need to set machine type.
-        failed_pattern = r'(?:kvm_init_vcpu.*failed)|(?:machine specified)' \
-                         r'|(?:appending -machine)'
+        failed_pattern = (
+            r"(?:kvm_init_vcpu.*failed)|(?:machine specified)"
+            r"|(?:appending -machine)"
+        )
         output = result.stdout_text + result.stderr_text
         if result.exit_status and re.search(failed_pattern, output):
             self.__workaround_machine_type = True
@@ -163,19 +194,22 @@ class DevContainer(object):
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
         self.__object_help = self.execute_qemu("-object \? 2>&1", 10)
-        self.__machine_types = process.run("%s -M \?" % qemu_binary,
-                                           timeout=10,
-                                           ignore_status=True,
-                                           shell=True,
-                                           verbose=False).stdout_text
+        self.__machine_types = process.run(
+            "%s -M \?" % qemu_binary,
+            timeout=10,
+            ignore_status=True,
+            shell=True,
+            verbose=False,
+        ).stdout_text
         self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
-        self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
-                                       workaround_qemu_qmp_crash == 'always')
+        self.__qmp_cmds = get_qmp_cmds(
+            basic_qemu_cmd, workaround_qemu_qmp_crash == "always"
+        )
         self.vmname = vmname
-        self.strict_mode = strict_mode == 'yes'
+        self.strict_mode = strict_mode == "yes"
         self.__devices = []
         self.__buses = []
-        self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
+        self.allow_hotplugged_vm = allow_hotplugged_vm == "yes"
         self.__qemu_ver = utils_qemu.get_qemu_version(self.__qemu_binary)[0]
         self.caps = Capabilities()
         self.mig_params = Capabilities()
@@ -190,8 +224,7 @@ class DevContainer(object):
         """:return: qemu version, e.g. 5.2.0"""
         return self.__qemu_ver
 
-    def initialize_iothread_manager(self, params, guestcpuinfo,
-                                    cmdline_format_cfg={}):
+    def initialize_iothread_manager(self, params, guestcpuinfo, cmdline_format_cfg={}):
         """Initialize iothread manager.
         :param params: vt params
         :param guestcpuinfo: Cpuinfo object that stores guest cpu info
@@ -211,10 +244,10 @@ class DevContainer(object):
             iothread_params = params.object_params(iothread)
             iothread_dict = {
                 iothread_props[prop]: iothread_params[prop]
-                for prop in iothread_props if prop in iothread_params
+                for prop in iothread_props
+                if prop in iothread_params
             }
-            iothread = qdevices.QIOThread(iothread_id=iothread,
-                                          params=iothread_dict)
+            iothread = qdevices.QIOThread(iothread_id=iothread, params=iothread_dict)
             set_cmdline_format_by_cfg(iothread, cmdline_format_cfg, "images")
             iothreads.append(iothread)
 
@@ -224,8 +257,7 @@ class DevContainer(object):
             "oto": vt_iothread.OTOManager,
             "rhv": vt_iothread.RoundRobinManager,
         }
-        manager = scheme_to_manager.get(iothread_scheme,
-                                        vt_iothread.PredefinedManager)
+        manager = scheme_to_manager.get(iothread_scheme, vt_iothread.PredefinedManager)
 
         self.insert(iothreads)
 
@@ -271,21 +303,23 @@ class DevContainer(object):
                 if isinstance(device.parent_bus, Sequence):
                     device.parent_bus += (dev_iothread_parent,)
                 else:
-                    device.parent_bus = \
-                        (device.parent_bus, dev_iothread_parent)
+                    device.parent_bus = (device.parent_bus, dev_iothread_parent)
             else:
                 device.parent_bus = (dev_iothread_parent,)
             return iothread
         else:
-            err_msg = "Device %s(%s) not support iothread" % \
-                (device.get_aid(), device.get_param("driver"))
+            err_msg = "Device %s(%s) not support iothread" % (
+                device.get_aid(),
+                device.get_param("driver"),
+            )
             raise TypeError(err_msg)
 
     def _probe_capabilities(self):
-        """ Probe capabilities. """
+        """Probe capabilities."""
         # -blockdev
-        if (self.has_option('blockdev') and
-                self.__qemu_ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE)):
+        if self.has_option("blockdev") and self.__qemu_ver in VersionInterval(
+            self.BLOCKDEV_VERSION_SCOPE
+        ):
             self.caps.set_flag(Flags.BLOCKDEV)
         # -smp dies=?
         if self.__qemu_ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
@@ -294,17 +328,18 @@ class DevContainer(object):
         if self.__qemu_ver in VersionInterval(self.SMP_CLUSTERS_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_CLUSTERS)
         # -incoming defer
-        if self.has_option('incoming defer'):
+        if self.has_option("incoming defer"):
             self.caps.set_flag(Flags.INCOMING_DEFER)
         # -object sev-guest
-        if self.has_object('sev-guest'):
+        if self.has_object("sev-guest"):
             self.caps.set_flag(Flags.SEV_GUEST)
         # -object tdx-guest
-        if self.has_object('tdx-guest'):
+        if self.has_object("tdx-guest"):
             self.caps.set_flag(Flags.TDX_GUEST)
 
-        if (self.has_qmp_cmd('migrate-set-parameters') and
-                self.has_hmp_cmd('migrate_set_parameter')):
+        if self.has_qmp_cmd("migrate-set-parameters") and self.has_hmp_cmd(
+            "migrate_set_parameter"
+        ):
             self.caps.set_flag(Flags.MIGRATION_PARAMS)
 
     def _probe_migration_parameters(self):
@@ -394,22 +429,23 @@ class DevContainer(object):
         :return: None on success, -1 when the device is not present
         """
         device = self[device]
-        if not recursive:   # Check if there are no children
+        if not recursive:  # Check if there are no children
             for bus in device.child_bus:
                 if len(bus) != 0:
-                    raise DeviceRemoveError(device, "Child bus contains "
-                                            "devices", self)
-        else:               # Recursively remove all devices
+                    raise DeviceRemoveError(
+                        device, "Child bus contains " "devices", self
+                    )
+        else:  # Recursively remove all devices
             for dev in device.get_children():
                 # One child might be already removed from other child's bus
                 if dev in self:
                     self.remove(dev, True)
-        if device in self.__devices:    # It might be removed from child bus
-            for bus in self.__buses:        # Remove from parent_buses
+        if device in self.__devices:  # It might be removed from child bus
+            for bus in self.__buses:  # Remove from parent_buses
                 bus.remove(device)
-            for bus in device.child_bus:    # Remove child buses from vm buses
+            for bus in device.child_bus:  # Remove child buses from vm buses
                 self.__buses.remove(bus)
-            self.__devices.remove(device)   # Remove from list of devices
+            self.__devices.remove(device)  # Remove from list of devices
 
         if isinstance(device, qdevices.QIOThread):
             self.__iothread_manager.release_iothread(device)
@@ -436,7 +472,7 @@ class DevContainer(object):
             self.__devices.remove(device)
 
     def __len__(self):
-        """ :return: Number of inserted devices """
+        """:return: Number of inserted devices"""
         return len(self.__devices)
 
     def __contains__(self, item):
@@ -455,11 +491,11 @@ class DevContainer(object):
         return False
 
     def __iter__(self):
-        """ Iterate over all defined devices. """
+        """Iterate over all defined devices."""
         return self.__devices.__iter__()
 
     def __eq__(self, qdev2):
-        """ Are the VM representation alike? """
+        """Are the VM representation alike?"""
         if len(qdev2) != len(self):
             return False
         if qdev2.get_state() != self.get_state():
@@ -475,34 +511,42 @@ class DevContainer(object):
         # state, buses and devices are handled earlier
         qdev2 = qdev2.__dict__
         for key, value in six.iteritems(self.__dict__):
-            if key in ("_DevContainer__devices", "_DevContainer__buses",
-                       "_DevContainer__state", "caps", "allow_hotplugged_vm",
-                       "_DevContainer__iothread_manager",
-                       "_DevContainer__iothread_supported_devices",
-                       "temporary_image_snapshots", "mig_params"):
+            if key in (
+                "_DevContainer__devices",
+                "_DevContainer__buses",
+                "_DevContainer__state",
+                "caps",
+                "allow_hotplugged_vm",
+                "_DevContainer__iothread_manager",
+                "_DevContainer__iothread_supported_devices",
+                "temporary_image_snapshots",
+                "mig_params",
+            ):
                 continue
             if key not in qdev2 or qdev2[key] != value:
                 return False
         return True
 
     def __ne__(self, qdev2):
-        """ Are the VM representation different? """
+        """Are the VM representation different?"""
         return not self.__eq__(qdev2)
 
     def set_dirty(self):
-        """ Increase VM dirtiness (not synchronized with VM) """
+        """Increase VM dirtiness (not synchronized with VM)"""
         if self.__state >= 0:
             self.__state += 1
         else:
             self.__state = 1
 
     def set_clean(self):
-        """ Decrease VM dirtiness (synchronized with VM) """
+        """Decrease VM dirtiness (synchronized with VM)"""
         if self.__state > 0:
             self.__state -= 1
         else:
-            raise DeviceError("Trying to clean clear VM (probably calling "
-                              "hotplug_clean() twice).\n%s" % self.str_long())
+            raise DeviceError(
+                "Trying to clean clear VM (probably calling "
+                "hotplug_clean() twice).\n%s" % self.str_long()
+            )
 
     def reset_state(self):
         """
@@ -511,7 +555,7 @@ class DevContainer(object):
         self.__state = -1
 
     def get_state(self):
-        """ Get the current state (0 = synchronized with VM) """
+        """Get the current state (0 = synchronized with VM)"""
         return self.__state
 
     def get_by_qid(self, qid):
@@ -537,13 +581,13 @@ class DevContainer(object):
         """
         for dev in self.__devices:
             try:
-                if isinstance(dev, qdevices.QDevice) and device == dev.params['drive']:
-                    return dev.params['id']
+                if isinstance(dev, qdevices.QDevice) and device == dev.params["drive"]:
+                    return dev.params["id"]
             except KeyError:
                 continue
 
     def str_short(self):
-        """ Short string representation of all devices """
+        """Short string representation of all devices"""
         out = "Devices of %s" % self.vmname
         dirty = self.get_state()
         if dirty == -1:
@@ -555,12 +599,12 @@ class DevContainer(object):
         out += ": ["
         for device in self:
             out += "%s," % device
-        if out[-1] == ',':
+        if out[-1] == ",":
             out = out[:-1]
         return out + "]"
 
     def str_long(self):
-        """ Long string representation of all devices """
+        """Long string representation of all devices"""
         out = "Devices of %s" % self.vmname
         dirty = self.get_state()
         if dirty == -1:
@@ -572,12 +616,12 @@ class DevContainer(object):
         out += ":\n"
         for device in self:
             out += device.str_long()
-        if out[-1] == '\n':
+        if out[-1] == "\n":
             out = out[:-1]
         return out
 
     def str_bus_short(self):
-        """ Short representation of all buses """
+        """Short representation of all buses"""
         out = "Buses of %s\n  " % self.vmname
         for bus in self.__buses:
             out += str(bus)
@@ -585,10 +629,10 @@ class DevContainer(object):
         return out[:-3]
 
     def str_bus_long(self):
-        """ Long representation of all buses """
+        """Long representation of all buses"""
         out = "Buses of %s:\n  " % self.vmname
         for bus in self.__buses:
-            out += bus.str_long().replace('\n', '\n  ')
+            out += bus.str_long().replace("\n", "\n  ")
         return out[:-3]
 
     def __create_unique_aid(self, qid):
@@ -609,23 +653,23 @@ class DevContainer(object):
         :param option: Desired option
         :return: Is the desired option supported by current qemu?
         """
-        return bool(re.search(r"^-%s(\s|$)" % option, self.__qemu_help,
-                              re.MULTILINE))
+        return bool(re.search(r"^-%s(\s|$)" % option, self.__qemu_help, re.MULTILINE))
 
     def has_device(self, device):
         """
         :param device: Desired device
         :return: Is the desired device supported by current qemu?
         """
-        return bool(re.search(r'name "%s"|alias "%s"' % (device, device),
-                              self.__device_help))
+        return bool(
+            re.search(r'name "%s"|alias "%s"' % (device, device), self.__device_help)
+        )
 
     def has_object(self, obj):
         """
         :param obj: Desired object string, e.g. 'sev-guest'
         :return: True if the object is supported by qemu, or False
         """
-        return bool(re.search(r'^\s*%s\n' % obj, self.__object_help, re.M))
+        return bool(re.search(r"^\s*%s\n" % obj, self.__object_help, re.M))
 
     def get_help_text(self):
         """
@@ -659,14 +703,12 @@ class DevContainer(object):
         """
         if self.__execute_qemu_last != options:
             if self.__workaround_machine_type:
-                cmd = "%s -machine none %s 2>&1" % (self.__qemu_binary,
-                                                    options)
+                cmd = "%s -machine none %s 2>&1" % (self.__qemu_binary, options)
             else:
                 cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
-            result = process.run(cmd, timeout=timeout,
-                                 ignore_status=True,
-                                 shell=True,
-                                 verbose=False)
+            result = process.run(
+                cmd, timeout=timeout, ignore_status=True, shell=True, verbose=False
+            )
             self.__execute_qemu_out = result.stdout_text
             self.__execute_qemu_last = options
         return self.__execute_qemu_out
@@ -705,8 +747,9 @@ class DevContainer(object):
         :param devices: List of qdevices.QBaseDevice devices
         :raise DeviceError: On failure. The representation remains unchanged.
         """
+
         def cleanup():
-            """ Remove all added devices (on failure) """
+            """Remove all added devices (on failure)"""
             for device in added:
                 self.wash_the_device_out(device)
 
@@ -719,9 +762,11 @@ class DevContainer(object):
                 added.extend(self._insert(device, strict_mode))
             except DeviceError as details:
                 cleanup()
-                raise DeviceError("%s\nError occurred while inserting device %s"
-                                  " (%s). Please check the log for details."
-                                  % (details, device, devices))
+                raise DeviceError(
+                    "%s\nError occurred while inserting device %s"
+                    " (%s). Please check the log for details."
+                    % (details, device, devices)
+                )
         return added
 
     def _insert(self, device, strict_mode=None):
@@ -736,8 +781,9 @@ class DevContainer(object):
         3)  add child buses
         4)  append into self.devices
         """
+
         def clean(device, added_devices):
-            """ Remove all inserted devices (on failure) """
+            """Remove all inserted devices (on failure)"""
             self.wash_the_device_out(device)
             for device in added_devices:
                 self.wash_the_device_out(device)
@@ -749,8 +795,9 @@ class DevContainer(object):
         else:
             _strict_mode = False
         added_devices = []
-        if device.parent_bus is not None and not isinstance(device.parent_bus,
-                                                            (list, tuple)):
+        if device.parent_bus is not None and not isinstance(
+            device.parent_bus, (list, tuple)
+        ):
             # it have to be list of parent buses
             device.parent_bus = (device.parent_bus,)
         for parent_bus in device.parent_bus:
@@ -765,7 +812,7 @@ class DevContainer(object):
                 raise DeviceInsertError(device, err, self)
             bus_returns = []
             strict_mode = _strict_mode
-            for bus in buses:   # 2
+            for bus in buses:  # 2
                 if not bus.match_bus(parent_bus, False):
                     # First available bus in qemu is not of the same type as
                     # we in autotest require. Force strict mode to get this
@@ -775,18 +822,20 @@ class DevContainer(object):
                     bus_returns.append(-1)  # Don't use this bus
                     continue
                 bus_returns.append(bus.insert(device, strict_mode))
-                if isinstance(bus_returns[-1], list):   # we are done
+                if isinstance(bus_returns[-1], list):  # we are done
                     # The bus might require additional devices plugged first
                     try:
                         added_devices.extend(self.insert(bus_returns[-1]))
                     except DeviceError as details:
-                        err = ("Can't insert device %s because additional "
-                               "device required by bus %s failed to be "
-                               "inserted with:\n%s" % (device, bus, details))
+                        err = (
+                            "Can't insert device %s because additional "
+                            "device required by bus %s failed to be "
+                            "inserted with:\n%s" % (device, bus, details)
+                        )
                         clean(device, added_devices)
                         raise DeviceError(err)
                     break
-            if isinstance(bus_returns[-1], list):   # we are done
+            if isinstance(bus_returns[-1], list):  # we are done
                 continue
             err = "ParentBus(%s): No free matching bus\n" % parent_bus
             clean(device, added_devices)
@@ -810,9 +859,12 @@ class DevContainer(object):
         :param device: device name
         :return: True if is pci device, otherwise False
         """
-        return bool(re.search(
-            r'name "%s", bus PCI|bus PCI, .*alias "%s"' % (device, device),
-            self.__device_help))
+        return bool(
+            re.search(
+                r'name "%s", bus PCI|bus PCI, .*alias "%s"' % (device, device),
+                self.__device_help,
+            )
+        )
 
     def simple_hotplug(self, device, monitor, bus=None):
         """
@@ -833,13 +885,13 @@ class DevContainer(object):
 
         if isinstance(device, qdevices.QDevice):
             if bus is None:
-                if self.is_pci_device(device['driver']):
-                    bus = self.get_buses({'aobject': 'pci.0'})[0]
+                if self.is_pci_device(device["driver"]):
+                    bus = self.get_buses({"aobject": "pci.0"})[0]
                 if not isinstance(device.parent_bus, (list, tuple)):
                     device.parent_bus = [device.parent_bus]
                 for parent_bus in device.parent_bus:
                     for _bus in self.get_buses(parent_bus):
-                        if _bus.bus_item == 'bus':
+                        if _bus.bus_item == "bus":
                             bus = _bus
                             break
             if bus is not None:
@@ -849,12 +901,13 @@ class DevContainer(object):
             # Insert the device first to assign slot
             qdev_out = self.insert(device)
             if not isinstance(qdev_out, list) or len(qdev_out) != 1:
-                raise NotImplementedError("This device %s require to hotplug "
-                                          "multiple devices, which is not "
-                                          "supported." % device)
+                raise NotImplementedError(
+                    "This device %s require to hotplug "
+                    "multiple devices, which is not "
+                    "supported." % device
+                )
         except DeviceError as exc:
-            raise DeviceHotplugError(device, 'According to qemu_device: %s'
-                                     % exc, self)
+            raise DeviceHotplugError(device, "According to qemu_device: %s" % exc, self)
         else:
             out = device.hotplug(monitor, self.qemu_version)
             ver_out = device.verify_hotplug(out, monitor)
@@ -887,9 +940,13 @@ class DevContainer(object):
         # The unplug action sometimes delays for a while per host performance,
         # it will be accepted if the unplug been accomplished within 30s
         from virttest import utils_misc
+
         if not utils_misc.wait_for(
-                lambda: device.verify_unplug(out, monitor) is True,
-                first=1, step=5, timeout=timeout):
+            lambda: device.verify_unplug(out, monitor) is True,
+            first=1,
+            step=5,
+            timeout=timeout,
+        ):
             self.set_clean()
             return out, device.verify_unplug(out, monitor)
 
@@ -912,12 +969,11 @@ class DevContainer(object):
                     for node in nodes:
                         parent_node = node.get_parent_node()
                         child_nodes = node.get_child_nodes()
-                        if not node.verify_unplug(node.unplug(monitor),
-                                                  monitor):
+                        if not node.verify_unplug(node.unplug(monitor), monitor):
                             raise DeviceUnplugError(
-                                node, "Failed to unplug blockdev node.", self)
-                        self.remove(node,
-                                    True if len(child_nodes) > 0 else False)
+                                node, "Failed to unplug blockdev node.", self
+                            )
+                        self.remove(node, True if len(child_nodes) > 0 else False)
                         if parent_node:
                             parent_node.del_child_node(node)
                 else:
@@ -926,9 +982,13 @@ class DevContainer(object):
             if ver_out is True:
                 self.set_clean()
             elif out is False:
-                raise DeviceUnplugError(device, "Device wasn't unplugged in "
-                                        "qemu, but it was unplugged in device "
-                                        "representation.", self)
+                raise DeviceUnplugError(
+                    device,
+                    "Device wasn't unplugged in "
+                    "qemu, but it was unplugged in device "
+                    "representation.",
+                    self,
+                )
         except (DeviceError, KeyError) as exc:
             device.unplug_unhook()
             raise DeviceUnplugError(device, exc, self)
@@ -958,8 +1018,7 @@ class DevContainer(object):
             bus_pattern = bus_pattern + "%s"
         missing_buses = [bus_pattern % i for i in xrange(bus_count)]
         for bus in self.__buses:
-            if bus.type == bus_type and re.match(bus_pattern % '\d+',
-                                                 bus.busid):
+            if bus.type == bus_type and re.match(bus_pattern % "\d+", bus.busid):
                 if bus.busid in missing_buses:
                     missing_buses.remove(bus.busid)
         return missing_buses
@@ -974,7 +1033,7 @@ class DevContainer(object):
             bus_pattern = bus_pattern + "%s"
         buses = []
         for bus in self.__buses:
-            if bus.busid and re.match(bus_pattern % '\d+', bus.busid):
+            if bus.busid and re.match(bus_pattern % "\d+", bus.busid):
                 buses.append(bus.busid)
         i = 0
         while True:
@@ -1008,44 +1067,49 @@ class DevContainer(object):
         """
         This hook creates dummy scsi hba per 7 -drive 'scsi' devices.
         """
-        i = 6   # We are going to divide it by 7 so 6 will result in 0
+        i = 6  # We are going to divide it by 7 so 6 will result in 0
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
-            _is_oldscsi = (image_params.get('drive_format') == 'scsi')
-            _scsi_without_device = (not self.has_option('device') and
-                                    params.object_params(image_name)
-                                    .get('drive_format', 'virtio_blk')
-                                    .startswith('scsi'))
+            _is_oldscsi = image_params.get("drive_format") == "scsi"
+            _scsi_without_device = not self.has_option(
+                "device"
+            ) and params.object_params(image_name).get(
+                "drive_format", "virtio_blk"
+            ).startswith(
+                "scsi"
+            )
             if _is_oldscsi or _scsi_without_device:
                 i += 1
 
         for image_name in params.objects("cdroms"):
-            _is_oldscsi = (params.object_params(image_name).get('cd_format') ==
-                           'scsi')
-            _scsi_without_device = (not self.has_option('device') and
-                                    params.object_params(image_name)
-                                    .get('cd_format', 'virtio_blk')
-                                    .startswith('scsi'))
+            _is_oldscsi = params.object_params(image_name).get("cd_format") == "scsi"
+            _scsi_without_device = not self.has_option(
+                "device"
+            ) and params.object_params(image_name).get(
+                "cd_format", "virtio_blk"
+            ).startswith(
+                "scsi"
+            )
             if _is_oldscsi or _scsi_without_device:
                 i += 1
 
-        for i in xrange(i // 7):     # Autocreated lsi hba
-            if arch.ARCH in ('ppc64', 'ppc64le'):
-                _name = 'spapr-vscsi%s' % i
-                bus = qdevices.QSCSIBus("scsi.0", 'SCSI', [64, 32],
-                                        atype='spapr-vscsi')
-                self.insert(qdevices.QStringDevice(_name,
-                                                   child_bus=bus))
+        for i in xrange(i // 7):  # Autocreated lsi hba
+            if arch.ARCH in ("ppc64", "ppc64le"):
+                _name = "spapr-vscsi%s" % i
+                bus = qdevices.QSCSIBus("scsi.0", "SCSI", [64, 32], atype="spapr-vscsi")
+                self.insert(qdevices.QStringDevice(_name, child_bus=bus))
             else:
-                _name = 'lsi53c895a%s' % i
+                _name = "lsi53c895a%s" % i
                 bus = qdevices.QSCSIBus(
-                    "scsi.0", 'SCSI', [
-                        8, 16384], atype='lsi53c895a')
-                self.insert(qdevices.QStringDevice(_name,
-                                                   parent_bus={'aobject':
-                                                               params.get('pci_bus',
-                                                                          'pci.0')},
-                                                   child_bus=bus))
+                    "scsi.0", "SCSI", [8, 16384], atype="lsi53c895a"
+                )
+                self.insert(
+                    qdevices.QStringDevice(
+                        _name,
+                        parent_bus={"aobject": params.get("pci_bus", "pci.0")},
+                        child_bus=bus,
+                    )
+                )
 
     # Machine related methods
     def machine_by_params(self, params=None):
@@ -1059,11 +1123,11 @@ class DevContainer(object):
         else:
             root_port_type = "ioh3420"
 
-        if self.has_device('pcie-pci-bridge'):
-            pci_bridge_type = 'pcie-pci-bridge'
+        if self.has_device("pcie-pci-bridge"):
+            pci_bridge_type = "pcie-pci-bridge"
         else:
-            pci_bridge_type = 'pci-bridge'
-        pcie_root_port_params = params.get('pcie_root_port_params')
+            pci_bridge_type = "pci-bridge"
+        pcie_root_port_params = params.get("pcie_root_port_params")
 
         def pflash_handler(firmware_name, cmd):
             """
@@ -1076,53 +1140,58 @@ class DevContainer(object):
             # of the pflash life cycle.
             machine_cmd = cmd
             devs = []
-            images = params.objects('images')
+            images = params.objects("images")
 
             firmware_path = params.get(firmware_name + "_path")
             if firmware_path and images:
                 if not os.path.exists(firmware_path):
-                    raise exceptions.TestError("The firmware path is not exist."
-                                               " Maybe you need to install "
-                                               "related packages.")
-                current_data_dir = params.get("images_base_dir",
-                                              data_dir.get_data_dir())
+                    raise exceptions.TestError(
+                        "The firmware path is not exist."
+                        " Maybe you need to install "
+                        "related packages."
+                    )
+                current_data_dir = params.get(
+                    "images_base_dir", data_dir.get_data_dir()
+                )
                 pflash_code_filename = params[firmware_name + "_code_filename"]
-                pflash_code_path = os.path.join(firmware_path,
-                                                pflash_code_filename)
+                pflash_code_path = os.path.join(firmware_path, pflash_code_filename)
                 pflash_vars_filename = params[firmware_name + "_vars_filename"]
-                pflash_vars_src_path = os.path.join(firmware_path,
-                                                    pflash_vars_filename)
+                pflash_vars_src_path = os.path.join(firmware_path, pflash_vars_filename)
 
                 # To ignore the influence from backends
                 first_image = images[0]
                 img_params = params.object_params(first_image)
                 img_params["backing_chain"] = "no"
-                img_obj = qemu_storage.QemuImg(img_params,
-                                               current_data_dir, first_image)
+                img_obj = qemu_storage.QemuImg(
+                    img_params, current_data_dir, first_image
+                )
                 img_info = json.loads(img_obj.info(True, "json"))
                 if img_obj.is_remote_image():
-                    pflash_vars_name = "%s_%s_%s_%s_VARS.fd" % \
-                        (self.vmname, params['guest_name'],
-                         params['image_backend'], img_info.get("format"))
-                    pflash_vars_path = os.path.join(current_data_dir,
-                                                    pflash_vars_name)
+                    pflash_vars_name = "%s_%s_%s_%s_VARS.fd" % (
+                        self.vmname,
+                        params["guest_name"],
+                        params["image_backend"],
+                        img_info.get("format"),
+                    )
+                    pflash_vars_path = os.path.join(current_data_dir, pflash_vars_name)
                 else:
                     img_path, img_name = os.path.split(img_info.get("filename"))
 
-                    pflash_vars_name = "%s_%s_%s_VARS.fd" % \
-                        (self.vmname, '_'.join(img_name.split(".")),
-                         params['image_backend'])
-                    pflash_vars_path = os.path.join(img_path,
-                                                    pflash_vars_name)
+                    pflash_vars_name = "%s_%s_%s_VARS.fd" % (
+                        self.vmname,
+                        "_".join(img_name.split(".")),
+                        params["image_backend"],
+                    )
+                    pflash_vars_path = os.path.join(img_path, pflash_vars_name)
                     if not os.access(pflash_vars_path, os.W_OK):
-                        pflash_vars_path = os.path.join(current_data_dir,
-                                                        pflash_vars_name)
+                        pflash_vars_path = os.path.join(
+                            current_data_dir, pflash_vars_name
+                        )
                     # When image has backing files, treat it as a temporary image
                     if "backing-filename" in img_info:
                         self.temporary_image_snapshots.add(pflash_vars_path)
 
-                pflash0, pflash1 = (firmware_name + '_code',
-                                    firmware_name + '_vars')
+                pflash0, pflash1 = (firmware_name + "_code", firmware_name + "_vars")
                 if Flags.BLOCKDEV in self.caps:
                     protocol_pflash0 = qdevices.QBlockdevProtocolFile(pflash0)
                     format_pflash0 = qdevices.QBlockdevFormatRaw(pflash0)
@@ -1134,16 +1203,20 @@ class DevContainer(object):
                     format_pflash0.set_param("read-only", "on")
                     format_pflash0.set_param("file", protocol_pflash0.get_qid())
                     devs.extend([protocol_pflash0, format_pflash0])
-                    machine_cmd += ',%s=%s' % ('pflash0',
-                                               format_pflash0.params['node-name'])
+                    machine_cmd += ",%s=%s" % (
+                        "pflash0",
+                        format_pflash0.params["node-name"],
+                    )
                 else:
                     devs.append(qdevices.QDrive(pflash0, use_device=False))
                     devs[-1].set_param("if", "pflash")
                     devs[-1].set_param("format", "raw")
                     devs[-1].set_param("readonly", "on")
                     devs[-1].set_param("file", pflash_code_path)
-                if (not os.path.exists(pflash_vars_path) or
-                        params.get("restore_%s_vars" % firmware_name) == "yes"):
+                if (
+                    not os.path.exists(pflash_vars_path)
+                    or params.get("restore_%s_vars" % firmware_name) == "yes"
+                ):
                     shutil.copy2(pflash_vars_src_path, pflash_vars_path)
                 if Flags.BLOCKDEV in self.caps:
                     protocol_pflash1 = qdevices.QBlockdevProtocolFile(pflash1)
@@ -1156,8 +1229,10 @@ class DevContainer(object):
                     format_pflash1.set_param("read-only", "off")
                     format_pflash1.set_param("file", protocol_pflash1.get_qid())
                     devs.extend([protocol_pflash1, format_pflash1])
-                    machine_cmd += ',%s=%s' % ('pflash1',
-                                               format_pflash1.params['node-name'])
+                    machine_cmd += ",%s=%s" % (
+                        "pflash1",
+                        format_pflash1.params["node-name"],
+                    )
                 else:
                     devs.append(qdevices.QDrive(pflash1, use_device=False))
                     devs[-1].set_param("if", "pflash")
@@ -1173,59 +1248,85 @@ class DevContainer(object):
             :return: List of added devices (including default buses)
             """
             devices = []
-            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
-                                     'pci.0', pcie_root_port_params),
-                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
-                                             first_port=[1]),
-                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]),
-                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
-                                    "vcpu"))
+            bus = (
+                qdevices.QPCIEBus(
+                    "pcie.0", "PCIE", root_port_type, "pci.0", pcie_root_port_params
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis"], [256]], "_PCI_CHASSIS", first_port=[1]
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis_nr"], [256]], "_PCI_CHASSIS_NR", first_port=[1]
+                ),
+                qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
+            )
             pflash_devices, cmd = pflash_handler("ovmf", cmd)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
-            devices.append(qdevices.QStringDevice('mch', {'addr': 0, 'driver': 'mch'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('ICH9-LPC', {'addr': '1f.0',
-                                                               'driver': 'ICH9-LPC'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('ICH9 SMB', {'addr': '1f.3',
-                                                               'driver': 'ICH9 SMB'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('ICH9-ahci', {'addr': '1f.2',
-                                                                'driver': 'ich9-ahci'},
-                                                  parent_bus={
-                                                      'aobject': 'pci.0'},
-                                                  child_bus=qdevices.QAHCIBus('ide')))
-            if self.has_option('device') and self.has_option("global"):
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QFloppyBus('floppy')))
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="pci.0"
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "mch", {"addr": 0, "driver": "mch"}, parent_bus={"aobject": "pci.0"}
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "ICH9-LPC",
+                    {"addr": "1f.0", "driver": "ICH9-LPC"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "ICH9 SMB",
+                    {"addr": "1f.3", "driver": "ICH9 SMB"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "ICH9-ahci",
+                    {"addr": "1f.2", "driver": "ich9-ahci"},
+                    parent_bus={"aobject": "pci.0"},
+                    child_bus=qdevices.QAHCIBus("ide"),
+                )
+            )
+            if self.has_option("device") and self.has_option("global"):
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QFloppyBus("floppy")
+                    )
+                )
             else:
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
-                               )
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QOldFloppyBus("floppy")
+                    )
+                )
 
             # add default pcie root port plugging pcie device
-            port_name = '%s-0' % root_port_type
+            port_name = "%s-0" % root_port_type
             port_params = {
-                'type': root_port_type,
+                "type": root_port_type,
                 # reserve slot 0x0 for plugging in  pci bridge
-                'reserved_slots': '0x0'}
+                "reserved_slots": "0x0",
+            }
             root_port = self.pcic_by_params(port_name, port_params)
-            if root_port_type == 'pcie-root-port':
-                root_port.set_param('multifunction', 'on')
+            if root_port_type == "pcie-root-port":
+                root_port.set_param("multifunction", "on")
             devices.append(root_port)
 
             # add pci bridge for plugging in legacy pci device
-            bridge_name = '%s-0' % pci_bridge_type
-            bridge_parent_bus = {'aobject': root_port.get_qid()}
-            bridge_params = {'type': pci_bridge_type}
-            pci_bridge = self.pcic_by_params(bridge_name,
-                                             bridge_params,
-                                             bridge_parent_bus)
-            pci_bridge.set_param('addr', '0x0')
+            bridge_name = "%s-0" % pci_bridge_type
+            bridge_parent_bus = {"aobject": root_port.get_qid()}
+            bridge_params = {"type": pci_bridge_type}
+            pci_bridge = self.pcic_by_params(
+                bridge_name, bridge_params, bridge_parent_bus
+            )
+            pci_bridge.set_param("addr", "0x0")
             devices.append(pci_bridge)
 
             return devices
@@ -1238,39 +1339,64 @@ class DevContainer(object):
             """
             devices = []
             pci_bus = "pci.0"
-            bus = (qdevices.QPCIBus(pci_bus, 'PCI', 'pci.0'),
-                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
-                                             first_port=[1]),
-                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]),
-                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
-                                    "vcpu"))
+            bus = (
+                qdevices.QPCIBus(pci_bus, "PCI", "pci.0"),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis"], [256]], "_PCI_CHASSIS", first_port=[1]
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis_nr"], [256]], "_PCI_CHASSIS_NR", first_port=[1]
+                ),
+                qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
+            )
             pflash_devices, cmd = pflash_handler("ovmf", cmd)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
-            devices.append(qdevices.QStringDevice('i440FX',
-                                                  {'addr': 0, 'driver': 'i440FX'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('PIIX4_PM', {'addr': '01.3',
-                                                               'driver': 'PIIX4_PM'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('PIIX3',
-                                                  {'addr': 1, 'driver': 'PIIX3'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('piix3-ide', {'addr': '01.1',
-                                                                'driver': 'piix3-ide'},
-                                                  parent_bus={
-                                                      'aobject': 'pci.0'},
-                                                  child_bus=qdevices.QIDEBus('ide')))
-            if self.has_option('device') and self.has_option("global"):
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QFloppyBus('floppy')))
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="pci.0"
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "i440FX",
+                    {"addr": 0, "driver": "i440FX"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "PIIX4_PM",
+                    {"addr": "01.3", "driver": "PIIX4_PM"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "PIIX3",
+                    {"addr": 1, "driver": "PIIX3"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "piix3-ide",
+                    {"addr": "01.1", "driver": "piix3-ide"},
+                    parent_bus={"aobject": "pci.0"},
+                    child_bus=qdevices.QIDEBus("ide"),
+                )
+            )
+            if self.has_option("device") and self.has_option("global"):
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QFloppyBus("floppy")
+                    )
+                )
             else:
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
-                               )
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QOldFloppyBus("floppy")
+                    )
+                )
             return devices
 
         def machine_pseries(cmd=False):
@@ -1284,37 +1410,62 @@ class DevContainer(object):
             #  modified in the future.
             devices = []
             pci_bus = "pci.0"
-            bus = (qdevices.QPCIBus(pci_bus, 'PCI', 'pci.0'),
-                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
-                                             first_port=[1]),
-                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]),
-                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
-                                    "vcpu"))
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
-            devices.append(qdevices.QStringDevice('i440FX',
-                                                  {'addr': 0, 'driver': 'i440FX'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('PIIX4_PM', {'addr': '01.3',
-                                                               'driver': 'PIIX4_PM'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('PIIX3',
-                                                  {'addr': 1, 'driver': 'PIIX3'},
-                                                  parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('piix3-ide', {'addr': '01.1',
-                                                                'driver': 'piix3-ide'},
-                                                  parent_bus={
-                                                      'aobject': 'pci.0'},
-                                                  child_bus=qdevices.QIDEBus('ide')))
-            if self.has_option('device') and self.has_option("global"):
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QFloppyBus('floppy')))
+            bus = (
+                qdevices.QPCIBus(pci_bus, "PCI", "pci.0"),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis"], [256]], "_PCI_CHASSIS", first_port=[1]
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis_nr"], [256]], "_PCI_CHASSIS_NR", first_port=[1]
+                ),
+                qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="pci.0"
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "i440FX",
+                    {"addr": 0, "driver": "i440FX"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "PIIX4_PM",
+                    {"addr": "01.3", "driver": "PIIX4_PM"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "PIIX3",
+                    {"addr": 1, "driver": "PIIX3"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "piix3-ide",
+                    {"addr": "01.1", "driver": "piix3-ide"},
+                    parent_bus={"aobject": "pci.0"},
+                    child_bus=qdevices.QIDEBus("ide"),
+                )
+            )
+            if self.has_option("device") and self.has_option("global"):
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QFloppyBus("floppy")
+                    )
+                )
             else:
-                devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
-                               )
+                devices.append(
+                    qdevices.QStringDevice(
+                        "fdc", child_bus=qdevices.QOldFloppyBus("floppy")
+                    )
+                )
             return devices
 
         def machine_arm64_mmio(cmd=False):
@@ -1324,21 +1475,27 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            LOG.warn('Support for aarch64 is highly experimental!')
+            LOG.warn("Support for aarch64 is highly experimental!")
             devices = []
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completely different and
             # can't be used.
-            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                            'virtio-mmio-bus', 'virtio-bus',
-                                            'virtio-mmio-bus')
+            bus = qdevices.QNoAddrCustomBus(
+                "bus",
+                [["addr"], [32]],
+                "virtio-mmio-bus",
+                "virtio-bus",
+                "virtio-mmio-bus",
+            )
             pflash_devices, cmd = pflash_handler("aavmf", cmd)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="virtio-mmio-bus"
+                )
+            )
             return devices
 
         def machine_arm64_pci(cmd=False):
@@ -1347,43 +1504,55 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            LOG.warn('Support for aarch64 is highly experimental!')
+            LOG.warn("Support for aarch64 is highly experimental!")
             devices = []
 
-            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
-                                     'pci.0', pcie_root_port_params),
-                   qdevices.QStrictCustomBus(None, [['chassis'], [256]],
-                                             '_PCI_CHASSIS', first_port=[1]),
-                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]))
+            bus = (
+                qdevices.QPCIEBus(
+                    "pcie.0", "PCIE", root_port_type, "pci.0", pcie_root_port_params
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis"], [256]], "_PCI_CHASSIS", first_port=[1]
+                ),
+                qdevices.QStrictCustomBus(
+                    None, [["chassis_nr"], [256]], "_PCI_CHASSIS_NR", first_port=[1]
+                ),
+            )
             pflash_devices, cmd = pflash_handler("aavmf", cmd)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
-            devices.append(qdevices.QStringDevice('gpex-root',
-                                                  {'addr': 0, 'driver': 'gpex-root'},
-                                                  parent_bus={'aobject': 'pci.0'}))
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="pci.0"
+                )
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "gpex-root",
+                    {"addr": 0, "driver": "gpex-root"},
+                    parent_bus={"aobject": "pci.0"},
+                )
+            )
 
             # add default pcie root port plugging pcie device
-            port_name = '%s-0' % root_port_type
+            port_name = "%s-0" % root_port_type
             port_params = {
-                'type': root_port_type,
+                "type": root_port_type,
                 # reserve slot 0x0 for plugging in  pci bridge
-                'reserved_slots': '0x0'}
+                "reserved_slots": "0x0",
+            }
             root_port = self.pcic_by_params(port_name, port_params)
-            if root_port_type == 'pcie-root-port':
-                root_port.set_param('multifunction', 'on')
+            if root_port_type == "pcie-root-port":
+                root_port.set_param("multifunction", "on")
             devices.append(root_port)
 
             # add pci bridge for plugging in legacy pci device
-            bridge_name = '%s-0' % pci_bridge_type
-            bridge_parent_bus = {'aobject': root_port.get_qid()}
-            bridge_params = {'type': pci_bridge_type}
-            pci_bridge = self.pcic_by_params(bridge_name,
-                                             bridge_params,
-                                             bridge_parent_bus)
-            pci_bridge.set_param('addr', '0x0')
+            bridge_name = "%s-0" % pci_bridge_type
+            bridge_parent_bus = {"aobject": root_port.get_qid()}
+            bridge_params = {"type": pci_bridge_type}
+            pci_bridge = self.pcic_by_params(
+                bridge_name, bridge_params, bridge_parent_bus
+            )
+            pci_bridge.set_param("addr", "0x0")
             devices.append(pci_bridge)
 
             return devices
@@ -1400,18 +1569,25 @@ class DevContainer(object):
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completely different and
             # can't be used.
-            LOG.warn('Support for s390x is highly experimental!')
-            bus = (qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
-                                             'virtio-blk-ccw', 'virtio-bus',
-                                             'virtio-blk-ccw'),
-                   qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                             'virtual-css', 'virtual-css',
-                                             'virtual-css'),
-                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
-                                    "vcpu"))
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-blk-ccw"))
+            LOG.warn("Support for s390x is highly experimental!")
+            bus = (
+                qdevices.QNoAddrCustomBus(
+                    "bus",
+                    [["addr"], [64]],
+                    "virtio-blk-ccw",
+                    "virtio-bus",
+                    "virtio-blk-ccw",
+                ),
+                qdevices.QNoAddrCustomBus(
+                    "bus", [["addr"], [32]], "virtual-css", "virtual-css", "virtual-css"
+                ),
+                qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="virtio-blk-ccw"
+                )
+            )
             return devices
 
         def machine_riscv64_mmio(cmd=False):
@@ -1420,22 +1596,30 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            LOG.warn("Support for riscv64 is highly experimental. See "
-                     "https://avocado-vt.readthedocs.io"
-                     "/en/latest/Experimental.html#riscv64 for "
-                     "setup information.")
+            LOG.warn(
+                "Support for riscv64 is highly experimental. See "
+                "https://avocado-vt.readthedocs.io"
+                "/en/latest/Experimental.html#riscv64 for "
+                "setup information."
+            )
             devices = []
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completely different and
             # can't be used.
-            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                            'virtio-mmio-bus', 'virtio-bus',
-                                            'virtio-mmio-bus')
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
+            bus = qdevices.QNoAddrCustomBus(
+                "bus",
+                [["addr"], [32]],
+                "virtio-mmio-bus",
+                "virtio-bus",
+                "virtio-mmio-bus",
+            )
+            devices.append(
+                qdevices.QStringDevice(
+                    "machine", cmdline=cmd, child_bus=bus, aobject="virtio-mmio-bus"
+                )
+            )
             return devices
 
         def machine_other(cmd=False):
@@ -1445,10 +1629,12 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            LOG.warn('Machine type isa/unknown is not supported by '
-                     'avocado-vt. False errors might occur')
+            LOG.warn(
+                "Machine type isa/unknown is not supported by "
+                "avocado-vt. False errors might occur"
+            )
             devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
+            devices.append(qdevices.QStringDevice("machine", cmdline=cmd))
             return devices
 
         def secure_guest_handler(sectype, cmd):
@@ -1457,29 +1643,31 @@ class DevContainer(object):
               -machine q35,confidential-guest-support=lsec0
             Note the secure guest object should have been created.
             """
-            sev_mach_props = {'confidential-guest-support': '{obj_id}'}
-            tdx_mach_props = {'confidential-guest-support': '{obj_id}',
-                              'kvm-type': 'tdx'}
+            sev_mach_props = {"confidential-guest-support": "{obj_id}"}
+            tdx_mach_props = {
+                "confidential-guest-support": "{obj_id}",
+                "kvm-type": "tdx",
+            }
             backend_props = {
-                'sev': ('sev-guest', sev_mach_props),
-                'tdx': ('tdx-guest', tdx_mach_props)
+                "sev": ("sev-guest", sev_mach_props),
+                "tdx": ("tdx-guest", tdx_mach_props),
             }
 
             b, p = backend_props[sectype]
-            obj_id = self.get_by_params({"backend": b})[0].get_param('id')
-            sec_cmd = ','.join(
-                ['%s=%s' % (k, v) for k, v in p.items()]
-            ).format(obj_id=obj_id)
+            obj_id = self.get_by_params({"backend": b})[0].get_param("id")
+            sec_cmd = ",".join(["%s=%s" % (k, v) for k, v in p.items()]).format(
+                obj_id=obj_id
+            )
 
-            return '%s,%s' % (cmd, sec_cmd)
+            return "%s,%s" % (cmd, sec_cmd)
 
-        machine_type = params.get('machine_type')
-        machine_accel = params.get('vm_accelerator')
-        machine_type_extra_params = params.get('machine_type_extra_params')
+        machine_type = params.get("machine_type")
+        machine_accel = params.get("vm_accelerator")
+        machine_type_extra_params = params.get("machine_type_extra_params")
         if machine_type:
-            split_machine_type = machine_type.split(':', 1)
+            split_machine_type = machine_type.split(":", 1)
             if len(split_machine_type) == 1:
-                avocado_machine = ''
+                avocado_machine = ""
             else:
                 avocado_machine, machine_type = split_machine_type
             m_types = []
@@ -1487,81 +1675,86 @@ class DevContainer(object):
                 m_types.append(_.split()[0])
 
             if machine_type in m_types:
-                if (self.has_option('M') or self.has_option('machine')):
+                if self.has_option("M") or self.has_option("machine"):
                     cmd = "-machine %s" % machine_type
                     if machine_accel:
                         cmd += ",accel=%s" % machine_accel
                     if machine_type_extra_params:
-                        cmd += ",%s" % machine_type_extra_params.strip(',')
+                        cmd += ",%s" % machine_type_extra_params.strip(",")
                     machine_help = self.execute_qemu("-M %s,?" % machine_type)
                     opt = "memory-backend"
                     backend_id = "machine_mem"
-                    if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
-                            and not params.get("guest_numa_nodes"):
+                    if re.search(
+                        r"%s=" % opt, machine_help, re.MULTILINE
+                    ) and not params.get("guest_numa_nodes"):
                         cmd += ",memory-backend=mem-%s" % backend_id
 
                     # Add secure guest properties for machine option
-                    if params.get('vm_secure_guest_type'):
-                        cmd = secure_guest_handler(
-                            params['vm_secure_guest_type'], cmd
-                        )
+                    if params.get("vm_secure_guest_type"):
+                        cmd = secure_guest_handler(params["vm_secure_guest_type"], cmd)
                 else:
                     cmd = ""
-                if 'q35' in machine_type:   # Q35 + ICH9
+                if "q35" in machine_type:  # Q35 + ICH9
                     devices = machine_q35(cmd)
-                elif avocado_machine == 'arm64-pci':
+                elif avocado_machine == "arm64-pci":
                     devices = machine_arm64_pci(cmd)
-                elif avocado_machine == 'arm64-mmio':
+                elif avocado_machine == "arm64-mmio":
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
                 elif machine_type.startswith("pseries"):
                     devices = machine_pseries(cmd)
-                elif avocado_machine == 'riscv64-mmio':
+                elif avocado_machine == "riscv64-mmio":
                     devices = machine_riscv64_mmio(cmd)
-                elif 'isapc' not in machine_type:   # i440FX
+                elif "isapc" not in machine_type:  # i440FX
                     devices = machine_i440FX(cmd)
-                else:   # isapc (or other)
+                else:  # isapc (or other)
                     devices = machine_other(cmd)
             elif params.get("invalid_machine_type", "no") == "yes":
                 # For negative testing pretend the unsupported machine is
                 # similar to i440fx one (1 PCI bus, ..)
                 devices = machine_i440FX("-M %s" % machine_type)
             else:
-                raise exceptions.TestSkipError("Unsupported machine type %s."
-                                               % (machine_type))
+                raise exceptions.TestSkipError(
+                    "Unsupported machine type %s." % (machine_type)
+                )
         else:
             devices = None
             machine_opts = []
             if machine_accel:
-                machine_opts.append('accel=%s' % machine_accel)
+                machine_opts.append("accel=%s" % machine_accel)
             cmd = False
             if machine_opts:
-                cmd = '-machine %s' % ','.join(machine_opts)
+                cmd = "-machine %s" % ",".join(machine_opts)
             for _ in self.__machine_types.splitlines()[1:]:
-                if 'default' in _:
-                    if 'q35' in machine_type:   # Q35 + ICH9
+                if "default" in _:
+                    if "q35" in machine_type:  # Q35 + ICH9
                         devices = machine_q35(cmd)
-                    elif 'isapc' not in machine_type:   # i440FX
+                    elif "isapc" not in machine_type:  # i440FX
                         devices = machine_i440FX(cmd)
-                    else:   # isapc (or other)
-                        LOG.warn('Machine isa/unknown is not supported by '
-                                 'avocado-vt. False errors might occur')
+                    else:  # isapc (or other)
+                        LOG.warn(
+                            "Machine isa/unknown is not supported by "
+                            "avocado-vt. False errors might occur"
+                        )
                         devices = machine_other(cmd)
             if not devices:
-                LOG.warn('Unable to find the default machine type, using '
-                         'i440FX')
+                LOG.warn("Unable to find the default machine type, using " "i440FX")
                 devices = machine_i440FX(cmd)
 
         if params.get("vm_pci_hole64_fix"):
-            if machine_type.startswith('pc'):
-                devices.append(qdevices.QGlobal("i440FX-pcihost", "x-pci-hole64-fix", "off"))
-            if machine_type.startswith('q35'):
-                devices.append(qdevices.QGlobal("q35-pcihost", "x-pci-hole64-fix", "off"))
+            if machine_type.startswith("pc"):
+                devices.append(
+                    qdevices.QGlobal("i440FX-pcihost", "x-pci-hole64-fix", "off")
+                )
+            if machine_type.startswith("q35"):
+                devices.append(
+                    qdevices.QGlobal("q35-pcihost", "x-pci-hole64-fix", "off")
+                )
 
         # reserve pci.0 addresses
-        pci_params = params.object_params('pci.0')
-        reserved = pci_params.get('reserved_slots', '').split()
+        pci_params = params.object_params("pci.0")
+        reserved = pci_params.get("reserved_slots", "").split()
         if reserved:
             for bus in self.__buses:
                 if bus.aobject == "pci.0":
@@ -1571,9 +1764,18 @@ class DevContainer(object):
         return devices
 
     # USB Controller related methods
-    def usbc_by_variables(self, usb_id, usb_type, pci_bus, multifunction=False,
-                          masterbus=None, firstport=None, freq=None,
-                          max_ports=6, pci_addr=None):
+    def usbc_by_variables(
+        self,
+        usb_id,
+        usb_type,
+        pci_bus,
+        multifunction=False,
+        masterbus=None,
+        firstport=None,
+        freq=None,
+        max_ports=6,
+        pci_addr=None,
+    ):
         """
         Creates usb-controller devices by variables
         :param usb_id: Usb bus name
@@ -1591,51 +1793,58 @@ class DevContainer(object):
             # just return a usb uhci controller.
             # If choose this kind of usb controller, it has no name/id,
             # and only can be created once, so give it a special name.
-            usb = qdevices.QStringDevice("oldusb", cmdline="-usb",
-                                         child_bus=qdevices.QUSBBus(2, 'usb.0', 'uhci', usb_id))
+            usb = qdevices.QStringDevice(
+                "oldusb",
+                cmdline="-usb",
+                child_bus=qdevices.QUSBBus(2, "usb.0", "uhci", usb_id),
+            )
             return [usb]
 
         if not self.has_device(usb_type):
-            raise exceptions.TestSkipError("usb controller %s not available"
-                                           % usb_type)
+            raise exceptions.TestSkipError("usb controller %s not available" % usb_type)
 
-        usb = qdevices.QDevice(usb_type, {}, usb_id, pci_bus,
-                               qdevices.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
-        new_usbs = [usb]    # each usb dev might compound of multiple devs
+        usb = qdevices.QDevice(
+            usb_type,
+            {},
+            usb_id,
+            pci_bus,
+            qdevices.QUSBBus(max_ports, "%s.0" % usb_id, usb_type, usb_id),
+        )
+        new_usbs = [usb]  # each usb dev might compound of multiple devs
         # TODO: Add 'bus' property (it was not in the original version)
-        usb.set_param('id', usb_id)
-        usb.set_param('masterbus', masterbus)
-        usb.set_param('multifunction', multifunction)
-        usb.set_param('firstport', firstport)
-        usb.set_param('freq', freq)
-        usb.set_param('addr', pci_addr)
+        usb.set_param("id", usb_id)
+        usb.set_param("masterbus", masterbus)
+        usb.set_param("multifunction", multifunction)
+        usb.set_param("firstport", firstport)
+        usb.set_param("freq", freq)
+        usb.set_param("addr", pci_addr)
         if usb_type == "ich9-usb-ehci1":
-            usb.set_param('addr', '1d.7')
-            usb.set_param('multifunction', 'on')
-            if arch.ARCH in ('ppc64', 'ppc64le'):
+            usb.set_param("addr", "1d.7")
+            usb.set_param("multifunction", "on")
+            if arch.ARCH in ("ppc64", "ppc64le"):
                 for i in xrange(2):
-                    new_usbs.append(qdevices.QDevice('pci-ohci', {}, usb_id))
+                    new_usbs.append(qdevices.QDevice("pci-ohci", {}, usb_id))
                     new_usbs[-1].parent_bus = pci_bus
-                    new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
-                    new_usbs[-1].set_param('multifunction', 'on')
-                    new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
+                    new_usbs[-1].set_param("id", "%s.%d" % (usb_id, i))
+                    new_usbs[-1].set_param("multifunction", "on")
+                    new_usbs[-1].set_param("masterbus", "%s.0" % usb_id)
                     # current qdevices doesn't support x.y addr. Plug only
                     # the 0th one into this representation.
-                    new_usbs[-1].set_param('addr', '1d.%d' % (3 * i))
-                    new_usbs[-1].set_param('firstport', 3 * i)
+                    new_usbs[-1].set_param("addr", "1d.%d" % (3 * i))
+                    new_usbs[-1].set_param("firstport", 3 * i)
             else:
                 for i in xrange(3):
                     new_usbs.append(
-                        qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
-                                         usb_id))
+                        qdevices.QDevice("ich9-usb-uhci%d" % (i + 1), {}, usb_id)
+                    )
                     new_usbs[-1].parent_bus = pci_bus
-                    new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
-                    new_usbs[-1].set_param('multifunction', 'on')
-                    new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
+                    new_usbs[-1].set_param("id", "%s.%d" % (usb_id, i))
+                    new_usbs[-1].set_param("multifunction", "on")
+                    new_usbs[-1].set_param("masterbus", "%s.0" % usb_id)
                     # current qdevices doesn't support x.y addr. Plug only
                     # the 0th one into this representation.
-                    new_usbs[-1].set_param('addr', '1d.%d' % (2 * i))
-                    new_usbs[-1].set_param('firstport', 2 * i)
+                    new_usbs[-1].set_param("addr", "1d.%d" % (2 * i))
+                    new_usbs[-1].set_param("firstport", 2 * i)
         return new_usbs
 
     def usbc_by_params(self, usb_name, params, pci_bus={"aobject": "pci.0"}):
@@ -1645,20 +1854,29 @@ class DevContainer(object):
         :param params: USB params (params.object_params(usb_name))
         :return: List of QDev devices
         """
-        return self.usbc_by_variables(usb_name,
-                                      params.get('usb_type'),
-                                      pci_bus,
-                                      params.get('multifunction'),
-                                      params.get('masterbus'),
-                                      params.get('firstport'),
-                                      params.get('freq'),
-                                      int(params.get('max_ports', 6)),
-                                      params.get('pci_addr'))
+        return self.usbc_by_variables(
+            usb_name,
+            params.get("usb_type"),
+            pci_bus,
+            params.get("multifunction"),
+            params.get("masterbus"),
+            params.get("firstport"),
+            params.get("freq"),
+            int(params.get("max_ports", 6)),
+            params.get("pci_addr"),
+        )
 
     # USB Device related methods
-    def usb_by_variables(self, usb_name, usbdev_type, controller_type,
-                         usbdev_bus=None, usbdev_port=None, usbdev_serial=None,
-                         dev_options=None):
+    def usb_by_variables(
+        self,
+        usb_name,
+        usbdev_type,
+        controller_type,
+        usbdev_bus=None,
+        usbdev_port=None,
+        usbdev_serial=None,
+        dev_options=None,
+    ):
         """
         Creates usb-devices by variables.
         :param usb_name: usb name
@@ -1671,26 +1889,27 @@ class DevContainer(object):
         :return: QDev device
         """
         if not self.has_device(usbdev_type):
-            raise exceptions.TestSkipError("usb device %s not available"
-                                           % usbdev_type)
-        if self.has_option('device'):
+            raise exceptions.TestSkipError("usb device %s not available" % usbdev_type)
+        if self.has_option("device"):
             device = qdevices.QDevice(usbdev_type, aobject=usb_name)
-            device.set_param('id', 'usb-%s' % usb_name)
-            device.set_param('bus', usbdev_bus)
-            device.set_param('port', usbdev_port)
-            device.set_param('serial', usbdev_serial)
+            device.set_param("id", "usb-%s" % usb_name)
+            device.set_param("bus", usbdev_bus)
+            device.set_param("port", usbdev_port)
+            device.set_param("serial", usbdev_serial)
             if dev_options:
                 for opt_name, opt_value in dev_options.items():
                     device.set_param(opt_name, opt_value)
-            device.parent_bus += ({'type': controller_type},)
+            device.parent_bus += ({"type": controller_type},)
         else:
             if "tablet" in usbdev_type:
-                device = qdevices.QStringDevice('usb-%s' % usb_name,
-                                                cmdline='-usbdevice %s' % usb_name)
+                device = qdevices.QStringDevice(
+                    "usb-%s" % usb_name, cmdline="-usbdevice %s" % usb_name
+                )
             else:
-                device = qdevices.QStringDevice('missing-usb-%s' % usb_name)
-                LOG.error("This qemu supports only tablet device; ignoring"
-                          " %s", usb_name)
+                device = qdevices.QStringDevice("missing-usb-%s" % usb_name)
+                LOG.error(
+                    "This qemu supports only tablet device; ignoring" " %s", usb_name
+                )
         return device
 
     def usb_by_params(self, usb_name, params):
@@ -1713,35 +1932,64 @@ class DevContainer(object):
             if productid:
                 dev_options["productid"] = "0x%s" % productid
 
-        return self.usb_by_variables(usb_name,
-                                     usbdev_type,
-                                     params.get("usb_controller"),
-                                     params.get("usbdev_bus"),
-                                     params.get("usbdev_port"),
-                                     params.get("usbdev_serial"),
-                                     dev_options)
+        return self.usb_by_variables(
+            usb_name,
+            usbdev_type,
+            params.get("usb_controller"),
+            params.get("usbdev_bus"),
+            params.get("usbdev_port"),
+            params.get("usbdev_serial"),
+            dev_options,
+        )
 
     # Images (disk, cdrom, floppy) device related methods
-    def images_define_by_variables(self, name, filename, pci_bus, index=None,
-                                   fmt=None, cache=None, werror=None,
-                                   rerror=None, serial=None, snapshot=None,
-                                   boot=None, blkdebug=None, bus=None,
-                                   unit=None, port=None, bootindex=None,
-                                   removable=None, min_io_size=None,
-                                   opt_io_size=None, physical_block_size=None,
-                                   logical_block_size=None, readonly=None,
-                                   scsiid=None, lun=None, aio=None,
-                                   strict_mode=None, media=None, imgfmt=None,
-                                   pci_addr=None, scsi_hba=None,
-                                   iothread=None, blk_extra_params=None,
-                                   scsi=None, drv_extra_params=None,
-                                   num_queues=None, bus_extra_params=None,
-                                   force_fmt=None, image_encryption=None,
-                                   image_access=None, external_data_file=None,
-                                   image_throttle_group=None,
-                                   image_auto_readonly=None,
-                                   image_discard=None,
-                                   image_copy_on_read=None):
+    def images_define_by_variables(
+        self,
+        name,
+        filename,
+        pci_bus,
+        index=None,
+        fmt=None,
+        cache=None,
+        werror=None,
+        rerror=None,
+        serial=None,
+        snapshot=None,
+        boot=None,
+        blkdebug=None,
+        bus=None,
+        unit=None,
+        port=None,
+        bootindex=None,
+        removable=None,
+        min_io_size=None,
+        opt_io_size=None,
+        physical_block_size=None,
+        logical_block_size=None,
+        readonly=None,
+        scsiid=None,
+        lun=None,
+        aio=None,
+        strict_mode=None,
+        media=None,
+        imgfmt=None,
+        pci_addr=None,
+        scsi_hba=None,
+        iothread=None,
+        blk_extra_params=None,
+        scsi=None,
+        drv_extra_params=None,
+        num_queues=None,
+        bus_extra_params=None,
+        force_fmt=None,
+        image_encryption=None,
+        image_access=None,
+        external_data_file=None,
+        image_throttle_group=None,
+        image_auto_readonly=None,
+        image_discard=None,
+        image_copy_on_read=None,
+    ):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1787,6 +2035,7 @@ class DevContainer(object):
         :param image_discard: discard option in BlockdevOptions
         :param image_copy_on_read: if support copy-on-read filter
         """
+
         def _get_access_tls_creds(image_access):
             """Get all tls-creds objects of the image and its backing images"""
             tls_creds = []
@@ -1798,7 +2047,7 @@ class DevContainer(object):
                     creds_list.append(image_access.image_auth)
 
                 for creds in creds_list:
-                    if creds.storage_type == 'nbd':
+                    if creds.storage_type == "nbd":
                         if creds.tls_creds:
                             tls_creds.append(creds)
 
@@ -1819,74 +2068,90 @@ class DevContainer(object):
                     access_info.append(image_access.image_auth)
 
                 for access in access_info:
-                    if access.storage_type == 'ceph':
+                    if access.storage_type == "ceph":
                         # Now we use 'key-secret' for both -drive and -blockdev,
                         # but for -drive, 'password-secret' also works, add an
                         # option in cfg file to enable 'password-secret' in future
                         if access.data:
-                            secrets.append((access, 'key'))
-                    elif access.storage_type == 'iscsi-direct':
+                            secrets.append((access, "key"))
+                    elif access.storage_type == "iscsi-direct":
                         if Flags.BLOCKDEV in self.caps:
                             # -blockdev: only password-secret is supported
                             if access.data:
-                                secrets.append((access, 'password'))
+                                secrets.append((access, "password"))
                         else:
                             # -drive: u/p included in the filename
                             pass
-                    elif access.storage_type == 'curl':
+                    elif access.storage_type == "curl":
                         if access.cookie:
-                            secrets.append((access.cookie, 'cookie'))
+                            secrets.append((access.cookie, "cookie"))
 
                         if Flags.BLOCKDEV in self.caps:
                             # -blockdev requires password-secret while
                             # -drive includes u/p in the filename
                             if access.data:
-                                secrets.append((access, 'password'))
+                                secrets.append((access, "password"))
 
             return secrets
 
-        def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus, iothread,
-                        addr_spec=None, num_queues=None,
-                        bus_extra_params=None):
+        def define_hbas(
+            qtype,
+            atype,
+            bus,
+            unit,
+            port,
+            qbus,
+            pci_bus,
+            iothread,
+            addr_spec=None,
+            num_queues=None,
+            bus_extra_params=None,
+        ):
             """
             Helper for creating HBAs of certain type.
             """
             devices = []
             # AHCI uses multiple ports, id is different
             if qbus == qdevices.QAHCIBus:
-                _hba = 'ahci%s'
+                _hba = "ahci%s"
             else:
-                _hba = atype.replace('-', '_') + '%s.0'  # HBA id
+                _hba = atype.replace("-", "_") + "%s.0"  # HBA id
             _bus = bus
             if bus is None:
-                bus = self.get_first_free_bus({'type': qtype, 'atype': atype},
-                                              [unit, port])
+                bus = self.get_first_free_bus(
+                    {"type": qtype, "atype": atype}, [unit, port]
+                )
                 if bus is None:
                     bus = self.idx_of_next_named_bus(_hba)
                 else:
                     bus = bus.busid
             if isinstance(bus, int):
-                for bus_name in self.list_missing_named_buses(
-                        _hba, qtype, bus + 1):
-                    _bus_name = bus_name.rsplit('.')[0]
-                    bus_params = {'id': _bus_name, 'driver': atype}
+                for bus_name in self.list_missing_named_buses(_hba, qtype, bus + 1):
+                    _bus_name = bus_name.rsplit(".")[0]
+                    bus_params = {"id": _bus_name, "driver": atype}
                     if num_queues is not None and int(num_queues) > 1:
-                        bus_params['num_queues'] = num_queues
+                        bus_params["num_queues"] = num_queues
                     if bus_extra_params:
                         for extra_param in bus_extra_params.split(","):
-                            key, value = extra_param.split('=')
+                            key, value = extra_param.split("=")
                             bus_params[key] = value
                     if addr_spec:
-                        dev = qdevices.QDevice(params=bus_params,
-                                               parent_bus=pci_bus,
-                                               child_bus=qbus(busid=bus_name,
-                                                              bus_type=qtype,
-                                                              addr_spec=addr_spec,
-                                                              atype=atype))
+                        dev = qdevices.QDevice(
+                            params=bus_params,
+                            parent_bus=pci_bus,
+                            child_bus=qbus(
+                                busid=bus_name,
+                                bus_type=qtype,
+                                addr_spec=addr_spec,
+                                atype=atype,
+                            ),
+                        )
                     else:
-                        dev = qdevices.QDevice(params=bus_params,
-                                               parent_bus=pci_bus,
-                                               child_bus=qbus(busid=bus_name))
+                        dev = qdevices.QDevice(
+                            params=bus_params,
+                            parent_bus=pci_bus,
+                            child_bus=qbus(busid=bus_name),
+                        )
                     if iothread:
                         try:
                             _iothread = self.allocate_iothread(iothread, dev)
@@ -1901,14 +2166,14 @@ class DevContainer(object):
                 bus += ".%d" % unit
             # If bus was not set, don't set it, unless the device is
             # a spapr-vscsi device.
-            elif _bus is None and 'spapr_vscsi' not in _hba:
+            elif _bus is None and "spapr_vscsi" not in _hba:
                 bus = None
-            return devices, bus, {'type': qtype, 'atype': atype}
+            return devices, bus, {"type": qtype, "atype": atype}
 
         #
         # Parse params
         #
-        devices = []    # All related devices
+        devices = []  # All related devices
 
         # add required secret objects for image
         secret_obj = None
@@ -1924,13 +2189,13 @@ class DevContainer(object):
         image_secrets = _get_access_secrets(image_access)
         for sec, sectype in image_secrets:
             # create and add all secret objects: -object secret
-            devices.append(qdevices.QObject('secret'))
+            devices.append(qdevices.QObject("secret"))
             devices[-1].set_param("id", sec.aid)
-            devices[-1].set_param('format', sec.data_format)
+            devices[-1].set_param("format", sec.data_format)
 
-            if sectype == 'password':
+            if sectype == "password":
                 devices[-1].set_param("file", sec.filename)
-            elif sectype == 'key' or sectype == 'cookie':
+            elif sectype == "key" or sectype == "cookie":
                 devices[-1].set_param("data", sec.data)
 
             if sec.image == name:
@@ -1943,9 +2208,9 @@ class DevContainer(object):
         creds_list = _get_access_tls_creds(image_access)
         for creds in creds_list:
             # create and add all tls-creds objects
-            devices.append(qdevices.QObject('tls-creds-x509'))
+            devices.append(qdevices.QObject("tls-creds-x509"))
             devices[-1].set_param("id", creds.aid)
-            devices[-1].set_param("endpoint", 'client')
+            devices[-1].set_param("endpoint", "client")
             devices[-1].set_param("dir", creds.tls_creds)
 
             if creds.image == name:
@@ -1964,45 +2229,56 @@ class DevContainer(object):
         curl_timeout = None
         access = image_access.image_auth if image_access else None
         if access is not None:
-            if access.storage_type == 'iscsi-direct':
+            if access.storage_type == "iscsi-direct":
                 iscsi_initiator = access.iscsi_initiator
-            elif access.storage_type == 'glusterfs-direct':
+            elif access.storage_type == "glusterfs-direct":
                 gluster_debug = access.debug
                 gluster_logfile = access.logfile
 
                 peers = []
                 for peer in access.peers:
-                    if 'path' in peer:
+                    if "path" in peer:
                         # access storage by unix domain socket
-                        peers.append({'type': 'unix', 'path': peer['path']})
+                        peers.append({"type": "unix", "path": peer["path"]})
                     else:
                         # access storage by hostname/ip + port
-                        peers.append({'host': peer['host'],
-                                      'type': peer.get('type', 'inet'),
-                                      'port': '%s' % peer.get('port', '0')})
-                gluster_peers.update({'server.{i}.{k}'.format(i=i + 1, k=k): v
-                                      for i, server in enumerate(peers)
-                                      for k, v in six.iteritems(server)})
-            elif access.storage_type == 'nbd':
+                        peers.append(
+                            {
+                                "host": peer["host"],
+                                "type": peer.get("type", "inet"),
+                                "port": "%s" % peer.get("port", "0"),
+                            }
+                        )
+                gluster_peers.update(
+                    {
+                        "server.{i}.{k}".format(i=i + 1, k=k): v
+                        for i, server in enumerate(peers)
+                        for k, v in six.iteritems(server)
+                    }
+                )
+            elif access.storage_type == "nbd":
                 reconnect_delay = access.reconnect_delay
-            elif access.storage_type == 'curl':
+            elif access.storage_type == "curl":
                 curl_sslverify = access.sslverify
                 curl_timeout = access.timeout
                 curl_readahead = access.readahead
 
         use_device = self.has_option("device")
-        if fmt == "scsi":   # fmt=scsi force the old version of devices
-            LOG.warn("'scsi' drive_format is deprecated, please use the "
-                     "new lsi_scsi type for disk %s", name)
+        if fmt == "scsi":  # fmt=scsi force the old version of devices
+            LOG.warn(
+                "'scsi' drive_format is deprecated, please use the "
+                "new lsi_scsi type for disk %s",
+                name,
+            )
             use_device = False
         if not fmt:
             use_device = False
-        if fmt == 'floppy' and not self.has_option("global"):
+        if fmt == "floppy" and not self.has_option("global"):
             use_device = False
 
         if strict_mode is None:
             strict_mode = self.strict_mode
-        if strict_mode:     # Force default variables
+        if strict_mode:  # Force default variables
             if cache is None:
                 cache = "none"
             if removable is None:
@@ -2011,30 +2287,34 @@ class DevContainer(object):
                 aio = "native"
             if media is None:
                 media = "disk"
-        else:       # Skip default variables
-            if media != 'cdrom':    # ignore only 'disk'
+        else:  # Skip default variables
+            if media != "cdrom":  # ignore only 'disk'
                 media = None
 
         if "[,boot=on|off]" not in self.get_help_text():
-            if boot in ('yes', 'on', True):
+            if boot in ("yes", "on", True):
                 bootindex = "1"
             boot = None
 
-        bus = none_or_int(bus)     # First level
-        unit = none_or_int(unit)   # Second level
-        port = none_or_int(port)   # Third level
+        bus = none_or_int(bus)  # First level
+        unit = none_or_int(unit)  # Second level
+        port = none_or_int(port)  # Third level
         # Compatibility with old params - scsiid, lun
         if scsiid is not None:
-            LOG.warn("drive_scsiid param is obsolete, use drive_unit "
-                     "instead (disk %s)", name)
+            LOG.warn(
+                "drive_scsiid param is obsolete, use drive_unit " "instead (disk %s)",
+                name,
+            )
             unit = none_or_int(scsiid)
         if lun is not None:
-            LOG.warn("drive_lun param is obsolete, use drive_port instead "
-                     "(disk %s)", name)
+            LOG.warn(
+                "drive_lun param is obsolete, use drive_port instead " "(disk %s)", name
+            )
             port = none_or_int(lun)
-        if pci_addr is not None and fmt == 'virtio':
-            LOG.warn("drive_pci_addr is obsolete, use drive_bus instead "
-                     "(disk %s)", name)
+        if pci_addr is not None and fmt == "virtio":
+            LOG.warn(
+                "drive_pci_addr is obsolete, use drive_bus instead " "(disk %s)", name
+            )
             bus = none_or_int(pci_addr)
 
         #
@@ -2044,78 +2324,115 @@ class DevContainer(object):
         # bus: ahci, virtio-scsi-pci, USB
         #
         if not use_device:
-            if fmt and (fmt == "scsi" or (fmt.startswith('scsi')
-                                          and (scsi_hba == 'lsi53c895a'
-                                               or scsi_hba == 'spapr-vscsi'))):
+            if fmt and (
+                fmt == "scsi"
+                or (
+                    fmt.startswith("scsi")
+                    and (scsi_hba == "lsi53c895a" or scsi_hba == "spapr-vscsi")
+                )
+            ):
                 if not (bus is None and unit is None and port is None):
-                    LOG.warn("Using scsi interface without -device "
-                             "support; ignoring bus/unit/port. (%s)", name)
+                    LOG.warn(
+                        "Using scsi interface without -device "
+                        "support; ignoring bus/unit/port. (%s)",
+                        name,
+                    )
                     bus, unit, port = None, None, None
                 # In case we hotplug, lsi wasn't added during the startup hook
-                if arch.ARCH in ('ppc64', 'ppc64le'):
-                    _ = define_hbas('SCSI', 'spapr-vscsi', None, None, None,
-                                    qdevices.QSCSIBus, None, iothread,
-                                    addr_spec=[64, 32])
+                if arch.ARCH in ("ppc64", "ppc64le"):
+                    _ = define_hbas(
+                        "SCSI",
+                        "spapr-vscsi",
+                        None,
+                        None,
+                        None,
+                        qdevices.QSCSIBus,
+                        None,
+                        iothread,
+                        addr_spec=[64, 32],
+                    )
                 else:
-                    _ = define_hbas('SCSI', 'lsi53c895a', None, None, None,
-                                    qdevices.QSCSIBus, pci_bus, iothread,
-                                    addr_spec=[8, 16384])
+                    _ = define_hbas(
+                        "SCSI",
+                        "lsi53c895a",
+                        None,
+                        None,
+                        None,
+                        qdevices.QSCSIBus,
+                        pci_bus,
+                        iothread,
+                        addr_spec=[8, 16384],
+                    )
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
-                LOG.warn('ide supports only 1 hba, use drive_unit to set'
-                         'ide.* for disk %s', name)
+                LOG.warn(
+                    "ide supports only 1 hba, use drive_unit to set"
+                    "ide.* for disk %s",
+                    name,
+                )
             bus = unit
-            dev_parent = {'type': 'IDE', 'atype': 'ide'}
+            dev_parent = {"type": "IDE", "atype": "ide"}
         elif fmt == "ahci":
-            devs, bus, dev_parent = define_hbas('IDE', 'ahci', bus, unit, port,
-                                                qdevices.QAHCIBus, pci_bus,
-                                                iothread)
+            devs, bus, dev_parent = define_hbas(
+                "IDE", "ahci", bus, unit, port, qdevices.QAHCIBus, pci_bus, iothread
+            )
             devices.extend(devs)
-        elif fmt.startswith('scsi-'):
+        elif fmt.startswith("scsi-"):
             if not scsi_hba:
                 scsi_hba = "virtio-scsi-pci"
             if scsi_hba != "virtio-scsi-pci":
                 num_queues = None
             addr_spec = None
-            if scsi_hba == 'lsi53c895a':
+            if scsi_hba == "lsi53c895a":
                 addr_spec = [8, 16384]
             elif scsi_hba.startswith("virtio"):
                 addr_spec = [256, 16384]
-                if scsi_hba == 'virtio-scsi-device':
-                    pci_bus = {'type': 'virtio-bus'}
-                elif scsi_hba == 'virtio-scsi-ccw':
+                if scsi_hba == "virtio-scsi-device":
+                    pci_bus = {"type": "virtio-bus"}
+                elif scsi_hba == "virtio-scsi-ccw":
                     pci_bus = None
-            elif scsi_hba == 'spapr-vscsi':
+            elif scsi_hba == "spapr-vscsi":
                 addr_spec = [64, 32]
                 pci_bus = None
-            _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
-                                             qdevices.QSCSIBus, pci_bus,
-                                             iothread, addr_spec,
-                                             num_queues=num_queues,
-                                             bus_extra_params=bus_extra_params)
+            _, bus, dev_parent = define_hbas(
+                "SCSI",
+                scsi_hba,
+                bus,
+                unit,
+                port,
+                qdevices.QSCSIBus,
+                pci_bus,
+                iothread,
+                addr_spec,
+                num_queues=num_queues,
+                bus_extra_params=bus_extra_params,
+            )
             devices.extend(_)
-        elif fmt in ('usb1', 'usb2', 'usb3'):
+        elif fmt in ("usb1", "usb2", "usb3"):
             if bus:
-                LOG.warn('Manual setting of drive_bus is not yet supported'
-                         ' for usb disk %s', name)
+                LOG.warn(
+                    "Manual setting of drive_bus is not yet supported"
+                    " for usb disk %s",
+                    name,
+                )
                 bus = None
-            if fmt == 'usb1':
-                dev_parent = {'type': 'uhci'}
-                if arch.ARCH in ('ppc64', 'ppc64le'):
-                    dev_parent = {'type': 'ohci'}
-            elif fmt == 'usb2':
-                dev_parent = {'type': 'ehci'}
-            elif fmt == 'usb3':
-                dev_parent = {'type': 'xhci'}
-        elif fmt == 'virtio':
+            if fmt == "usb1":
+                dev_parent = {"type": "uhci"}
+                if arch.ARCH in ("ppc64", "ppc64le"):
+                    dev_parent = {"type": "ohci"}
+            elif fmt == "usb2":
+                dev_parent = {"type": "ehci"}
+            elif fmt == "usb3":
+                dev_parent = {"type": "xhci"}
+        elif fmt == "virtio":
             dev_parent = pci_bus
-        elif fmt == 'virtio-blk-device':
-            dev_parent = {'type': 'virtio-bus'}
-        elif fmt == 'virtio-blk-ccw':   # For IBM s390 platform
-            dev_parent = {'type': 'virtual-css'}
+        elif fmt == "virtio-blk-device":
+            dev_parent = {"type": "virtio-bus"}
+        elif fmt == "virtio-blk-ccw":  # For IBM s390 platform
+            dev_parent = {"type": "virtual-css"}
         else:
-            dev_parent = {'type': fmt}
+            dev_parent = {"type": fmt}
 
         #
         # Drive mode:
@@ -2127,38 +2444,38 @@ class DevContainer(object):
             protocol_cls = qdevices.QBlockdevProtocolFile
             if not filename:
                 protocol_cls = qdevices.QBlockdevProtocolNullCo
-            elif filename.startswith('iscsi:'):
+            elif filename.startswith("iscsi:"):
                 protocol_cls = qdevices.QBlockdevProtocolISCSI
-            elif filename.startswith('rbd:'):
+            elif filename.startswith("rbd:"):
                 protocol_cls = qdevices.QBlockdevProtocolRBD
-            elif filename.startswith('gluster'):
+            elif filename.startswith("gluster"):
                 protocol_cls = qdevices.QBlockdevProtocolGluster
-            elif re.match(r'nbd(\+\w+)?://', filename):
+            elif re.match(r"nbd(\+\w+)?://", filename):
                 protocol_cls = qdevices.QBlockdevProtocolNBD
-            elif filename.startswith('nvme:'):
+            elif filename.startswith("nvme:"):
                 protocol_cls = qdevices.QBlockdevProtocolNVMe
-            elif filename.startswith('ssh:'):
+            elif filename.startswith("ssh:"):
                 protocol_cls = qdevices.QBlockdevProtocolSSH
-            elif filename.startswith('https:'):
+            elif filename.startswith("https:"):
                 protocol_cls = qdevices.QBlockdevProtocolHTTPS
-            elif filename.startswith('http:'):
+            elif filename.startswith("http:"):
                 protocol_cls = qdevices.QBlockdevProtocolHTTP
-            elif filename.startswith('ftps:'):
+            elif filename.startswith("ftps:"):
                 protocol_cls = qdevices.QBlockdevProtocolFTPS
-            elif filename.startswith('ftp:'):
+            elif filename.startswith("ftp:"):
                 protocol_cls = qdevices.QBlockdevProtocolFTP
-            elif fmt in ('scsi-generic', 'scsi-block'):
+            elif fmt in ("scsi-generic", "scsi-block"):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
                 protocol_cls = qdevices.QBlockdevProtocolBlkdebug
 
-            if imgfmt == 'qcow2':
+            if imgfmt == "qcow2":
                 format_cls = qdevices.QBlockdevFormatQcow2
-            elif imgfmt == 'raw' or media == 'cdrom':
+            elif imgfmt == "raw" or media == "cdrom":
                 format_cls = qdevices.QBlockdevFormatRaw
-            elif imgfmt == 'luks':
+            elif imgfmt == "luks":
                 format_cls = qdevices.QBlockdevFormatLuks
-            elif imgfmt == 'nvme':
+            elif imgfmt == "nvme":
                 format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt is None:
                 # use RAW type as the default
@@ -2174,65 +2491,62 @@ class DevContainer(object):
                 filter_node = qdevices.QBlockdevFilterCOR(name)
                 filter_node.add_child_node(format_node)
                 devices.append(filter_node)
-                filter_node.set_param('file', format_node.get_qid())
+                filter_node.set_param("file", format_node.get_qid())
 
             if image_throttle_group:
-                filter_node = qdevices.QBlockdevFilterThrottle(name,
-                                                               image_throttle_group)
+                filter_node = qdevices.QBlockdevFilterThrottle(
+                    name, image_throttle_group
+                )
                 filter_node.add_child_node(format_node)
                 devices.append(filter_node)
-                filter_node.set_param('file', format_node.get_qid())
-                format_node.set_param('file', protocol_node.get_qid())
+                filter_node.set_param("file", format_node.get_qid())
+                format_node.set_param("file", protocol_node.get_qid())
         else:
-            if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
+            if self.has_hmp_cmd("__com.redhat_drive_add") and use_device:
                 devices.append(qdevices.QRHDrive(name))
-            elif self.has_hmp_cmd('drive_add') and use_device:
+            elif self.has_hmp_cmd("drive_add") and use_device:
                 devices.append(qdevices.QHPDrive(name))
             elif self.has_option("device"):
                 devices.append(qdevices.QDrive(name, use_device))
-            else:       # very old qemu without 'addr' support
+            else:  # very old qemu without 'addr' support
                 devices.append(qdevices.QOldDrive(name, use_device))
 
         if Flags.BLOCKDEV in self.caps:
-            for opt, val in zip(('serial', 'boot'), (serial, boot)):
+            for opt, val in zip(("serial", "boot"), (serial, boot)):
                 if val is not None:
-                    LOG.warn("The command line option %s is not supported "
-                             "on %s by -blockdev." % (opt, name))
-            if media == 'cdrom':
-                readonly = 'on'
-            format_node.set_param('read-only', readonly, bool)
+                    LOG.warn(
+                        "The command line option %s is not supported "
+                        "on %s by -blockdev." % (opt, name)
+                    )
+            if media == "cdrom":
+                readonly = "on"
+            format_node.set_param("read-only", readonly, bool)
 
-            protocol_node.set_param('auto-read-only',
-                                    image_auto_readonly, bool)
-            protocol_node.set_param('discard', image_discard)
+            protocol_node.set_param("auto-read-only", image_auto_readonly, bool)
+            protocol_node.set_param("discard", image_discard)
 
             if secret_obj:
                 if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
-                    format_node.set_param('encrypt.format',
-                                          image_encryption.format)
-                    format_node.set_param('encrypt.key-secret',
-                                          secret_obj.get_qid())
+                    format_node.set_param("encrypt.format", image_encryption.format)
+                    format_node.set_param("encrypt.key-secret", secret_obj.get_qid())
                 elif isinstance(format_node, qdevices.QBlockdevFormatLuks):
-                    format_node.set_param('key-secret', secret_obj.get_qid())
+                    format_node.set_param("key-secret", secret_obj.get_qid())
         else:
-            devices[-1].set_param('if', 'none')
-            devices[-1].set_param('rerror', rerror)
-            devices[-1].set_param('werror', werror)
-            devices[-1].set_param('serial', serial)
-            devices[-1].set_param('boot', boot, bool)
-            devices[-1].set_param('snapshot', snapshot, bool)
-            devices[-1].set_param('readonly', readonly, bool)
+            devices[-1].set_param("if", "none")
+            devices[-1].set_param("rerror", rerror)
+            devices[-1].set_param("werror", werror)
+            devices[-1].set_param("serial", serial)
+            devices[-1].set_param("boot", boot, bool)
+            devices[-1].set_param("snapshot", snapshot, bool)
+            devices[-1].set_param("readonly", readonly, bool)
             if secret_obj:
                 if imgfmt == "qcow2":
-                    devices[-1].set_param('encrypt.format',
-                                          image_encryption.format)
-                    devices[-1].set_param('encrypt.key-secret',
-                                          secret_obj.get_qid())
+                    devices[-1].set_param("encrypt.format", image_encryption.format)
+                    devices[-1].set_param("encrypt.key-secret", secret_obj.get_qid())
                 elif imgfmt == "luks":
-                    devices[-1].set_param('key-secret', secret_obj.get_qid())
+                    devices[-1].set_param("key-secret", secret_obj.get_qid())
 
-        external_data_file_path = getattr(external_data_file,
-                                          "image_filename", None)
+        external_data_file_path = getattr(external_data_file, "image_filename", None)
         if external_data_file_path:
             # by now we only support local files
             ext_data_file_driver = "file"
@@ -2242,32 +2556,37 @@ class DevContainer(object):
                 ext_data_file_mode = os.stat(external_data_file_path).st_mode
                 if stat.S_ISBLK(ext_data_file_mode):
                     ext_data_file_driver = "host_device"
-            devices[-1].set_param('data-file.driver', ext_data_file_driver)
-            devices[-1].set_param('data-file.filename', external_data_file_path)
+            devices[-1].set_param("data-file.driver", ext_data_file_driver)
+            devices[-1].set_param("data-file.filename", external_data_file_path)
 
-        if 'aio' in self.get_help_text():
-            if aio == 'native' and snapshot == 'yes':
-                LOG.warn('snapshot is on, fallback aio to threads.')
-                aio = 'threads'
+        if "aio" in self.get_help_text():
+            if aio == "native" and snapshot == "yes":
+                LOG.warn("snapshot is on, fallback aio to threads.")
+                aio = "threads"
             if Flags.BLOCKDEV in self.caps:
-                if isinstance(protocol_node, (qdevices.QBlockdevProtocolFile,
-                                              qdevices.QBlockdevProtocolHostDevice,
-                                              qdevices.QBlockdevProtocolHostCdrom)):
-                    protocol_node.set_param('aio', aio)
+                if isinstance(
+                    protocol_node,
+                    (
+                        qdevices.QBlockdevProtocolFile,
+                        qdevices.QBlockdevProtocolHostDevice,
+                        qdevices.QBlockdevProtocolHostCdrom,
+                    ),
+                ):
+                    protocol_node.set_param("aio", aio)
             else:
-                devices[-1].set_param('aio', aio)
-            if aio == 'native':
+                devices[-1].set_param("aio", aio)
+            if aio == "native":
                 # Since qemu 2.6, aio=native has no effect without
                 # cache.direct=on or cache=none, It will be error out.
                 # Please refer to qemu commit d657c0c.
-                cache = cache not in ['none', 'directsync'] and 'none' or cache
+                cache = cache not in ["none", "directsync"] and "none" or cache
         # Forbid to specify the cache mode for empty drives.
         # More info from qemu commit 91a097e74.
         if not filename:
             cache = None
-        elif filename.startswith('nvme://'):
+        elif filename.startswith("nvme://"):
             # NVMe controller doesn't support write cache configuration
-            cache = 'writethrough'
+            cache = "writethrough"
         if Flags.BLOCKDEV in self.caps:
             if filename:
                 file_opts = qemu_storage.filename_to_file_opts(filename)
@@ -2275,32 +2594,33 @@ class DevContainer(object):
                     protocol_node.set_param(key, value)
 
             for access_secret_obj, secret_type in secret_info:
-                if secret_type == 'password':
-                    protocol_node.set_param('password-secret',
-                                            access_secret_obj.get_qid())
-                elif secret_type == 'key':
-                    protocol_node.set_param('key-secret',
-                                            access_secret_obj.get_qid())
-                elif secret_type == 'cookie':
-                    protocol_node.set_param('cookie-secret',
-                                            access_secret_obj.get_qid())
+                if secret_type == "password":
+                    protocol_node.set_param(
+                        "password-secret", access_secret_obj.get_qid()
+                    )
+                elif secret_type == "key":
+                    protocol_node.set_param("key-secret", access_secret_obj.get_qid())
+                elif secret_type == "cookie":
+                    protocol_node.set_param(
+                        "cookie-secret", access_secret_obj.get_qid()
+                    )
 
             if tls_creds is not None:
-                protocol_node.set_param('tls-creds', tls_creds_obj.get_qid())
+                protocol_node.set_param("tls-creds", tls_creds_obj.get_qid())
             if reconnect_delay is not None:
-                protocol_node.set_param('reconnect-delay', int(reconnect_delay))
+                protocol_node.set_param("reconnect-delay", int(reconnect_delay))
             if iscsi_initiator:
-                protocol_node.set_param('initiator-name', iscsi_initiator)
+                protocol_node.set_param("initiator-name", iscsi_initiator)
             if gluster_debug:
-                protocol_node.set_param('debug', int(gluster_debug))
+                protocol_node.set_param("debug", int(gluster_debug))
             if gluster_logfile:
-                protocol_node.set_param('logfile', gluster_logfile)
+                protocol_node.set_param("logfile", gluster_logfile)
             if curl_sslverify:
-                protocol_node.set_param('sslverify', curl_sslverify)
+                protocol_node.set_param("sslverify", curl_sslverify)
             if curl_readahead:
-                protocol_node.set_param('readahead', curl_readahead)
+                protocol_node.set_param("readahead", curl_readahead)
             if curl_timeout:
-                protocol_node.set_param('timeout', curl_timeout)
+                protocol_node.set_param("timeout", curl_timeout)
             for key, value in six.iteritems(gluster_peers):
                 protocol_node.set_param(key, value)
 
@@ -2308,58 +2628,62 @@ class DevContainer(object):
                 if not cache:
                     direct, no_flush = (None, None)
                 else:
-                    direct, no_flush = (self.cache_map[cache]['cache.direct'],
-                                        self.cache_map[cache]['cache.no-flush'])
-                dev.set_param('cache.direct', direct)
-                dev.set_param('cache.no-flush', no_flush)
-            format_node.set_param('file', protocol_node.get_qid())
+                    direct, no_flush = (
+                        self.cache_map[cache]["cache.direct"],
+                        self.cache_map[cache]["cache.no-flush"],
+                    )
+                dev.set_param("cache.direct", direct)
+                dev.set_param("cache.no-flush", no_flush)
+            format_node.set_param("file", protocol_node.get_qid())
         else:
-            devices[-1].set_param('cache', cache)
-            devices[-1].set_param('media', media)
-            devices[-1].set_param('format', imgfmt)
+            devices[-1].set_param("cache", cache)
+            devices[-1].set_param("media", media)
+            devices[-1].set_param("format", imgfmt)
             if blkdebug is not None:
-                devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug, filename))
+                devices[-1].set_param("file", "blkdebug:%s:%s" % (blkdebug, filename))
             else:
-                devices[-1].set_param('file', filename)
+                devices[-1].set_param("file", filename)
 
             for access_secret_obj, secret_type in secret_info:
-                if secret_type == 'password':
-                    devices[-1].set_param('file.password-secret',
-                                          access_secret_obj.get_qid())
-                elif secret_type == 'key':
-                    devices[-1].set_param('file.key-secret',
-                                          access_secret_obj.get_qid())
-                elif secret_type == 'cookie':
-                    devices[-1].set_param('file.cookie-secret',
-                                          access_secret_obj.get_qid())
+                if secret_type == "password":
+                    devices[-1].set_param(
+                        "file.password-secret", access_secret_obj.get_qid()
+                    )
+                elif secret_type == "key":
+                    devices[-1].set_param(
+                        "file.key-secret", access_secret_obj.get_qid()
+                    )
+                elif secret_type == "cookie":
+                    devices[-1].set_param(
+                        "file.cookie-secret", access_secret_obj.get_qid()
+                    )
 
             if tls_creds is not None:
-                devices[-1].set_param('file.tls-creds',
-                                      tls_creds_obj.get_qid())
+                devices[-1].set_param("file.tls-creds", tls_creds_obj.get_qid())
             if reconnect_delay is not None:
-                devices[-1].set_param('file.reconnect-delay',
-                                      int(reconnect_delay))
+                devices[-1].set_param("file.reconnect-delay", int(reconnect_delay))
             if iscsi_initiator:
-                devices[-1].set_param('file.initiator-name', iscsi_initiator)
+                devices[-1].set_param("file.initiator-name", iscsi_initiator)
             if gluster_debug:
-                devices[-1].set_param('file.debug', int(gluster_debug))
+                devices[-1].set_param("file.debug", int(gluster_debug))
             if gluster_logfile:
-                devices[-1].set_param('file.logfile', gluster_logfile)
+                devices[-1].set_param("file.logfile", gluster_logfile)
             if curl_sslverify:
-                devices[-1].set_param('file.sslverify', curl_sslverify)
+                devices[-1].set_param("file.sslverify", curl_sslverify)
             if curl_readahead:
-                devices[-1].set_param('file.readahead', curl_readahead)
+                devices[-1].set_param("file.readahead", curl_readahead)
             if curl_timeout:
-                devices[-1].set_param('file.timeout', curl_timeout)
+                devices[-1].set_param("file.timeout", curl_timeout)
 
         if drv_extra_params:
-            drv_extra_params = (_.split('=', 1) for _ in
-                                drv_extra_params.split(',') if _)
+            drv_extra_params = (
+                _.split("=", 1) for _ in drv_extra_params.split(",") if _
+            )
             for key, value in drv_extra_params:
                 if Flags.BLOCKDEV in self.caps:
-                    if key == 'discard':
-                        value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
-                    if key == 'cache-size':
+                    if key == "discard":
+                        value = re.sub("on", "unmap", re.sub("off", "ignore", value))
+                    if key == "cache-size":
                         protocol_node.set_param(key, None)
                     else:
                         protocol_node.set_param(key, value)
@@ -2367,61 +2691,68 @@ class DevContainer(object):
                 else:
                     devices[-1].set_param(key, value)
         if not use_device:
-            if fmt and fmt.startswith('scsi-'):
-                if scsi_hba == 'lsi53c895a' or scsi_hba == 'spapr-vscsi':
-                    fmt = 'scsi'  # Compatibility with the new scsi
-            if fmt and fmt not in ('ide', 'scsi', 'sd', 'mtd', 'floppy',
-                                   'pflash', 'virtio'):
-                raise virt_vm.VMDeviceNotSupportedError(self.vmname,
-                                                        fmt)
-            devices[-1].set_param('if', fmt)    # overwrite previously set None
-            if not fmt:     # When fmt unspecified qemu uses ide
-                fmt = 'ide'
-            devices[-1].set_param('index', index)
-            if fmt == 'ide':
-                devices[-1].parent_bus = ({'type': fmt.upper(), 'atype': fmt},)
-            elif fmt == 'scsi':
-                if arch.ARCH in ('ppc64', 'ppc64le'):
-                    devices[-1].parent_bus = ({'atype': 'spapr-vscsi',
-                                               'type': 'SCSI'},)
+            if fmt and fmt.startswith("scsi-"):
+                if scsi_hba == "lsi53c895a" or scsi_hba == "spapr-vscsi":
+                    fmt = "scsi"  # Compatibility with the new scsi
+            if fmt and fmt not in (
+                "ide",
+                "scsi",
+                "sd",
+                "mtd",
+                "floppy",
+                "pflash",
+                "virtio",
+            ):
+                raise virt_vm.VMDeviceNotSupportedError(self.vmname, fmt)
+            devices[-1].set_param("if", fmt)  # overwrite previously set None
+            if not fmt:  # When fmt unspecified qemu uses ide
+                fmt = "ide"
+            devices[-1].set_param("index", index)
+            if fmt == "ide":
+                devices[-1].parent_bus = ({"type": fmt.upper(), "atype": fmt},)
+            elif fmt == "scsi":
+                if arch.ARCH in ("ppc64", "ppc64le"):
+                    devices[-1].parent_bus = ({"atype": "spapr-vscsi", "type": "SCSI"},)
                 else:
-                    devices[-1].parent_bus = ({'atype': 'lsi53c895a',
-                                               'type': 'SCSI'},)
-            elif fmt == 'floppy':
-                devices[-1].parent_bus = ({'type': fmt},)
-            elif fmt == 'virtio':
-                devices[-1].set_param('addr', pci_addr)
+                    devices[-1].parent_bus = ({"atype": "lsi53c895a", "type": "SCSI"},)
+            elif fmt == "floppy":
+                devices[-1].parent_bus = ({"type": fmt},)
+            elif fmt == "virtio":
+                devices[-1].set_param("addr", pci_addr)
                 devices[-1].parent_bus = (pci_bus,)
-            if not media == 'cdrom':
-                LOG.warn("Using -drive fmt=xxx for %s is unsupported "
-                         "method, false errors might occur.", name)
+            if not media == "cdrom":
+                LOG.warn(
+                    "Using -drive fmt=xxx for %s is unsupported "
+                    "method, false errors might occur.",
+                    name,
+                )
             return devices
 
         #
         # Device
         #
         devices.append(qdevices.QDevice(params={}, aobject=name))
-        devices[-1].parent_bus += ({'busid': 'drive_%s' % name}, dev_parent)
+        devices[-1].parent_bus += ({"busid": "drive_%s" % name}, dev_parent)
         if fmt in ("ide", "ahci"):
-            if not self.has_device('ide-hd'):
-                devices[-1].set_param('driver', 'ide-drive')
-            elif media == 'cdrom':
-                devices[-1].set_param('driver', 'ide-cd')
+            if not self.has_device("ide-hd"):
+                devices[-1].set_param("driver", "ide-drive")
+            elif media == "cdrom":
+                devices[-1].set_param("driver", "ide-cd")
             else:
-                devices[-1].set_param('driver', 'ide-hd')
-            devices[-1].set_param('unit', port)
-        elif fmt and fmt.startswith('scsi-'):
-            devices[-1].set_param('driver', fmt)
-            devices[-1].set_param('scsi-id', unit)
-            devices[-1].set_param('lun', port)
-            devices[-1].set_param('removable', removable, bool)
+                devices[-1].set_param("driver", "ide-hd")
+            devices[-1].set_param("unit", port)
+        elif fmt and fmt.startswith("scsi-"):
+            devices[-1].set_param("driver", fmt)
+            devices[-1].set_param("scsi-id", unit)
+            devices[-1].set_param("lun", port)
+            devices[-1].set_param("removable", removable, bool)
             if strict_mode:
-                devices[-1].set_param('channel', 0)
-        elif fmt == 'virtio':
-            devices[-1].set_param('driver', 'virtio-blk-pci')
+                devices[-1].set_param("channel", 0)
+        elif fmt == "virtio":
+            devices[-1].set_param("driver", "virtio-blk-pci")
             devices[-1].set_param("scsi", scsi, bool)
             if bus is not None:
-                devices[-1].set_param('addr', hex(bus))
+                devices[-1].set_param("addr", hex(bus))
                 bus = None
             if iothread:
                 try:
@@ -2431,53 +2762,64 @@ class DevContainer(object):
                 else:
                     if iothread and iothread not in self:
                         devices.insert(-2, iothread)
-        elif fmt in ('usb1', 'usb2', 'usb3'):
-            devices[-1].set_param('driver', 'usb-storage')
-            devices[-1].set_param('port', unit)
-            devices[-1].set_param('removable', removable, bool)
-        elif fmt == 'floppy':
+        elif fmt in ("usb1", "usb2", "usb3"):
+            devices[-1].set_param("driver", "usb-storage")
+            devices[-1].set_param("port", unit)
+            devices[-1].set_param("removable", removable, bool)
+        elif fmt == "floppy":
             # Overwrite qdevices.QDevice with qdevices.QFloppy
-            devices[-1] = qdevices.QFloppy(unit, 'drive_%s' % name, name,
-                                           ({'busid': 'drive_%s' % name}, {'type': fmt}))
+            devices[-1] = qdevices.QFloppy(
+                unit,
+                "drive_%s" % name,
+                name,
+                ({"busid": "drive_%s" % name}, {"type": fmt}),
+            )
         else:
-            LOG.warn('Using default device handling (disk %s)', name)
-            devices[-1].set_param('driver', fmt)
+            LOG.warn("Using default device handling (disk %s)", name)
+            devices[-1].set_param("driver", fmt)
         if force_fmt:
             LOG.info("Force to use %s for the device" % force_fmt)
-            devices[-1].set_param('driver', force_fmt)
+            devices[-1].set_param("driver", force_fmt)
         # Get the supported options
-        options = self.execute_qemu("-device %s,?" % devices[-1]['driver'])
-        devices[-1].set_param('id', name)
-        devices[-1].set_param('bus', bus)
-        devices[-1].set_param('drive', 'drive_%s' % name)
-        devices[-1].set_param('logical_block_size', logical_block_size)
-        devices[-1].set_param('physical_block_size', physical_block_size)
-        devices[-1].set_param('min_io_size', min_io_size)
-        devices[-1].set_param('opt_io_size', opt_io_size)
-        devices[-1].set_param('bootindex', bootindex)
+        options = self.execute_qemu("-device %s,?" % devices[-1]["driver"])
+        devices[-1].set_param("id", name)
+        devices[-1].set_param("bus", bus)
+        devices[-1].set_param("drive", "drive_%s" % name)
+        devices[-1].set_param("logical_block_size", logical_block_size)
+        devices[-1].set_param("physical_block_size", physical_block_size)
+        devices[-1].set_param("min_io_size", min_io_size)
+        devices[-1].set_param("opt_io_size", opt_io_size)
+        devices[-1].set_param("bootindex", bootindex)
         if Flags.BLOCKDEV in self.caps:
             if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
-                self.cache_map[cache]['write-cache'] = None
-            write_cache = None if not cache else self.cache_map[cache]['write-cache']
-            devices[-1].set_param('write-cache', write_cache)
-            if 'scsi-generic' == fmt:
+                self.cache_map[cache]["write-cache"] = None
+            write_cache = None if not cache else self.cache_map[cache]["write-cache"]
+            devices[-1].set_param("write-cache", write_cache)
+            if "scsi-generic" == fmt:
                 rerror, werror = (None, None)
-            devices[-1].set_param('rerror', rerror)
-            devices[-1].set_param('werror', werror)
-        if 'serial' in options:
-            devices[-1].set_param('serial', serial)
-            devices[-2].set_param('serial', None)   # remove serial from drive
+            devices[-1].set_param("rerror", rerror)
+            devices[-1].set_param("werror", werror)
+        if "serial" in options:
+            devices[-1].set_param("serial", serial)
+            devices[-2].set_param("serial", None)  # remove serial from drive
         if blk_extra_params:
-            blk_extra_params = (_.split('=', 1) for _ in
-                                blk_extra_params.split(',') if _)
+            blk_extra_params = (
+                _.split("=", 1) for _ in blk_extra_params.split(",") if _
+            )
             for key, value in blk_extra_params:
                 devices[-1].set_param(key, value)
         return devices
 
-    def images_define_by_params(self, name, image_params, media=None,
-                                index=None, image_boot=None,
-                                image_bootindex=None,
-                                pci_bus={"aobject": "pci.0"}):
+    def images_define_by_params(
+        self,
+        name,
+        image_params,
+        media=None,
+        index=None,
+        image_boot=None,
+        image_bootindex=None,
+        pci_bus={"aobject": "pci.0"},
+    ):
         """
         Wrapper for creating disks and related hbas from autotest image params.
 
@@ -2492,11 +2834,11 @@ class DevContainer(object):
         shared_dir = os.path.join(data_root, "shared")
         drive_format = image_params.get("drive_format")
         scsi_hba = image_params.get("scsi_hba", "virtio-scsi-pci")
-        if drive_format == "virtio":    # translate virtio to ccw/device
+        if drive_format == "virtio":  # translate virtio to ccw/device
             machine_type = image_params.get("machine_type")
-            if "s390" in machine_type:      # s390
+            if "s390" in machine_type:  # s390
                 drive_format = "virtio-blk-ccw"
-            elif "mmio" in machine_type:    # mmio-based machine
+            elif "mmio" in machine_type:  # mmio-based machine
                 drive_format = "virtio-blk-device"
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
@@ -2504,110 +2846,104 @@ class DevContainer(object):
             elif "s390" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-ccw"
         image_encryption = storage.ImageEncryption.encryption_define_by_params(
-            name, image_params)
+            name, image_params
+        )
 
         # all access information for the logical image
         image_access = storage.ImageAccessInfo.access_info_define_by_params(
-            name, image_params)
+            name, image_params
+        )
 
         image_base_dir = image_params.get("images_base_dir", data_root)
         image_filename = storage.get_image_filename(image_params, image_base_dir)
         imgfmt = image_params.get("image_format")
-        if (Flags.BLOCKDEV in self.caps and
-                image_params.get("image_snapshot") == "yes"):
+        if Flags.BLOCKDEV in self.caps and image_params.get("image_snapshot") == "yes":
             sn_params = Params()
             for k, v in image_params.items():
-                sn_params['%s_%s' % (k, name)] = v
-            sn = 'vl_%s_%s' % (self.vmname, name)
-            sn_params['image_chain'] = "%s %s" % (name, sn)
-            sn_params['image_name'] = sn
-            sn_params['image_size'] = image_params['image_size']
+                sn_params["%s_%s" % (k, name)] = v
+            sn = "vl_%s_%s" % (self.vmname, name)
+            sn_params["image_chain"] = "%s %s" % (name, sn)
+            sn_params["image_name"] = sn
+            sn_params["image_size"] = image_params["image_size"]
             sn_img = qemu_storage.QemuImg(sn_params, data_dir.get_data_dir(), sn)
             image_filename = sn_img.create(sn_params)[0]
             os.chmod(image_filename, stat.S_IRUSR | stat.S_IWUSR)
             LOG.info(
                 "'snapshot=on' is not supported by '-blockdev' but "
                 "requested from the image '%s', imitating the behavior "
-                "of '-drive' to keep compatibility", name)
+                "of '-drive' to keep compatibility",
+                name,
+            )
             self.temporary_image_snapshots.add(image_filename)
             image_encryption = storage.ImageEncryption.encryption_define_by_params(
-                sn, sn_params)
-            imgfmt = 'qcow2'
+                sn, sn_params
+            )
+            imgfmt = "qcow2"
 
         # external data file
         ext_data_file = storage.QemuImg.external_data_file_defined_by_params(
-            image_params, data_root, name)
+            image_params, data_root, name
+        )
 
-        return self.images_define_by_variables(name,
-                                               image_filename,
-                                               pci_bus,
-                                               index,
-                                               drive_format,
-                                               image_params.get("drive_cache"),
-                                               image_params.get(
-                                                   "drive_werror"),
-                                               image_params.get(
-                                                   "drive_rerror"),
-                                               image_params.get(
-                                                   "drive_serial"),
-                                               image_params.get(
-                                                   "image_snapshot"),
-                                               image_boot,
-                                               storage.get_image_blkdebug_filename(
-                                                   image_params,
-                                                   shared_dir),
-                                               image_params.get("drive_bus"),
-                                               image_params.get("drive_unit"),
-                                               image_params.get("drive_port"),
-                                               image_bootindex,
-                                               image_params.get("removable"),
-                                               image_params.get("min_io_size"),
-                                               image_params.get("opt_io_size"),
-                                               image_params.get(
-                                                   "physical_block_size"),
-                                               image_params.get(
-                                                   "logical_block_size"),
-                                               image_params.get(
-                                                   "image_readonly"),
-                                               image_params.get(
-                                                   "drive_scsiid"),
-                                               image_params.get("drive_lun"),
-                                               image_params.get("image_aio"),
-                                               image_params.get(
-                                                   "strict_mode") == "yes",
-                                               media,
-                                               imgfmt,
-                                               image_params.get(
-                                                   "drive_pci_addr"),
-                                               scsi_hba,
-                                               image_params.get(
-                                                   "image_iothread"),
-                                               image_params.get(
-                                                   "blk_extra_params"),
-                                               image_params.get(
-                                                   "virtio-blk-pci_scsi"),
-                                               image_params.get(
-                                                   "drv_extra_params"),
-                                               image_params.get("num_queues"),
-                                               image_params.get(
-                                                   "bus_extra_params"),
-                                               image_params.get(
-                                                   "force_drive_format"),
-                                               image_encryption,
-                                               image_access, ext_data_file,
-                                               image_params.get(
-                                                   "image_throttle_group"),
-                                               image_params.get(
-                                                   "image_auto_readonly"),
-                                               image_params.get(
-                                                   "image_discard"),
-                                               image_params.get(
-                                                   "image_copy_on_read"))
+        return self.images_define_by_variables(
+            name,
+            image_filename,
+            pci_bus,
+            index,
+            drive_format,
+            image_params.get("drive_cache"),
+            image_params.get("drive_werror"),
+            image_params.get("drive_rerror"),
+            image_params.get("drive_serial"),
+            image_params.get("image_snapshot"),
+            image_boot,
+            storage.get_image_blkdebug_filename(image_params, shared_dir),
+            image_params.get("drive_bus"),
+            image_params.get("drive_unit"),
+            image_params.get("drive_port"),
+            image_bootindex,
+            image_params.get("removable"),
+            image_params.get("min_io_size"),
+            image_params.get("opt_io_size"),
+            image_params.get("physical_block_size"),
+            image_params.get("logical_block_size"),
+            image_params.get("image_readonly"),
+            image_params.get("drive_scsiid"),
+            image_params.get("drive_lun"),
+            image_params.get("image_aio"),
+            image_params.get("strict_mode") == "yes",
+            media,
+            imgfmt,
+            image_params.get("drive_pci_addr"),
+            scsi_hba,
+            image_params.get("image_iothread"),
+            image_params.get("blk_extra_params"),
+            image_params.get("virtio-blk-pci_scsi"),
+            image_params.get("drv_extra_params"),
+            image_params.get("num_queues"),
+            image_params.get("bus_extra_params"),
+            image_params.get("force_drive_format"),
+            image_encryption,
+            image_access,
+            ext_data_file,
+            image_params.get("image_throttle_group"),
+            image_params.get("image_auto_readonly"),
+            image_params.get("image_discard"),
+            image_params.get("image_copy_on_read"),
+        )
 
-    def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
-                                    bus_type=None, serial_name=None,
-                                    bus=None, nr=None, reg=None,
-                                    bus_extra_params=''):
+    def serials_define_by_variables(
+        self,
+        serial_id,
+        serial_type,
+        chardev_id,
+        bus_type=None,
+        serial_name=None,
+        bus=None,
+        nr=None,
+        reg=None,
+        bus_extra_params="",
+    ):
         """
         Creates related devices by variables
 
@@ -2625,57 +2961,57 @@ class DevContainer(object):
         """
 
         devices = []
-        bus_params = (dict([_.split('=')
-                            for _ in bus_extra_params.split(',') if _]))
+        bus_params = dict([_.split("=") for _ in bus_extra_params.split(",") if _])
         # For virtio devices, generate controller and create the port device
-        if serial_type.startswith('virt'):
-            if not bus or bus == '<new>':
-                if bus_type == 'virtio-serial-device':
-                    pci_bus = {'type': 'virtio-bus'}
-                elif bus_type == 'virtio-serial-ccw':
+        if serial_type.startswith("virt"):
+            if not bus or bus == "<new>":
+                if bus_type == "virtio-serial-device":
+                    pci_bus = {"type": "virtio-bus"}
+                elif bus_type == "virtio-serial-ccw":
                     pci_bus = None
                 else:
-                    pci_bus = {'aobject': 'pci.0'}
-                if bus != '<new>':
+                    pci_bus = {"aobject": "pci.0"}
+                if bus != "<new>":
                     bus = self.get_first_free_bus(
-                        {'type': 'SERIAL', 'atype': bus_type}, [None, nr])
+                        {"type": "SERIAL", "atype": bus_type}, [None, nr]
+                    )
                 #  Multiple virtio console devices can't share a single bus
-                if bus is None or bus == '<new>' or \
-                        serial_type == 'virtconsole':
-                    _hba = bus_type.replace('-', '_') + '%s'
+                if bus is None or bus == "<new>" or serial_type == "virtconsole":
+                    _hba = bus_type.replace("-", "_") + "%s"
                     bus = self.idx_of_next_named_bus(_hba)
-                    bus = self.list_missing_named_buses(
-                        _hba, 'SERIAL', bus + 1)[-1]
+                    bus = self.list_missing_named_buses(_hba, "SERIAL", bus + 1)[-1]
                     LOG.debug("list missing named bus: %s", bus)
                     bus_params["id"] = bus
                     devices.append(
-                        qdevices.QDevice(bus_type,
-                                         bus_params,
-                                         bus,
-                                         pci_bus,
-                                         qdevices.QSerialBus(
-                                             bus, bus_type, bus)))
+                        qdevices.QDevice(
+                            bus_type,
+                            bus_params,
+                            bus,
+                            pci_bus,
+                            qdevices.QSerialBus(bus, bus_type, bus),
+                        )
+                    )
                 else:
                     bus = bus.busid
             devices.append(
-                qdevices.QDevice(serial_type,
-                                 {"id": serial_id},
-                                 parent_bus={'busid': bus}))
-            devices[-1].set_param('name', serial_name)
-        elif serial_type.startswith('pci'):
+                qdevices.QDevice(
+                    serial_type, {"id": serial_id}, parent_bus={"busid": bus}
+                )
+            )
+            devices[-1].set_param("name", serial_name)
+        elif serial_type.startswith("pci"):
             # plug pci* serial device into pci bus
-            devices.append(qdevices.QDevice(serial_type,
-                                            {"id": serial_id},
-                                            parent_bus=bus))
+            devices.append(
+                qdevices.QDevice(serial_type, {"id": serial_id}, parent_bus=bus)
+            )
         else:  # none virtio type, generate serial device directly
             devices.append(qdevices.QDevice(serial_type, {"id": serial_id}))
             devices[-1].set_param("reg", reg)
-        devices[-1].set_param('chardev', chardev_id)
+        devices[-1].set_param("chardev", chardev_id)
 
         return devices
 
-    def serials_define_by_params(self, serial_id, params,
-                                 file_name=None):
+    def serials_define_by_params(self, serial_id, params, file_name=None):
         """
         Wrapper for creating serial device from serial params.
 
@@ -2684,36 +3020,45 @@ class DevContainer(object):
         :param file_name: the file path of the serial device (optional)
         :return: the device list that construct the serial device
         """
-        serial_type = params['serial_type']
-        machine = params.get('machine_type')
+        serial_type = params["serial_type"]
+        machine = params.get("machine_type")
 
         # Arm lists "isa-serial" as supported but can't use it,
         # fallback to "-serial"
         legacy_cmd = " -serial unix:'%s',server=on,wait=off" % file_name
-        legacy_dev = qdevices.QStringDevice('SER-%s' % serial_id,
-                                            cmdline=legacy_cmd)
-        arm_serial = (serial_type == 'isa-serial'
-                      and 'arm' in params.get("machine_type", ""))
-        if (arm_serial or not self.has_option("chardev")
-                or not self.has_device(serial_type)):
+        legacy_dev = qdevices.QStringDevice("SER-%s" % serial_id, cmdline=legacy_cmd)
+        arm_serial = serial_type == "isa-serial" and "arm" in params.get(
+            "machine_type", ""
+        )
+        if (
+            arm_serial
+            or not self.has_option("chardev")
+            or not self.has_device(serial_type)
+        ):
             return [legacy_dev]
 
         bus_type = None
-        if serial_type.startswith('virt'):
-            if '-mmio' in machine:
-                controller_suffix = 'device'
+        if serial_type.startswith("virt"):
+            if "-mmio" in machine:
+                controller_suffix = "device"
             elif machine.startswith("s390"):
-                controller_suffix = 'ccw'
+                controller_suffix = "ccw"
             else:
-                controller_suffix = 'pci'
-            bus_type = 'virtio-serial-%s' % controller_suffix
-        chardev_id = 'chardev_%s' % serial_id
+                controller_suffix = "pci"
+            bus_type = "virtio-serial-%s" % controller_suffix
+        chardev_id = "chardev_%s" % serial_id
         chardev_device = self.chardev_define_by_params(chardev_id, params, file_name)
         serial_devices = self.serials_define_by_variables(
-            serial_id, serial_type, chardev_id, bus_type=bus_type,
-            serial_name=params.get("serial_name"), bus=params.get("serial_bus"),
-            nr=params.get("serial_nr"), reg=params.get("serial_reg"),
-            bus_extra_params=params.get("virtio_serial_extra_params", ""))
+            serial_id,
+            serial_type,
+            chardev_id,
+            bus_type=bus_type,
+            serial_name=params.get("serial_name"),
+            bus=params.get("serial_bus"),
+            nr=params.get("serial_nr"),
+            reg=params.get("serial_reg"),
+            bus_extra_params=params.get("virtio_serial_extra_params", ""),
+        )
 
         return [chardev_device] + serial_devices
 
@@ -2725,45 +3070,71 @@ class DevContainer(object):
         :param file_name: file name of chardev (optional)
         :return: CharDevice object
         """
-        backend = params.get('chardev_backend', 'unix_socket')
+        backend = params.get("chardev_backend", "unix_socket")
         # for tcp_socket and unix_socket, both form to 'socket'
-        _backend = 'socket' if 'socket' in backend else backend
+        _backend = "socket" if "socket" in backend else backend
         # Generate -chardev device
-        chardev_param = Params({'backend': _backend, 'id': chardev_id})
-        if backend in ['unix_socket', 'file', 'pipe', 'serial',
-                       'tty', 'parallel', 'parport']:
-            chardev_param.update({'path': file_name})
-            if (backend == 'pipe' and params.get('auto_create_pipe', 'yes') == "yes"):
+        chardev_param = Params({"backend": _backend, "id": chardev_id})
+        if backend in [
+            "unix_socket",
+            "file",
+            "pipe",
+            "serial",
+            "tty",
+            "parallel",
+            "parport",
+        ]:
+            chardev_param.update({"path": file_name})
+            if backend == "pipe" and params.get("auto_create_pipe", "yes") == "yes":
                 process.system("mkfifo %s" % file_name)
-            if backend == 'unix_socket':
+            if backend == "unix_socket":
                 chardev_param.update(
-                    {'abstract': params.get('chardev_abstract'),
-                     'tight': params.get('chardev_tight')})
-        elif backend in ['udp', 'tcp_socket']:
+                    {
+                        "abstract": params.get("chardev_abstract"),
+                        "tight": params.get("chardev_tight"),
+                    }
+                )
+        elif backend in ["udp", "tcp_socket"]:
             chardev_param.update(
-                {'host': params['chardev_host'],
-                 'port': params['chardev_port'],
-                 'ipv4': params.get('chardev_ipv4'),
-                 'ipv6': params.get('chardev_ipv6')})
-        if backend == 'tcp_socket':
-            chardev_param.update({'to': params.get('chardev_to')})
-        if 'socket' in backend:  # tcp_socket & unix_socket
+                {
+                    "host": params["chardev_host"],
+                    "port": params["chardev_port"],
+                    "ipv4": params.get("chardev_ipv4"),
+                    "ipv6": params.get("chardev_ipv6"),
+                }
+            )
+        if backend == "tcp_socket":
+            chardev_param.update({"to": params.get("chardev_to")})
+        if "socket" in backend:  # tcp_socket & unix_socket
             chardev_param.update(
-                {'server': params.get('chardev_server', 'on'),
-                 'wait': params.get('chardev_wait', 'off')})
-        elif backend in ['spicevmc', 'spiceport']:
+                {
+                    "server": params.get("chardev_server", "on"),
+                    "wait": params.get("chardev_wait", "off"),
+                }
+            )
+        elif backend in ["spicevmc", "spiceport"]:
             chardev_param.update(
-                {'debug': params.get('chardev_debug'),
-                 'name': params.get('chardev_name')})
-        elif 'ringbuf' in backend:
+                {
+                    "debug": params.get("chardev_debug"),
+                    "name": params.get("chardev_name"),
+                }
+            )
+        elif "ringbuf" in backend:
             chardev_param.update(
-                {'ringbuf_write_size': int(params.get('ringbuf_write_size'))})
+                {"ringbuf_write_size": int(params.get("ringbuf_write_size"))}
+            )
         return qdevices.CharDevice(chardev_param, chardev_id)
 
-    def cdroms_define_by_params(self, name, image_params, media=None,
-                                index=None, image_boot=None,
-                                image_bootindex=None,
-                                pci_bus={"aobject": "pci.0"}):
+    def cdroms_define_by_params(
+        self,
+        name,
+        image_params,
+        media=None,
+        index=None,
+        image_boot=None,
+        image_bootindex=None,
+        pci_bus={"aobject": "pci.0"},
+    ):
         """
         Wrapper for creating cdrom and related hbas from autotest image params.
 
@@ -2775,15 +3146,14 @@ class DevContainer(object):
         :param params: Disk params (params.object_params(name))
         """
         image_params["image_name"] = ""
-        iso = image_params.get('cdrom')
+        iso = image_params.get("cdrom")
         if iso:
             image_name = os.path.realpath(
-                os.path.join(
-                    data_dir.get_data_dir(),
-                    image_params.get('cdrom')))
-            image_params['image_name'] = image_name
-        image_params['image_raw_device'] = 'yes'
-        cd_format = image_params.get('cd_format')
+                os.path.join(data_dir.get_data_dir(), image_params.get("cdrom"))
+            )
+            image_params["image_name"] = image_name
+        image_params["image_raw_device"] = "yes"
+        cd_format = image_params.get("cd_format")
         scsi_hba = image_params.get("scsi_hba")
         if cd_format in (None, "ide", "scsi-cd"):
             machine_type = image_params.get("machine_type")
@@ -2799,85 +3169,67 @@ class DevContainer(object):
                 cd_format = "scsi-cd"
                 scsi_hba = "virtio-scsi-ccw"
         if cd_format in (None, "ide"):
-            if not self.get_buses({'atype': 'ide'}):
+            if not self.get_buses({"atype": "ide"}):
                 LOG.warn("cd_format IDE not available, using AHCI instead.")
-                cd_format = 'ahci'
+                cd_format = "ahci"
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-device"
             elif "s390" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-ccw"
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
-        cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
+        cache_mode = image_params.get("image_aio") == "native" and "none" or ""
 
         # iso image can be stored in a network storage, e.g. http server
         image_access = storage.ImageAccessInfo.access_info_define_by_params(
-            name, image_params)
-        return self.images_define_by_variables(name,
-                                               storage.get_image_filename(
-                                                   image_params,
-                                                   data_dir.get_data_dir()),
-                                               pci_bus,
-                                               index,
-                                               cd_format,
-                                               image_params.get(
-                                                   "drive_cache", cache_mode),
-                                               image_params.get(
-                                                   "drive_werror"),
-                                               image_params.get(
-                                                   "drive_rerror"),
-                                               image_params.get(
-                                                   "drive_serial"),
-                                               image_params.get(
-                                                   "image_snapshot"),
-                                               image_boot,
-                                               storage.get_image_blkdebug_filename(
-                                                   image_params,
-                                                   shared_dir),
-                                               image_params.get("drive_bus"),
-                                               image_params.get("drive_unit"),
-                                               image_params.get("drive_port"),
-                                               image_bootindex,
-                                               image_params.get("removable"),
-                                               image_params.get("min_io_size"),
-                                               image_params.get("opt_io_size"),
-                                               image_params.get(
-                                                   "physical_block_size"),
-                                               image_params.get(
-                                                   "logical_block_size"),
-                                               image_params.get(
-                                                   "image_readonly"),
-                                               image_params.get(
-                                                   "drive_scsiid"),
-                                               image_params.get("drive_lun"),
-                                               image_params.get("image_aio"),
-                                               image_params.get(
-                                                   "strict_mode") == "yes",
-                                               media,
-                                               None,     # skip img_fmt
-                                               image_params.get(
-                                                   "drive_pci_addr"),
-                                               scsi_hba,
-                                               None,    # skip iothread
-                                               image_params.get(
-                                                   "blk_extra_params"),
-                                               image_params.get(
-                                                   "virtio-blk-pci_scsi"),
-                                               image_params.get(
-                                                   "drv_extra_params"),
-                                               None,
-                                               image_params.get(
-                                                   "bus_extra_params"),
-                                               image_params.get("force_drive_format"),
-                                               None, image_access,
-                                               None, image_params.get(
-                                                   "image_throttle_group"),
-                                               image_params.get(
-                                                   "image_auto_readonly"),
-                                               image_params.get(
-                                                   "image_discard"),
-                                               image_params.get(
-                                                   "image_copy_on_read"))
+            name, image_params
+        )
+        return self.images_define_by_variables(
+            name,
+            storage.get_image_filename(image_params, data_dir.get_data_dir()),
+            pci_bus,
+            index,
+            cd_format,
+            image_params.get("drive_cache", cache_mode),
+            image_params.get("drive_werror"),
+            image_params.get("drive_rerror"),
+            image_params.get("drive_serial"),
+            image_params.get("image_snapshot"),
+            image_boot,
+            storage.get_image_blkdebug_filename(image_params, shared_dir),
+            image_params.get("drive_bus"),
+            image_params.get("drive_unit"),
+            image_params.get("drive_port"),
+            image_bootindex,
+            image_params.get("removable"),
+            image_params.get("min_io_size"),
+            image_params.get("opt_io_size"),
+            image_params.get("physical_block_size"),
+            image_params.get("logical_block_size"),
+            image_params.get("image_readonly"),
+            image_params.get("drive_scsiid"),
+            image_params.get("drive_lun"),
+            image_params.get("image_aio"),
+            image_params.get("strict_mode") == "yes",
+            media,
+            None,  # skip img_fmt
+            image_params.get("drive_pci_addr"),
+            scsi_hba,
+            None,  # skip iothread
+            image_params.get("blk_extra_params"),
+            image_params.get("virtio-blk-pci_scsi"),
+            image_params.get("drv_extra_params"),
+            None,
+            image_params.get("bus_extra_params"),
+            image_params.get("force_drive_format"),
+            None,
+            image_access,
+            None,
+            image_params.get("image_throttle_group"),
+            image_params.get("image_auto_readonly"),
+            image_params.get("image_discard"),
+            image_params.get("image_copy_on_read"),
+        )
 
     def pcic_by_params(self, name, params, parent_bus=None):
         """
@@ -2890,48 +3242,46 @@ class DevContainer(object):
         :warning: x3130-upstream device creates only x3130-upstream device
                   and you are responsible for creating the downstream ports.
         """
-        driver = params.get('type', 'pcie-root-port')
+        driver = params.get("type", "pcie-root-port")
         pcic_params = {"id": name}
-        if driver in ('pcie-root-port', 'ioh3420', 'x3130-upstream', 'x3130'):
-            bus_type = 'PCIE'
+        if driver in ("pcie-root-port", "ioh3420", "x3130-upstream", "x3130"):
+            bus_type = "PCIE"
         else:
-            bus_type = 'PCI'
+            bus_type = "PCI"
         if not parent_bus:
-            parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
+            parent_bus = [{"aobject": params.get("pci_bus", "pci.0")}]
         elif not isinstance(parent_bus, (list, tuple)):
             parent_bus = [parent_bus]
-        if driver == 'x3130':
-            bus = qdevices.QPCISwitchBus(
-                name, bus_type, 'xio3130-downstream', name)
-            driver = 'x3130-upstream'
+        if driver == "x3130":
+            bus = qdevices.QPCISwitchBus(name, bus_type, "xio3130-downstream", name)
+            driver = "x3130-upstream"
         else:
-            if driver == 'pci-bridge':  # addr 0x01-0x1f, chasis_nr
-                parent_bus.append({'busid': '_PCI_CHASSIS_NR'})
+            if driver == "pci-bridge":  # addr 0x01-0x1f, chasis_nr
+                parent_bus.append({"busid": "_PCI_CHASSIS_NR"})
                 bus_length = 32
                 bus_first_port = 1
-            elif driver == 'i82801b11-bridge':  # addr 0x1-0x13
+            elif driver == "i82801b11-bridge":  # addr 0x1-0x13
                 bus_length = 20
                 bus_first_port = 1
-            elif driver in ('pcie-root-port', 'ioh3420'):
+            elif driver in ("pcie-root-port", "ioh3420"):
                 bus_length = 1
                 bus_first_port = 0
-                parent_bus.append({'busid': '_PCI_CHASSIS'})
-            elif driver == 'pcie-pci-bridge':
-                params['reserved_slots'] = '0x0'
+                parent_bus.append({"busid": "_PCI_CHASSIS"})
+            elif driver == "pcie-pci-bridge":
+                params["reserved_slots"] = "0x0"
                 # Unsupported PCI slot 0 for standard hotplug controller.
                 # Valid slots are between 1 and 31
                 bus_length = 32
                 bus_first_port = 1
-            else:   # addr = 0x0-0x1f
+            else:  # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
-            bus = qdevices.QPCIBus(
-                name, bus_type, name, bus_length, bus_first_port)
-        for addr in params.get('reserved_slots', '').split():
+            bus = qdevices.QPCIBus(name, bus_type, name, bus_length, bus_first_port)
+        for addr in params.get("reserved_slots", "").split():
             bus.reserve(addr)
-        return qdevices.QDevice(driver, pcic_params, aobject=name,
-                                parent_bus=parent_bus,
-                                child_bus=bus)
+        return qdevices.QDevice(
+            driver, pcic_params, aobject=name, parent_bus=parent_bus, child_bus=bus
+        )
 
     def throttle_group_define_by_params(self, group_params, name):
         props = json.loads(group_params.get("throttle_group_parameters", "{}"))
@@ -2957,7 +3307,7 @@ class DevContainer(object):
         # Ensure get accurate params for dimm device, avoid irrelevant params
         # be used by mistake.
         dimm_params = Params()
-        suffix = '_dimm'
+        suffix = "_dimm"
         for key in list(params.keys()):
             if key.endswith(suffix):
                 new_key = key.rsplit(suffix)[0]
@@ -2965,14 +3315,15 @@ class DevContainer(object):
         dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
         attrs = qdevices.Dimm.__attributes__[dimm_type][:]
         dimm_uuid = dimm_params.get("uuid")
-        if 'uuid' in attrs and dimm_uuid:
+        if "uuid" in attrs and dimm_uuid:
             try:
-                dimm_params['uuid'] = str(uuid.UUID(dimm_uuid))
+                dimm_params["uuid"] = str(uuid.UUID(dimm_uuid))
             except ValueError:
-                if dimm_uuid == '<auto>':
-                    dimm_params['uuid'] = str(uuid.uuid5(uuid.NAMESPACE_OID, name))
-        dev = qdevices.Dimm(params=dimm_params.copy_from_keys(attrs),
-                            dimm_type=dimm_type)
+                if dimm_uuid == "<auto>":
+                    dimm_params["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_OID, name))
+        dev = qdevices.Dimm(
+            params=dimm_params.copy_from_keys(attrs), dimm_type=dimm_type
+        )
         dev.set_param("id", "%s-%s" % ("dimm", name))
         for ext_k, ext_v in params.get_dict("dimm_extra_params").items():
             dev.set_param(ext_k, ext_v)
@@ -2997,22 +3348,45 @@ class DevContainer(object):
                     devices.append(dimm)
                 elif mem_devtype == "virtio-mem":
                     virtio_mem_params = Params()
-                    virtio_mem_bus = {'aobject': params.get('pci_bus', 'pci.0')}
+                    virtio_mem_bus = {"aobject": params.get("pci_bus", "pci.0")}
                     vmem_model = "virtio-mem-pci"
                     suffix = "_memory"
                     for key in list(params.keys()):
                         if key.endswith(suffix):
                             new_key = key.rsplit(suffix)[0]
                             virtio_mem_params[new_key] = params[key]
-                    supported = ['any_layout', 'block-size', 'event_idx', 'indirect_desc', 'iommu_platform', 'memaddr', 'memdev', 'node', 'notify_on_empty',
-                                 'packed', 'prealloc', 'requested-size', 'size', 'unplugged-inaccessible', 'use-disabled-flag', 'use-started', 'x-disable-legacy-check']
+                    supported = [
+                        "any_layout",
+                        "block-size",
+                        "event_idx",
+                        "indirect_desc",
+                        "iommu_platform",
+                        "memaddr",
+                        "memdev",
+                        "node",
+                        "notify_on_empty",
+                        "packed",
+                        "prealloc",
+                        "requested-size",
+                        "size",
+                        "unplugged-inaccessible",
+                        "use-disabled-flag",
+                        "use-started",
+                        "x-disable-legacy-check",
+                    ]
                     virtio_mem_params = virtio_mem_params.copy_from_keys(supported)
-                    if '-mmio:' in params.get("machine_type"):
+                    if "-mmio:" in params.get("machine_type"):
                         vmem_model = "virtio-mem-device"
                         virtio_mem_bus = None
                     if not self.has_device(vmem_model):
-                        raise exceptions.TestSkipError("%s device is not available" % vmem_model)
-                    virtio_mem = qdevices.QDevice(driver=vmem_model, parent_bus=virtio_mem_bus, params=virtio_mem_params)
+                        raise exceptions.TestSkipError(
+                            "%s device is not available" % vmem_model
+                        )
+                    virtio_mem = qdevices.QDevice(
+                        driver=vmem_model,
+                        parent_bus=virtio_mem_bus,
+                        params=virtio_mem_params,
+                    )
                     virtio_mem.set_param("id", "%s-%s" % ("virtio_mem", name))
                     devices.append(virtio_mem)
                 else:
@@ -3028,9 +3402,11 @@ class DevContainer(object):
         :param bus: Parent bus.
         """
         params = params.object_params(name)
-        dev_map = {"mouse": {"virtio": "virtio-mouse"},
-                   "keyboard": {"virtio": "virtio-keyboard"},
-                   "tablet": {"virtio": "virtio-tablet"}}
+        dev_map = {
+            "mouse": {"virtio": "virtio-mouse"},
+            "keyboard": {"virtio": "virtio-keyboard"},
+            "tablet": {"virtio": "virtio-tablet"},
+        }
         dev_type = params["input_dev_type"]
         bus_type = params["input_dev_bus_type"]
         driver = dev_map.get(dev_type)
@@ -3082,10 +3458,12 @@ class DevContainer(object):
         vcpu_props = json.loads(params.get("vcpu_props", "{}"))
         vcpu_params.update(vcpu_props)
 
-        vcpu_dev = qdevices.QCPUDevice(cpu_driver,
-                                       params.get_boolean("vcpu_enable"),
-                                       params=vcpu_params,
-                                       parent_bus={"aobject": "vcpu"})
+        vcpu_dev = qdevices.QCPUDevice(
+            cpu_driver,
+            params.get_boolean("vcpu_enable"),
+            params=vcpu_params,
+            parent_bus={"aobject": "vcpu"},
+        )
         return vcpu_dev
 
     def fs_define_by_params(self, name, params, bus=None):
@@ -3103,10 +3481,10 @@ class DevContainer(object):
         """
         driver = params["fs_driver"]
         target = params["fs_target"]
-        fs_type = params.get('fs_source_type', 'mount')
-        fs_source_user_config = params.get('fs_source_user_config', 'no')
+        fs_type = params.get("fs_source_type", "mount")
+        fs_source_user_config = params.get("fs_source_user_config", "no")
 
-        if fs_type == 'mount':
+        if fs_type == "mount":
             source = params.get("fs_source_dir")
             base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
             if not os.path.isabs(source):
@@ -3121,22 +3499,28 @@ class DevContainer(object):
         if driver == "virtio-fs":
             if fs_source_user_config == "yes":
                 sock_path = params.get("fs_source_user_sock_path")
-                vfsd = qdevices.QDaemonDev('virtiofs', aobject=name,
-                                           child_bus=qdevices.QUnixSocketBus(sock_path, name))
+                vfsd = qdevices.QDaemonDev(
+                    "virtiofs",
+                    aobject=name,
+                    child_bus=qdevices.QUnixSocketBus(sock_path, name),
+                )
             else:
                 binary = params.get("fs_binary", "/usr/libexec/virtiofsd")
                 extra_options = params.get("fs_binary_extra_options")
-                enable_debug_mode = params.get('fs_enable_debug_mode', 'no') == "yes"
-                sock_path = os.path.join(data_dir.get_tmp_dir(),
-                                         '-'.join((self.vmname, name, 'virtiofsd.sock')))
-                vfsd = qdevices.QVirtioFSDev(name, binary, sock_path,
-                                             source, extra_options, enable_debug_mode)
+                enable_debug_mode = params.get("fs_enable_debug_mode", "no") == "yes"
+                sock_path = os.path.join(
+                    data_dir.get_tmp_dir(),
+                    "-".join((self.vmname, name, "virtiofsd.sock")),
+                )
+                vfsd = qdevices.QVirtioFSDev(
+                    name, binary, sock_path, source, extra_options, enable_debug_mode
+                )
             devices.append(vfsd)
 
             char_params = Params()
             char_params["backend"] = "socket"
-            char_params["id"] = 'char_%s' % vfsd.get_qid()
-            sock_bus = {'busid': sock_path}
+            char_params["id"] = "char_%s" % vfsd.get_qid()
+            sock_bus = {"busid": sock_path}
             char = qdevices.CharDevice(char_params, parent_bus=sock_bus)
             char.set_aid(vfsd.get_aid())
             devices.append(char)
@@ -3154,9 +3538,11 @@ class DevContainer(object):
             if bus is None:
                 bus = {"type": qbus_type}
 
-            dev_params = {"id": "vufs_%s" % vfsd.get_qid(),
-                          "chardev": char.get_qid(),
-                          "tag": target}
+            dev_params = {
+                "id": "vufs_%s" % vfsd.get_qid(),
+                "chardev": char.get_qid(),
+                "tag": target,
+            }
             fs_driver_props = json.loads(params.get("fs_driver_props", "{}"))
             dev_params.update(fs_driver_props)
             vufs = qdevices.QDevice(qdriver, params=dev_params, parent_bus=bus)
@@ -3185,73 +3571,79 @@ class DevContainer(object):
 
         def _handle_log(line):
             try:
-                utils_misc.log_line('%s_swtpm_setup.log' % name, line)
+                utils_misc.log_line("%s_swtpm_setup.log" % name, line)
             except Exception as e:
                 LOG.warn("Can't log %s_swtpm_setup output: %s.", name, e)
 
         def _emulator_setup(binary, extra_options=None):
             setup_cmd = binary
-            if tpm_version in ('2.0',):
-                setup_cmd += ' --tpm2'
+            if tpm_version in ("2.0",):
+                setup_cmd += " --tpm2"
 
-            tpm_path = os.path.join(swtpm_dir, '%s_state' % name)
+            tpm_path = os.path.join(swtpm_dir, "%s_state" % name)
             if not os.path.exists(tpm_path):
                 os.makedirs(tpm_path)
             setup_cmd += " --tpm-state %s" % tpm_path
 
-            setup_cmd += (" --createek --create-ek-cert"
-                          " --create-platform-cert"
-                          " --lock-nvram")
+            setup_cmd += (
+                " --createek --create-ek-cert" " --create-platform-cert" " --lock-nvram"
+            )
             tpm_overwrite = params.get_boolean("tpm_overwrite")
-            overwrite_option = (" --overwrite" if tpm_overwrite else
-                                " --not-overwrite")
+            overwrite_option = " --overwrite" if tpm_overwrite else " --not-overwrite"
             setup_cmd += overwrite_option
 
             if extra_options:
                 setup_cmd += extra_options
 
-            LOG.info('Running TPM emulator setup command: %s.', setup_cmd)
+            LOG.info("Running TPM emulator setup command: %s.", setup_cmd)
             _process = aexpect.run_bg(setup_cmd, None, _handle_log, auto_close=False)
-            status_ending = 'Ending vTPM manufacturing'
+            status_ending = "Ending vTPM manufacturing"
             _process.read_until_any_line_matches(status_ending, timeout=5)
             return tpm_path
 
         devices = []
-        if tpm_type == 'emulator':
+        if tpm_type == "emulator":
             tpm_bin = params.get("tpm_bin", "/usr/bin/swtpm")
             tpm_setup_bin = params.get("tpm_setup_bin", "/usr/bin/swtpm_setup")
             tpm_bin_extra_options = params.get("tpm_bin_extra_options")
             tpm_setup_bin_extra_options = params.get("tpm_setup_bin_extra_options")
-            sock_path = os.path.join(swtpm_dir, name + '_swtpm.sock')
+            sock_path = os.path.join(swtpm_dir, name + "_swtpm.sock")
 
             storage_path = _emulator_setup(tpm_setup_bin, tpm_setup_bin_extra_options)
-            swtpmdev = qdevices.QSwtpmDev(name, tpm_bin, sock_path, storage_path,
-                                          tpm_version, tpm_bin_extra_options)
+            swtpmdev = qdevices.QSwtpmDev(
+                name,
+                tpm_bin,
+                sock_path,
+                storage_path,
+                tpm_version,
+                tpm_bin_extra_options,
+            )
             devices.append(swtpmdev)
 
             char_params = Params()
             char_params["backend"] = "socket"
-            char_params["id"] = 'char_%s' % swtpmdev.get_qid()
-            sock_bus = {'busid': sock_path}
+            char_params["id"] = "char_%s" % swtpmdev.get_qid()
+            sock_bus = {"busid": sock_path}
             char = qdevices.CharDevice(char_params, parent_bus=sock_bus)
             char.set_aid(swtpmdev.get_aid())
             devices.append(char)
-            tpm_params = {'chardev': char.get_qid()}
+            tpm_params = {"chardev": char.get_qid()}
             tpm_id = swtpmdev.get_qid()
-        elif tpm_type == 'passthrough':
-            tpm_params = {'path': params.get("tpm_device_path")}
-            tpm_id = 'tpm_%s' % name
+        elif tpm_type == "passthrough":
+            tpm_params = {"path": params.get("tpm_device_path")}
+            tpm_id = "tpm_%s" % name
         else:
             raise ValueError("Unsupported TPM backend type.")
 
-        tpm_params['id'] = '%s_%s' % (tpm_type, tpm_id)
-        tpm_params['backend'] = tpm_type
-        tpm_dev = qdevices.QCustomDevice('tpmdev', tpm_params,
-                                         name, backend='backend')
+        tpm_params["id"] = "%s_%s" % (tpm_type, tpm_id)
+        tpm_params["backend"] = tpm_type
+        tpm_dev = qdevices.QCustomDevice("tpmdev", tpm_params, name, backend="backend")
         devices.append(tpm_dev)
 
-        tpm_model_params = {"id": "%s_%s" % (tpm_model, tpm_id),
-                            "tpmdev": tpm_dev.get_qid()}
+        tpm_model_params = {
+            "id": "%s_%s" % (tpm_model, tpm_id),
+            "tpmdev": tpm_dev.get_qid(),
+        }
         tpm_model_params.update(json.loads(params.get("tpm_model_props", "{}")))
         tpm_model_dev = qdevices.QDevice(tpm_model, tpm_model_params)
         tpm_model_dev.set_aid(tpm_id)
@@ -3268,22 +3660,24 @@ class DevContainer(object):
         :param params: The params for hmat-lb
         :return: The qdevices.QCustomDevice of hmat-lb
         """
-        aobject = '%s_hmat_lb' % nodeid
-        hmat_lb_params = {'target': nodeid, 'initiator': initiator,
-                          'hierarchy': params['numa_hmat_lb_hierarchy'],
-                          'hmat_type': 'hmat-lb'}
-        data_type = params['numa_hmat_lb_data_type']
-        hmat_lb_params.update({'data-type': data_type})
-        if 'latency' in data_type:
-            hmat_lb_params.update(
-                {'latency': params['numa_hmat_lb_latency']})
-            aobject += '_latency'
-        elif 'bandwidth' in data_type:
-            hmat_lb_params.update(
-                {'bandwidth': params['numa_hmat_lb_bandwidth']})
-            aobject += '_bandwidth'
-        return qdevices.QCustomDevice('numa', params=hmat_lb_params,
-                                      aobject=aobject, backend='hmat_type')
+        aobject = "%s_hmat_lb" % nodeid
+        hmat_lb_params = {
+            "target": nodeid,
+            "initiator": initiator,
+            "hierarchy": params["numa_hmat_lb_hierarchy"],
+            "hmat_type": "hmat-lb",
+        }
+        data_type = params["numa_hmat_lb_data_type"]
+        hmat_lb_params.update({"data-type": data_type})
+        if "latency" in data_type:
+            hmat_lb_params.update({"latency": params["numa_hmat_lb_latency"]})
+            aobject += "_latency"
+        elif "bandwidth" in data_type:
+            hmat_lb_params.update({"bandwidth": params["numa_hmat_lb_bandwidth"]})
+            aobject += "_bandwidth"
+        return qdevices.QCustomDevice(
+            "numa", params=hmat_lb_params, aobject=aobject, backend="hmat_type"
+        )
 
     def numa_hmat_cache_define_by_params(self, nodeid, params):
         """
@@ -3294,43 +3688,49 @@ class DevContainer(object):
         :return: The list of qdevices.QCustomDevice, including all hmat-caches
         targeted on the nodeid given
         """
-        numa_hmat_caches = params.objects('numa_hmat_caches')
+        numa_hmat_caches = params.objects("numa_hmat_caches")
         if numa_hmat_caches:
-            if (not self.get_by_properties(
-                    {'aobject': '%s_hmat_lb_bandwidth' % nodeid}) or
-                    not self.get_by_properties(
-                        {'aobject': '%s_hmat_lb_bandwidth' % nodeid})):
+            if not self.get_by_properties(
+                {"aobject": "%s_hmat_lb_bandwidth" % nodeid}
+            ) or not self.get_by_properties(
+                {"aobject": "%s_hmat_lb_bandwidth" % nodeid}
+            ):
                 raise exceptions.TestError(
-                    'Please make sure both hmat-lb bandwidth and '
-                    'hmat-lb latency are defined when define hmat-cache.')
+                    "Please make sure both hmat-lb bandwidth and "
+                    "hmat-lb latency are defined when define hmat-cache."
+                )
 
         hmat_cache_devs = []
-        aobject = '%s_hmat_cache' % nodeid
+        aobject = "%s_hmat_cache" % nodeid
         for hmat_cache in numa_hmat_caches:
             hmat_cache_params = params.object_params(hmat_cache)
-            level = hmat_cache_params.get_numeric('numa_hmat_caches_level')
+            level = hmat_cache_params.get_numeric("numa_hmat_caches_level")
             size = utils_misc.normalize_data_size(
-                hmat_cache_params['numa_hmat_caches_size'], 'K')
+                hmat_cache_params["numa_hmat_caches_size"], "K"
+            )
             hc_params = {
-                'node-id': nodeid, 'level': level,
-                'hmat_type': 'hmat-cache',
-                'size': str(int(float(size))) + 'K',
-                'associativity': hmat_cache_params.get(
-                     'numa_hmat_caches_associativity'),
-                'policy': hmat_cache_params.get(
-                    'numa_hmat_caches_policy'),
-                'line': hmat_cache_params.get('numa_hmat_caches_line')
+                "node-id": nodeid,
+                "level": level,
+                "hmat_type": "hmat-cache",
+                "size": str(int(float(size))) + "K",
+                "associativity": hmat_cache_params.get(
+                    "numa_hmat_caches_associativity"
+                ),
+                "policy": hmat_cache_params.get("numa_hmat_caches_policy"),
+                "line": hmat_cache_params.get("numa_hmat_caches_line"),
             }
-            aobject += '_level_%s' % level
+            aobject += "_level_%s" % level
             hmat_cache_devs.append(
                 qdevices.QCustomDevice(
-                    'numa', hc_params,
-                    aobject=aobject, backend='hmat_type'))
+                    "numa", hc_params, aobject=aobject, backend="hmat_type"
+                )
+            )
 
         return hmat_cache_devs
 
-    def secret_object_define_by_varibles(self, secret_id, data,
-                                         secret_format=None, inline=True):
+    def secret_object_define_by_varibles(
+        self, secret_id, data, secret_format=None, inline=True
+    ):
         """
         Generate secret object device with given data, will create a new file
         when inline is False
@@ -3341,18 +3741,17 @@ class DevContainer(object):
         :param inline: append data=xxx if True and file=xxx if False
         :return: the secret object device QObject
         """
-        params = {'id': secret_id}
+        params = {"id": secret_id}
         if secret_format:
-            params.update({'format': secret_format})
+            params.update({"format": secret_format})
         if not inline:
-            secret_file = os.path.join(
-                data_dir.get_tmp_dir(), '%s.secret' % secret_id)
-            with open(secret_file, 'w') as f:
+            secret_file = os.path.join(data_dir.get_tmp_dir(), "%s.secret" % secret_id)
+            with open(secret_file, "w") as f:
                 f.write(data)
-            params.update({'file': secret_file})
+            params.update({"file": secret_file})
         else:
-            params.update({'data': data})
-        return qdevices.QObject('secret', params=params)
+            params.update({"data": data})
+        return qdevices.QObject("secret", params=params)
 
     def secure_guest_object_define_by_params(self, obj_id, params):
         """
@@ -3374,6 +3773,7 @@ class DevContainer(object):
                        e.g. params.object_params('vm1')
         :return: the secret QObject device
         """
+
         def _gen_sev_obj_props(obj_id, params):
             """
             Generate the properties of the sev-guest object.
@@ -3387,29 +3787,29 @@ class DevContainer(object):
             :return: a tuple of (backend, sev-guest QObject properties dict)
             """
             if Flags.SEV_GUEST not in self.caps:
-                raise ValueError('Unsupported sev-guest object')
+                raise ValueError("Unsupported sev-guest object")
 
-            backend, sev_obj_props = 'sev-guest', {'id': obj_id}
+            backend, sev_obj_props = "sev-guest", {"id": obj_id}
 
             # Set policy=3 if vm_sev_policy is not set
-            sev_obj_props['policy'] = int(params.get('vm_sev_policy', 3))
+            sev_obj_props["policy"] = int(params.get("vm_sev_policy", 3))
 
             # FIXME: Set the following two options from sev capabilities
             # if they are not set yet
-            sev_obj_props['cbitpos'] = int(params['vm_sev_cbitpos'])
-            sev_obj_props['reduced-phys-bits'] = int(params['vm_sev_reduced_phys_bits'])
+            sev_obj_props["cbitpos"] = int(params["vm_sev_cbitpos"])
+            sev_obj_props["reduced-phys-bits"] = int(params["vm_sev_reduced_phys_bits"])
 
             # FIXME: If these files are host dependent, we have to find
             # another way to set them, because different files are needed
             # when migrating the vm from one host to another
-            if params.get('vm_sev_session_file'):
-                sev_obj_props['session-file'] = params['vm_sev_session_file']
-            if params.get('vm_sev_dh_cert_file'):
-                sev_obj_props['dh-cert-file'] = params['vm_sev_dh_cert_file']
+            if params.get("vm_sev_session_file"):
+                sev_obj_props["session-file"] = params["vm_sev_session_file"]
+            if params.get("vm_sev_dh_cert_file"):
+                sev_obj_props["dh-cert-file"] = params["vm_sev_dh_cert_file"]
 
-            if params.get('vm_sev_kernel_hashes'):
-                sev_obj_props['kernel-hashes'] = params.get_boolean(
-                    'vm_sev_kernel_hashes'
+            if params.get("vm_sev_kernel_hashes"):
+                sev_obj_props["kernel-hashes"] = params.get_boolean(
+                    "vm_sev_kernel_hashes"
                 )
 
             return backend, sev_obj_props
@@ -3421,20 +3821,17 @@ class DevContainer(object):
             :return: a tuple of (backend, tdx-guest QObject properties dict)
             """
             if Flags.TDX_GUEST not in self.caps:
-                raise ValueError('Unsupported tdx-guest object')
+                raise ValueError("Unsupported tdx-guest object")
 
-            backend, tdx_obj_props = 'tdx-guest', {'id': obj_id}
+            backend, tdx_obj_props = "tdx-guest", {"id": obj_id}
             return backend, tdx_obj_props
 
-        obj_props_handlers = {
-            'sev': _gen_sev_obj_props,
-            'tdx': _gen_tdx_obj_props
-        }
+        obj_props_handlers = {"sev": _gen_sev_obj_props, "tdx": _gen_tdx_obj_props}
 
-        sectype = params['vm_secure_guest_type']
+        sectype = params["vm_secure_guest_type"]
         if sectype in obj_props_handlers:
             backend, properties = obj_props_handlers[sectype](obj_id, params)
         else:
-            raise ValueError('Unsupported secure guest: %s' % sectype)
+            raise ValueError("Unsupported secure guest: %s" % sectype)
 
         return qdevices.QObject(backend, properties)

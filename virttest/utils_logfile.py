@@ -54,8 +54,9 @@ def log_line(filename, line):
     global _open_log_files, _log_file_dir, _log_lock
 
     if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
+        raise LogLockError(
+            "Could not acquire exclusive lock to access" " _open_log_files"
+        )
     log_file = get_log_filename(filename)
     base_file = os.path.basename(log_file)
     try:
@@ -107,7 +108,8 @@ def get_log_filename(filename):
     if aurl.is_url(filename):
         return filename
     return os.path.realpath(
-            os.path.abspath(utils_path.get_path(_log_file_dir, filename)))
+        os.path.abspath(utils_path.get_path(_log_file_dir, filename))
+    )
 
 
 def close_log_file(filename):
@@ -120,8 +122,9 @@ def close_log_file(filename):
     global _open_log_files, _log_file_dir, _log_lock
     remove = []
     if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
+        raise LogLockError(
+            "Could not acquire exclusive lock to access" " _open_log_files"
+        )
     try:
         for k in _open_log_files:
             if os.path.basename(k) == filename:

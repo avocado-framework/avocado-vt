@@ -18,7 +18,7 @@ class CAPXML(base.LibvirtXMLBase):
         """
         return the sub path store the info of capability.
         """
-        raise NotImplementedError('get_sysfs_sub_path is not implemented.')
+        raise NotImplementedError("get_sysfs_sub_path is not implemented.")
 
     @staticmethod
     def get_key2filename_dict():
@@ -26,14 +26,14 @@ class CAPXML(base.LibvirtXMLBase):
         Return a dict which contain the key and the name
         of info file.
         """
-        raise NotImplementedError('get_key2filename_dict is not implemeneted.')
+        raise NotImplementedError("get_key2filename_dict is not implemeneted.")
 
     def get_key2value_dict(self):
         """
         Reutn a dict which contain the key and the value
         in capability xml.
         """
-        raise NotImplementedError('get_key2value_dict is not implemented.')
+        raise NotImplementedError("get_key2value_dict is not implemented.")
 
     def getroot(self):
         """
@@ -47,18 +47,28 @@ class SystemXML(CAPXML):
     """
     class for capability which type is system.
     """
-    __slots__ = ('product', 'hdware_vendor', 'hdware_serial', 'hdware_uuid',
-                 'firmware_vendor', 'firmversion', 'firm_release_date')
 
-    __sysfs_sub_path__ = 'dmi/id/'
+    __slots__ = (
+        "product",
+        "hdware_vendor",
+        "hdware_serial",
+        "hdware_uuid",
+        "firmware_vendor",
+        "firmversion",
+        "firm_release_date",
+    )
 
-    __key2filename_dict__ = {'product': 'product_name',
-                             'hdware_vendor': 'sys_vendor',
-                             'hdware_serial': 'product_serial',
-                             'hdware_uuid': 'product_uuid',
-                             'firmware_vendor': 'bios_vendor',
-                             'firmversion': 'bios_version',
-                             'firm_release_date': 'bios_date'}
+    __sysfs_sub_path__ = "dmi/id/"
+
+    __key2filename_dict__ = {
+        "product": "product_name",
+        "hdware_vendor": "sys_vendor",
+        "hdware_serial": "product_serial",
+        "hdware_uuid": "product_uuid",
+        "firmware_vendor": "bios_vendor",
+        "firmversion": "bios_version",
+        "firm_release_date": "bios_date",
+    }
 
     @staticmethod
     def get_key2filename_dict():
@@ -99,34 +109,39 @@ class NetXML(CAPXML):
     """
     class for capability whose type is net.
     """
-    # Example:
-    #<capability type='net'>
-    #<interface>eno1</interface>
-    #<address>44:37:e6:95:03:e4</address>
-    #<link speed='100' state='up'/>
-    #<feature name='rx'/>
-    #<feature name='tx'/>
-    #<capability type='80203'/>
-    #</capability>
-    #</device>
 
-    __slots__ = ('interface', 'address', 'link_speed', 'link_state')
+    # Example:
+    # <capability type='net'>
+    # <interface>eno1</interface>
+    # <address>44:37:e6:95:03:e4</address>
+    # <link speed='100' state='up'/>
+    # <feature name='rx'/>
+    # <feature name='tx'/>
+    # <capability type='80203'/>
+    # </capability>
+    # </device>
+
+    __slots__ = ("interface", "address", "link_speed", "link_state")
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('interface', self, parent_xpath='/',
-                                 tag_name='interface')
-        accessors.XMLElementText('address', self, parent_xpath='/',
-                                 tag_name='address')
-        accessors.XMLAttribute('link_speed', self, parent_xpath='/',
-                               tag_name='link', attribute='speed')
-        accessors.XMLAttribute('link_state', self, parent_xpath='/',
-                               tag_name='link', attribute='state')
+        accessors.XMLElementText(
+            "interface", self, parent_xpath="/", tag_name="interface"
+        )
+        accessors.XMLElementText("address", self, parent_xpath="/", tag_name="address")
+        accessors.XMLAttribute(
+            "link_speed", self, parent_xpath="/", tag_name="link", attribute="speed"
+        )
+        accessors.XMLAttribute(
+            "link_state", self, parent_xpath="/", tag_name="link", attribute="state"
+        )
         super(NetXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = (' <capability type=\'net\'></capability>')
+        self.xml = " <capability type='net'></capability>"
 
-    __key2filename_dict__ = {'address': 'address',
-                             'link_state': 'operstate',
-                             'link_speed': 'speed'}
+    __key2filename_dict__ = {
+        "address": "address",
+        "link_state": "operstate",
+        "link_speed": "speed",
+    }
 
     @staticmethod
     def get_key2filename_dict():
@@ -152,15 +167,16 @@ class MdevXML(CAPXML):
     """
     class for capability whose type is mdev
     """
-    __slots__ = ('type_id', 'uuid')
+
+    __slots__ = ("type_id", "uuid")
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute('type_id', self, parent_xpath='/',
-                               tag_name='type', attribute='id')
-        accessors.XMLElementText('uuid', self, parent_xpath='/',
-                                 tag_name='uuid')
+        accessors.XMLAttribute(
+            "type_id", self, parent_xpath="/", tag_name="type", attribute="id"
+        )
+        accessors.XMLElementText("uuid", self, parent_xpath="/", tag_name="uuid")
         super(MdevXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = (' <capability type=\'mdev\'></capability>')
+        self.xml = " <capability type='mdev'></capability>"
 
 
 class StorageXML(CAPXML):
@@ -168,15 +184,15 @@ class StorageXML(CAPXML):
     """
     class for capability whose type is storage.
     """
-    __slots__ = ('block', 'bus', 'driver_type')
+
+    __slots__ = ("block", "bus", "driver_type")
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('block', self, parent_xpath='/',
-                                 tag_name='block')
-        accessors.XMLElementText('bus', self, parent_xpath='/',
-                                 tag_name='bus')
-        accessors.XMLElementText('driver_type', self, parent_xpath='/',
-                                 tag_name='driver_type')
+        accessors.XMLElementText("block", self, parent_xpath="/", tag_name="block")
+        accessors.XMLElementText("bus", self, parent_xpath="/", tag_name="bus")
+        accessors.XMLElementText(
+            "driver_type", self, parent_xpath="/", tag_name="driver_type"
+        )
 
 
 class PCIXML(CAPXML):
@@ -219,40 +235,60 @@ class PCIXML(CAPXML):
     # </pci-express>
     # </capability>
 
-    __slots__ = ('domain', 'bus', 'slot', 'function', 'product_id',
-                 'vendor_id', 'virt_functions', 'numa_node',
-                 'iommuGroup_number', 'iommuGroup_address',
-                 'product_info')
+    __slots__ = (
+        "domain",
+        "bus",
+        "slot",
+        "function",
+        "product_id",
+        "vendor_id",
+        "virt_functions",
+        "numa_node",
+        "iommuGroup_number",
+        "iommuGroup_address",
+        "product_info",
+    )
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementInt('domain', self, parent_xpath='/',
-                                tag_name='domain')
-        accessors.XMLElementInt('bus', self, parent_xpath='/',
-                                tag_name='bus')
-        accessors.XMLElementInt('slot', self, parent_xpath='/',
-                                tag_name='slot')
-        accessors.XMLElementInt('function', self, parent_xpath='/',
-                                tag_name='function')
-        accessors.XMLAttribute('product_id', self, parent_xpath='/',
-                               tag_name='product', attribute='id')
-        accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
-                               tag_name='vendor', attribute='id')
-        accessors.XMLAttribute('numa_node', self, parent_xpath='/',
-                               tag_name='numa', attribute='node')
-        accessors.XMLAttribute('iommuGroup_number', self, parent_xpath='/',
-                               tag_name='iommuGroup', attribute='number')
-        accessors.XMLElementList('iommuGroup_address', self,
-                                 parent_xpath='/iommuGroup',
-                                 marshal_from=self.marshal_from_address,
-                                 marshal_to=self.marshal_to_address)
-        accessors.XMLElementList('virt_functions', self,
-                                 parent_xpath='/capability',
-                                 marshal_from=self.marshal_from_address,
-                                 marshal_to=self.marshal_to_address)
-        accessors.XMLElementText('product_info', self, parent_xpath='/',
-                                 tag_name='product')
+        accessors.XMLElementInt("domain", self, parent_xpath="/", tag_name="domain")
+        accessors.XMLElementInt("bus", self, parent_xpath="/", tag_name="bus")
+        accessors.XMLElementInt("slot", self, parent_xpath="/", tag_name="slot")
+        accessors.XMLElementInt("function", self, parent_xpath="/", tag_name="function")
+        accessors.XMLAttribute(
+            "product_id", self, parent_xpath="/", tag_name="product", attribute="id"
+        )
+        accessors.XMLAttribute(
+            "vendor_id", self, parent_xpath="/", tag_name="vendor", attribute="id"
+        )
+        accessors.XMLAttribute(
+            "numa_node", self, parent_xpath="/", tag_name="numa", attribute="node"
+        )
+        accessors.XMLAttribute(
+            "iommuGroup_number",
+            self,
+            parent_xpath="/",
+            tag_name="iommuGroup",
+            attribute="number",
+        )
+        accessors.XMLElementList(
+            "iommuGroup_address",
+            self,
+            parent_xpath="/iommuGroup",
+            marshal_from=self.marshal_from_address,
+            marshal_to=self.marshal_to_address,
+        )
+        accessors.XMLElementList(
+            "virt_functions",
+            self,
+            parent_xpath="/capability",
+            marshal_from=self.marshal_from_address,
+            marshal_to=self.marshal_to_address,
+        )
+        accessors.XMLElementText(
+            "product_info", self, parent_xpath="/", tag_name="product"
+        )
         super(PCIXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = (' <capability type=\'pci\'></capability>')
+        self.xml = " <capability type='pci'></capability>"
 
     class Address(base.LibvirtXMLBase):
 
@@ -264,35 +300,44 @@ class PCIXML(CAPXML):
         #  <address domain='0x0000' bus='0x08' slot='0x10' function='0x0'/>
         #  <address domain='0x0000' bus='0x08' slot='0x10' function='0x4'/>
 
-        __slots__ = ('domain', 'bus', 'slot', 'function')
+        __slots__ = ("domain", "bus", "slot", "function")
 
         def __init__(self, virsh_instance=base.virsh):
-            accessors.XMLAttribute('domain', self, parent_xpath='/',
-                                   tag_name='address', attribute='domain')
-            accessors.XMLAttribute('bus', self, parent_xpath='/',
-                                   tag_name='address', attribute='bus')
-            accessors.XMLAttribute('slot', self, parent_xpath='/',
-                                   tag_name='address', attribute='slot')
-            accessors.XMLAttribute('function', self, parent_xpath='/',
-                                   tag_name='address', attribute='function')
+            accessors.XMLAttribute(
+                "domain", self, parent_xpath="/", tag_name="address", attribute="domain"
+            )
+            accessors.XMLAttribute(
+                "bus", self, parent_xpath="/", tag_name="address", attribute="bus"
+            )
+            accessors.XMLAttribute(
+                "slot", self, parent_xpath="/", tag_name="address", attribute="slot"
+            )
+            accessors.XMLAttribute(
+                "function",
+                self,
+                parent_xpath="/",
+                tag_name="address",
+                attribute="function",
+            )
             super(PCIXML.Address, self).__init__(virsh_instance=virsh_instance)
-            self.xml = ('<address/>')
+            self.xml = "<address/>"
 
     @staticmethod
     def marshal_from_address(item, index, libvirtxml):
         """Convert an Address instance into tag + attributes"""
         root = item.xmltreefile.getroot()
-        if root.tag == 'address':
+        if root.tag == "address":
             return (root.tag, dict(list(root.items())))
         else:
-            raise xcepts.LibvirtXMLError("Expected a list of address "
-                                         "instances, not a %s" % str(item))
+            raise xcepts.LibvirtXMLError(
+                "Expected a list of address " "instances, not a %s" % str(item)
+            )
 
     @staticmethod
     def marshal_to_address(tag, attr_dict, index, libvirtxml):
         """Convert a tag + attributes into an Address instance"""
-        if not tag == 'address':
-            return None     # Don't convert this item
+        if not tag == "address":
+            return None  # Don't convert this item
         newone = PCIXML.Address(virsh_instance=libvirtxml.virsh)
         newone.update(attr_dict, excpt=xcepts.LibvirtXMLError)
         return newone
@@ -302,11 +347,9 @@ class PCIXML(CAPXML):
         """
         Make sysfs_sub_path for pci by domain,bus,slot and function.
         """
-        pci_bus_path = ("%04x:%02x" % (domain, bus))
-        pci_device_path = ("%04x:%02x:%02x.%01x" % (domain, bus,
-                                                    slot, function))
-        pci_sysfs_sub_path = ("pci_bus/%s/device/%s"
-                              % (pci_bus_path, pci_device_path))
+        pci_bus_path = "%04x:%02x" % (domain, bus)
+        pci_device_path = "%04x:%02x:%02x.%01x" % (domain, bus, slot, function)
+        pci_sysfs_sub_path = "pci_bus/%s/device/%s" % (pci_bus_path, pci_device_path)
 
         return pci_sysfs_sub_path
 
@@ -324,9 +367,11 @@ class PCIXML(CAPXML):
 
         return PCIXML.make_sysfs_sub_path(domain, bus, slot, function)
 
-    __key2filename_dict__ = {'product_id': 'device',
-                             'vendor_id': 'vendor',
-                             'numa_node': 'numa_node'}
+    __key2filename_dict__ = {
+        "product_id": "device",
+        "vendor_id": "vendor",
+        "numa_node": "numa_node",
+    }
 
     @staticmethod
     def get_key2filename_dict():
@@ -360,8 +405,12 @@ class PCIXML(CAPXML):
         """
         Return a dict contain the address.
         """
-        address = {'domain': self.domain, 'bus': self.bus,
-                   'slot': self.slot, 'function': self.function}
+        address = {
+            "domain": self.domain,
+            "bus": self.bus,
+            "slot": self.slot,
+            "function": self.function,
+        }
         return address
 
 
@@ -372,54 +421,79 @@ class NodedevXMLBase(base.LibvirtXMLBase):
 
     """
 
-    __slots__ = ('name', 'parent', 'cap_type', 'cap',
-                 'sysfs_main_path', 'host', 'fc_type',
-                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count', 'path',
-                 'driver_name')
+    __slots__ = (
+        "name",
+        "parent",
+        "cap_type",
+        "cap",
+        "sysfs_main_path",
+        "host",
+        "fc_type",
+        "wwnn",
+        "wwpn",
+        "fabric_wwn",
+        "max_count",
+        "path",
+        "driver_name",
+    )
 
     __schema_name__ = "nodedev"
 
     __sysfs_dir__ = "/sys/class"
 
-    __type2class_dict__ = {'system': 'SystemXML',
-                           'pci': 'PCIXML',
-                           'usb_device': 'USBDeviceXML',
-                           'usb': 'USBXML',
-                           'mdev': 'MdevXML',
-                           'net': 'NetXML',
-                           'scsi_host': 'SCSIHostXML',
-                           'scsi': 'SCSIXML',
-                           'storage': 'StorageXML'}
+    __type2class_dict__ = {
+        "system": "SystemXML",
+        "pci": "PCIXML",
+        "usb_device": "USBDeviceXML",
+        "usb": "USBXML",
+        "mdev": "MdevXML",
+        "net": "NetXML",
+        "scsi_host": "SCSIHostXML",
+        "scsi": "SCSIXML",
+        "storage": "StorageXML",
+    }
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('name', self, parent_xpath='/',
-                                 tag_name='name')
-        accessors.XMLElementText('parent', self, parent_xpath='/',
-                                 tag_name='parent')
-        accessors.XMLAttribute('cap_type', self, parent_xpath='/',
-                               tag_name='capability', attribute='type')
-        accessors.XMLElementText('host', self, parent_xpath='/capability',
-                                 tag_name='host')
-        accessors.XMLAttribute('fc_type', self, parent_xpath='/capability',
-                               tag_name='capability', attribute='type')
-        accessors.XMLAttribute('max_count', self, parent_xpath='/capability',
-                               tag_name='capability', attribute='maxCount')
-        accessors.XMLElementText('wwnn', self,
-                                 parent_xpath='/capability/capability',
-                                 tag_name='wwnn')
-        accessors.XMLElementText('wwpn', self,
-                                 parent_xpath='/capability/capability',
-                                 tag_name='wwpn')
-        accessors.XMLElementText('fabric_wwn', self,
-                                 parent_xpath='/capability/capability',
-                                 tag_name='fabric_wwn')
-        accessors.XMLElementText('path', self, parent_xpath='/',
-                                 tag_name='path')
-        accessors.XMLElementText('driver_name', self,
-                                 parent_xpath='/driver',
-                                 tag_name='name')
+        accessors.XMLElementText("name", self, parent_xpath="/", tag_name="name")
+        accessors.XMLElementText("parent", self, parent_xpath="/", tag_name="parent")
+        accessors.XMLAttribute(
+            "cap_type", self, parent_xpath="/", tag_name="capability", attribute="type"
+        )
+        accessors.XMLElementText(
+            "host", self, parent_xpath="/capability", tag_name="host"
+        )
+        accessors.XMLAttribute(
+            "fc_type",
+            self,
+            parent_xpath="/capability",
+            tag_name="capability",
+            attribute="type",
+        )
+        accessors.XMLAttribute(
+            "max_count",
+            self,
+            parent_xpath="/capability",
+            tag_name="capability",
+            attribute="maxCount",
+        )
+        accessors.XMLElementText(
+            "wwnn", self, parent_xpath="/capability/capability", tag_name="wwnn"
+        )
+        accessors.XMLElementText(
+            "wwpn", self, parent_xpath="/capability/capability", tag_name="wwpn"
+        )
+        accessors.XMLElementText(
+            "fabric_wwn",
+            self,
+            parent_xpath="/capability/capability",
+            tag_name="fabric_wwn",
+        )
+        accessors.XMLElementText("path", self, parent_xpath="/", tag_name="path")
+        accessors.XMLElementText(
+            "driver_name", self, parent_xpath="/driver", tag_name="name"
+        )
         super(NodedevXMLBase, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<device></device>'
+        self.xml = "<device></device>"
 
     @staticmethod
     def get_cap_by_type(cap_type):
@@ -440,7 +514,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         Return the capability of nodedev_xml.
         """
         try:
-            cap_root = self.xmltreefile.reroot('/capability')
+            cap_root = self.xmltreefile.reroot("/capability")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         capxml = NodedevXMLBase.get_cap_by_type(self.cap_type)
@@ -463,7 +537,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         """
         Delete the capability from nodedev xml.
         """
-        element = self.xmltreefile.find('/capability')
+        element = self.xmltreefile.find("/capability")
         if element is not None:
             self.xmltreefile.remove(element)
         self.xmltreefile.write()
@@ -482,7 +556,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         Get the abs path of the capability info.
         """
         cap_type = self.cap_type
-        if cap_type == 'pci':
+        if cap_type == "pci":
             sysfs_main_path = self.__sysfs_dir__
             sysfs_sub_path = self.get_sysfs_sub_path()
             sysfs_path = os.path.join(sysfs_main_path, sysfs_sub_path)
@@ -504,7 +578,7 @@ class NodedevXML(NodedevXMLBase):
         Initialize new instance.
         """
         super(NodedevXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = ('<device></device>')
+        self.xml = "<device></device>"
 
     @staticmethod
     def new_from_dumpxml(dev_name, virsh_instance=base.virsh):
@@ -515,8 +589,9 @@ class NodedevXML(NodedevXMLBase):
         dumpxml_result = virsh_instance.nodedev_dumpxml(dev_name)
         if dumpxml_result.exit_status:
             stderr = dumpxml_result.stderr_text
-            raise xcepts.LibvirtXMLError("Nodedev_dumpxml %s failed.\n"
-                                         "Error: %s." % (dev_name, stderr))
+            raise xcepts.LibvirtXMLError(
+                "Nodedev_dumpxml %s failed.\n" "Error: %s." % (dev_name, stderr)
+            )
         nodedevxml.xml = dumpxml_result.stdout_text
 
         return nodedevxml

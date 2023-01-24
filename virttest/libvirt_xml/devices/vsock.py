@@ -10,29 +10,26 @@ from virttest.libvirt_xml.devices import base, librarian
 
 class Vsock(base.UntypedDeviceBase):
 
-    __slots__ = ('model_type', 'cid', 'address', 'alias')
+    __slots__ = ("model_type", "cid", "address", "alias")
 
     def __init__(self, virsh_instance=base.base.virsh):
-        accessors.XMLAttribute('model_type', self,
-                               parent_xpath='/',
-                               tag_name='vsock',
-                               attribute='model')
-        accessors.XMLElementDict('cid', self,
-                                 parent_xpath='/',
-                                 tag_name='cid')
-        accessors.XMLElementNest('address', self, parent_xpath='/',
-                                 tag_name='address', subclass=self.Address,
-                                 subclass_dargs={
-                                     'type_name': 'pci',
-                                     'virsh_instance': virsh_instance})
-        accessors.XMLElementDict('alias', self,
-                                 parent_xpath='/',
-                                 tag_name='alias')
-        super(Vsock, self).__init__(device_tag='vsock',
-                                    virsh_instance=virsh_instance)
-        self.xml = '<vsock/>'
+        accessors.XMLAttribute(
+            "model_type", self, parent_xpath="/", tag_name="vsock", attribute="model"
+        )
+        accessors.XMLElementDict("cid", self, parent_xpath="/", tag_name="cid")
+        accessors.XMLElementNest(
+            "address",
+            self,
+            parent_xpath="/",
+            tag_name="address",
+            subclass=self.Address,
+            subclass_dargs={"type_name": "pci", "virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementDict("alias", self, parent_xpath="/", tag_name="alias")
+        super(Vsock, self).__init__(device_tag="vsock", virsh_instance=virsh_instance)
+        self.xml = "<vsock/>"
 
-    Address = librarian.get('address')
+    Address = librarian.get("address")
 
     def new_vsock_address(self, **dargs):
         """

@@ -13,50 +13,64 @@ from virttest import utils_disk
 from virttest import virsh
 from virttest.staging import utils_cgroup
 
-VIRSH_BLKIOTUNE_OUTPUT_MAPPING = {"weight": "weight",
-                                  "device_read_iops_sec": "riops",
-                                  "device_write_iops_sec": "wiops",
-                                  "device_read_bytes_sec": "rbps",
-                                  "device_write_bytes_sec": "wbps"}
-CGROUP_V1_BLKIO_FILE_MAPPING = {"weight": "blkio.bfq.weight",
-                                "wiops": "blkio.throttle.write_iops_device",
-                                "riops": "blkio.throttle.read_iops_device",
-                                "rbps": "blkio.throttle.read_bps_device",
-                                "wbps": "blkio.throttle.write_bps_device"}
-CGROUP_V2_BLKIO_FILE_MAPPING = {"weight": "io.bfq.weight",
-                                "wiops": "io.max",
-                                "riops": "io.max",
-                                "rbps": "io.max",
-                                "wbps": "io.max"}
-CGROUP_V1_MEM_FILE_MAPPING = {"hard_limit": "memory.limit_in_bytes",
-                              "soft_limit": "memory.soft_limit_in_bytes",
-                              "swap_hard_limit": "memory.memsw.limit_in_bytes"}
-CGROUP_V2_MEM_FILE_MAPPING = {"hard_limit": "memory.max",
-                              "soft_limit": "memory.high",
-                              "swap_hard_limit": "memory.swap.max"}
-CGROUP_V1_SCHEDINFO_FILE_MAPPING = {"cpu_shares": "cpu.shares",
-                                    "vcpu_period": "<vcpuX>/cpu.cfs_period_us",
-                                    "vcpu_quota": "<vcpuX>/cpu.cfs_quota_us",
-                                    "emulator_period": "emulator/cpu.cfs_period_us",
-                                    "emulator_quota": "emulator/cpu.cfs_quota_us",
-                                    "global_period": "cpu.cfs_period_us",
-                                    "global_quota": "cpu.cfs_quota_us",
-                                    "iothread_period": "<iothreadX>/cpu.cfs_period_us",
-                                    "iothread_quota": "<iothreadX>/cpu.cfs_quota_us"}
-CGROUP_V2_SCHEDINFO_FILE_MAPPING = {"cpu_shares": "cpu.weight",
-                                    "vcpu_period": "<vcpuX>/cpu.max",
-                                    "vcpu_quota": "<vcpuX>/cpu.max",
-                                    "emulator_period": "emulator/cpu.max",
-                                    "emulator_quota": "emulator/cpu.max",
-                                    "global_period": "cpu.max",
-                                    "global_quota": "cpu.max",
-                                    "iothread_period": "<iothreadX>/cpu.max",
-                                    "iothread_quota": "<iothreadX>/cpu.max"}
+VIRSH_BLKIOTUNE_OUTPUT_MAPPING = {
+    "weight": "weight",
+    "device_read_iops_sec": "riops",
+    "device_write_iops_sec": "wiops",
+    "device_read_bytes_sec": "rbps",
+    "device_write_bytes_sec": "wbps",
+}
+CGROUP_V1_BLKIO_FILE_MAPPING = {
+    "weight": "blkio.bfq.weight",
+    "wiops": "blkio.throttle.write_iops_device",
+    "riops": "blkio.throttle.read_iops_device",
+    "rbps": "blkio.throttle.read_bps_device",
+    "wbps": "blkio.throttle.write_bps_device",
+}
+CGROUP_V2_BLKIO_FILE_MAPPING = {
+    "weight": "io.bfq.weight",
+    "wiops": "io.max",
+    "riops": "io.max",
+    "rbps": "io.max",
+    "wbps": "io.max",
+}
+CGROUP_V1_MEM_FILE_MAPPING = {
+    "hard_limit": "memory.limit_in_bytes",
+    "soft_limit": "memory.soft_limit_in_bytes",
+    "swap_hard_limit": "memory.memsw.limit_in_bytes",
+}
+CGROUP_V2_MEM_FILE_MAPPING = {
+    "hard_limit": "memory.max",
+    "soft_limit": "memory.high",
+    "swap_hard_limit": "memory.swap.max",
+}
+CGROUP_V1_SCHEDINFO_FILE_MAPPING = {
+    "cpu_shares": "cpu.shares",
+    "vcpu_period": "<vcpuX>/cpu.cfs_period_us",
+    "vcpu_quota": "<vcpuX>/cpu.cfs_quota_us",
+    "emulator_period": "emulator/cpu.cfs_period_us",
+    "emulator_quota": "emulator/cpu.cfs_quota_us",
+    "global_period": "cpu.cfs_period_us",
+    "global_quota": "cpu.cfs_quota_us",
+    "iothread_period": "<iothreadX>/cpu.cfs_period_us",
+    "iothread_quota": "<iothreadX>/cpu.cfs_quota_us",
+}
+CGROUP_V2_SCHEDINFO_FILE_MAPPING = {
+    "cpu_shares": "cpu.weight",
+    "vcpu_period": "<vcpuX>/cpu.max",
+    "vcpu_quota": "<vcpuX>/cpu.max",
+    "emulator_period": "emulator/cpu.max",
+    "emulator_quota": "emulator/cpu.max",
+    "global_period": "cpu.max",
+    "global_quota": "cpu.max",
+    "iothread_period": "<iothreadX>/cpu.max",
+    "iothread_quota": "<iothreadX>/cpu.max",
+}
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-#cgroup related functions
+# cgroup related functions
 class CgroupTest(object):
 
     """Class for libvirt cgroup related test"""
@@ -91,17 +105,17 @@ class CgroupTest(object):
         cgroup_path = ""
         if self.is_cgroup_v2_enabled():
             vm_proc_cgroup_path = "/proc/%s/cgroup" % self.__vm_pid
-            with open('/proc/mounts', 'r') as mnts:
+            with open("/proc/mounts", "r") as mnts:
                 cg_mount_point = re.findall(r"\s(\S*cgroup)\s", mnts.read())
-            with open(vm_proc_cgroup_path, 'r') as vm_cg_file:
+            with open(vm_proc_cgroup_path, "r") as vm_cg_file:
                 cg_vm_scope = re.findall(r"\S*::(\S*)", vm_cg_file.read())
-            cgroup_path = os.path.join(cg_mount_point[0],
-                                       cg_vm_scope[0].strip("/"))
+            cgroup_path = os.path.join(cg_mount_point[0], cg_vm_scope[0].strip("/"))
             if "emulator" in cgroup_path:
                 cgroup_path += "/.."
         else:
             cgroup_path = utils_cgroup.resolve_task_cgroup_path(
-                    int(self.__vm_pid), controller)
+                int(self.__vm_pid), controller
+            )
         if not os.path.exists(cgroup_path):
             LOG.error("cgroup path '%s' doesn't exist" % cgroup_path)
             return None
@@ -121,9 +135,12 @@ class CgroupTest(object):
             if dir_keyword in filename:
                 dir_names.append(filename)
         if not dir_names and "iothread" in dir_keyword:
-            LOG.debug("No sub dirs found with keyword: '%s'. "
-                      "Pls check if you've executed virsh cmd "
-                      "'iothreadadd'.", dir_keyword)
+            LOG.debug(
+                "No sub dirs found with keyword: '%s'. "
+                "Pls check if you've executed virsh cmd "
+                "'iothreadadd'.",
+                dir_keyword,
+            )
             return None
         return sorted(dir_names)
 
@@ -154,15 +171,19 @@ class CgroupTest(object):
         standardized_cgroup_info = {}
         if virsh_cmd == "blkiotune":
             cgroup_path = self.get_cgroup_path("blkio")
-            dev_init_dict = {"rbps": "max", "wbps": "max", "riops": "max",
-                             "wiops": "max"}
+            dev_init_dict = {
+                "rbps": "max",
+                "wbps": "max",
+                "riops": "max",
+                "wiops": "max",
+            }
             dev_list = []
             if not self.is_bfq():
-                CGROUP_V1_BLKIO_FILE_MAPPING['weight'] = 'blkio.weight'
-                CGROUP_V1_BLKIO_FILE_MAPPING['weight_device'] = 'blkio.weight_device'
+                CGROUP_V1_BLKIO_FILE_MAPPING["weight"] = "blkio.weight"
+                CGROUP_V1_BLKIO_FILE_MAPPING["weight_device"] = "blkio.weight_device"
             for cg_key, cg_file_name in list(CGROUP_V1_BLKIO_FILE_MAPPING.items()):
                 cg_file_path = __get_cg_file_path(cg_key, cgroup_path, cg_file_name)
-                with open(cg_file_path, 'r') as cg_file:
+                with open(cg_file_path, "r") as cg_file:
                     if cg_key in ["weight"]:
                         standardized_cgroup_info[cg_key] = cg_file.read().strip()
                     if cg_key in ["rbps", "wbps", "riops", "wiops", "weight_device"]:
@@ -177,7 +198,9 @@ class CgroupTest(object):
         elif virsh_cmd == "memtune":
             cgroup_path = self.get_cgroup_path("memory")
             cmd = "getconf PAGE_SIZE"
-            page_size = process.run(cmd, ignore_status=True, shell=True).stdout_text.strip()
+            page_size = process.run(
+                cmd, ignore_status=True, shell=True
+            ).stdout_text.strip()
             LOG.debug("page_size is %d" % int(page_size))
             if int(page_size) == 65536:
                 max_mem_value = "9223372036854710272"
@@ -185,7 +208,7 @@ class CgroupTest(object):
                 max_mem_value = "9223372036854771712"
             LOG.debug("max_mem_value is %s" % max_mem_value)
             for cg_key, cg_file_name in list(CGROUP_V1_MEM_FILE_MAPPING.items()):
-                with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
+                with open(os.path.join(cgroup_path, cg_file_name), "r") as cg_file:
                     cg_file_value = cg_file.read().strip()
                     if cg_file_value == max_mem_value:
                         cg_file_value = "max"
@@ -200,17 +223,22 @@ class CgroupTest(object):
                     cg_file_name = cg_file_name.replace("<vcpuX>", vcpu_dirs[0])
                 if "<iothreadX>" in cg_file_name:
                     if iothread_dirs:
-                        cg_file_name = cg_file_name.replace("<iothreadX>", iothread_dirs[0])
+                        cg_file_name = cg_file_name.replace(
+                            "<iothreadX>", iothread_dirs[0]
+                        )
                     else:
                         continue
                 cg_file_path = __get_cg_file_path(cg_key, cgroup_path, cg_file_name)
-                with open(cg_file_path, 'r') as cg_file:
+                with open(cg_file_path, "r") as cg_file:
                     cg_file_value = cg_file.read().strip()
                     if cg_file_value == max_cpu_value:
                         cg_file_value = "max"
                     if "quota" in cg_key:
-                        if cg_file_value in ["-1", "18446744073709551",
-                                             "17592186044415"]:
+                        if cg_file_value in [
+                            "-1",
+                            "18446744073709551",
+                            "17592186044415",
+                        ]:
                             standardized_cgroup_info[cg_key] = "max"
                             continue
                     standardized_cgroup_info[cg_key] = cg_file_value
@@ -233,15 +261,16 @@ class CgroupTest(object):
         if virsh_cmd == "blkiotune":
             weight_file_name = CGROUP_V2_BLKIO_FILE_MAPPING["weight"]
             iomax_file_name = CGROUP_V2_BLKIO_FILE_MAPPING["wiops"]
-            path_to_weight = os.path.join(cgroup_path.split("libvirt")[0],
-                                          weight_file_name)
-            with open(path_to_weight, 'r') as weight_file:
-                weight_value = re.search(r'\d+', weight_file.read())
+            path_to_weight = os.path.join(
+                cgroup_path.split("libvirt")[0], weight_file_name
+            )
+            with open(path_to_weight, "r") as weight_file:
+                weight_value = re.search(r"\d+", weight_file.read())
                 if weight_value:
                     weight_value = weight_value.group()
                 standardized_cgroup_info["weight"] = weight_value
             path_to_iomax = os.path.join(cgroup_path, iomax_file_name)
-            with open(path_to_iomax, 'r') as iomax_file:
+            with open(path_to_iomax, "r") as iomax_file:
                 iomax_info = iomax_file.readlines()
                 for line in iomax_info:
                     dev_iomax_info = line.strip().split()
@@ -253,7 +282,7 @@ class CgroupTest(object):
                     standardized_cgroup_info[dev_num] = dev_iomax_dict
         elif virsh_cmd == "memtune":
             for cg_key, cg_file_name in list(CGROUP_V2_MEM_FILE_MAPPING.items()):
-                with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
+                with open(os.path.join(cgroup_path, cg_file_name), "r") as cg_file:
                     cg_file_value = cg_file.read().strip()
                     standardized_cgroup_info[cg_key] = cg_file_value
         elif virsh_cmd == "schedinfo":
@@ -264,13 +293,15 @@ class CgroupTest(object):
                     cg_file_name = cg_file_name.replace("<vcpuX>", vcpu_dirs[0])
                 if "<iothreadX>" in cg_file_name:
                     if iothread_dirs:
-                        cg_file_name = cg_file_name.replace("<iothreadX>", iothread_dirs[0])
+                        cg_file_name = cg_file_name.replace(
+                            "<iothreadX>", iothread_dirs[0]
+                        )
                     else:
                         continue
                 cg_dir = cgroup_path
                 if cg_key == "cpu_shares":
                     cg_dir = cgroup_path.split("libvirt")[0]
-                with open(os.path.join(cg_dir, cg_file_name), 'r') as cg_file:
+                with open(os.path.join(cg_dir, cg_file_name), "r") as cg_file:
                     list_index = 0
                     cg_file_values = cg_file.read().strip().split()
                     if "period" in cg_key:
@@ -386,8 +417,12 @@ class CgroupTest(object):
         if virsh_cmd == "blkiotune":
             virsh_output_mapping = VIRSH_BLKIOTUNE_OUTPUT_MAPPING.copy()
             dev_list = []
-            dev_init_dict = {"rbps": "max", "wbps": "max", "riops": "max",
-                             "wiops": "max"}
+            dev_init_dict = {
+                "rbps": "max",
+                "wbps": "max",
+                "riops": "max",
+                "wiops": "max",
+            }
             for io_item, io_item_value in list(virsh_dict.items()):
                 if io_item in ["weight"]:
                     standardized_virsh_output_info[io_item] = io_item_value
@@ -397,37 +432,45 @@ class CgroupTest(object):
                         if "dev" in io_value_list[i]:
                             dev_num = self.__get_dev_major_minor(io_value_list[i])
                             if dev_num not in dev_list:
-                                standardized_virsh_output_info[dev_num] = dev_init_dict.copy()
+                                standardized_virsh_output_info[
+                                    dev_num
+                                ] = dev_init_dict.copy()
                                 dev_list.append(dev_num)
-                            standardized_virsh_output_info[dev_num][virsh_output_mapping[io_item]] = io_value_list[i+1]
+                            standardized_virsh_output_info[dev_num][
+                                virsh_output_mapping[io_item]
+                            ] = io_value_list[i + 1]
         elif virsh_cmd == "memtune":
-            standardized_virsh_output_info = {"hard_limit": "max",
-                                              "soft_limit": "max",
-                                              "swap_hard_limit": "max"}
+            standardized_virsh_output_info = {
+                "hard_limit": "max",
+                "soft_limit": "max",
+                "swap_hard_limit": "max",
+            }
             for mem_item, mem_item_value in list(virsh_dict.items()):
                 if mem_item_value in ["unlimited"]:
                     standardized_virsh_output_info[mem_item] = "max"
                 elif mem_item_value.isdigit():
-                    standardized_virsh_output_info[mem_item] = str(int(mem_item_value) * 1024)
+                    standardized_virsh_output_info[mem_item] = str(
+                        int(mem_item_value) * 1024
+                    )
                 else:
                     standardized_virsh_output_info[mem_item] = mem_item_value
-                    LOG.debug("memtune: the value '%s' for '%s' is "
-                              "new to us, pls check.",
-                              mem_item_value, mem_item)
+                    LOG.debug(
+                        "memtune: the value '%s' for '%s' is " "new to us, pls check.",
+                        mem_item_value,
+                        mem_item,
+                    )
         elif virsh_cmd == "schedinfo":
             for schedinfo_item, schedinfo_value in list(virsh_dict.items()):
                 if schedinfo_item.lower() in ["scheduler"]:
                     # no need to check scheduler type, it's fixed for qemu
                     continue
                 if "quota" in schedinfo_item:
-                    if schedinfo_value in ["-1", "18446744073709551",
-                                           "17592186044415"]:
+                    if schedinfo_value in ["-1", "18446744073709551", "17592186044415"]:
                         standardized_virsh_output_info[schedinfo_item] = "max"
                         continue
                 standardized_virsh_output_info[schedinfo_item] = schedinfo_value
         else:
-            LOG.error("You've provided an unsupported virsh cmd: %s",
-                      virsh_cmd)
+            LOG.error("You've provided an unsupported virsh cmd: %s", virsh_cmd)
             return None
         return standardized_virsh_output_info
 
@@ -441,8 +484,8 @@ class CgroupTest(object):
         first_blk = utils_disk.get_first_disk()
         schedulerfd = "/sys/block/%s/queue/scheduler" % first_blk
         bfq_scheduler = False
-        with open(schedulerfd, 'r') as iosche:
-            if 'bfq' in iosche.readline():
+        with open(schedulerfd, "r") as iosche:
+            if "bfq" in iosche.readline():
                 bfq_scheduler = True
         return bfq_scheduler
 
@@ -471,7 +514,7 @@ class CgroupTest(object):
 
         if not os.path.exists(cpuset_path):
             # Produce the cpuset.cpus file by starting the vm
-            virsh_dargs = {'ignore_status': False, 'debug': True}
+            virsh_dargs = {"ignore_status": False, "debug": True}
             virsh.start(vm_name, **virsh_dargs)
             virsh.destroy(vm_name, **virsh_dargs)
 
@@ -485,7 +528,7 @@ class CgroupTest(object):
         if self.is_cgroup_v2_enabled():
             LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
-        cpuset_path = '/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus'
+        cpuset_path = "/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus"
         self._produce_cpuset_cpus_file(cpuset_path, vm_name)
         LOG.debug("Set %s to %s", cpuset_path, value)
         cmd = "echo %s > %s" % (value, cpuset_path)
@@ -501,7 +544,7 @@ class CgroupTest(object):
         if self.is_cgroup_v2_enabled():
             LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
-        cpuset_path = '/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus'
+        cpuset_path = "/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus"
         self._produce_cpuset_cpus_file(cpuset_path, vm_name)
         LOG.debug("Get %s value", cpuset_path)
         cmd = "cat %s" % cpuset_path

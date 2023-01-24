@@ -47,15 +47,23 @@ from virttest import utils_misc
 from virttest import data_dir
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class
 NOCLOSE = list(globals().keys()) + [
-    'NOCLOSE', 'SCREENSHOT_ERROR_COUNT', 'VIRSH_COMMAND_CACHE',
-    'VIRSH_EXEC', 'VirshBase', 'VirshClosure', 'VirshSession', 'Virsh',
-    'VirshPersistent', 'VirshConnectBack', 'VIRSH_COMMAND_GROUP_CACHE',
-    'VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL',
+    "NOCLOSE",
+    "SCREENSHOT_ERROR_COUNT",
+    "VIRSH_COMMAND_CACHE",
+    "VIRSH_EXEC",
+    "VirshBase",
+    "VirshClosure",
+    "VirshSession",
+    "Virsh",
+    "VirshPersistent",
+    "VirshConnectBack",
+    "VIRSH_COMMAND_GROUP_CACHE",
+    "VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL",
 ]
 
 # Needs to be in-scope for Virsh* class screenshot method and module function
@@ -71,10 +79,11 @@ VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL = False
 try:
     VIRSH_EXEC = path.find_command("virsh")
 except path.CmdNotFoundError:
-    logging.getLogger('avocado.app').warning(
+    logging.getLogger("avocado.app").warning(
         "Virsh executable not set or found on path, virsh module will not "
-        "function normally")
-    VIRSH_EXEC = '/bin/true'
+        "function normally"
+    )
+    VIRSH_EXEC = "/bin/true"
 
 
 class VirshBase(propcan.PropCanBase):
@@ -83,18 +92,18 @@ class VirshBase(propcan.PropCanBase):
     Base Class storing libvirt Connection & state to a host
     """
 
-    __slots__ = ('uri', 'ignore_status', 'debug', 'virsh_exec', 'readonly')
+    __slots__ = ("uri", "ignore_status", "debug", "virsh_exec", "readonly")
 
     def __init__(self, *args, **dargs):
         """
         Initialize instance with virsh_exec always set to something
         """
         init_dict = dict(*args, **dargs)
-        init_dict['virsh_exec'] = init_dict.get('virsh_exec', VIRSH_EXEC)
-        init_dict['uri'] = init_dict.get('uri', None)
-        init_dict['debug'] = init_dict.get('debug', False)
-        init_dict['ignore_status'] = init_dict.get('ignore_status', False)
-        init_dict['readonly'] = init_dict.get('readonly', False)
+        init_dict["virsh_exec"] = init_dict.get("virsh_exec", VIRSH_EXEC)
+        init_dict["uri"] = init_dict.get("uri", None)
+        init_dict["debug"] = init_dict.get("debug", False)
+        init_dict["ignore_status"] = init_dict.get("ignore_status", False)
+        init_dict["readonly"] = init_dict.get("readonly", False)
         super(VirshBase, self).__init__(init_dict)
 
     def get_uri(self):
@@ -103,7 +112,7 @@ class VirshBase(propcan.PropCanBase):
         """
         # self.get() would call get_uri() recursively
         try:
-            return self.__dict_get__('uri')
+            return self.__dict_get__("uri")
         except KeyError:
             return None
 
@@ -116,14 +125,23 @@ class VirshSession(aexpect.ShellSession):
 
     # No way to get virsh sub-command "exit" status
     # Check output against list of known error-status strings
-    ERROR_REGEX_LIST = ['error:\s*.+$', '.*failed.*']
+    ERROR_REGEX_LIST = ["error:\s*.+$", ".*failed.*"]
 
-    def __init__(self, virsh_exec=None, uri=None, a_id=None,
-                 prompt=r"virsh\s*[\#\>]\s*", remote_ip=None,
-                 remote_user=None, remote_pwd=None,
-                 ssh_remote_auth=False, readonly=False,
-                 unprivileged_user=None,
-                 auto_close=False, check_libvirtd=True):
+    def __init__(
+        self,
+        virsh_exec=None,
+        uri=None,
+        a_id=None,
+        prompt=r"virsh\s*[\#\>]\s*",
+        remote_ip=None,
+        remote_user=None,
+        remote_pwd=None,
+        ssh_remote_auth=False,
+        readonly=False,
+        unprivileged_user=None,
+        auto_close=False,
+        check_libvirtd=True,
+    ):
         """
         Initialize virsh session server, or client if id set.
 
@@ -161,13 +179,16 @@ class VirshSession(aexpect.ShellSession):
             else:
                 pref_auth = "-o PreferredAuthentications=hostbased,publickey"
             # ssh_cmd is not None flags this as remote session
-            ssh_cmd = ("ssh -o UserKnownHostsFile=/dev/null %s -p %s %s@%s"
-                       % (pref_auth, 22, self.remote_user, self.remote_ip))
+            ssh_cmd = "ssh -o UserKnownHostsFile=/dev/null %s -p %s %s@%s" % (
+                pref_auth,
+                22,
+                self.remote_user,
+                self.remote_ip,
+            )
             if uri:
-                self.virsh_exec = ("%s \"%s -c '%s'\""
-                                   % (ssh_cmd, virsh_exec, self.uri))
+                self.virsh_exec = "%s \"%s -c '%s'\"" % (ssh_cmd, virsh_exec, self.uri)
             else:
-                self.virsh_exec = ("%s \"%s\"" % (ssh_cmd, virsh_exec))
+                self.virsh_exec = '%s "%s"' % (ssh_cmd, virsh_exec)
         else:  # setting up a local session or re-using a session
             self.virsh_exec = virsh_exec
             if self.uri:
@@ -178,31 +199,35 @@ class VirshSession(aexpect.ShellSession):
             self.virsh_exec += " -r"
 
         if unprivileged_user:
-            self.virsh_exec = "su - %s -c '%s'" % (unprivileged_user,
-                                                   self.virsh_exec)
+            self.virsh_exec = "su - %s -c '%s'" % (unprivileged_user, self.virsh_exec)
 
         # aexpect tries to auto close session because no clients connected yet
-        aexpect.ShellSession.__init__(self, self.virsh_exec, a_id,
-                                      prompt=prompt, auto_close=auto_close)
+        aexpect.ShellSession.__init__(
+            self, self.virsh_exec, a_id, prompt=prompt, auto_close=auto_close
+        )
 
         # Handle remote session prompts:
         # 1.remote to remote with ssh
         # 2.local to remote with "virsh -c uri"
         if ssh_remote_auth or self.uri:
             # Handle ssh / password prompts
-            remote.handle_prompts(self, self.remote_user, self.remote_pwd,
-                                  prompt, debug=True)
+            remote.handle_prompts(
+                self, self.remote_user, self.remote_pwd, prompt, debug=True
+            )
 
         # fail if libvirtd is not running
         if check_libvirtd:
-            if self.cmd_status('list', timeout=60) != 0:
-                LOG.debug("Persistent virsh session is not responding, "
-                          "libvirtd may be dead.")
+            if self.cmd_status("list", timeout=60) != 0:
+                LOG.debug(
+                    "Persistent virsh session is not responding, "
+                    "libvirtd may be dead."
+                )
                 self.auto_close = True
-                raise aexpect.ShellStatusError(virsh_exec, 'list')
+                raise aexpect.ShellStatusError(virsh_exec, "list")
 
-    def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
-                          print_func=None, safe=False):
+    def cmd_status_output(
+        self, cmd, timeout=60, internal_timeout=None, print_func=None, safe=False
+    ):
         """
         Send a virsh command and return its exit status and output.
 
@@ -235,21 +260,28 @@ class VirshSession(aexpect.ShellSession):
     def cmd_result(self, cmd, ignore_status=False, debug=False, timeout=60):
         """Mimic process.run()"""
         exit_status, stdout = self.cmd_status_output(cmd, timeout=timeout)
-        stderr = ''  # no way to retrieve this separately
+        stderr = ""  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
 
         result.stdout = result.stdout_text
         result.stderr = result.stderr_text
         if not ignore_status and exit_status:
-            raise process.CmdError(cmd, result,
-                                   "Virsh Command returned non-zero exit status")
+            raise process.CmdError(
+                cmd, result, "Virsh Command returned non-zero exit status"
+            )
         if debug:
             LOG.debug(result)
         return result
 
-    def read_until_output_matches(self, patterns, filter_func=lambda x: x,
-                                  timeout=60, internal_timeout=None,
-                                  print_func=None, match_func=None):
+    def read_until_output_matches(
+        self,
+        patterns,
+        filter_func=lambda x: x,
+        timeout=60,
+        internal_timeout=None,
+        print_func=None,
+        match_func=None,
+    ):
         """
         Read from child using read_nonblocking until a pattern matches.
 
@@ -280,15 +312,13 @@ class VirshSession(aexpect.ShellSession):
         end_time = time.time() + timeout
         while True:
             try:
-                r, w, x = select.select([fd], [], [],
-                                        max(0, end_time - time.time()))
+                r, w, x = select.select([fd], [], [], max(0, end_time - time.time()))
             except (select.error, TypeError):
                 break
             if not r:
                 raise aexpect.ExpectTimeoutError(patterns, o)
             # Read data from child
-            data = self.read_nonblocking(internal_timeout,
-                                         end_time - time.time())
+            data = self.read_nonblocking(internal_timeout, end_time - time.time())
             if not data:
                 break
             # Print it if necessary
@@ -298,7 +328,7 @@ class VirshSession(aexpect.ShellSession):
             # Look for patterns
             o += data
 
-            out = ''
+            out = ""
             match = match_func(filter_func(o), patterns)
             if match is not None:
                 output = o.splitlines()
@@ -341,13 +371,12 @@ class VirshSession(aexpect.ShellSession):
                 for i in reversed(list(range(len(output) - 1))):
                     if match_func(output[i].strip(), patterns) is not None:
                         if re.split(patterns[match], output[i])[-1]:
-                            output[i] = re.split(patterns[match],
-                                                 output[i])[-1]
+                            output[i] = re.split(patterns[match], output[i])[-1]
                             output_slice = output[i:]
                         else:
-                            output_slice = output[i + 1:]
+                            output_slice = output[i + 1 :]
                         for j in range(len(output_slice) - 1):
-                            output_slice[j] = output_slice[j] + '\n'
+                            output_slice[j] = output_slice[j] + "\n"
                         for k in range(len(output_slice)):
                             out += output_slice[k]
                         return match, out
@@ -355,8 +384,7 @@ class VirshSession(aexpect.ShellSession):
 
         # Check if the child has terminated
         if utils_misc.wait_for(lambda: not self.is_alive(), 5, 0, 0.1):
-            raise aexpect.ExpectProcessTerminatedError(patterns,
-                                                       self.get_status(), o)
+            raise aexpect.ExpectProcessTerminatedError(patterns, self.get_status(), o)
         else:
             # This shouldn't happen
             raise aexpect.ExpectError(patterns, o)
@@ -375,8 +403,10 @@ class VirshClosure(object):
         Callable reference_function with weak ref dict_like_instance
         """
         if not issubclass(dict_like_instance.__class__, dict):
-            raise ValueError("dict_like_instance %s must be dict or subclass"
-                             % dict_like_instance.__class__.__name__)
+            raise ValueError(
+                "dict_like_instance %s must be dict or subclass"
+                % dict_like_instance.__class__.__name__
+            )
         self.reference_function = reference_function
         self.dict_like_weakref = weakref.ref(dict_like_instance)
 
@@ -428,9 +458,16 @@ class VirshPersistent(Virsh):
     Execute libvirt operations using persistent virsh session.
     """
 
-    __slots__ = ('session_id', 'remote_pwd', 'remote_user', 'uri',
-                 'remote_ip', 'ssh_remote_auth', 'unprivileged_user',
-                 'readonly')
+    __slots__ = (
+        "session_id",
+        "remote_pwd",
+        "remote_user",
+        "uri",
+        "remote_ip",
+        "ssh_remote_auth",
+        "unprivileged_user",
+        "readonly",
+    )
 
     # B/c the auto_close of VirshSession is False, we
     # need to manage the ref-count of it manually.
@@ -438,7 +475,7 @@ class VirshPersistent(Virsh):
 
     def __init__(self, *args, **dargs):
         super(VirshPersistent, self).__init__(*args, **dargs)
-        if self.get('session_id') is None:
+        if self.get("session_id") is None:
             # set_uri does not call when INITIALIZED = False
             # and no session_id passed to super __init__
             self.new_session()
@@ -493,14 +530,13 @@ class VirshPersistent(Virsh):
         If a persistent session exists, close it down.
         """
         try:
-            session_id = self.__dict_get__('session_id')
+            session_id = self.__dict_get__("session_id")
             if session_id:
                 try:
                     existing = VirshSession(a_id=session_id)
                     if existing.is_alive():
                         self.counter_decrease()
-                except (aexpect.ShellStatusError,
-                        aexpect.ShellProcessTerminatedError):
+                except (aexpect.ShellStatusError, aexpect.ShellProcessTerminatedError):
                     # session was already closed
                     pass  # don't check is_alive or update counter
                 self.__dict_del__("session_id")
@@ -514,41 +550,45 @@ class VirshPersistent(Virsh):
         """
         # Accessors may call this method, avoid recursion
         # Must exist, can't be None
-        virsh_exec = self.__dict_get__('virsh_exec')
-        uri = self.__dict_get__('uri')  # Must exist, can be None
-        readonly = self.__dict_get__('readonly')
+        virsh_exec = self.__dict_get__("virsh_exec")
+        uri = self.__dict_get__("uri")  # Must exist, can be None
+        readonly = self.__dict_get__("readonly")
         try:
-            remote_user = self.__dict_get__('remote_user')
+            remote_user = self.__dict_get__("remote_user")
         except KeyError:
             remote_user = "root"
         try:
-            remote_pwd = self.__dict_get__('remote_pwd')
+            remote_pwd = self.__dict_get__("remote_pwd")
         except KeyError:
             remote_pwd = None
         try:
-            remote_ip = self.__dict_get__('remote_ip')
+            remote_ip = self.__dict_get__("remote_ip")
         except KeyError:
             remote_ip = None
         try:
-            ssh_remote_auth = self.__dict_get__('ssh_remote_auth')
+            ssh_remote_auth = self.__dict_get__("ssh_remote_auth")
         except KeyError:
             ssh_remote_auth = False
         try:
-            unprivileged_user = self.__dict_get__('unprivileged_user')
+            unprivileged_user = self.__dict_get__("unprivileged_user")
         except KeyError:
             unprivileged_user = None
 
         self.close_session()
         # Always create new session
-        new_session = VirshSession(virsh_exec, uri, a_id=None,
-                                   remote_ip=remote_ip,
-                                   remote_user=remote_user,
-                                   remote_pwd=remote_pwd,
-                                   ssh_remote_auth=ssh_remote_auth,
-                                   unprivileged_user=unprivileged_user,
-                                   readonly=readonly)
+        new_session = VirshSession(
+            virsh_exec,
+            uri,
+            a_id=None,
+            remote_ip=remote_ip,
+            remote_user=remote_user,
+            remote_pwd=remote_pwd,
+            ssh_remote_auth=ssh_remote_auth,
+            unprivileged_user=unprivileged_user,
+            readonly=readonly,
+        )
         session_id = new_session.get_id()
-        self.__dict_set__('session_id', session_id)
+        self.__dict_set__("session_id", session_id)
 
     def set_uri(self, uri):
         """
@@ -556,11 +596,11 @@ class VirshPersistent(Virsh):
         """
         if not self.INITIALIZED:
             # Allow __init__ to call new_session
-            self.__dict_set__('uri', uri)
+            self.__dict_set__("uri", uri)
         else:
             # If the uri is changing
-            if self.__dict_get__('uri') != uri:
-                self.__dict_set__('uri', uri)
+            if self.__dict_get__("uri") != uri:
+                self.__dict_set__("uri", uri)
                 self.new_session()
             # otherwise do nothing
 
@@ -571,7 +611,7 @@ class VirshConnectBack(VirshPersistent):
     Persistent virsh session connected back from a remote host
     """
 
-    __slots__ = ('remote_ip', )
+    __slots__ = ("remote_ip",)
 
     def new_session(self):
         """
@@ -580,25 +620,29 @@ class VirshConnectBack(VirshPersistent):
 
         # Accessors may call this method, avoid recursion
         # Must exist, can't be None
-        virsh_exec = self.__dict_get__('virsh_exec')
-        uri = self.__dict_get__('uri')  # Must exist, can be None
-        remote_ip = self.__dict_get__('remote_ip')
+        virsh_exec = self.__dict_get__("virsh_exec")
+        uri = self.__dict_get__("uri")  # Must exist, can be None
+        remote_ip = self.__dict_get__("remote_ip")
         try:
-            remote_user = self.__dict_get__('remote_user')
+            remote_user = self.__dict_get__("remote_user")
         except KeyError:
-            remote_user = 'root'
+            remote_user = "root"
         try:
-            remote_pwd = self.__dict_get__('remote_pwd')
+            remote_pwd = self.__dict_get__("remote_pwd")
         except KeyError:
             remote_pwd = None
         super(VirshConnectBack, self).close_session()
-        new_session = VirshSession(virsh_exec, uri, a_id=None,
-                                   remote_ip=remote_ip,
-                                   remote_user=remote_user,
-                                   remote_pwd=remote_pwd,
-                                   ssh_remote_auth=True)
+        new_session = VirshSession(
+            virsh_exec,
+            uri,
+            a_id=None,
+            remote_ip=remote_ip,
+            remote_user=remote_user,
+            remote_pwd=remote_pwd,
+            ssh_remote_auth=True,
+        )
         session_id = new_session.get_id()
-        self.__dict_set__('session_id', session_id)
+        self.__dict_set__("session_id", session_id)
 
     @staticmethod
     def kosher_args(remote_ip, uri):
@@ -620,9 +664,9 @@ class VirshConnectBack(VirshPersistent):
             uri is None,
             uri == "",
             bool(uri.count("default")),
-            bool(uri.count(':///')),
+            bool(uri.count(":///")),
             bool(uri.count("localhost")),
-            bool(uri.count("127."))
+            bool(uri.count("127.")),
         ]
         return True not in all_false
 
@@ -632,7 +676,7 @@ class EventNotFoundError(Exception):
     Error when certain event cannot be found.
     """
 
-    def __init__(self, details=''):
+    def __init__(self, details=""):
         self.details = details
 
     def __str__(self):
@@ -640,9 +684,8 @@ class EventNotFoundError(Exception):
 
 
 class EventTracker(object):
-
     @staticmethod
-    def start_get_event(vm_name, event_cmd='event {} --all --loop'):
+    def start_get_event(vm_name, event_cmd="event {} --all --loop"):
         """
         Use a virsh session with subcommand 'event' to catch events
         :param vm_name: name of the vm to be catched
@@ -656,11 +699,13 @@ class EventTracker(object):
         # Sometimes the output of session can't be gotten immediately,
         # Wait for a while to avoid this situation.
         if not utils_misc.wait_for(
-                lambda: re.search(
-                    "Welcome to virsh", virsh_session.get_stripped_output()), 10):
+            lambda: re.search("Welcome to virsh", virsh_session.get_stripped_output()),
+            10,
+        ):
             virsh_session.close()
-            raise aexpect.ShellStatusError(event_cmd,
-                                           "Failed to get virsh session output")
+            raise aexpect.ShellStatusError(
+                event_cmd, "Failed to get virsh session output"
+            )
         else:
             return virsh_session
 
@@ -683,7 +728,7 @@ class EventTracker(object):
         time.sleep(5)
         event_output = virsh_session.get_stripped_output()
         virsh_session.close()
-        LOG.debug('Event output is %s:', event_output)
+        LOG.debug("Event output is %s:", event_output)
 
         return event_output
 
@@ -699,39 +744,44 @@ class EventTracker(object):
                  event_type='tray-change', event_timeout=7)
 
         """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-
             def _get_arg_value(arg):
-                return kwargs.get(arg) if arg in kwargs else \
-                    inspect.signature(func).parameters[arg].default if \
-                    arg in inspect.signature(func).parameters else None
+                return (
+                    kwargs.get(arg)
+                    if arg in kwargs
+                    else inspect.signature(func).parameters[arg].default
+                    if arg in inspect.signature(func).parameters
+                    else None
+                )
 
             def _get_event_output(session):
                 output = session.get_stripped_output()
                 LOG.debug(output)
                 return output
 
-            wait_for_event = _get_arg_value('wait_for_event')
-            event_type = _get_arg_value('event_type')
-            event_timeout = _get_arg_value('event_timeout')
+            wait_for_event = _get_arg_value("wait_for_event")
+            event_type = _get_arg_value("event_type")
+            event_timeout = _get_arg_value("event_timeout")
 
             if wait_for_event is True and event_type is not None:
                 virsh_session = EventTracker.start_get_event(str(args[0]))
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
-                    LOG.error('Command execution failed. Skip waiting for event')
+                    LOG.error("Command execution failed. Skip waiting for event")
                     virsh_session.close()
                     return ret
 
                 if not utils_misc.wait_for(
-                        lambda: re.search(
-                            event_type,
-                            _get_event_output(virsh_session)
-                        ), event_timeout):
-                    raise EventNotFoundError('Not found event %s after %s seconds' %
-                                             (event_type, event_timeout))
+                    lambda: re.search(event_type, _get_event_output(virsh_session)),
+                    event_timeout,
+                ):
+                    raise EventNotFoundError(
+                        "Not found event %s after %s seconds"
+                        % (event_type, event_timeout)
+                    )
                 virsh_session.close()
                 return ret
             else:
@@ -753,17 +803,17 @@ def command(cmd, **dargs):
     :raise: CmdError if non-zero exit status and ignore_status=False
     """
 
-    virsh_exec = dargs.get('virsh_exec', VIRSH_EXEC)
-    uri = dargs.get('uri', None)
-    virsh_opt = dargs.get('virsh_opt', '')
-    debug = dargs.get('debug', False)
+    virsh_exec = dargs.get("virsh_exec", VIRSH_EXEC)
+    uri = dargs.get("uri", None)
+    virsh_opt = dargs.get("virsh_opt", "")
+    debug = dargs.get("debug", False)
     # Caller deals with errors
-    ignore_status = dargs.get('ignore_status', True)
-    session_id = dargs.get('session_id', None)
-    readonly = dargs.get('readonly', False)
-    quiet = dargs.get('quiet', False)
-    unprivileged_user = dargs.get('unprivileged_user', None)
-    timeout = dargs.get('timeout', None)
+    ignore_status = dargs.get("ignore_status", True)
+    session_id = dargs.get("session_id", None)
+    readonly = dargs.get("readonly", False)
+    quiet = dargs.get("quiet", False)
+    unprivileged_user = dargs.get("unprivileged_user", None)
+    timeout = dargs.get("timeout", None)
 
     # Check if this is a VirshPersistent method call
     if session_id:
@@ -788,8 +838,9 @@ def command(cmd, **dargs):
             LOG.debug("Ignore readonly flag for this virsh session")
         if timeout is None:
             timeout = 60
-        ret = session.cmd_result(cmd, ignore_status=ignore_status,
-                                 debug=debug, timeout=timeout)
+        ret = session.cmd_result(
+            cmd, ignore_status=ignore_status, debug=debug, timeout=timeout
+        )
         # Mark return value with session it came from
         ret.from_session_id = session_id
     else:
@@ -813,9 +864,9 @@ def command(cmd, **dargs):
             cmd = "su - %s -c '%s'" % (unprivileged_user, cmd)
 
         # Raise exception if ignore_status is False
-        ret = process.run(cmd, timeout=timeout, verbose=debug,
-                          ignore_status=ignore_status,
-                          shell=True)
+        ret = process.run(
+            cmd, timeout=timeout, verbose=debug, ignore_status=ignore_status, shell=True
+        )
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
         ret.stdout = ret.stdout_text
@@ -851,7 +902,7 @@ def qemu_monitor_command(name, cmd, options="", **dargs):
     :param options: extra options
     :param dargs: standardized virsh function API keywords
     """
-    cmd_str = "qemu-monitor-command %s %s --cmd \'%s\'" % (name, options, cmd)
+    cmd_str = "qemu-monitor-command %s %s --cmd '%s'" % (name, options, cmd)
     return command(cmd_str, **dargs)
 
 
@@ -864,7 +915,7 @@ def qemu_agent_command(name, cmd, options="", **dargs):
     :param options: extra options
     :param dargs: standardized virsh function API keywords
     """
-    cmd_str = "qemu-agent-command %s %s --cmd \'%s\'" % (name, options, cmd)
+    cmd_str = "qemu-agent-command %s %s --cmd '%s'" % (name, options, cmd)
     return command(cmd_str, **dargs)
 
 
@@ -1001,7 +1052,7 @@ def nodecpumap(extra="", **dargs):
     return command(cmd, **dargs)
 
 
-def nodesuspend(target, duration, extra='', **dargs):
+def nodesuspend(target, duration, extra="", **dargs):
     """
     Suspend the host node for a given time duration.
 
@@ -1020,7 +1071,7 @@ def nodesuspend(target, duration, extra='', **dargs):
     return command(cmd, **dargs)
 
 
-def canonical_uri(option='', **dargs):
+def canonical_uri(option="", **dargs):
     """
     Return the hypervisor canonical URI.
 
@@ -1032,7 +1083,7 @@ def canonical_uri(option='', **dargs):
     return result.stdout_text.strip()
 
 
-def hostname(option='', **dargs):
+def hostname(option="", **dargs):
     """
     Return the hypervisor hostname.
 
@@ -1044,7 +1095,7 @@ def hostname(option='', **dargs):
     return result.stdout_text.strip()
 
 
-def version(option='', **dargs):
+def version(option="", **dargs):
     """
     Return the major version info about what this built from.
 
@@ -1055,7 +1106,7 @@ def version(option='', **dargs):
     return command("version %s" % option, **dargs)
 
 
-def maxvcpus(option='', **dargs):
+def maxvcpus(option="", **dargs):
     """
     Return the connection vcpu maximum number.
 
@@ -1078,8 +1129,14 @@ def dom_list(options="", **dargs):
 
 
 @EventTracker.wait_event
-def reboot(name, options="", wait_for_event=False,
-           event_type='reboot', event_timeout=30, **dargs):
+def reboot(
+    name,
+    options="",
+    wait_for_event=False,
+    event_type="reboot",
+    event_timeout=30,
+    **dargs
+):
 
     """
     Run a reboot command in the target domain.
@@ -1127,7 +1184,7 @@ def managedsave_dumpxml(name, options="", to_file="", **dargs):
     cmd = "managedsave-dumpxml --domain %s %s" % (name, options)
     result = command(cmd, **dargs)
     if to_file:
-        with open(to_file, 'w') as result_file:
+        with open(to_file, "w") as result_file:
             result_file.write(result.stdout_text.strip())
     return result
 
@@ -1152,7 +1209,9 @@ def managedsave_define(name, xml_path, options="", **dargs):
     :param options: options to pass to list command
     :return: CmdResult object
     """
-    return command("managedsave-define --domain %s %s %s" % (name, xml_path, options), **dargs)
+    return command(
+        "managedsave-define --domain %s %s %s" % (name, xml_path, options), **dargs
+    )
 
 
 def driver(**dargs):
@@ -1166,7 +1225,7 @@ def driver(**dargs):
     # ref: http://libvirt.org/uri.html
     scheme = urllib.parse.urlsplit(canonical_uri(**dargs))[0]
     # extract just the driver, whether or not there is a '+'
-    return scheme.split('+', 2)[0]
+    return scheme.split("+", 2)[0]
 
 
 def domstate(name, extra="", **dargs):
@@ -1238,15 +1297,19 @@ def screenshot(name, filename, **dargs):
     if is_dead(name, **dargs):
         return None
     global SCREENSHOT_ERROR_COUNT
-    dargs['ignore_status'] = False
+    dargs["ignore_status"] = False
     try:
         command("screenshot %s %s" % (name, filename), **dargs)
     except process.CmdError as detail:
         if SCREENSHOT_ERROR_COUNT < 1:
-            LOG.error("Error taking VM %s screenshot. You might have to "
-                      "set take_regular_screendumps=no on your "
-                      "tests.cfg config file \n%s.  This will be the "
-                      "only logged error message.", name, detail)
+            LOG.error(
+                "Error taking VM %s screenshot. You might have to "
+                "set take_regular_screendumps=no on your "
+                "tests.cfg config file \n%s.  This will be the "
+                "only logged error message.",
+                name,
+                detail,
+            )
         SCREENSHOT_ERROR_COUNT += 1
     return filename
 
@@ -1288,7 +1351,9 @@ def domblkthreshold(name, device, threshold, option="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return command("domblkthreshold %s %s %s %s" % (name, device, threshold, option), **dargs)
+    return command(
+        "domblkthreshold %s %s %s %s" % (name, device, threshold, option), **dargs
+    )
 
 
 def dumpxml(name, extra="", to_file="", **dargs):
@@ -1303,7 +1368,7 @@ def dumpxml(name, extra="", to_file="", **dargs):
     cmd = "dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout_text.strip())
         result_file.close()
     return result
@@ -1437,15 +1502,23 @@ def is_dead(name, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: True operation was successful
     """
-    dargs['ignore_status'] = False
+    dargs["ignore_status"] = False
     try:
         state = domstate(name, **dargs).stdout_text.strip()
     except process.CmdError:
         return True
-    if state not in ('running', 'idle', 'paused', 'in shutdown', 'shut off',
-                     'crashed', 'pmsuspended', 'no state'):
+    if state not in (
+        "running",
+        "idle",
+        "paused",
+        "in shutdown",
+        "shut off",
+        "crashed",
+        "pmsuspended",
+        "no state",
+    ):
         LOG.debug("State '%s' not known", state)
-    if state in ('shut off', 'crashed', 'no state'):
+    if state in ("shut off", "crashed", "no state"):
         return True
     return False
 
@@ -1533,8 +1606,14 @@ def start(name, options="", **dargs):
 
 
 @EventTracker.wait_event
-def shutdown(name, options="", wait_for_event=False,
-             event_type='lifecycle', event_timeout=10, **dargs):
+def shutdown(
+    name,
+    options="",
+    wait_for_event=False,
+    event_type="lifecycle",
+    event_timeout=10,
+    **dargs
+):
     """
     True on successful domain shutdown.
 
@@ -1604,7 +1683,7 @@ def remove_domain(name, options=None, **dargs):
         if is_alive(name, **dargs):
             destroy(name, **dargs)
         try:
-            dargs['ignore_status'] = False
+            dargs["ignore_status"] = False
             undefine(name, options, **dargs)
         except process.CmdError as detail:
             LOG.error("Undefine VM %s failed:\n%s", name, detail)
@@ -1620,13 +1699,13 @@ def domain_exists(name, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: True operation was successful
     """
-    dargs['ignore_status'] = False
+    dargs["ignore_status"] = False
     try:
         command("domstate %s" % name, **dargs)
         return True
     except process.CmdError as detail:
         LOG.warning("VM %s does not exist", name)
-        if dargs.get('debug', False):
+        if dargs.get("debug", False):
             LOG.warning(str(detail))
         return False
 
@@ -1734,15 +1813,21 @@ def migrate_compcache(domain, size=None, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = 'migrate-compcache %s' % domain
+    cmd = "migrate-compcache %s" % domain
     if size is not None:
-        cmd += ' --size %s' % size
+        cmd += " --size %s" % size
     return command(cmd, **dargs)
 
 
-def _adu_device(action, domainarg=None, filearg=None,
-                domain_opt=None, file_opt=None,
-                flagstr=None, **dargs):
+def _adu_device(
+    action,
+    domainarg=None,
+    filearg=None,
+    domain_opt=None,
+    file_opt=None,
+    flagstr=None,
+    **dargs
+):
     """
     Private helper for attach, detach, update device commands
     """
@@ -1761,9 +1846,9 @@ def _adu_device(action, domainarg=None, filearg=None,
     return command(cmd, **dargs)
 
 
-def attach_device(domainarg=None, filearg=None,
-                  domain_opt=None, file_opt=None,
-                  flagstr=None, **dargs):
+def attach_device(
+    domainarg=None, filearg=None, domain_opt=None, file_opt=None, flagstr=None, **dargs
+):
     """
     Attach a device using full parameter/argument set.
 
@@ -1775,16 +1860,29 @@ def attach_device(domainarg=None, filearg=None,
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return _adu_device("attach-device", domainarg=domainarg, filearg=filearg,
-                       domain_opt=domain_opt, file_opt=file_opt,
-                       flagstr=flagstr, **dargs)
+    return _adu_device(
+        "attach-device",
+        domainarg=domainarg,
+        filearg=filearg,
+        domain_opt=domain_opt,
+        file_opt=file_opt,
+        flagstr=flagstr,
+        **dargs
+    )
 
 
 @EventTracker.wait_event
-def detach_device(domainarg=None, filearg=None,
-                  domain_opt=None, file_opt=None,
-                  flagstr=None, wait_for_event=False,
-                  event_type='device-removed', event_timeout=7, **dargs):
+def detach_device(
+    domainarg=None,
+    filearg=None,
+    domain_opt=None,
+    file_opt=None,
+    flagstr=None,
+    wait_for_event=False,
+    event_type="device-removed",
+    event_timeout=7,
+    **dargs
+):
     """
     Detach a device using full parameter/argument set.
 
@@ -1799,15 +1897,21 @@ def detach_device(domainarg=None, filearg=None,
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    detach_cmd_rv = _adu_device("detach-device", domainarg=domainarg, filearg=filearg,
-                                domain_opt=domain_opt, file_opt=file_opt,
-                                flagstr=flagstr, **dargs)
+    detach_cmd_rv = _adu_device(
+        "detach-device",
+        domainarg=domainarg,
+        filearg=filearg,
+        domain_opt=domain_opt,
+        file_opt=file_opt,
+        flagstr=flagstr,
+        **dargs
+    )
     return detach_cmd_rv
 
 
-def update_device(domainarg=None, filearg=None,
-                  domain_opt=None, file_opt=None,
-                  flagstr="", **dargs):
+def update_device(
+    domainarg=None, filearg=None, domain_opt=None, file_opt=None, flagstr="", **dargs
+):
     """
     Update device from an XML <file>.
 
@@ -1819,16 +1923,26 @@ def update_device(domainarg=None, filearg=None,
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return _adu_device("update-device", domainarg=domainarg, filearg=filearg,
-                       domain_opt=domain_opt, file_opt=file_opt,
-                       flagstr=flagstr, **dargs)
+    return _adu_device(
+        "update-device",
+        domainarg=domainarg,
+        filearg=filearg,
+        domain_opt=domain_opt,
+        file_opt=file_opt,
+        flagstr=flagstr,
+        **dargs
+    )
 
 
 @EventTracker.wait_event
-def update_memory_device(name, options="", wait_for_event=False,
-                         event_type='memory-device-size-change',
-                         event_timeout=7,
-                         **dargs):
+def update_memory_device(
+    name,
+    options="",
+    wait_for_event=False,
+    event_type="memory-device-size-change",
+    event_timeout=7,
+    **dargs
+):
     """
     update memory device of a domain
 
@@ -1855,14 +1969,25 @@ def attach_disk(name, source, target, extra="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = "attach-disk --domain %s --source %s --target %s %s"\
-        % (name, source, target, extra)
+    cmd = "attach-disk --domain %s --source %s --target %s %s" % (
+        name,
+        source,
+        target,
+        extra,
+    )
     return command(cmd, **dargs)
 
 
 @EventTracker.wait_event
-def detach_disk(name, target, extra="", wait_for_event=False,
-                event_type="device-removed", event_timeout=10, **dargs):
+def detach_disk(
+    name,
+    target,
+    extra="",
+    wait_for_event=False,
+    event_type="device-removed",
+    event_timeout=10,
+    **dargs
+):
     """
     Detach a disk from VM.
 
@@ -1882,8 +2007,15 @@ def detach_disk(name, target, extra="", wait_for_event=False,
 
 
 @EventTracker.wait_event
-def detach_device_alias(name, alias, extra="", wait_for_event=False,
-                        event_type='device-removed', event_timeout=7, **dargs):
+def detach_device_alias(
+    name,
+    alias,
+    extra="",
+    wait_for_event=False,
+    event_type="device-removed",
+    event_timeout=7,
+    **dargs
+):
     """
     Detach a device with alias
 
@@ -1921,8 +2053,14 @@ def attach_interface(name, option="", **dargs):
 
 
 @EventTracker.wait_event
-def detach_interface(name, option="", wait_for_event=False,
-                     event_type='device-removed', event_timeout=30, **dargs):
+def detach_interface(
+    name,
+    option="",
+    wait_for_event=False,
+    event_type="device-removed",
+    event_timeout=30,
+    **dargs
+):
     """
     Detach a NIC to VM.
 
@@ -1952,7 +2090,7 @@ def net_dumpxml(name, extra="", to_file="", **dargs):
     cmd = "net-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -2004,7 +2142,7 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
     :return: dictionary
     """
     # Using multiple virsh commands in different ways
-    dargs['ignore_status'] = False  # force problem detection
+    dargs["ignore_status"] = False  # force problem detection
     if virsh_instance is not None:
         net_list_result = virsh_instance.net_list("--all", **dargs)
     else:
@@ -2048,8 +2186,7 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
                         net_autostart(name, **dargs)
                 else:  # Disabled, try disabling again
                     if virsh_instance is not None:
-                        virsh_instance.net_autostart(
-                            name, "--disable", **dargs)
+                        virsh_instance.net_autostart(name, "--disable", **dargs)
                     else:
                         net_autostart(name, "--disable", **dargs)
                 # no exception raised, must be persistent
@@ -2061,9 +2198,11 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
                 else:  # A unexpected problem happened, re-raise it.
                     raise
         # Warning: These key names are used by libvirt_xml and test modules!
-        result[name] = {'active': active,
-                        'autostart': autostart,
-                        'persistent': persistent}
+        result[name] = {
+            "active": active,
+            "autostart": autostart,
+            "persistent": persistent,
+        }
     return result
 
 
@@ -2163,8 +2302,7 @@ def net_update(network, update_cmd, section, xml, extra="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    cmd = "net-update %s %s %s %s %s" \
-          % (network, update_cmd, section, xml, extra)
+    cmd = "net-update %s %s %s %s %s" % (network, update_cmd, section, xml, extra)
     return command(cmd, **dargs)
 
 
@@ -2175,12 +2313,21 @@ def _pool_type_check(pool_type):
     :param pool_type: pool type
     :return: valid pool type or None
     """
-    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical',
-                   'gluster', 'rbd', 'scsi', 'iscsi-direct']
+    valid_types = [
+        "dir",
+        "fs",
+        "netfs",
+        "disk",
+        "iscsi",
+        "logical",
+        "gluster",
+        "rbd",
+        "scsi",
+        "iscsi-direct",
+    ]
 
     if pool_type and pool_type not in valid_types:
-        LOG.error("Specified pool type '%s' not in '%s'",
-                  pool_type, valid_types)
+        LOG.error("Specified pool type '%s' not in '%s'", pool_type, valid_types)
         pool_type = None
     elif not pool_type:
         # take the first element as default pool_type
@@ -2207,7 +2354,7 @@ def pool_destroy(name, **dargs):
     :param dargs: standardized virsh function API keywords
     """
     cmd = "pool-destroy %s" % name
-    dargs['ignore_status'] = False
+    dargs["ignore_status"] = False
     try:
         command(cmd, **dargs)
         return True
@@ -2248,9 +2395,13 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
         return False
 
     LOG.info("Create %s type pool %s", pool_type, name)
-    cmd = "pool-create-as --name %s --type %s --target %s %s" \
-          % (name, pool_type, target, extra)
-    dargs['ignore_status'] = False
+    cmd = "pool-create-as --name %s --type %s --target %s %s" % (
+        name,
+        pool_type,
+        target,
+        extra,
+    )
+    dargs["ignore_status"] = False
     try:
         command(cmd, **dargs)
         return True
@@ -2330,7 +2481,7 @@ def pool_state_dict(only_names=False, **dargs):
     :return: dictionary
     """
     # Using multiple virsh commands in different ways
-    dargs['ignore_status'] = False  # force problem detection
+    dargs["ignore_status"] = False  # force problem detection
     pool_list_result = pool_list("--all", **dargs)
     # If command failed, exception would be raised here
     poollist = pool_list_result.stdout_text.strip().splitlines()
@@ -2361,8 +2512,7 @@ def pool_state_dict(only_names=False, **dargs):
         autostart = bool(linesplit[2].count("es"))
 
         # Warning: These key names are used by libvirt_xml and test modules!
-        result[name] = {'active': active,
-                        'autostart': autostart}
+        result[name] = {"active": active, "autostart": autostart}
     return result
 
 
@@ -2403,8 +2553,7 @@ def pool_define_as(name, pool_type, target="", extra="", **dargs):
         return False
 
     LOG.debug("Try to define %s type pool %s", pool_type, name)
-    cmd = "pool-define-as --name %s --type %s %s" \
-          % (name, pool_type, extra)
+    cmd = "pool-define-as --name %s --type %s %s" % (name, pool_type, extra)
     # Target is not a must
     if target:
         cmd += " --target %s" % target
@@ -2478,8 +2627,9 @@ def find_storage_pool_sources_as(source_type, options="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: returns the output of the command
     """
-    return command("find-storage-pool-sources-as %s %s"
-                   % (source_type, options), **dargs)
+    return command(
+        "find-storage-pool-sources-as %s %s" % (source_type, options), **dargs
+    )
 
 
 def find_storage_pool_sources(source_type, srcSpec, **dargs):
@@ -2491,8 +2641,7 @@ def find_storage_pool_sources(source_type, srcSpec, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    return command("find-storage-pool-sources %s %s"
-                   % (source_type, srcSpec), **dargs)
+    return command("find-storage-pool-sources %s %s" % (source_type, srcSpec), **dargs)
 
 
 def pool_dumpxml(name, extra="", to_file="", **dargs):
@@ -2504,16 +2653,17 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
-    dargs['ignore_status'] = True
+    dargs["ignore_status"] = True
     cmd = "pool-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise process.CmdError(cmd, result,
-                               "Virsh dumpxml returned non-zero exit status")
+        raise process.CmdError(
+            cmd, result, "Virsh dumpxml returned non-zero exit status"
+        )
     return result.stdout_text.strip()
 
 
@@ -2542,8 +2692,9 @@ def vol_create(pool_name, xml_file, extra="", **dargs):
     return command(cmd, **dargs)
 
 
-def vol_create_as(volume_name, pool_name, capacity,
-                  allocation, frmt, extra="", **dargs):
+def vol_create_as(
+    volume_name, pool_name, capacity, allocation, frmt, extra="", **dargs
+):
     """
     To create the volumes on different available pool
 
@@ -2569,8 +2720,7 @@ def vol_create_as(volume_name, pool_name, capacity,
     return command(cmd, **dargs)
 
 
-def vol_create_from(pool_name, vol_file, input_vol, input_pool, extra="",
-                    **dargs):
+def vol_create_from(pool_name, vol_file, input_vol, input_pool, extra="", **dargs):
     """
     Create a vol, using another volume as input
 
@@ -2581,8 +2731,12 @@ def vol_create_from(pool_name, vol_file, input_vol, input_pool, extra="",
     :param: extra: Free-form string of options
     :return: True if volume create successfully
     """
-    cmd = ("vol-create-from --pool %s --file %s --vol %s --inputpool %s" %
-           (pool_name, vol_file, input_vol, input_pool))
+    cmd = "vol-create-from --pool %s --file %s --vol %s --inputpool %s" % (
+        pool_name,
+        vol_file,
+        input_vol,
+        input_pool,
+    )
     if extra:
         cmd += " %s" % (extra)
     return command(cmd, **dargs)
@@ -2610,8 +2764,7 @@ def vol_delete(volume_name, pool_name, extra="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: returns the output of the command
     """
-    return command("vol-delete %s %s %s" %
-                   (volume_name, pool_name, extra), **dargs)
+    return command("vol-delete %s %s %s" % (volume_name, pool_name, extra), **dargs)
 
 
 def vol_key(volume_name, pool_name, extra="", **drags):
@@ -2623,8 +2776,9 @@ def vol_key(volume_name, pool_name, extra="", **drags):
     :param dargs: standardized virsh function API keywords
     :return: returns the output of the command
     """
-    return command("vol-key --vol %s --pool %s %s" %
-                   (volume_name, pool_name, extra), **drags)
+    return command(
+        "vol-key --vol %s --pool %s %s" % (volume_name, pool_name, extra), **drags
+    )
 
 
 def vol_info(volume_name, pool_name, extra="", **drags):
@@ -2666,8 +2820,9 @@ def vol_path(volume_name, pool_name, extra="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: returns the output of the command
     """
-    return command("vol-path --vol %s --pool %s %s" %
-                   (volume_name, pool_name, extra), **dargs)
+    return command(
+        "vol-path --vol %s --pool %s %s" % (volume_name, pool_name, extra), **dargs
+    )
 
 
 def vol_dumpxml(volume_name, pool_name, to_file=None, options="", **dargs):
@@ -2681,11 +2836,10 @@ def vol_dumpxml(volume_name, pool_name, to_file=None, options="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: returns the output of the command
     """
-    cmd = ('vol-dumpxml --vol %s --pool %s %s' %
-           (volume_name, pool_name, options))
+    cmd = "vol-dumpxml --vol %s --pool %s %s" % (volume_name, pool_name, options)
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -2757,23 +2911,23 @@ def vol_resize(volume_name, capacity, pool_name="", extra="", **dargs):
     return command(cmd, **dargs)
 
 
-def capabilities(option='', to_file=None, **dargs):
+def capabilities(option="", to_file=None, **dargs):
     """
     Return output from virsh capabilities command
 
     :param option: additional options (takes none)
     :param dargs: standardized virsh function API keywords
     """
-    cmd_result = command('capabilities %s' % option, **dargs)
+    cmd_result = command("capabilities %s" % option, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(cmd_result.stdout.strip())
         result_file.close()
 
     return cmd_result.stdout_text.strip()
 
 
-def pool_capabilities(option='', to_file=None, **dargs):
+def pool_capabilities(option="", to_file=None, **dargs):
     """
     Return output from virsh pool-capabilities command
 
@@ -2781,15 +2935,15 @@ def pool_capabilities(option='', to_file=None, **dargs):
     :param to_file: file path for store capabilities' xml
     :param dargs: standardized virsh function API keywords
     """
-    cmd_result = command('pool-capabilities %s' % option, **dargs)
+    cmd_result = command("pool-capabilities %s" % option, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(cmd_result.stdout.strip())
         result_file.close()
     return cmd_result.stdout_text.strip()
 
 
-def nodecpustats(option='', **dargs):
+def nodecpustats(option="", **dargs):
     """
     Returns basic information about the node CPU statistics
 
@@ -2801,7 +2955,7 @@ def nodecpustats(option='', **dargs):
     return command(cmd_nodecpustat, **dargs)
 
 
-def nodememstats(option='', **dargs):
+def nodememstats(option="", **dargs):
     """
     Returns basic information about the node Memory statistics
 
@@ -2809,7 +2963,7 @@ def nodememstats(option='', **dargs):
     :param dargs: standardized virsh function API keywords
     """
 
-    return command('nodememstats %s' % option, **dargs)
+    return command("nodememstats %s" % option, **dargs)
 
 
 def memtune_set(name, options, **dargs):
@@ -2848,7 +3002,7 @@ def memtune_get(name, key):
         return -1
 
 
-def help_command(options='', cache=False, **dargs):
+def help_command(options="", cache=False, **dargs):
     """
     Return list of commands and groups in help command output
 
@@ -2865,7 +3019,7 @@ def help_command(options='', cache=False, **dargs):
     return virsh_command_group
 
 
-def help_command_only(options='', cache=False, **dargs):
+def help_command_only(options="", cache=False, **dargs):
     """
     Return list of commands in help command output
 
@@ -2891,7 +3045,7 @@ def help_command_only(options='', cache=False, **dargs):
     return list(VIRSH_COMMAND_CACHE)
 
 
-def help_command_group(options='', cache=False, **dargs):
+def help_command_group(options="", cache=False, **dargs):
     """
     Return list of groups in help command output
 
@@ -2920,7 +3074,7 @@ def help_command_group(options='', cache=False, **dargs):
     return list(VIRSH_COMMAND_GROUP_CACHE)
 
 
-def has_help_command(virsh_cmd, options='', **dargs):
+def has_help_command(virsh_cmd, options="", **dargs):
     """
     String match on virsh command in help output command list
 
@@ -2929,8 +3083,7 @@ def has_help_command(virsh_cmd, options='', **dargs):
     :param dargs: standardized virsh function API keywords
     :return: True/False
     """
-    return bool(help_command_only(options, cache=True,
-                                  **dargs).count(virsh_cmd))
+    return bool(help_command_only(options, cache=True, **dargs).count(virsh_cmd))
 
 
 def has_command_help_match(virsh_cmd, regex, **dargs):
@@ -2947,7 +3100,7 @@ def has_command_help_match(virsh_cmd, regex, **dargs):
     return re.search(regex, command_help_output)
 
 
-def help(virsh_cmd='', **dargs):
+def help(virsh_cmd="", **dargs):
     """
     Prints global help, command specific help, or help for a
     group of related commands
@@ -2971,8 +3124,15 @@ def schedinfo(domain, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def setmem(domainarg=None, sizearg=None, domain=None,
-           size=None, use_kilobytes=False, flagstr="", **dargs):
+def setmem(
+    domainarg=None,
+    sizearg=None,
+    domain=None,
+    size=None,
+    use_kilobytes=False,
+    flagstr="",
+    **dargs
+):
     """
     Change the current memory allocation in the guest domain.
 
@@ -3004,8 +3164,15 @@ def setmem(domainarg=None, sizearg=None, domain=None,
     return command(cmd, **dargs)
 
 
-def setmaxmem(domainarg=None, sizearg=None, domain=None,
-              size=None, use_kilobytes=False, flagstr="", **dargs):
+def setmaxmem(
+    domainarg=None,
+    sizearg=None,
+    domain=None,
+    size=None,
+    use_kilobytes=False,
+    flagstr="",
+    **dargs
+):
     """
     Change the maximum memory allocation for the guest domain.
 
@@ -3035,8 +3202,9 @@ def setmaxmem(domainarg=None, sizearg=None, domain=None,
     return command(cmd, **dargs)
 
 
-def set_user_password(domain=None, user=None, password=None,
-                      encrypted=False, option=True, **dargs):
+def set_user_password(
+    domain=None, user=None, password=None, encrypted=False, option=True, **dargs
+):
     """
     Set the user password inside the domain
     :param domain: Option to --domain parameter
@@ -3146,7 +3314,7 @@ def snapshot_list(name, options=None, **dargs):
     :return: list of snapshot names
     """
     # CmdResult is handled here, force ignore_status
-    dargs['ignore_status'] = True
+    dargs["ignore_status"] = True
     ret = []
     cmd = "snapshot-list %s" % name
     if options is not None:
@@ -3154,11 +3322,9 @@ def snapshot_list(name, options=None, **dargs):
 
     sc_output = command(cmd, **dargs)
     if sc_output.exit_status != 0:
-        raise process.CmdError(
-            cmd, sc_output, "Failed to get list of snapshots")
+        raise process.CmdError(cmd, sc_output, "Failed to get list of snapshots")
 
-    data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*",
-                      sc_output.stdout_text)
+    data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*", sc_output.stdout_text)
     for rec in data:
         if not rec:
             continue
@@ -3183,7 +3349,7 @@ def snapshot_dumpxml(name, snapshot, options=None, to_file=None, **dargs):
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -3200,10 +3366,18 @@ def snapshot_info(name, snapshot, **dargs):
     :return: snapshot information dictionary
     """
     # CmdResult is handled here, force ignore_status
-    dargs['ignore_status'] = True
+    dargs["ignore_status"] = True
     ret = {}
-    values = ["Name", "Domain", "Current", "State", "Parent",
-              "Children", "Descendants", "Metadata"]
+    values = [
+        "Name",
+        "Domain",
+        "Current",
+        "State",
+        "Parent",
+        "Children",
+        "Descendants",
+        "Metadata",
+    ]
 
     cmd = "snapshot-info %s %s" % (name, snapshot)
     sc_output = command(cmd, **dargs)
@@ -3211,8 +3385,7 @@ def snapshot_info(name, snapshot, **dargs):
         raise process.CmdError(cmd, sc_output, "Failed to get snapshot info")
 
     for val in values:
-        data = re.search("(?<=%s:) *(\w.*|\w*)" % val,
-                         sc_output.stdout_text)
+        data = re.search("(?<=%s:) *(\w.*|\w*)" % val, sc_output.stdout_text)
         if data is None:
             continue
         ret[val] = data.group(0).strip()
@@ -3236,7 +3409,7 @@ def snapshot_revert(name, snapshot, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def snapshot_delete(name, snapshot, options='', **dargs):
+def snapshot_delete(name, snapshot, options="", **dargs):
     """
     Remove domain snapshot
 
@@ -3322,7 +3495,7 @@ def domblklist(name, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def domiflist(name, options='', extra='', **dargs):
+def domiflist(name, options="", extra="", **dargs):
     """
     Get the domain network devices
 
@@ -3332,10 +3505,10 @@ def domiflist(name, options='', extra='', **dargs):
     :return: CmdResult instance
     """
 
-    return command('domiflist %s %s %s' % (name, options, extra), **dargs)
+    return command("domiflist %s %s %s" % (name, options, extra), **dargs)
 
 
-def domifaddr(name, options='', **dargs):
+def domifaddr(name, options="", **dargs):
     """
     Get the domain iface addresses
 
@@ -3345,7 +3518,7 @@ def domifaddr(name, options='', **dargs):
     :return: CmdResult instance
     """
 
-    return command('domifaddr %s %s' % (name, options), **dargs)
+    return command("domifaddr %s %s" % (name, options), **dargs)
 
 
 def cpu_stats(name, options, **dargs):
@@ -3365,8 +3538,15 @@ def cpu_stats(name, options, **dargs):
 
 
 @EventTracker.wait_event
-def change_media(name, device, options, wait_for_event=False,
-                 event_type='tray-change', event_timeout=7, **dargs):
+def change_media(
+    name,
+    device,
+    options,
+    wait_for_event=False,
+    event_type="tray-change",
+    event_timeout=7,
+    **dargs
+):
     """
     Change media of CD or floppy drive.
 
@@ -3406,8 +3586,7 @@ def hypervisor_cpu_compare(xml_file, options="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return command("hypervisor-cpu-compare %s %s" % (xml_file, options),
-                   **dargs)
+    return command("hypervisor-cpu-compare %s %s" % (xml_file, options), **dargs)
 
 
 def hypervisor_cpu_baseline(xml_file, options="", **dargs):
@@ -3420,8 +3599,7 @@ def hypervisor_cpu_baseline(xml_file, options="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return command("hypervisor-cpu-baseline %s %s" % (xml_file, options),
-                   **dargs)
+    return command("hypervisor-cpu-baseline %s %s" % (xml_file, options), **dargs)
 
 
 def cpu_baseline(xml_file, **dargs):
@@ -3463,7 +3641,7 @@ def nodedev_reset(name, options="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: cmdresult object.
     """
-    cmd = ("nodedev-reset --device %s %s" % (name, options))
+    cmd = "nodedev-reset --device %s %s" % (name, options)
     return command(cmd, **dargs)
 
 
@@ -3487,10 +3665,10 @@ def nodedev_dumpxml(name, options="", to_file=None, **dargs):
 
     :return: Cmdobject of virsh nodedev-dumpxml.
     """
-    cmd = ('nodedev-dumpxml %s %s' % (name, options))
+    cmd = "nodedev-dumpxml %s %s" % (name, options)
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -3583,7 +3761,7 @@ def nodedev_detach(name, options="", **dargs):
 
     :return: cmdresult object.
     """
-    cmd = ("nodedev-detach --device %s %s" % (name, options))
+    cmd = "nodedev-detach --device %s %s" % (name, options)
     return command(cmd, **dargs)
 
 
@@ -3603,7 +3781,7 @@ def nodedev_reattach(name, options="", **dargs):
 
     :return: cmdresult object.
     """
-    cmd = ("nodedev-reattach --device %s %s" % (name, options))
+    cmd = "nodedev-reattach --device %s %s" % (name, options)
     return command(cmd, **dargs)
 
 
@@ -3648,8 +3826,7 @@ def blockjob(name, path, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def domiftune(name, interface, options=None, inbound=None,
-              outbound=None, **dargs):
+def domiftune(name, interface, options=None, inbound=None, outbound=None, **dargs):
     """
     Set/get parameters of a virtual interface.
 
@@ -3682,7 +3859,7 @@ def desc(name, options, desc_str, **dargs):
     :return: CmdResult object.
     """
     if desc_str:
-        options = options + " \"%s\"" % desc_str
+        options = options + ' "%s"' % desc_str
     cmd = "desc %s %s" % (name, options)
     return command(cmd, **dargs)
 
@@ -3709,12 +3886,17 @@ def autostart(name, options, **dargs):
 
     :return: cmdresult object.
     """
-    cmd = ("autostart %s %s" % (name, options))
+    cmd = "autostart %s %s" % (name, options)
     return command(cmd, **dargs)
 
 
-def node_memtune(shm_pages_to_scan=None, shm_sleep_millisecs=None,
-                 shm_merge_across_nodes=None, options=None, **dargs):
+def node_memtune(
+    shm_pages_to_scan=None,
+    shm_sleep_millisecs=None,
+    shm_merge_across_nodes=None,
+    options=None,
+    **dargs
+):
     """
     Get or set node memory parameters.
 
@@ -3803,16 +3985,15 @@ def iface_dumpxml(iface, extra="", to_file="", **dargs):
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
-    dargs['ignore_status'] = True
+    dargs["ignore_status"] = True
     cmd = "iface-dumpxml %s %s" % (iface, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise process.CmdError(cmd, result,
-                               "Dumpxml returned non-zero exit status")
+        raise process.CmdError(cmd, result, "Dumpxml returned non-zero exit status")
     return result.stdout_text.strip()
 
 
@@ -3975,19 +4156,22 @@ def secret_dumpxml(uuid, to_file="", options=None, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
-    dargs['ignore_status'] = True
+    dargs["ignore_status"] = True
     cmd = "secret-dumpxml %s" % uuid
     if options is not None:
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise process.CmdError(cmd, result,
-                               "Virsh secret-dumpxml returned \
-                             non-zero exit status")
+        raise process.CmdError(
+            cmd,
+            result,
+            "Virsh secret-dumpxml returned \
+                             non-zero exit status",
+        )
     return result
 
 
@@ -4005,7 +4189,9 @@ def secret_get_value(uuid, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def secret_set_value(uuid, password, options=None, encode=False, use_file=False, **dargs):
+def secret_set_value(
+    uuid, password, options=None, encode=False, use_file=False, **dargs
+):
     """
     Set a secret value
 
@@ -4026,7 +4212,7 @@ def secret_set_value(uuid, password, options=None, encode=False, use_file=False,
         # Read the secret from a file is right choice.
         if use_file:
             secret_file = os.path.join(data_dir.get_tmp_dir(), "secret_file")
-            with open(secret_file, 'w+') as fd:
+            with open(secret_file, "w+") as fd:
                 fd.write(password)
             cmd += " --file %s" % secret_file
         else:
@@ -4175,8 +4361,7 @@ def domfsthaw(name, mountpoint=None, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def domtime(name, now=False, pretty=False, sync=False, time=None,
-            options="", **dargs):
+def domtime(name, now=False, pretty=False, sync=False, time=None, options="", **dargs):
     """
     Get/Set domain's time
 
@@ -4211,10 +4396,10 @@ def nwfilter_dumpxml(name, options="", to_file=None, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: Cmdobject of virsh nwfilter-dumpxml.
     """
-    cmd = ('nwfilter-dumpxml %s %s' % (name, options))
+    cmd = "nwfilter-dumpxml %s %s" % (name, options)
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -4312,7 +4497,7 @@ def nwfilter_binding_dumpxml(portdev_name, options="", to_file="", **dargs):
     cmd = "nwfilter-binding-dumpxml %s %s" % (portdev_name, options)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -4490,7 +4675,7 @@ def save_image_dumpxml(state_file, options="", to_file="", **dargs):
     cmd = "save-image-dumpxml %s %s" % (state_file, options)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
+        result_file = open(to_file, "w")
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -4547,9 +4732,17 @@ def vol_upload(name, dfile, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def blkiotune(name, weight=None, device_weights=None, device_read_iops_sec=None,
-              device_write_iops_sec=None, device_read_bytes_sec=None,
-              device_write_bytes_sec=None, options=None, **dargs):
+def blkiotune(
+    name,
+    weight=None,
+    device_weights=None,
+    device_read_iops_sec=None,
+    device_write_iops_sec=None,
+    device_read_bytes_sec=None,
+    device_write_bytes_sec=None,
+    options=None,
+    **dargs
+):
     """
     Set or get a domain's blkio parameters
     :param name: name of domain
@@ -4611,11 +4804,17 @@ def blkdeviotune(name, device=None, options=None, params=None, **dargs):
         if params.get("write_iops_sec_max"):
             cmd += " --write-iops-sec-max %s" % params.get("write_iops_sec_max")
         if params.get("total_iops_sec_max_length"):
-            cmd += " --total-iops-sec-max-length %s" % params.get("total_iops_sec_max_length")
+            cmd += " --total-iops-sec-max-length %s" % params.get(
+                "total_iops_sec_max_length"
+            )
         if params.get("read_iops_sec_max_length"):
-            cmd += " --read-iops-sec-max-length %s" % params.get("read_iops_sec_max_length")
+            cmd += " --read-iops-sec-max-length %s" % params.get(
+                "read_iops_sec_max_length"
+            )
         if params.get("write_iops_sec_max_length"):
-            cmd += " --write-iops-sec-max-length %s" % params.get("write_iops_sec_max_length")
+            cmd += " --write-iops-sec-max-length %s" % params.get(
+                "write_iops_sec_max_length"
+            )
         if params.get("total_bytes_sec"):
             cmd += " --total-bytes-sec %s" % params.get("total_bytes_sec")
         if params.get("read_bytes_sec"):
@@ -4629,11 +4828,17 @@ def blkdeviotune(name, device=None, options=None, params=None, **dargs):
         if params.get("write_bytes_sec_max"):
             cmd += " --write-bytes-sec-max %s" % params.get("write_bytes_sec_max")
         if params.get("total_bytes_sec_max_length"):
-            cmd += " --total-bytes-sec-max %s" % params.get("total_bytes_sec_max_length")
+            cmd += " --total-bytes-sec-max %s" % params.get(
+                "total_bytes_sec_max_length"
+            )
         if params.get("read_bytes_sec_max_length"):
-            cmd += " --read-bytes-sec-max-length %s" % params.get("read_bytes_sec_max_length")
+            cmd += " --read-bytes-sec-max-length %s" % params.get(
+                "read_bytes_sec_max_length"
+            )
         if params.get("write_bytes_sec_max_length"):
-            cmd += " --write-bytes-sec-max-length %s" % params.get("write_bytes_sec_max_length")
+            cmd += " --write-bytes-sec-max-length %s" % params.get(
+                "write_bytes_sec_max_length"
+            )
         if params.get("size_iops_sec"):
             cmd += " --size-iops-sec %s" % params.get("size_iops_sec")
         if params.get("group_name"):
@@ -4688,8 +4893,9 @@ def freepages(cellno=None, pagesize=None, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def domcapabilities(virttype=None, emulatorbin=None, arch=None, machine=None,
-                    options="", **dargs):
+def domcapabilities(
+    virttype=None, emulatorbin=None, arch=None, machine=None, options="", **dargs
+):
     """
     Capabilities of emulator with respect to host and libvirt
 
@@ -4729,7 +4935,7 @@ def metadata(name, uri, options="", key=None, new_metadata=None, **dargs):
     if key:
         cmd += " --key %s" % key
     if new_metadata:
-        cmd += " --set '%s'" % new_metadata.replace("\'", "\"")
+        cmd += " --set '%s'" % new_metadata.replace("'", '"')
     return command(cmd, **dargs)
 
 
@@ -4762,8 +4968,9 @@ def net_dhcp_leases(network, mac=None, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def qemu_monitor_event(domain=None, event=None, event_timeout=None,
-                       options="", **dargs):
+def qemu_monitor_event(
+    domain=None, event=None, event_timeout=None, options="", **dargs
+):
     """
     Listen for QEMU Monitor Events
 
@@ -4784,8 +4991,7 @@ def qemu_monitor_event(domain=None, event=None, event_timeout=None,
     return command(cmd, **dargs)
 
 
-def net_event(network=None, event=None, event_timeout=None, options="",
-              **dargs):
+def net_event(network=None, event=None, event_timeout=None, options="", **dargs):
     """
     List event types, or wait for network events to occur
 
@@ -4835,7 +5041,7 @@ def move_mouse(name, coordinate, **dargs):
     :param coordinate: Mouse coordinate
     """
     cmd = "mouse_move %s %s" % coordinate
-    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    qemu_monitor_command(name=name, cmd=cmd, options="--hmp", **dargs)
     # Sleep 1 sec to make sure VM received mouse move event
     time.sleep(1)
 
@@ -4851,12 +5057,12 @@ def click_button(name, left_button=True, **dargs):
     if not left_button:
         state = 4
     cmd = "mouse_button %s" % state
-    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    qemu_monitor_command(name=name, cmd=cmd, options="--hmp", **dargs)
     # Sleep 1 sec to make sure VM received mouse button event,
     # then release button(state=0)
     time.sleep(1)
     cmd = "mouse_button 0"
-    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    qemu_monitor_command(name=name, cmd=cmd, options="--hmp", **dargs)
     time.sleep(1)
 
 

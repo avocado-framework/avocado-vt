@@ -9,35 +9,50 @@ from virttest.libvirt_xml.devices import base, librarian
 
 
 class Input(base.TypedDeviceBase):
-    __slots__ = ('input_bus', 'model', 'address', 'source_evdev', 'driver_packed')
+    __slots__ = ("input_bus", "model", "address", "source_evdev", "driver_packed")
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
-        super(Input, self).__init__(device_tag='input',
-                                    type_name=type_name,
-                                    virsh_instance=virsh_instance)
-        accessors.XMLAttribute(property_name="input_bus",
-                               libvirtxml=self,
-                               forbidden=None,
-                               parent_xpath='/',
-                               tag_name='input',
-                               attribute='bus')
-        accessors.XMLAttribute(property_name="model",
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='input',
-                               attribute='model')
-        accessors.XMLElementNest('address', self, parent_xpath='/',
-                                 tag_name='address', subclass=self.Address,
-                                 subclass_dargs={'type_name': 'usb',
-                                                 'virsh_instance': virsh_instance})
-        accessors.XMLAttribute('source_evdev', self, parent_xpath='/',
-                               tag_name='source', attribute='evdev')
-        accessors.XMLAttribute('driver_packed', self, parent_xpath='/',
-                               tag_name='driver', attribute='packed')
-    # For convenience
-    Address = librarian.get('address')
+        super(Input, self).__init__(
+            device_tag="input", type_name=type_name, virsh_instance=virsh_instance
+        )
+        accessors.XMLAttribute(
+            property_name="input_bus",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="input",
+            attribute="bus",
+        )
+        accessors.XMLAttribute(
+            property_name="model",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="input",
+            attribute="model",
+        )
+        accessors.XMLElementNest(
+            "address",
+            self,
+            parent_xpath="/",
+            tag_name="address",
+            subclass=self.Address,
+            subclass_dargs={"type_name": "usb", "virsh_instance": virsh_instance},
+        )
+        accessors.XMLAttribute(
+            "source_evdev", self, parent_xpath="/", tag_name="source", attribute="evdev"
+        )
+        accessors.XMLAttribute(
+            "driver_packed",
+            self,
+            parent_xpath="/",
+            tag_name="driver",
+            attribute="packed",
+        )
 
-    def new_input_address(self, type_name='usb', **dargs):
+    # For convenience
+    Address = librarian.get("address")
+
+    def new_input_address(self, type_name="usb", **dargs):
         """
         Return a new input Address instance and set properties from dargs
         """

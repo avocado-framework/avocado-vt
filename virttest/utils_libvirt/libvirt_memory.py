@@ -9,7 +9,7 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def comp_memlock(exp_memlock):
@@ -49,8 +49,8 @@ def normalize_mem_size(mem_size, mem_unit):
     """
     try:
         mem_size = float(mem_size)
-        mem_unit_idx = ['B', 'K', 'M', 'G', 'T'].index(mem_unit[0].upper())
+        mem_unit_idx = ["B", "K", "M", "G", "T"].index(mem_unit[0].upper())
     except ValueError as e:
         raise exceptions.TestError(e)
 
-    return int(mem_size * 1024 ** mem_unit_idx)
+    return int(mem_size * 1024**mem_unit_idx)

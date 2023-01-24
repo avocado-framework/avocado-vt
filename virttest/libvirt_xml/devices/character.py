@@ -10,7 +10,7 @@ from virttest.libvirt_xml.devices import base
 
 class CharacterBase(base.TypedDeviceBase):
 
-    __slots__ = ('sources', 'targets')
+    __slots__ = ("sources", "targets")
 
     # Not overriding __init__ because ABC cannot hide device_tag as expected
 
@@ -20,19 +20,19 @@ class CharacterBase(base.TypedDeviceBase):
         """
         Return a list of dictionaries containing each target's attributes.
         """
-        return self._get_list('target')
+        return self._get_list("target")
 
     def set_targets(self, value):
         """
         Set all sources to the value list of dictionaries of target attributes.
         """
-        self._set_list('target', value)
+        self._set_list("target", value)
 
     def del_targets(self):
         """
         Remove the list of dictionaries containing each target's attributes.
         """
-        self._del_list('target')
+        self._del_list("target")
 
     # Some convenience methods so appending to sources/targets is easier
     def add_source(self, **attributes):
@@ -49,19 +49,19 @@ class CharacterBase(base.TypedDeviceBase):
         """
         Convenience method for appending a target from dictionary of attributes
         """
-        self._add_item('targets', **attributes)
+        self._add_item("targets", **attributes)
 
     def update_source(self, index, **attributes):
         """
         Convenience method for merging values into a source's attributes
         """
-        self._update_item('sources', index, **attributes)
+        self._update_item("sources", index, **attributes)
 
     def update_target(self, index, **attributes):
         """
         Convenience method for merging values into a target's attributes
         """
-        self._update_item('targets', index, **attributes)
+        self._update_item("targets", index, **attributes)
 
     @staticmethod
     def marshal_from_sources(item, index, libvirtxml):
@@ -69,21 +69,22 @@ class CharacterBase(base.TypedDeviceBase):
         Convert an xml object to source tag and xml element.
         """
         if isinstance(item, CharacterBase.Source):
-            return 'source', item
+            return "source", item
         elif isinstance(item, dict):
             source = CharacterBase.Source()
             source.setup_attrs(**item)
-            return 'source', source
+            return "source", source
         else:
-            raise xcepts.LibvirtXMLError("Expected a list of Source "
-                                         "instances, not a %s" % str(item))
+            raise xcepts.LibvirtXMLError(
+                "Expected a list of Source " "instances, not a %s" % str(item)
+            )
 
     @staticmethod
     def marshal_to_sources(tag, new_treefile, index, libvirtxml):
         """
         Convert a source tag xml element to an object of Source.
         """
-        if tag != 'source':
+        if tag != "source":
             return None
         newone = CharacterBase.Source(virsh_instance=libvirtxml.virsh)
         newone.xmltreefile = new_treefile
@@ -91,17 +92,20 @@ class CharacterBase(base.TypedDeviceBase):
 
     class Source(base.base.LibvirtXMLBase):
 
-        __slots__ = ('attrs', 'seclabels')
+        __slots__ = ("attrs", "seclabels")
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                     tag_name='source')
-            accessors.XMLElementList('seclabels', self, parent_xpath='/',
-                                     marshal_from=self.marshal_from_seclabels,
-                                     marshal_to=self.marshal_to_seclabels,
-                                     has_subclass=True)
+            accessors.XMLElementDict("attrs", self, parent_xpath="/", tag_name="source")
+            accessors.XMLElementList(
+                "seclabels",
+                self,
+                parent_xpath="/",
+                marshal_from=self.marshal_from_seclabels,
+                marshal_to=self.marshal_to_seclabels,
+                has_subclass=True,
+            )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<source/>'
+            self.xml = "<source/>"
 
         @staticmethod
         def marshal_from_seclabels(item, index, libvirtxml):
@@ -109,21 +113,22 @@ class CharacterBase(base.TypedDeviceBase):
             Convert an xml object to seclabel tag and xml element.
             """
             if isinstance(item, CharacterBase.Source.Seclabel):
-                return 'seclabel', item
+                return "seclabel", item
             elif isinstance(item, dict):
                 seclabel = CharacterBase.Source.Seclabel()
                 seclabel.setup_attrs(**item)
-                return 'seclabel', seclabel
+                return "seclabel", seclabel
             else:
-                raise xcepts.LibvirtXMLError("Expected a list of Seclabel "
-                                             "instances, not a %s" % str(item))
+                raise xcepts.LibvirtXMLError(
+                    "Expected a list of Seclabel " "instances, not a %s" % str(item)
+                )
 
         @staticmethod
         def marshal_to_seclabels(tag, new_treefile, index, libvirtxml):
             """
             Convert a seclabel tag xml element to an object of Seclabel.
             """
-            if tag != 'seclabel':
+            if tag != "seclabel":
                 return None
             newone = CharacterBase.Source.Seclabel(virsh_instance=libvirtxml.virsh)
             newone.xmltreefile = new_treefile
@@ -131,12 +136,14 @@ class CharacterBase(base.TypedDeviceBase):
 
         class Seclabel(base.base.LibvirtXMLBase):
 
-            __slots__ = ('attrs', 'label')
+            __slots__ = ("attrs", "label")
 
             def __init__(self, virsh_instance=base.base.virsh):
-                accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                         tag_name='seclabel')
-                accessors.XMLElementText('label', self, parent_xpath='/',
-                                         tag_name='label')
+                accessors.XMLElementDict(
+                    "attrs", self, parent_xpath="/", tag_name="seclabel"
+                )
+                accessors.XMLElementText(
+                    "label", self, parent_xpath="/", tag_name="label"
+                )
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-                self.xml = '<seclabel/>'
+                self.xml = "<seclabel/>"

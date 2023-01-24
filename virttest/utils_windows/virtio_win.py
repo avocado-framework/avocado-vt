@@ -13,7 +13,7 @@ from avocado.core import exceptions
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
 ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def arch_dirname_iso(session):
@@ -41,8 +41,9 @@ def arch_dirname_vfd(session):
 def _product_info(session):
     # Some windows system would present 'r' as the registered
     # trademark character at the end of string "Server"
-    match = re.search(r"Windows((?: )Serverr?)? (\S+)(?: (R2))?",
-                      system.product_name(session), re.I)
+    match = re.search(
+        r"Windows((?: )Serverr?)? (\S+)(?: (R2))?", system.product_name(session), re.I
+    )
     if not match:
         return ("", "", "")
     server, name, suffix = match.groups()
@@ -133,7 +134,7 @@ def _get_netkvmco_path(session):
 
     middle_path = "%s\\%s" % (guest_name, guest_arch)
     find_cmd = 'dir /b /s %s\\netkvmco.dll | findstr "\\%s\\\\"'
-    find_cmd %= (viowin_ltr,  middle_path)
+    find_cmd %= (viowin_ltr, middle_path)
     netkvmco_path = session.cmd(find_cmd).strip()
     LOG.info("Found netkvmco.dll file at %s" % netkvmco_path)
     return netkvmco_path

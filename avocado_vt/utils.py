@@ -57,10 +57,8 @@ def find_subtest_dirs(other_subtests_dirs, bindir, ignore_files=None):
         # else the relative path will be searched in the bin_dir
         subtestdir = os.path.join(bindir, d, "tests")
         if not os.path.isdir(subtestdir):
-            raise exceptions.TestError("Directory %s does not "
-                                       "exist" % subtestdir)
-        subtest_dirs += data_dir.SubdirList(subtestdir,
-                                            ignore_files)
+            raise exceptions.TestError("Directory %s does not " "exist" % subtestdir)
+        subtest_dirs += data_dir.SubdirList(subtestdir, ignore_files)
     return subtest_dirs
 
 
@@ -75,14 +73,12 @@ def find_generic_specific_subtest_dirs(vm_type, ignore_files=None):
     :type ignore_files: list or None
     """
     subtest_dirs = []
-    generic_subdirs = asset.get_test_provider_subdirs('generic')
+    generic_subdirs = asset.get_test_provider_subdirs("generic")
     for generic_subdir in generic_subdirs:
-        subtest_dirs += data_dir.SubdirList(generic_subdir,
-                                            ignore_files)
+        subtest_dirs += data_dir.SubdirList(generic_subdir, ignore_files)
     specific_subdirs = asset.get_test_provider_subdirs(vm_type)
     for specific_subdir in specific_subdirs:
-        subtest_dirs += data_dir.SubdirList(specific_subdir,
-                                            ignore_files)
+        subtest_dirs += data_dir.SubdirList(specific_subdir, ignore_files)
     return subtest_dirs
 
 
@@ -96,10 +92,10 @@ def find_provider_subtest_dirs(provider, ignore_files=None):
     """
     subtests_dirs = []
     provider_info = asset.get_test_provider_info(provider)
-    for key in provider_info['backends']:
+    for key in provider_info["backends"]:
         subtests_dirs += data_dir.SubdirList(
-            provider_info['backends'][key]['path'],
-            ignore_files)
+            provider_info["backends"][key]["path"], ignore_files
+        )
     return subtests_dirs
 
 
@@ -116,13 +112,14 @@ def find_test_modules(test_types, subtest_dirs):
         for d in subtest_dirs:
             module_path = os.path.join(d, "%s.py" % test_type)
             if os.path.isfile(module_path):
-                logging.debug("Found subtest module %s",
-                              module_path)
+                logging.debug("Found subtest module %s", module_path)
                 subtest_dir = d
                 break
         else:
-            msg = ("Could not find test file %s.py on test"
-                   "dirs %s" % (test_type, subtest_dirs))
+            msg = "Could not find test file %s.py on test" "dirs %s" % (
+                test_type,
+                subtest_dirs,
+            )
             raise exceptions.TestError(msg)
         # Load the test module
         test_modules[test_type] = import_module(test_type, subtest_dir)
@@ -146,11 +143,12 @@ class TestUtils:
             try:
                 pickle.dumps(env.data)
             except Exception:
-                self.log.warn("Unable to save environment: %s",
-                              stacktrace.str_unpickable_object(env.data))
+                self.log.warn(
+                    "Unable to save environment: %s",
+                    stacktrace.str_unpickable_object(env.data),
+                )
             else:
-                self.log.warn("Unable to save environment: %s (%s)", details,
-                              env.data)
+                self.log.warn("Unable to save environment: %s (%s)", details, env.data)
             return True
         return False
 
@@ -169,15 +167,15 @@ class TestUtils:
         Get list of directories containing subtests.
         """
         test_filter = bootstrap.test_filter
-        subtest_dirs = find_subtest_dirs(self.params.get("other_tests_dirs",
-                                                         ""),
-                                         self.bindir,
-                                         test_filter)
+        subtest_dirs = find_subtest_dirs(
+            self.params.get("other_tests_dirs", ""), self.bindir, test_filter
+        )
         provider = self.params.get("provider", None)
 
         if provider is None:
             subtest_dirs += find_generic_specific_subtest_dirs(
-                self.params.get("vm_type"), test_filter)
+                self.params.get("vm_type"), test_filter
+            )
         else:
             subtest_dirs += find_provider_subtest_dirs(provider, test_filter)
         return subtest_dirs
@@ -196,18 +194,20 @@ class TestUtils:
         error_messages = []
         for index, error in enumerate(bg_errors):
             error_messages.append(
-                "- ERROR #%d -\n%s" % (index, "".join(
-                    traceback.format_exception(*error)
-                    )))
+                "- ERROR #%d -\n%s"
+                % (index, "".join(traceback.format_exception(*error)))
+            )
         if error_messages:
             error_messages.insert(0, "BACKGROUND ERROR LIST:")
-            genio.write_file(err_file_path, '\n'.join(error_messages))
+            genio.write_file(err_file_path, "\n".join(error_messages))
         if bg_errors:
             msg = ["Background error"]
             msg.append("s are" if len(bg_errors) > 1 else " is")
-            msg.append((" detected, please refer to file: "
-                        "'%s' for more details.") % BG_ERR_FILE)
-            self.error(''.join(msg))
+            msg.append(
+                (" detected, please refer to file: " "'%s' for more details.")
+                % BG_ERR_FILE
+            )
+            self.error("".join(msg))
 
     @property
     def datadir(self):

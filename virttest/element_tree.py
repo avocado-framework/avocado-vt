@@ -77,17 +77,22 @@ __all__ = [
     # public symbols
     "Comment",
     "dump",
-    "Element", "ElementTree",
+    "Element",
+    "ElementTree",
     "fromstring",
-    "iselement", "iterparse",
+    "iselement",
+    "iterparse",
     "parse",
-    "PI", "ProcessingInstruction",
+    "PI",
+    "ProcessingInstruction",
     "QName",
     "SubElement",
     "tostring",
     "TreeBuilder",
-    "VERSION", "XML",
-    "XMLParser", "XMLTreeBuilder",
+    "VERSION",
+    "XML",
+    "XMLParser",
+    "XMLTreeBuilder",
 ]
 
 #
@@ -435,6 +440,7 @@ def Element(tag, attrib={}, **extra):
     attrib.update(extra)
     return _ElementInterface(tag, attrib)
 
+
 #
 # Subelement factory.  This function creates an element instance, and
 # appends it to an existing element.
@@ -458,6 +464,7 @@ def SubElement(parent, tag, attrib={}, text=None, **extra):
     parent.append(element)
     return element
 
+
 #
 # Comment element factory.  This factory function creates a special
 # element that will be serialized as an XML comment.
@@ -474,6 +481,7 @@ def Comment(text=None):
     element = Element(Comment)
     element.text = text
     return element
+
 
 #
 # PI element factory.  This factory function creates a special element
@@ -507,7 +515,6 @@ PI = ProcessingInstruction
 
 
 class QName(object):
-
     def __init__(self, text_or_uri, tag=None):
         if tag:
             text_or_uri = "{%s}%s" % (text_or_uri, tag)
@@ -522,9 +529,11 @@ class QName(object):
     def __cmp__(self, other):
         def cmp(x, y):
             return (x > y) - (x < y)
+
         if isinstance(other, QName):
             return cmp(self.text, other.text)
         return cmp(self.text, other)
+
 
 #
 # ElementTree wrapper class.  This class represents an entire element
@@ -537,7 +546,6 @@ class QName(object):
 
 
 class ElementTree(object):
-
     def __init__(self, element=None, file=None):
         assert element is None or iselement(element)
         self._root = element  # first node
@@ -696,11 +704,13 @@ class ElementTree(object):
                                 xmlns_items.append(xmlns)
                     except TypeError:
                         _raise_serialization_error(v)
-                    file.write(" %s=\"%s\"" % (_encode(k, encoding),
-                                               _escape_attrib(v, encoding)))
+                    file.write(
+                        ' %s="%s"' % (_encode(k, encoding), _escape_attrib(v, encoding))
+                    )
                 for k, v in xmlns_items:
-                    file.write(" %s=\"%s\"" % (_encode(k, encoding),
-                                               _escape_attrib(v, encoding)))
+                    file.write(
+                        ' %s="%s"' % (_encode(k, encoding), _escape_attrib(v, encoding))
+                    )
             if node.text or len(node):
                 file.write(">")
                 if node.text:
@@ -714,6 +724,7 @@ class ElementTree(object):
                 del namespaces[v]
         if node.tail:
             file.write(_escape_cdata(node.tail, encoding))
+
 
 # --------------------------------------------------------------------
 # helpers
@@ -730,6 +741,7 @@ def iselement(element):
     # FIXME: not sure about this; might be a better idea to look
     # for tag/attrib/text attributes
     return isinstance(element, _ElementInterface) or hasattr(element, "tag")
+
 
 #
 # Writes an element tree or element structure to sys.stdout.  This
@@ -783,9 +795,7 @@ _namespace_map = {
 
 
 def _raise_serialization_error(text):
-    raise TypeError(
-        "cannot serialize %r (type %s)" % (text, type(text).__name__)
-    )
+    raise TypeError("cannot serialize %r (type %s)" % (text, type(text).__name__))
 
 
 def _encode_entity(text, pattern=_escape):
@@ -799,10 +809,12 @@ def _encode_entity(text, pattern=_escape):
                 text = "&#%d;" % ord(char)
             append(text)
         return "".join(out)
+
     try:
         return _encode(pattern.sub(escape_entities, text), "ascii")
     except TypeError:
         _raise_serialization_error(text)
+
 
 #
 # the following functions assume an ascii-compatible encoding
@@ -835,7 +847,7 @@ def _escape_attrib(text, encoding=None, replace=REPLACE):
                 return _encode_entity(text)
         text = replace(text, "&", "&amp;")
         text = replace(text, "'", "&apos;")  # FIXME: overkill
-        text = replace(text, "\"", "&quot;")
+        text = replace(text, '"', "&quot;")
         text = replace(text, "<", "&lt;")
         text = replace(text, ">", "&gt;")
         return text
@@ -863,6 +875,7 @@ def fixtag(tag, namespaces):
         xmlns = None
     return "%s:%s" % (prefix, tag), xmlns
 
+
 #
 # Parses an XML document into an element tree.
 #
@@ -877,6 +890,7 @@ def parse(source, parser=None):
     tree.parse(source, parser)
     return tree
 
+
 #
 # Parses an XML document into an element tree incrementally, and reports
 # what's going on to the user.
@@ -888,7 +902,6 @@ def parse(source, parser=None):
 
 
 class iterparse(object):
-
     def __init__(self, source, events=None):
         if not hasattr(source, "read"):
             source = open(source, "r")
@@ -908,31 +921,49 @@ class iterparse(object):
                     parser.ordered_attributes = 1
                     parser.specified_attributes = 1
 
-                    def handler(tag, attrib_in, event=event, append=append,
-                                start=self._parser._start_list):
+                    def handler(
+                        tag,
+                        attrib_in,
+                        event=event,
+                        append=append,
+                        start=self._parser._start_list,
+                    ):
                         append((event, start(tag, attrib_in)))
+
                     parser.StartElementHandler = handler
                 except AttributeError:
-                    def handler(tag, attrib_in, event=event, append=append,
-                                start=self._parser._start):
+
+                    def handler(
+                        tag,
+                        attrib_in,
+                        event=event,
+                        append=append,
+                        start=self._parser._start,
+                    ):
                         append((event, start(tag, attrib_in)))
+
                     parser.StartElementHandler = handler
             elif event == "end":
-                def handler(tag, event=event, append=append,
-                            end=self._parser._end):
+
+                def handler(tag, event=event, append=append, end=self._parser._end):
                     append((event, end(tag)))
+
                 parser.EndElementHandler = handler
             elif event == "start-ns":
+
                 def handler(prefix, uri, event=event, append=append):
                     try:
                         uri = _encode(uri, "ascii")
                     except UnicodeError:
                         pass
                     append((event, (prefix or "", uri)))
+
                 parser.StartNamespaceDeclHandler = handler
             elif event == "end-ns":
+
                 def handler(prefix, event=event, append=append):
                     append((event, None))
+
                 parser.EndNamespaceDeclHandler = handler
 
     def next(self):
@@ -965,9 +996,12 @@ class iterparse(object):
 
         def __iter__(self):
             return self
+
     except NameError:
+
         def __getitem__(self, index):
             return next(self)
+
 
 #
 # Parses an XML document from a string constant.  This function can
@@ -982,6 +1016,7 @@ def XML(text):
     parser = XMLTreeBuilder()
     parser.feed(text)
     return parser.close()
+
 
 #
 # Parses an XML document from a string constant, and also returns
@@ -1026,11 +1061,13 @@ fromstring = XML
 def tostring(element, encoding=None):
     class dummy(object):
         pass
+
     data = []
     file = dummy()
     file.write = data.append
     ElementTree(element).write(file, encoding)
     return "".join(data)
+
 
 #
 # Generic element structure builder.  This builder converts a sequence
@@ -1045,7 +1082,6 @@ def tostring(element, encoding=None):
 
 
 class TreeBuilder(object):
-
     def __init__(self, element_factory=None):
         self._data = []  # data collector
         self._elem = []  # element stack
@@ -1115,11 +1151,13 @@ class TreeBuilder(object):
     def end(self, tag):
         self._flush()
         self._last = self._elem.pop()
-        assert self._last.tag == tag,\
-            "end tag mismatch (expected %s, got %s)" % (
-                self._last.tag, tag)
+        assert self._last.tag == tag, "end tag mismatch (expected %s, got %s)" % (
+            self._last.tag,
+            tag,
+        )
         self._tail = 1
         return self._last
+
 
 #
 # Element structure builder for XML source data, based on the
@@ -1134,14 +1172,11 @@ class TreeBuilder(object):
 
 
 class XMLTreeBuilder(object):
-
     def __init__(self, html=0, target=None):
         try:
             from xml.parsers import expat
         except ImportError:
-            raise ImportError(
-                "No module named expat; use SimpleXMLTreeBuilder instead"
-            )
+            raise ImportError("No module named expat; use SimpleXMLTreeBuilder instead")
         self._parser = parser = expat.ParserCreate(None, "}")
         if target is None:
             target = TreeBuilder()
@@ -1220,10 +1255,14 @@ class XMLTreeBuilder(object):
                 self._target.data(self.entity[text[1:-1]])
             except KeyError:
                 from xml.parsers import expat
+
                 raise expat.error(
-                    "undefined entity %s: line %d, column %d" %
-                    (text, self._parser.ErrorLineNumber,
-                     self._parser.ErrorColumnNumber)
+                    "undefined entity %s: line %d, column %d"
+                    % (
+                        text,
+                        self._parser.ErrorLineNumber,
+                        self._parser.ErrorColumnNumber,
+                    )
                 )
         elif prefix == "<" and text[:9] == "<!DOCTYPE":
             self._doctype = []  # inside a doctype declaration

@@ -16,7 +16,7 @@ from six.moves import xrange
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest.unittest_utils import mock
@@ -32,15 +32,15 @@ from virttest import propcan
 
 
 class FakeVm(object):
-
     def __init__(self, vm_name, params):
         self.name = vm_name
         self.params = params
-        self.vm_type = self.params.get('vm_type')
-        self.driver_type = self.params.get('driver_type')
-        self.instance = ("%s-%s" % (
+        self.vm_type = self.params.get("vm_type")
+        self.driver_type = self.params.get("driver_type")
+        self.instance = "%s-%s" % (
             time.strftime("%Y%m%d-%H%M%S"),
-            utils_misc.generate_random_string(16)))
+            utils_misc.generate_random_string(16),
+        )
 
     def get_params(self):
         return self.params
@@ -50,7 +50,6 @@ class FakeVm(object):
 
 
 class TestBridge(unittest.TestCase):
-
     class FakeCmd(object):
         iter = 0
 
@@ -78,7 +77,8 @@ virbr2        8000.525400c0b080    yes        em1
                                               virbr10-nic
                                               virbr40-nic
                                               virbr50-nic
-"""]
+""",
+            ]
 
             self.stdout = self.get_stdout()
             self.__class__.iter += 1
@@ -87,7 +87,7 @@ virbr2        8000.525400c0b080    yes        em1
             try:
                 return self.fake_cmds[self.__class__.iter]
             except IndexError:
-                return ''
+                return ""
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
@@ -95,31 +95,43 @@ virbr2        8000.525400c0b080    yes        em1
         def utils_run(*args, **kargs):
             return TestBridge.FakeCmd(*args, **kargs)
 
-        self.god.stub_with(process, 'run', utils_run)
+        self.god.stub_with(process, "run", utils_run)
 
     def test_getstructure(self):
 
         br = utils_net.Bridge().get_structure()
         self.assertEqual(
-            br, {'virbr1': {'iface': ['em1', 'virbr1-nic'], 'stp': 'yes'},
-                 'virbr0': {'iface': ['virbr0-nic'], 'stp': 'yes'}})
+            br,
+            {
+                "virbr1": {"iface": ["em1", "virbr1-nic"], "stp": "yes"},
+                "virbr0": {"iface": ["virbr0-nic"], "stp": "yes"},
+            },
+        )
 
         br = utils_net.Bridge().get_structure()
-        self.assertEqual(br, {'virbr0': {"iface": [], "stp": "yes"}})
+        self.assertEqual(br, {"virbr0": {"iface": [], "stp": "yes"}})
 
         br = utils_net.Bridge().get_structure()
         self.assertEqual(br, {})
 
         br = utils_net.Bridge().get_structure()
-        self.assertEqual(br, {'virbr2': {"iface": ['em1', 'virbr10-nic',
-                                                   'virbr40-nic', 'virbr50-nic'],
-                                         "stp": "yes"},
-                              'virbr1': {"iface": ['em1', 'virbr1-nic',
-                                                   'virbr4-nic', 'virbr5-nic'],
-                                         "stp": "yes"},
-                              'virbr0': {"iface": ['virbr0-nic', 'virbr2-nic',
-                                                   'virbr3-nic'],
-                                         "stp": "yes"}})
+        self.assertEqual(
+            br,
+            {
+                "virbr2": {
+                    "iface": ["em1", "virbr10-nic", "virbr40-nic", "virbr50-nic"],
+                    "stp": "yes",
+                },
+                "virbr1": {
+                    "iface": ["em1", "virbr1-nic", "virbr4-nic", "virbr5-nic"],
+                    "stp": "yes",
+                },
+                "virbr0": {
+                    "iface": ["virbr0-nic", "virbr2-nic", "virbr3-nic"],
+                    "stp": "yes",
+                },
+            },
+        )
 
     def tearDown(self):
         self.god.unstub_all()
@@ -149,6 +161,7 @@ class TestVirtIface(unittest.TestCase):
     def test_half_set(self):
         def what_func(propertea):
             return props[propertea]
+
         half_prop_end = (len(self.VirtIface.__all_slots__) // 2) + 1
         props = {}
         for propertea in self.VirtIface.__all_slots__[0:half_prop_end]:
@@ -159,6 +172,7 @@ class TestVirtIface(unittest.TestCase):
     def test_full_set(self):
         def what_func(propertea):
             return props[propertea]
+
         props = {}
         for propertea in self.VirtIface.__all_slots__:
             props[propertea] = utils_misc.generate_random_string(16)
@@ -169,8 +183,10 @@ class TestVirtIface(unittest.TestCase):
         """
         Verify container ignores unknown key names
         """
+
         def what_func(propertea):
             return props[propertea]
+
         props = {}
         for propertea in self.VirtIface.__all_slots__:
             props[propertea] = utils_misc.generate_random_string(16)
@@ -188,35 +204,43 @@ class TestVirtIface(unittest.TestCase):
         self.loop_assert(virtiface, list(props.keys()), what_func)
 
     def test_mac_completer(self):
-        for test_mac in ['9a', '01:02:03:04:05:06', '00', '1:2:3:4:5:6',
-                         '0a:0b:0c:0d:0e:0f', 'A0:B0:C0:D0:E0:F0',
-                         "01:02:03:04:05:", "01:02:03:04::", "01:02::::",
-                         "00:::::::::::::::::::", ":::::::::::::::::::",
-                         ":"]:
+        for test_mac in [
+            "9a",
+            "01:02:03:04:05:06",
+            "00",
+            "1:2:3:4:5:6",
+            "0a:0b:0c:0d:0e:0f",
+            "A0:B0:C0:D0:E0:F0",
+            "01:02:03:04:05:",
+            "01:02:03:04::",
+            "01:02::::",
+            "00:::::::::::::::::::",
+            ":::::::::::::::::::",
+            ":",
+        ]:
             # Tosses an exception if test_mac can't be completed
             self.VirtIface.complete_mac_address(test_mac)
-        self.assertRaises(TypeError, self.VirtIface.complete_mac_address,
-                          '01:f0:0:ba:r!:00')
-        self.assertRaises(TypeError, self.VirtIface.complete_mac_address,
-                          "01:02:03::05:06")
+        self.assertRaises(
+            TypeError, self.VirtIface.complete_mac_address, "01:f0:0:ba:r!:00"
+        )
+        self.assertRaises(
+            TypeError, self.VirtIface.complete_mac_address, "01:02:03::05:06"
+        )
 
 
 class TestQemuIface(TestVirtIface):
-
     def setUp(self):
         super(TestQemuIface, self).setUp()
         self.VirtIface = utils_net.QemuIface
 
 
 class TestLibvirtIface(TestVirtIface):
-
     def setUp(self):
         super(TestLibvirtIface, self).setUp()
         self.VirtIface = utils_net.LibvirtIface
 
 
 class TestVmNetStyle(unittest.TestCase):
-
     def setUp(self):
         logging.disable(logging.INFO)
         logging.disable(logging.WARNING)
@@ -225,21 +249,20 @@ class TestVmNetStyle(unittest.TestCase):
         return utils_net.VMNetStyle.get_style(vm_type, driver_type)
 
     def test_default_default(self):
-        style = self.get_style(utils_misc.generate_random_string(16),
-                               utils_misc.generate_random_string(16))
-        self.assertEqual(style['mac_prefix'], '9a')
-        self.assertEqual(style['container_class'], utils_net.QemuIface)
-        self.assert_(issubclass(style['container_class'], utils_net.VirtIface))
+        style = self.get_style(
+            utils_misc.generate_random_string(16), utils_misc.generate_random_string(16)
+        )
+        self.assertEqual(style["mac_prefix"], "9a")
+        self.assertEqual(style["container_class"], utils_net.QemuIface)
+        self.assert_(issubclass(style["container_class"], utils_net.VirtIface))
 
     def test_libvirt(self):
-        style = self.get_style('libvirt',
-                               utils_misc.generate_random_string(16))
-        self.assertEqual(style['container_class'], utils_net.LibvirtIface)
-        self.assert_(issubclass(style['container_class'], utils_net.VirtIface))
+        style = self.get_style("libvirt", utils_misc.generate_random_string(16))
+        self.assertEqual(style["container_class"], utils_net.LibvirtIface)
+        self.assert_(issubclass(style["container_class"], utils_net.VirtIface))
 
 
 class TestVmNet(unittest.TestCase):
-
     def setUp(self):
         logging.disable(logging.INFO)
         logging.disable(logging.WARNING)
@@ -252,33 +275,30 @@ class TestVmNet(unittest.TestCase):
 
     def test_VirtIface_container(self):
         test_data = [
-            {'nic_name': 'nic1',
-             'mac': '0a'},
-            {'nic_name': ''},  # test data index 1
-            {'foo': 'bar',
-             'nic_name': 'nic2'},
-            {'nic_name': 'nic3',
-             'mac': '01:02:03:04:05:06'}
+            {"nic_name": "nic1", "mac": "0a"},
+            {"nic_name": ""},  # test data index 1
+            {"foo": "bar", "nic_name": "nic2"},
+            {"nic_name": "nic3", "mac": "01:02:03:04:05:06"},
         ]
-        self.assertRaises(utils_net.VMNetError,
-                          utils_net.VMNet,
-                          utils_net.VirtIface, test_data)
+        self.assertRaises(
+            utils_net.VMNetError, utils_net.VMNet, utils_net.VirtIface, test_data
+        )
         del test_data[1]
         vmnet = utils_net.VMNet(utils_net.VirtIface, test_data)
-        self.assertEqual(vmnet[0].nic_name, test_data[0]['nic_name'])
-        self.assertEqual(vmnet['nic1'].__class__, utils_net.VirtIface)
-        self.assertEqual(False, hasattr(vmnet['nic1'], 'mac'))
-        self.assertEqual(False, 'mac' in list(vmnet['nic1'].keys()))
-        self.assertEqual(vmnet.nic_name_list(), ['nic1', 'nic2', 'nic3'])
-        self.assertEqual(vmnet.nic_name_index('nic2'), 1)
+        self.assertEqual(vmnet[0].nic_name, test_data[0]["nic_name"])
+        self.assertEqual(vmnet["nic1"].__class__, utils_net.VirtIface)
+        self.assertEqual(False, hasattr(vmnet["nic1"], "mac"))
+        self.assertEqual(False, "mac" in list(vmnet["nic1"].keys()))
+        self.assertEqual(vmnet.nic_name_list(), ["nic1", "nic2", "nic3"])
+        self.assertEqual(vmnet.nic_name_index("nic2"), 1)
         self.assertRaises(TypeError, vmnet.nic_name_index, 0)
-        self.assertEqual(True, hasattr(vmnet[2], 'mac'))
-        self.assertEqual(test_data[2]['mac'], vmnet[2]['mac'])
+        self.assertEqual(True, hasattr(vmnet[2], "mac"))
+        self.assertEqual(test_data[2]["mac"], vmnet[2]["mac"])
 
 
 class TestVmNetSubclasses(unittest.TestCase):
 
-    nettests_cartesian = ("""
+    nettests_cartesian = """
     variants:
         - onevm:
             vms=vm1
@@ -346,10 +366,10 @@ class TestVmNetSubclasses(unittest.TestCase):
             nettype_nic3 = bridge
             netdst_nic3 = virbr3
             netdev_nic3 = qwerty
-    """)
+    """
 
     mac_prefix = "01:02:03:04:05:"
-    db_filename = '/dev/shm/UnitTest_AddressPool'
+    db_filename = "/dev/shm/UnitTest_AddressPool"
     db_item_count = 0
     counter = 0  # for printing dots
 
@@ -371,15 +391,15 @@ class TestVmNetSubclasses(unittest.TestCase):
         for d in parser.get_dicts():
             params = utils_params.Params(d)
             self.CartesianResult.append(params)
-            for vm_name in params.objects('vms'):
+            for vm_name in params.objects("vms"):
                 vm = params.object_params(vm_name)
-                nics = vm.get('nics')
+                nics = vm.get("nics")
                 if nics and len(nics.split()) > 0:
                     self.db_item_count += 1
 
     def fakevm_generator(self):
         for params in self.CartesianResult:
-            for vm_name in params.get('vms').split():
+            for vm_name in params.get("vms").split():
                 # Return iterator covering all types of vms
                 # in exactly the same order each time. For more info, see:
                 # http://docs.python.org/reference/simple_stmts.html#yield
@@ -407,25 +427,28 @@ class TestVmNetSubclasses(unittest.TestCase):
             if to_test < 1:
                 break
             fvm1p = fakevm1.get_params()
-            fakevm1.virtnet = utils_net.VirtNet(fvm1p, fakevm1.name,
-                                                fakevm1.instance,
-                                                self.db_filename)
+            fakevm1.virtnet = utils_net.VirtNet(
+                fvm1p, fakevm1.name, fakevm1.instance, self.db_filename
+            )
             if len(fakevm1.virtnet) < 2:
                 continue
             fakevm2 = FakeVm(fakevm1.name + "_2", fvm1p)
-            fakevm2.virtnet = utils_net.VirtNet(fvm1p, fakevm2.name,
-                                                fakevm2.instance,
-                                                self.db_filename)
+            fakevm2.virtnet = utils_net.VirtNet(
+                fvm1p, fakevm2.name, fakevm2.instance, self.db_filename
+            )
             # Verify nic order doesn't matter
             fvm3p = utils_params.Params(list(fvm1p.items()))  # work on copy
-            nic_list = fvm1p.object_params(fakevm1.name).get(
-                "nics", fvm1p.get('nics', "")).split()
+            nic_list = (
+                fvm1p.object_params(fakevm1.name)
+                .get("nics", fvm1p.get("nics", ""))
+                .split()
+            )
             random.shuffle(nic_list)
-            fvm3p['nics'] = " ".join(nic_list)
+            fvm3p["nics"] = " ".join(nic_list)
             fakevm3 = FakeVm(fakevm1.name + "_3", fvm3p)
-            fakevm3.virtnet = utils_net.VirtNet(fvm3p, fakevm3.name,
-                                                fakevm3.instance,
-                                                self.db_filename)
+            fakevm3.virtnet = utils_net.VirtNet(
+                fvm3p, fakevm3.name, fakevm3.instance, self.db_filename
+            )
             self.assertTrue(fakevm1.virtnet == fakevm1.virtnet)
             self.assertTrue(fakevm1.virtnet == fakevm2.virtnet)
             self.assertTrue(fakevm1.virtnet == fakevm3.virtnet)
@@ -448,15 +471,17 @@ class TestVmNetSubclasses(unittest.TestCase):
         self.zero_counter()
         for fakevm in self.fakevm_generator():
             test_params = fakevm.get_params()
-            virtnet = utils_net.ParamsNet(test_params,
-                                          fakevm.name)
+            virtnet = utils_net.ParamsNet(test_params, fakevm.name)
             self.assert_(virtnet.container_class)
             self.assert_(virtnet.mac_prefix)
             self.assert_(issubclass(virtnet.__class__, list))
             # Assume params actually came from CartesianResult because
             # Checking this takes a very long time across all combinations
-            param_nics = test_params.object_params(fakevm.name).get(
-                "nics", test_params.get('nics', "")).split()
+            param_nics = (
+                test_params.object_params(fakevm.name)
+                .get("nics", test_params.get("nics", ""))
+                .split()
+            )
             # Size of list should match number of nics configured
             self.assertEqual(len(param_nics), len(virtnet))
             # Test each interface data
@@ -464,18 +489,20 @@ class TestVmNetSubclasses(unittest.TestCase):
                 # index correspondence already established/asserted
                 virtnet_nic = virtnet[virtnet_index]
                 params_nic = param_nics[virtnet_index]
-                self.assert_(issubclass(virtnet_nic.__class__,
-                                        propcan.PropCan))
-                self.assertEqual(virtnet_nic.nic_name, params_nic,
-                                 "%s != %s" % (virtnet_nic.nic_name,
-                                               params_nic))
+                self.assert_(issubclass(virtnet_nic.__class__, propcan.PropCan))
+                self.assertEqual(
+                    virtnet_nic.nic_name,
+                    params_nic,
+                    "%s != %s" % (virtnet_nic.nic_name, params_nic),
+                )
                 # __slots__ functionality established/asserted elsewhere
                 props_to_check = list(utils_net.VirtIface.__all_slots__)
                 # other tests check mac address handling
-                del props_to_check[props_to_check.index('mac')]
+                del props_to_check[props_to_check.index("mac")]
                 for propertea in props_to_check:
-                    params_propertea = test_params.object_params(params_nic
-                                                                 ).get(propertea)
+                    params_propertea = test_params.object_params(params_nic).get(
+                        propertea
+                    )
                     # Double-verify dual-mode access works
                     try:
                         virtnet_propertea1 = getattr(virtnet_nic, propertea)
@@ -486,8 +513,7 @@ class TestVmNetSubclasses(unittest.TestCase):
                     # Only check stuff cartesian config actually set
                     if params_propertea:
                         self.assertEqual(params_propertea, virtnet_propertea1)
-                        self.assertEqual(
-                            virtnet_propertea1, virtnet_propertea2)
+                        self.assertEqual(virtnet_propertea1, virtnet_propertea2)
             self.print_and_inc()
 
     def test_02_db(self):
@@ -501,22 +527,23 @@ class TestVmNetSubclasses(unittest.TestCase):
         self.zero_counter()
         for fakevm in self.fakevm_generator():
             test_params = fakevm.get_params()
-            virtnet = utils_net.DbNet(test_params, fakevm.name,
-                                      self.db_filename, fakevm.instance)
-            self.assert_(hasattr(virtnet, 'container_class'))
-            self.assert_(hasattr(virtnet, 'mac_prefix'))
-            self.assert_(not hasattr(virtnet, 'lock'))
-            self.assert_(not hasattr(virtnet, 'db'))
+            virtnet = utils_net.DbNet(
+                test_params, fakevm.name, self.db_filename, fakevm.instance
+            )
+            self.assert_(hasattr(virtnet, "container_class"))
+            self.assert_(hasattr(virtnet, "mac_prefix"))
+            self.assert_(not hasattr(virtnet, "lock"))
+            self.assert_(not hasattr(virtnet, "db"))
             vm_name_params = test_params.object_params(fakevm.name)
-            nic_name_list = vm_name_params.objects('nics')
+            nic_name_list = vm_name_params.objects("nics")
             for nic_name in nic_name_list:
                 # nic name is only in params scope
-                nic_dict = {'nic_name': nic_name}
+                nic_dict = {"nic_name": nic_name}
                 nic_params = test_params.object_params(nic_name)
                 # avoid processing unsupported properties
                 proplist = list(virtnet.container_class().__all_slots__)
                 # name was already set, remove from __slots__ list copy
-                del proplist[proplist.index('nic_name')]
+                del proplist[proplist.index("nic_name")]
                 for propertea in proplist:
                     nic_dict[propertea] = nic_params.get(propertea)
                 virtnet.append(nic_dict)
@@ -539,7 +566,7 @@ class TestVmNetSubclasses(unittest.TestCase):
             self.assert_(len(db_value) > 0)
             self.assert_(isinstance(db_value[0], dict))
             for nic in db_value:
-                mac = nic.get('mac')
+                mac = nic.get("mac")
                 if mac:
                     # Another test already checked mac_is_valid behavior
                     self.assert_(utils_net.VirtIface.mac_is_valid(mac))
@@ -563,19 +590,21 @@ class TestVmNetSubclasses(unittest.TestCase):
                 mac = "%s0%x" % (self.mac_prefix, lastbyte)
             else:
                 mac = "%s%x" % (self.mac_prefix, lastbyte)
-            params = utils_params.Params({
-                "nics": "nic1",
-                "vms": vm_name,
-                "mac_nic1": mac,
-            })
-            virtnet = utils_net.VirtNet(params, vm_name,
-                                        vm_name, self.db_filename)
+            params = utils_params.Params(
+                {
+                    "nics": "nic1",
+                    "vms": vm_name,
+                    "mac_nic1": mac,
+                }
+            )
+            virtnet = utils_net.VirtNet(params, vm_name, vm_name, self.db_filename)
             virtnet.mac_prefix = self.mac_prefix
-            self.assertEqual(virtnet['nic1'].mac, mac)
+            self.assertEqual(virtnet["nic1"].mac, mac)
             self.assertEqual(virtnet.get_mac_address(0), mac)
             # Confirm only lower-case macs are stored
-            self.assertEqual(virtnet.get_mac_address(0).lower(),
-                             virtnet.get_mac_address(0))
+            self.assertEqual(
+                virtnet.get_mac_address(0).lower(), virtnet.get_mac_address(0)
+            )
             self.assertEqual(virtnet.mac_list(), [mac])
             self.print_and_inc()
 
@@ -590,17 +619,13 @@ class TestVmNetSubclasses(unittest.TestCase):
         # also confirming params merge with db data
         for lastbyte in xrange(0, 0xFF):
             vm_name = "vm%d" % lastbyte
-            params = utils_params.Params({
-                "nics": "nic1",
-                "vms": vm_name
-            })
-            virtnet = utils_net.VirtNet(params, vm_name,
-                                        vm_name, self.db_filename)
+            params = utils_params.Params({"nics": "nic1", "vms": vm_name})
+            virtnet = utils_net.VirtNet(params, vm_name, vm_name, self.db_filename)
             if lastbyte < 16:
                 mac = "%s0%x" % (self.mac_prefix, lastbyte)
             else:
                 mac = "%s%x" % (self.mac_prefix, lastbyte)
-            self.assertEqual(virtnet['nic1'].mac, mac)
+            self.assertEqual(virtnet["nic1"].mac, mac)
             self.assertEqual(virtnet.get_mac_address(0), mac)
             self.print_and_inc()
 
@@ -612,59 +637,49 @@ class TestVmNetSubclasses(unittest.TestCase):
         """
         self.zero_counter(25)
         # test two nics, second mac generation should fail (pool exhausted)
-        params = utils_params.Params({
-            "nics": "nic1 nic2",
-            "vms": "vm255"
-        })
-        virtnet = utils_net.VirtNet(params, 'vm255',
-                                    'vm255', self.db_filename)
+        params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm255"})
+        virtnet = utils_net.VirtNet(params, "vm255", "vm255", self.db_filename)
         virtnet.mac_prefix = self.mac_prefix
-        self.assertRaises(AttributeError, virtnet.get_mac_address, 'nic1')
+        self.assertRaises(AttributeError, virtnet.get_mac_address, "nic1")
         mac = "%s%x" % (self.mac_prefix, 255)
         # This will grab the last available address
         # only try 300 times, guarantees LASTBYTE counter will loop once
         self.assertEqual(virtnet.generate_mac_address(0, 300), mac)
         # This will fail allocation
-        self.assertRaises(utils_net.NetError,
-                          virtnet.generate_mac_address, 1, 300)
+        self.assertRaises(utils_net.NetError, virtnet.generate_mac_address, 1, 300)
 
     def test_07_VirtNet(self):
         """
         Release mac from beginning, middle, and end, re-generate + verify value
         """
         self.zero_counter(1)
-        beginning_params = utils_params.Params({
-            "nics": "nic1 nic2",
-            "vms": "vm0"
-        })
-        middle_params = utils_params.Params({
-            "nics": "nic1 nic2",
-            "vms": "vm127"
-        })
-        end_params = utils_params.Params({
-            "nics": "nic1 nic2",
-            "vms": "vm255",
-        })
+        beginning_params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm0"})
+        middle_params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm127"})
+        end_params = utils_params.Params(
+            {
+                "nics": "nic1 nic2",
+                "vms": "vm255",
+            }
+        )
         for params in (beginning_params, middle_params, end_params):
-            vm_name = params['vms']
-            virtnet = utils_net.VirtNet(params, vm_name,
-                                        vm_name, self.db_filename)
+            vm_name = params["vms"]
+            virtnet = utils_net.VirtNet(params, vm_name, vm_name, self.db_filename)
             virtnet.mac_prefix = self.mac_prefix
-            iface = virtnet['nic1']
+            iface = virtnet["nic1"]
             last_db_mac_byte = iface.mac_str_to_int_list(iface.mac)[-1]
             last_vm_name_byte = int(vm_name[2:])
             # Sequential generation from test_04_VirtNet guarantee
             self.assertEqual(last_db_mac_byte, last_vm_name_byte)
             # only try 300 times, guarantees LASTBYTE counter will loop once
-            self.assertRaises(
-                utils_net.NetError, virtnet.generate_mac_address, 1, 300)
+            self.assertRaises(utils_net.NetError, virtnet.generate_mac_address, 1, 300)
             virtnet.free_mac_address(0)
             virtnet.free_mac_address(1)
             # generate new on nic1 to verify mac_index generator catches it
             # and to signify database updated after generation
             virtnet.generate_mac_address(1, 300)
-            last_db_mac_byte = virtnet['nic2'].mac_str_to_int_list(
-                virtnet['nic2'].mac)[-1]
+            last_db_mac_byte = virtnet["nic2"].mac_str_to_int_list(virtnet["nic2"].mac)[
+                -1
+            ]
             self.assertEqual(last_db_mac_byte, last_vm_name_byte)
             self.assertEqual(virtnet.get_mac_address(1), virtnet[1].mac)
             self.print_and_inc()
@@ -672,12 +687,10 @@ class TestVmNetSubclasses(unittest.TestCase):
     def test_08_ifname(self):
         for fakevm in self.fakevm_generator():
             # only need to test kvm instance
-            if fakevm.vm_type != 'qemu':
+            if fakevm.vm_type != "qemu":
                 continue
             test_params = fakevm.get_params()
-            virtnet = utils_net.VirtNet(test_params,
-                                        fakevm.name,
-                                        fakevm.name)
+            virtnet = utils_net.VirtNet(test_params, fakevm.name, fakevm.name)
             for virtnet_index in xrange(0, len(virtnet)):
                 result = virtnet.generate_ifname(virtnet_index)
                 self.assertEqual(result, virtnet[virtnet_index].ifname)
@@ -694,5 +707,5 @@ class TestVmNetSubclasses(unittest.TestCase):
             pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

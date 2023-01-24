@@ -8,7 +8,7 @@ from aexpect import remote
 from avocado.utils import process
 from avocado.core import exceptions
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class Iptables(object):
@@ -17,8 +17,7 @@ class Iptables(object):
     """
 
     @classmethod
-    def setup_or_cleanup_iptables_rules(cls, rules, params=None,
-                                        cleanup=False):
+    def setup_or_cleanup_iptables_rules(cls, rules, params=None, cleanup=False):
         """
         Setup or cleanup for iptable rules, it can be locally or remotely
 
@@ -33,24 +32,25 @@ class Iptables(object):
             server_ip = params.get("server_ip")
             server_user = params.get("server_user", "root")
             server_pwd = params.get("server_pwd")
-            server_session = remote.wait_for_login('ssh', server_ip, '22',
-                                                   server_user, server_pwd,
-                                                   r"[\#\$]\s*$")
+            server_session = remote.wait_for_login(
+                "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+            )
             cmd_output = server_session.cmd_status_output(iptable_check_cmd)
-            if (cmd_output[0] == 0):
-                exist_rules = cmd_output[1].strip().split('\n')
+            if cmd_output[0] == 0:
+                exist_rules = cmd_output[1].strip().split("\n")
             else:
                 server_session.close()
-                raise exceptions.TestError("iptables fails for command "
-                                           "remotely %s" % iptable_check_cmd)
+                raise exceptions.TestError(
+                    "iptables fails for command " "remotely %s" % iptable_check_cmd
+                )
         else:
             try:
-                cmd_output = process.run(iptable_check_cmd,
-                                         shell=True).stdout_text
-                exist_rules = cmd_output.strip().split('\n')
+                cmd_output = process.run(iptable_check_cmd, shell=True).stdout_text
+                exist_rules = cmd_output.strip().split("\n")
             except process.CmdError as info:
-                raise exceptions.TestError("iptables fails for command "
-                                           "locally %s" % iptable_check_cmd)
+                raise exceptions.TestError(
+                    "iptables fails for command " "locally %s" % iptable_check_cmd
+                )
         # check rules whether it is really needed to be added or cleaned
         for rule in rules:
             flag = False
@@ -69,10 +69,11 @@ class Iptables(object):
         for command in commands:
             if params:
                 cmd_output = server_session.cmd_status_output(command)
-                if (cmd_output[0] != 0):
+                if cmd_output[0] != 0:
                     server_session.close()
-                    raise exceptions.TestError("iptables command failed "
-                                               "remotely %s" % command)
+                    raise exceptions.TestError(
+                        "iptables command failed " "remotely %s" % command
+                    )
                 else:
                     LOG.debug("iptable command success %s", command)
             else:
@@ -80,8 +81,9 @@ class Iptables(object):
                     cmd_output = process.run(command, shell=True).stdout_text
                     LOG.debug("iptable command success %s", command)
                 except process.CmdError as info:
-                    raise exceptions.TestError("iptables fails for command "
-                                               "locally %s" % command)
+                    raise exceptions.TestError(
+                        "iptables fails for command " "locally %s" % command
+                    )
         # cleanup server session
         if params:
             server_session.close()
@@ -125,7 +127,7 @@ class Firewall_cmd(object):
         if dargs.get("firewalld_reload", True):
             self.reload()
 
-    def lists(self, key='all', **dargs):
+    def lists(self, key="all", **dargs):
         """
         Method to list existing services/ports etc.,
 
@@ -135,11 +137,11 @@ class Firewall_cmd(object):
         :return: output of the --list-*
         """
         cmd = "--list-%s" % key
-        dargs['firewalld_reload'] = False
+        dargs["firewalld_reload"] = False
         self.command(cmd, **dargs)
         return self.output
 
-    def get(self, key='zones', is_direct=False, **dargs):
+    def get(self, key="zones", is_direct=False, **dargs):
         """
         Method to get existing zones/services etc.,
 
@@ -152,7 +154,7 @@ class Firewall_cmd(object):
         cmd = "--get-%s" % key
         if is_direct:
             cmd = "--direct " + cmd
-        dargs['firewalld_reload'] = False
+        dargs["firewalld_reload"] = False
         self.command(cmd, **dargs)
         return self.output
 

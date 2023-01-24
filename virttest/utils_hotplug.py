@@ -21,13 +21,25 @@ import logging
 from virttest.libvirt_xml.devices import memory
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
-                   pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
-                   mem_discard=None, alias=None, lb_size=None,
-                   lb_sizeunit="Kib", mem_access=None, uuid=None):
+def create_mem_xml(
+    tg_size,
+    pg_size=None,
+    mem_addr=None,
+    tg_sizeunit="KiB",
+    pg_unit="KiB",
+    tg_node=0,
+    node_mask=0,
+    mem_model="dimm",
+    mem_discard=None,
+    alias=None,
+    lb_size=None,
+    lb_sizeunit="Kib",
+    mem_access=None,
+    uuid=None,
+):
     """
     Create memory device xml.
     This function is deprecated now.
@@ -81,8 +93,7 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     if mem_discard:
         mem_xml.mem_discard = mem_discard
     if mem_addr:
-        mem_xml.address = mem_xml.new_mem_address(
-            **{"attrs": mem_addr})
+        mem_xml.address = mem_xml.new_mem_address(**{"attrs": mem_addr})
     if mem_access:
         mem_xml.mem_access = mem_access
     if alias:

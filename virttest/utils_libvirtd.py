@@ -23,7 +23,7 @@ try:
 except path.CmdNotFoundError:
     LIBVIRTD = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class Libvirtd(object):
@@ -57,8 +57,10 @@ class Libvirtd(object):
         self.service_list = []
 
         if LIBVIRTD is None:
-            LOG.warning("Libvirtd service is not available in host, "
-                        "utils_libvirtd module will not function normally")
+            LOG.warning(
+                "Libvirtd service is not available in host, "
+                "utils_libvirtd module will not function normally"
+            )
 
         self.service_name = "libvirtd" if not service_name else service_name
 
@@ -67,18 +69,27 @@ class Libvirtd(object):
                 if self.service_name in ["libvirtd", "libvirtd.service"]:
                     self.service_name = "virtqemud"
                     if self.all_daemons:
-                        self.service_list = ['virtqemud', 'virtproxyd',
-                                             'virtnetworkd', 'virtinterfaced',
-                                             'virtnodedevd', 'virtsecretd',
-                                             'virtstoraged', 'virtnwfilterd']
+                        self.service_list = [
+                            "virtqemud",
+                            "virtproxyd",
+                            "virtnetworkd",
+                            "virtinterfaced",
+                            "virtnodedevd",
+                            "virtsecretd",
+                            "virtstoraged",
+                            "virtnwfilterd",
+                        ]
                 elif self.service_name == "libvirtd.socket":
                     self.service_name = "virtqemud.socket"
-                elif self.service_name in ["libvirtd-tcp.socket", "libvirtd-tls.socket"]:
-                    self.service_name = re.sub("libvirtd", "virtproxyd",
-                                               self.service_name)
+                elif self.service_name in [
+                    "libvirtd-tcp.socket",
+                    "libvirtd-tls.socket",
+                ]:
+                    self.service_name = re.sub(
+                        "libvirtd", "virtproxyd", self.service_name
+                    )
             else:
-                self.service_name = re.sub("^virt.*d", "libvirtd",
-                                           self.service_name)
+                self.service_name = re.sub("^virt.*d", "libvirtd", self.service_name)
         else:
             self.service_name = "libvirtd"
         if not self.service_list:
@@ -90,6 +101,7 @@ class Libvirtd(object):
         """
         Wait n seconds for libvirt to start. Default is 10 seconds.
         """
+
         def _check_start():
             virsh_cmd = "virsh list"
             try:
@@ -100,6 +112,7 @@ class Libvirtd(object):
                 return True
             except Exception:
                 return False
+
         return utils_misc.wait_for(_check_start, timeout=timeout)
 
     def start(self, reset_failed=True):
@@ -157,8 +170,12 @@ class DaemonSocket(object):
             self.runner = process.run
 
         self.daemon_name = daemon_name
-        supported_daemon = ["libvirtd-tcp.socket", "libvirtd-tls.socket",
-                            "virtproxyd-tls.socket", "virtproxyd-tcp.socket"]
+        supported_daemon = [
+            "libvirtd-tcp.socket",
+            "libvirtd-tls.socket",
+            "virtproxyd-tls.socket",
+            "virtproxyd-tcp.socket",
+        ]
         if self.daemon_name not in supported_daemon:
             raise ValueError("Invalid daemon: %s" % self.daemon_name)
 
@@ -202,11 +219,14 @@ class LibvirtdSession(object):
     and "libvirtd" if it's disabled.
     """
 
-    def __init__(self, gdb=False,
-                 logging_handler=None,
-                 logging_params=(),
-                 logging_pattern=r'.*',
-                 service_name=None):
+    def __init__(
+        self,
+        gdb=False,
+        logging_handler=None,
+        logging_params=(),
+        logging_pattern=r".*",
+        service_name=None,
+    ):
         """
         :param gdb: Whether call the session with gdb debugging support
         :param logging_handler: Callback function to handle logging
@@ -220,12 +240,11 @@ class LibvirtdSession(object):
         self.service_name = service_name
         self.bundle = {"stop-info": None}
         # Get an executable program to debug by GDB
-        self.service_exec = Libvirtd(
-            service_name=self.service_name).service_list[0]
+        self.service_exec = Libvirtd(service_name=self.service_name).service_list[0]
         self.libvirtd_service = Libvirtd(service_name=self.service_exec)
         self.was_running = self.libvirtd_service.is_running()
         if self.was_running:
-            LOG.debug('Stopping %s service', self.service_exec)
+            LOG.debug("Stopping %s service", self.service_exec)
             self.libvirtd_service.stop()
 
         self.logging_handler = logging_handler
@@ -234,9 +253,9 @@ class LibvirtdSession(object):
 
         if gdb:
             self.gdb = GDB(self.service_exec)
-            self.gdb.set_callback('stop', self._stop_callback, self.bundle)
-            self.gdb.set_callback('start', self._start_callback, self.bundle)
-            self.gdb.set_callback('termination', self._termination_callback)
+            self.gdb.set_callback("stop", self._stop_callback, self.bundle)
+            self.gdb.set_callback("start", self._start_callback, self.bundle)
+            self.gdb.set_callback("termination", self._termination_callback)
 
     def _output_handler(self, line):
         """
@@ -273,7 +292,7 @@ class LibvirtdSession(object):
         :param status: Return code of exited libvirtd session
         """
         self.running = False
-        params['stop-info'] = info
+        params["stop-info"] = info
 
     def _start_callback(self, gdb, info, params):
         """
@@ -283,19 +302,18 @@ class LibvirtdSession(object):
         :param status: Return code of exited libvirtd session
         """
         self.running = True
-        params['stop-info'] = None
+        params["stop-info"] = None
 
     def set_callback(self, callback_type, callback_func, callback_params=None):
         """
         Set a customized gdb callback function.
         """
         if self.gdb:
-            self.gdb.set_callback(
-                callback_type, callback_func, callback_params)
+            self.gdb.set_callback(callback_type, callback_func, callback_params)
         else:
             LOG.error("Only gdb session supports setting callback")
 
-    def start(self, arg_str='', wait_for_working=True):
+    def start(self, arg_str="", wait_for_working=True):
         """
         Start libvirtd session.
 
@@ -334,7 +352,7 @@ class LibvirtdSession(object):
         else:
             self.tail.kill()
 
-    def restart(self, arg_str='', wait_for_working=True):
+    def restart(self, arg_str="", wait_for_working=True):
         """
         Restart the libvirtd session.
 
@@ -351,7 +369,7 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        LOG.debug('Waiting for %s to work', self.service_exec)
+        LOG.debug("Waiting for %s to work", self.service_exec)
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -364,7 +382,7 @@ class LibvirtdSession(object):
         if self.gdb:
             return self.gdb.back_trace()
         else:
-            LOG.warning('Can not get back trace without gdb')
+            LOG.warning("Can not get back trace without gdb")
 
     def insert_break(self, break_func):
         """
@@ -375,7 +393,7 @@ class LibvirtdSession(object):
         if self.gdb:
             return self.gdb.insert_break(break_func)
         else:
-            LOG.warning('Can not insert breakpoint without gdb')
+            LOG.warning("Can not insert breakpoint without gdb")
 
     def is_working(self):
         """
@@ -395,7 +413,7 @@ class LibvirtdSession(object):
         :param timeout: Max wait time
         :param step: Checking interval
         """
-        LOG.debug('Waiting for %s to stop', self.service_exec)
+        LOG.debug("Waiting for %s to stop", self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
@@ -411,7 +429,7 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        LOG.debug('Waiting for %s to terminate', self.service_exec)
+        LOG.debug("Waiting for %s to terminate", self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_termination(timeout=timeout)
         else:
@@ -436,9 +454,11 @@ def deprecation_warning():
     As the utils_libvirtd.libvirtd_xxx interfaces are deprecated,
     this function are printing the warning to user.
     """
-    LOG.warning("This function was deprecated, Please use "
-                "class utils_libvirtd.Libvirtd to manage "
-                "libvirtd service.")
+    LOG.warning(
+        "This function was deprecated, Please use "
+        "class utils_libvirtd.Libvirtd to manage "
+        "libvirtd service."
+    )
 
 
 def libvirtd_start():

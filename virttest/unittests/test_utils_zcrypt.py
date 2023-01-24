@@ -19,16 +19,17 @@ except ImportError:
 import virttest
 from virttest.utils_zcrypt import CryptoDeviceInfoBuilder
 
-OUT_OK = ("CARD.DOMAIN TYPE  MODE        STATUS  REQUESTS  PENDING HWTYPE QDEPTH FUNCTIONS  DRIVER     \n"
-          "--------------------------------------------------------------------------------------------\n"
-          "01          CEX5C CCA-Coproc  online         1        0     11     08 S--D--N--  cex4card   \n"
-          "01.002c     CEX5C CCA-Coproc  online         1        0     11     08 S--D--N--  cex4queue  \n")
+OUT_OK = (
+    "CARD.DOMAIN TYPE  MODE        STATUS  REQUESTS  PENDING HWTYPE QDEPTH FUNCTIONS  DRIVER     \n"
+    "--------------------------------------------------------------------------------------------\n"
+    "01          CEX5C CCA-Coproc  online         1        0     11     08 S--D--N--  cex4card   \n"
+    "01.002c     CEX5C CCA-Coproc  online         1        0     11     08 S--D--N--  cex4queue  \n"
+)
 
 virttest.utils_zcrypt.cmd_status_output = mock.Mock(return_value=(0, OUT_OK))
 
 
 class LszcryptCmd(unittest.TestCase):
-
     def setUp(self):
         self.info = CryptoDeviceInfoBuilder.get()
 
@@ -46,12 +47,15 @@ class LszcryptCmd(unittest.TestCase):
         self.assertEqual(len(domains), 1)
         self.assertEqual("002c", domains[0].domain)
 
-    @mock.patch.object(virttest.utils_zcrypt, "cmd_status_output",
-                       return_value=(1, virttest.utils_zcrypt.NO_DEVICES))
+    @mock.patch.object(
+        virttest.utils_zcrypt,
+        "cmd_status_output",
+        return_value=(1, virttest.utils_zcrypt.NO_DEVICES),
+    )
     def test_get_info_no_devices(self, *mocks):
         self.info = CryptoDeviceInfoBuilder.get()
         self.assertEqual(len(self.info.entries), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

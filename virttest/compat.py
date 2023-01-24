@@ -15,12 +15,17 @@ def is_registering_settings_required():
     TODO: remove this once support for Avocado releases before 81.0,
     including 69.x LTS is dropped.
     """
-    return all((hasattr(settings, 'add_argparser_to_option'),
-                hasattr(settings, 'register_option'),
-                hasattr(settings, 'as_json')))
+    return all(
+        (
+            hasattr(settings, "add_argparser_to_option"),
+            hasattr(settings, "register_option"),
+            hasattr(settings, "as_json"),
+        )
+    )
 
 
 if is_registering_settings_required():
+
     def get_opt(opt, name):
         """
         Compatibility handler to Avocado with configuration as dict
@@ -45,19 +50,21 @@ if is_registering_settings_required():
         pass
 
     def get_settings_value(section, key, **kwargs):
-        namespace = '%s.%s' % (section, key)
+        namespace = "%s.%s" % (section, key)
         return settings.as_dict().get(namespace)
 
     def add_option(parser, arg, **kwargs):
         """Add a command-line argument parser to an existing option."""
         settings.add_argparser_to_option(
-            namespace=kwargs.get('dest'),
-            action=kwargs.get('action', 'store'),
+            namespace=kwargs.get("dest"),
+            action=kwargs.get("action", "store"),
             parser=parser,
             allow_multiple=True,
-            long_arg=arg)
+            long_arg=arg,
+        )
 
 else:
+
     def get_opt(opt, name):
         """
         Compatibility handler for options in either argparse.Namespace or dict
@@ -86,7 +93,7 @@ else:
     def set_opt_from_settings(opt, section, key, **kwargs):
         """Sets option default value from the configuration file."""
         value = settings.get_value(section, key, **kwargs)
-        namespace = '%s.%s' % (section, key)
+        namespace = "%s.%s" % (section, key)
         set_opt(opt, namespace, value)
 
     def get_settings_value(section, key, **kwargs):

@@ -12,25 +12,25 @@ except ImportError:
 
 
 class Md5MissMatch(Exception):
-
     def __init__(self, md5_pre, md5_post):
         Exception.__init__(self, md5_pre, md5_post)
         self.md5_pre = md5_pre
         self.md5_post = md5_post
 
     def __str__(self):
-        return ("Md5 miss match. Original md5 = %s, current md5 = %s" %
-                (self.md5_pre, self.md5_post))
+        return "Md5 miss match. Original md5 = %s, current md5 = %s" % (
+            self.md5_pre,
+            self.md5_post,
+        )
 
 
 class ShakeHandError(Exception):
-
     def __init__(self, msg):
         Exception.__init__(self, msg)
         self.msg = msg
 
     def __str__(self):
-        return ("Shake hand fail. %s" % self.msg)
+        return "Shake hand fail. %s" % self.msg
 
 
 def md5_init(data=None):
@@ -75,7 +75,7 @@ def get_md5(filename, size=None):
 
     if not size or size > fsize:
         size = fsize
-    f = open(filename, 'rb')
+    f = open(filename, "rb")
 
     md5_value = md5_init()
     while size > 0:
@@ -92,20 +92,20 @@ def get_md5(filename, size=None):
 
 
 def read(connect, exp_len, connect_type):
-    if connect_type == 'socket':
+    if connect_type == "socket":
         return connect.recv(exp_len)
     else:
         return os.read(connect, exp_len)
 
 
 def write(connect, txt, connect_type):
-    if connect_type == 'socket':
+    if connect_type == "socket":
         connect.send(txt)
     else:
         os.write(connect, txt)
 
 
-def shake_hand(connect, size=0, action="receive", connect_type='socket'):
+def shake_hand(connect, size=0, action="receive", connect_type="socket"):
     hi_str = struct.pack("2s", b"HI")
     hi_str_len = len(hi_str)
     if action == "send":
@@ -122,7 +122,7 @@ def shake_hand(connect, size=0, action="receive", connect_type='socket'):
             raise ShakeHandError("Guest did not ACK the file size message.")
         return size
     elif action == "receive":
-        txt = b''
+        txt = b""
         while len(txt) < hi_str_len:
             txt += read(connect, hi_str_len, connect_type)
         hi_str = struct.unpack("2s", txt)[0]
@@ -137,13 +137,13 @@ def shake_hand(connect, size=0, action="receive", connect_type='socket'):
         return size
 
 
-def receive(connect, filename, p_size=1024, connect_type='socket'):
+def receive(connect, filename, p_size=1024, connect_type="socket"):
     recv_size = 0
     size = shake_hand(connect, action="receive", connect_type=connect_type)
     if p_size < int(size):
         p_size = int(size)
     md5_value = md5_init()
-    file_no = open(filename, 'wb')
+    file_no = open(filename, "wb")
     try:
         while recv_size < size:
             txt = read(connect, p_size, connect_type)
@@ -156,12 +156,12 @@ def receive(connect, filename, p_size=1024, connect_type='socket'):
     return md5_sum
 
 
-def send(connect, filename, p_size=1024, connect_type='socket'):
+def send(connect, filename, p_size=1024, connect_type="socket"):
     send_size = 0
     f_size = os.path.getsize(filename)
     shake_hand(connect, f_size, action="send", connect_type=connect_type)
     md5_value = md5_init()
-    file_no = open(filename, 'rb')
+    file_no = open(filename, "rb")
     try:
         while send_size < f_size:
             txt = file_no.read(p_size)
@@ -177,9 +177,9 @@ def send(connect, filename, p_size=1024, connect_type='socket'):
 
 
 def wait_receive_ack(connect, connect_type):
-    exp_str = b'ALLRECEIVED'
+    exp_str = b"ALLRECEIVED"
     exp_size = len(exp_str)
-    r_str = b''
+    r_str = b""
     r_size = 0
     while r_size < exp_size:
         txt = read(connect, exp_size, connect_type)
@@ -190,7 +190,7 @@ def wait_receive_ack(connect, connect_type):
 
 
 def close_connect(connect, connect_type):
-    if connect_type == 'socket':
+    if connect_type == "socket":
         connect.shutdown(socket.SHUT_RDWR)
         connect.close()
     else:
@@ -198,24 +198,49 @@ def close_connect(connect, connect_type):
 
 
 def main():
-    parser = optparse.OptionParser("Transfer data between guest and host"
-                                   "through virtio serial. Please make sure"
-                                   "VirtIOChannel.py run in guest first.")
-    parser.add_option("-t", "--type", dest="type", default="unix_socket",
-                      help="The device type of chardev, eg:unix_socket,"
-                           " tcp_socket, udp, etc. unix_socket by default")
-    parser.add_option("-s", "--socket", dest="socket",
-                      help="The host device used in qemu command"
-                           "eg:your CLI:-chardev socket,id=channel2,"
-                           "path=/tmp/helloworld2 ,then input"
-                           "'/tmp/helloworld2' here. Or '127.0.0.1:6001'"
-                           " for tcp/udp socket")
-    parser.add_option("-f", "--filename", dest="filename",
-                      help="File transfer to guest or save data to.")
-    parser.add_option("-a", "--action", dest="action", default="send",
-                      help="Send data out or receive data.")
-    parser.add_option("-p", "--package", dest="package", default=1024,
-                      help="Package size during file transfer.")
+    parser = optparse.OptionParser(
+        "Transfer data between guest and host"
+        "through virtio serial. Please make sure"
+        "VirtIOChannel.py run in guest first."
+    )
+    parser.add_option(
+        "-t",
+        "--type",
+        dest="type",
+        default="unix_socket",
+        help="The device type of chardev, eg:unix_socket,"
+        " tcp_socket, udp, etc. unix_socket by default",
+    )
+    parser.add_option(
+        "-s",
+        "--socket",
+        dest="socket",
+        help="The host device used in qemu command"
+        "eg:your CLI:-chardev socket,id=channel2,"
+        "path=/tmp/helloworld2 ,then input"
+        "'/tmp/helloworld2' here. Or '127.0.0.1:6001'"
+        " for tcp/udp socket",
+    )
+    parser.add_option(
+        "-f",
+        "--filename",
+        dest="filename",
+        help="File transfer to guest or save data to.",
+    )
+    parser.add_option(
+        "-a",
+        "--action",
+        dest="action",
+        default="send",
+        help="Send data out or receive data.",
+    )
+    parser.add_option(
+        "-p",
+        "--package",
+        dest="package",
+        default=1024,
+        help="Package size during file transfer.",
+    )
 
     options, args = parser.parse_args()
 
@@ -223,8 +248,8 @@ def main():
     if options.socket:
         device = options.socket
         # support abstract unix socket address
-        if '@' in device:
-            device = device.replace('@', '\0')
+        if "@" in device:
+            device = device.replace("@", "\0")
     else:
         parser.error("Please set -s parameter.")
 
@@ -237,41 +262,44 @@ def main():
     if action not in ("receive", "send", "both"):
         parser.error('Please set -a parameter: "receive", "send", "both"')
 
-    device_property = {'pty': {'connect_type': 'device'},
-                       'unix_socket': {'connect_type': 'socket',
-                                       'sock_flag': socket.AF_UNIX,
-                                       'sock_type': socket.SOCK_STREAM},
-                       'tcp_socket': {'connect_type': 'socket',
-                                      'sock_flag': socket.AF_INET,
-                                      'sock_type': socket.SOCK_STREAM},
-                       'udp': {'connect_type': 'socket',
-                               'sock_flag': socket.AF_INET,
-                               'sock_type': socket.SOCK_DGRAM}}
-    if chardev_type in ('tcp_socket', 'udp'):
-        device = device.split(':')
+    device_property = {
+        "pty": {"connect_type": "device"},
+        "unix_socket": {
+            "connect_type": "socket",
+            "sock_flag": socket.AF_UNIX,
+            "sock_type": socket.SOCK_STREAM,
+        },
+        "tcp_socket": {
+            "connect_type": "socket",
+            "sock_flag": socket.AF_INET,
+            "sock_type": socket.SOCK_STREAM,
+        },
+        "udp": {
+            "connect_type": "socket",
+            "sock_flag": socket.AF_INET,
+            "sock_type": socket.SOCK_DGRAM,
+        },
+    }
+    if chardev_type in ("tcp_socket", "udp"):
+        device = device.split(":")
         device = (device[0], int(device[1]))
     prop = device_property.get(chardev_type)
-    connect_type = prop.get('connect_type')
-    if connect_type == 'socket':
-        vport = socket.socket(prop.get('sock_flag'),
-                              prop.get('sock_type'))
+    connect_type = prop.get("connect_type")
+    if connect_type == "socket":
+        vport = socket.socket(prop.get("sock_flag"), prop.get("sock_type"))
         vport.connect(device)
     else:
         vport = os.open(device, os.O_RDWR)
     if action == "receive":
-        md5_sum = receive(vport, filename, p_size=p_size,
-                          connect_type=connect_type)
+        md5_sum = receive(vport, filename, p_size=p_size, connect_type=connect_type)
         print("md5_sum = %s" % md5_sum)
     elif action == "send":
-        md5_sum = send(vport, filename, p_size=p_size,
-                       connect_type=connect_type)
+        md5_sum = send(vport, filename, p_size=p_size, connect_type=connect_type)
         print("md5_sum = %s" % md5_sum)
     else:
-        md5_ori = send(vport, filename, p_size=p_size,
-                       connect_type=connect_type)
+        md5_ori = send(vport, filename, p_size=p_size, connect_type=connect_type)
         print("md5_original = %s" % md5_ori)
-        md5_post = receive(vport, filename, p_size=p_size,
-                           connect_type=connect_type)
+        md5_post = receive(vport, filename, p_size=p_size, connect_type=connect_type)
         print("md5_post = %s" % md5_post)
         if md5_ori != md5_post:
             raise Md5MissMatch(md5_ori, md5_post)

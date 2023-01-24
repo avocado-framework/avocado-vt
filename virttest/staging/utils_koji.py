@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+
 try:
     from html.parser import HTMLParser
 except ImportError:
@@ -19,26 +20,28 @@ from six.moves import urllib
 
 try:
     import koji
+
     KOJI_INSTALLED = True
 except ImportError:
     KOJI_INSTALLED = False
 
 DEFAULT_KOJI_TAG = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class KojiDownloadError(IOError):
-
     def __init__(self, url, timeout, last_error):
         self.url = url
         self.timeout = timeout
         self.last_error = last_error
 
     def __str__(self):
-        return ("Koji/Brew download of file %s failed. "
-                "Timeout: %s s "
-                "Last error: %s" % (self.url, self.timeout, self.last_error))
+        return (
+            "Koji/Brew download of file %s failed. "
+            "Timeout: %s s "
+            "Last error: %s" % (self.url, self.timeout, self.last_error)
+        )
 
 
 class KojiDirIndexParser(HTMLParser):
@@ -60,9 +63,9 @@ class KojiDirIndexParser(HTMLParser):
 
         This just looks for links ('a' tags) for files ending in .rpm
         """
-        if tag == 'a':
+        if tag == "a":
             for k, v in attrs:
-                if k == 'href' and v.endswith('.rpm'):
+                if k == "href" and v.endswith(".rpm"):
                     self.package_file_names.append(v)
 
 
@@ -82,7 +85,7 @@ class RPMFileNameInfo:
         """
         Returns the filename without the default RPM suffix
         """
-        assert self.filename.endswith('.rpm')
+        assert self.filename.endswith(".rpm")
         return self.filename[0:-4]
 
     def get_filename_without_arch(self):
@@ -93,7 +96,7 @@ class RPMFileNameInfo:
         and RPM suffix.
         """
         wo_suffix = self.get_filename_without_suffix()
-        arch_sep = wo_suffix.rfind('.')
+        arch_sep = wo_suffix.rfind(".")
         return wo_suffix[:arch_sep]
 
     def get_arch(self):
@@ -101,8 +104,8 @@ class RPMFileNameInfo:
         Returns just the architecture as present on the RPM filename
         """
         wo_suffix = self.get_filename_without_suffix()
-        arch_sep = wo_suffix.rfind('.')
-        return wo_suffix[arch_sep + 1:]
+        arch_sep = wo_suffix.rfind(".")
+        return wo_suffix[arch_sep + 1 :]
 
     def get_nvr_info(self):
         """
@@ -125,10 +128,12 @@ class KojiClient(object):
     specified in the KojiPgkSpec syntax.
     """
 
-    CMD_LOOKUP_ORDER = ['/usr/bin/brew', '/usr/bin/koji']
+    CMD_LOOKUP_ORDER = ["/usr/bin/brew", "/usr/bin/koji"]
 
-    CONFIG_MAP = {'/usr/bin/brew': '/etc/brewkoji.conf',
-                  '/usr/bin/koji': '/etc/koji.conf'}
+    CONFIG_MAP = {
+        "/usr/bin/brew": "/etc/brewkoji.conf",
+        "/usr/bin/koji": "/etc/koji.conf",
+    }
 
     # Time to keep trying to download a package
     RETRY_TIMEOUT = 30
@@ -147,7 +152,7 @@ class KojiClient(object):
         :raise: ValueError
         """
         if not KOJI_INSTALLED:
-            raise ValueError('No koji/brew installed on the machine')
+            raise ValueError("No koji/brew installed on the machine")
 
         # Instance variables used by many methods
         self.command = None
@@ -170,10 +175,9 @@ class KojiClient(object):
         self.read_config()
 
         # Setup koji session
-        server_url = self.config_options['server']
+        server_url = self.config_options["server"]
         session_options = self.get_session_options()
-        self.session = koji.ClientSession(server_url,
-                                          session_options)
+        self.session = koji.ClientSession(server_url, session_options)
 
     def _get(self, url, dst):
         """
@@ -238,7 +242,7 @@ class KojiClient(object):
         """
         session_options = {}
         for name, value in list(self.config_options.items()):
-            if name in ('user', 'password', 'debug_xmlrpc', 'debug'):
+            if name in ("user", "password", "debug_xmlrpc", "debug"):
                 session_options[name] = value
         return session_options
 
@@ -255,13 +259,18 @@ class KojiClient(object):
             koji_command_ok = False
 
         if not os.access(self.command, os.X_OK):
-            LOG.warn('Koji command "%s" is not executable: this is '
-                     'not fatal but indicates an unexpected situation',
-                     self.command)
+            LOG.warn(
+                'Koji command "%s" is not executable: this is '
+                "not fatal but indicates an unexpected situation",
+                self.command,
+            )
 
         if self.command not in list(self.CONFIG_MAP.keys()):
-            LOG.error('Koji command "%s" does not have a configuration '
-                      'file associated to it', self.command)
+            LOG.error(
+                'Koji command "%s" does not have a configuration '
+                "file associated to it",
+                self.command,
+            )
             koji_command_ok = False
 
         return koji_command_ok
@@ -286,10 +295,14 @@ class KojiClient(object):
         config.read(self.config)
         basename = os.path.basename(self.command)
         if not config.has_section(basename):
-            LOG.error('Koji configuration file "%s" does not have a '
-                      'section "%s", named after the base name of the '
-                      'currently set koji command "%s"', self.config,
-                      basename, self.command)
+            LOG.error(
+                'Koji configuration file "%s" does not have a '
+                'section "%s", named after the base name of the '
+                'currently set koji command "%s"',
+                self.config,
+                basename,
+                self.command,
+            )
             koji_config_ok = False
 
         return koji_config_ok
@@ -332,10 +345,9 @@ class KojiClient(object):
         if pkg.build is not None:
             info = self.session.getBuild(int(pkg.build))
         elif pkg.tag is not None and pkg.package is not None:
-            builds = self.session.listTagged(pkg.tag,
-                                             latest=True,
-                                             inherit=True,
-                                             package=pkg.package)
+            builds = self.session.listTagged(
+                pkg.tag, latest=True, inherit=True, package=pkg.package
+            )
             if builds:
                 info = builds[0]
         return info
@@ -400,10 +412,9 @@ class KojiClient(object):
         rpms = []
         info = self.get_pkg_info(pkg)
         if info:
-            rpms = self.session.listRPMs(buildID=info['id'],
-                                         arches=[arch, 'noarch'])
+            rpms = self.session.listRPMs(buildID=info["id"], arches=[arch, "noarch"])
             if pkg.subpackages:
-                rpms = [d for d in rpms if d['name'] in pkg.subpackages]
+                rpms = [d for d in rpms if d["name"] in pkg.subpackages]
         return rpms
 
     def get_pkg_rpm_names(self, pkg, arch=None):
@@ -419,7 +430,7 @@ class KojiClient(object):
         if arch is None:
             arch = os.uname()[4]
         rpms = self.get_pkg_rpm_info(pkg, arch)
-        return [rpm['name'] for rpm in rpms]
+        return [rpm["name"] for rpm in rpms]
 
     def get_pkg_rpm_file_names(self, pkg, arch=None):
         """
@@ -445,18 +456,17 @@ class KojiClient(object):
         """
         Gets the base url for packages in Koji
         """
-        if 'pkgurl' in self.config_options:
-            return self.config_options['pkgurl']
+        if "pkgurl" in self.config_options:
+            return self.config_options["pkgurl"]
         else:
-            return "%s/%s" % (self.config_options['topurl'],
-                              'packages')
+            return "%s/%s" % (self.config_options["topurl"], "packages")
 
     def get_scratch_base_url(self):
         """
         Gets the base url for scratch builds in Koji
         """
         one_level_up = os.path.dirname(self.get_pkg_base_url())
-        return "%s/%s" % (one_level_up, 'scratch')
+        return "%s/%s" % (one_level_up, "scratch")
 
     def get_pkg_urls(self, pkg, arch=None):
         """
@@ -475,10 +485,13 @@ class KojiClient(object):
 
         for rpm in rpms:
             rpm_name = koji.pathinfo.rpm(rpm)
-            url = ("%s/%s/%s/%s/%s" % (base_url,
-                                       info['package_name'],
-                                       info['version'], info['release'],
-                                       rpm_name))
+            url = "%s/%s/%s/%s/%s" % (
+                base_url,
+                info["package_name"],
+                info["version"],
+                info["release"],
+                rpm_name,
+            )
             rpm_urls.append(url)
         return rpm_urls
 
@@ -514,11 +527,9 @@ class KojiClient(object):
 
         if arch is None:
             arch = os.uname()[4]
-        arches = [arch, 'noarch']
+        arches = [arch, "noarch"]
 
-        index_url = "%s/%s/task_%s" % (self.get_scratch_base_url(),
-                                       pkg.user,
-                                       pkg.task)
+        index_url = "%s/%s/task_%s" % (self.get_scratch_base_url(), pkg.user, pkg.task)
         index_parser = KojiDirIndexParser()
         index_parser.feed(astring.to_text(urllib.request.urlopen(index_url).read()))
 
@@ -527,12 +538,11 @@ class KojiClient(object):
                 for pfn in index_parser.package_file_names:
                     r = RPMFileNameInfo(pfn)
                     info = r.get_nvr_info()
-                    if (p == info['name'] and
-                            r.get_arch() in arches):
+                    if p == info["name"] and r.get_arch() in arches:
                         rpm_urls.append("%s/%s" % (index_url, pfn))
         else:
             for pfn in index_parser.package_file_names:
-                if (RPMFileNameInfo(pfn).get_arch() in arches):
+                if RPMFileNameInfo(pfn).get_arch() in arches:
                     rpm_urls.append("%s/%s" % (index_url, pfn))
 
         return rpm_urls
@@ -629,10 +639,9 @@ class KojiPkgSpec(object):
         False
     """
 
-    SEP = ':'
+    SEP = ":"
 
-    def __init__(self, text='', tag=None, build=None,
-                 package=None, subpackages=[]):
+    def __init__(self, text="", tag=None, build=None, package=None, subpackages=[]):
         """
         Instantiates a new KojiPkgSpec object
 
@@ -693,7 +702,7 @@ class KojiPkgSpec(object):
             part1, part2 = text.split(self.SEP)
             if part1.isdigit():
                 self.build = part1
-                self.subpackages = part2.split(',')
+                self.subpackages = part2.split(",")
             else:
                 self.tag = part1
                 self.package = part2
@@ -704,7 +713,7 @@ class KojiPkgSpec(object):
             part1, part2, part3 = text.split(self.SEP)[0:3]
             self.tag = part1
             self.package = part2
-            self.subpackages = part3.split(',')
+            self.subpackages = part3.split(",")
 
     def _is_invalid_neither_tag_or_build(self):
         """
@@ -713,7 +722,7 @@ class KojiPkgSpec(object):
 
         :return: True if this is invalid and False if it's valid
         """
-        return (self.tag is None and self.build is None)
+        return self.tag is None and self.build is None
 
     def _is_invalid_package_but_no_tag(self):
         """
@@ -722,7 +731,7 @@ class KojiPkgSpec(object):
 
         :return: True if this is invalid and False if it's valid
         """
-        return (self.package and not self.tag)
+        return self.package and not self.tag
 
     def _is_invalid_subpackages_but_no_main_package(self):
         """
@@ -735,7 +744,7 @@ class KojiPkgSpec(object):
 
         :return: True if this is invalid and False if it's valid
         """
-        return (self.tag and self.subpackages and not self.package)
+        return self.tag and self.subpackages and not self.package
 
     def is_valid(self):
         """
@@ -761,14 +770,13 @@ class KojiPkgSpec(object):
         Describes why this is not valid, in a human friendly way
         """
         if self._is_invalid_neither_tag_or_build():
-            return ('neither a tag nor a build were set, one of them '
-                    'must be set')
+            return "neither a tag nor a build were set, one of them " "must be set"
         elif self._is_invalid_package_but_no_tag():
-            return 'package name specified but no tag is set'
+            return "package name specified but no tag is set"
         elif self._is_invalid_subpackages_but_no_main_package():
-            return 'subpackages specified but no main package is set'
+            return "subpackages specified but no main package is set"
 
-        return 'unkwown reason, seems to be valid'
+        return "unkwown reason, seems to be valid"
 
     def describe(self):
         """
@@ -777,24 +785,25 @@ class KojiPkgSpec(object):
         :return: package specification description
         """
         if self.is_valid():
-            description = ''
+            description = ""
             if not self.subpackages:
-                description += 'all subpackages from %s ' % self.package
+                description += "all subpackages from %s " % self.package
             else:
-                description += ('only subpackage(s) %s from package %s ' %
-                                (', '.join(self.subpackages), self.package))
+                description += "only subpackage(s) %s from package %s " % (
+                    ", ".join(self.subpackages),
+                    self.package,
+                )
 
             if self.build:
-                description += 'from build %s' % self.build
+                description += "from build %s" % self.build
             elif self.tag:
-                description += 'tagged with %s' % self.tag
+                description += "tagged with %s" % self.tag
             else:
-                raise ValueError('neither build or tag is set')
+                raise ValueError("neither build or tag is set")
 
             return description
         else:
-            return ('Invalid package specification: %s' %
-                    self.describe_invalid())
+            return "Invalid package specification: %s" % self.describe_invalid()
 
     def to_text(self):
         """
@@ -818,25 +827,30 @@ class KojiPkgSpec(object):
 
         elif self.tag:
             if self.subpackages:
-                return "%s:%s:%s" % (self.tag, self.package,
-                                     ",".join(self.subpackages))
+                return "%s:%s:%s" % (self.tag, self.package, ",".join(self.subpackages))
             else:
                 return "%s:%s" % (self.tag, self.package)
 
         elif default_tag is not None:
             # neither build or tag is set, try default_tag as a fallback
             if self.subpackages:
-                return "%s:%s:%s" % (default_tag, self.package,
-                                     ",".join(self.subpackages))
+                return "%s:%s:%s" % (
+                    default_tag,
+                    self.package,
+                    ",".join(self.subpackages),
+                )
             else:
                 return "%s:%s" % (default_tag, self.package)
         else:
-            raise ValueError('neither build or tag is set')
+            raise ValueError("neither build or tag is set")
 
     def __repr__(self):
-        return ("<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" %
-                (self.tag, self.build, self.package,
-                 ", ".join(self.subpackages)))
+        return "<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" % (
+            self.tag,
+            self.build,
+            self.package,
+            ", ".join(self.subpackages),
+        )
 
 
 class KojiScratchPkgSpec(object):
@@ -874,9 +888,9 @@ class KojiScratchPkgSpec(object):
                                      subpackages=['kernel', 'kernel-devel'])
     """
 
-    SEP = ':'
+    SEP = ":"
 
-    def __init__(self, text='', user=None, task=None, subpackages=[]):
+    def __init__(self, text="", user=None, task=None, subpackages=[]):
         """
         Instantiates a new KojiScratchPkgSpec object
 
@@ -911,7 +925,7 @@ class KojiScratchPkgSpec(object):
         """
         parts = text.count(self.SEP) + 1
         if parts == 1:
-            raise ValueError('KojiScratchPkgSpec requires a user and task id')
+            raise ValueError("KojiScratchPkgSpec requires a user and task id")
         elif parts == 2:
             self.user, self.task = text.split(self.SEP)
         elif parts >= 3:
@@ -921,8 +935,11 @@ class KojiScratchPkgSpec(object):
             part1, part2, part3 = text.split(self.SEP)[0:3]
             self.user = part1
             self.task = part2
-            self.subpackages = part3.split(',')
+            self.subpackages = part3.split(",")
 
     def __repr__(self):
-        return ("<KojiScratchPkgSpec user=%s task=%s subpkgs=%s>" %
-                (self.user, self.task, ", ".join(self.subpackages)))
+        return "<KojiScratchPkgSpec user=%s task=%s subpkgs=%s>" % (
+            self.user,
+            self.task,
+            ", ".join(self.subpackages),
+        )

@@ -24,7 +24,7 @@ from virttest import data_dir
 from virttest import utils_package
 from virttest.staging import service
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -34,9 +34,12 @@ def get_image_filename(portal, target, lun=0, user=None, password=None):
     Form the iscsi image name, now only tcp is supported by qemu
     e.g. iscsi://10.66.10.26/iqn.2019-09.com.example:zhencliu/0
     """
-    uri = 'iscsi://{auth}{portal}/{target}/{lun}'
-    auth = '{user}:{password}@'.format(
-        user=user, password=password) if user and password else ''
+    uri = "iscsi://{auth}{portal}/{target}/{lun}"
+    auth = (
+        "{user}:{password}@".format(user=user, password=password)
+        if user and password
+        else ""
+    )
     return uri.format(auth=auth, portal=portal, target=target, lun=lun)
 
 
@@ -44,17 +47,21 @@ def restart_iscsid(reset_failed=True):
     """
     Restart iscsid service.
     """
-    path.find_command('iscsid')
-    iscsid = service.Factory.create_service('iscsid')
+    path.find_command("iscsid")
+    iscsid = service.Factory.create_service("iscsid")
     if reset_failed:
         iscsid.reset_failed()
     if not iscsid.restart():
         return False
     else:
         # Make sure exist connection is operational after recovery
-        process.run('iscsiadm -m node --rescan', timeout=30,
-                    verbose=False, ignore_status=True,
-                    shell=True)
+        process.run(
+            "iscsiadm -m node --rescan",
+            timeout=30,
+            verbose=False,
+            ignore_status=True,
+            shell=True,
+        )
         return True
 
 
@@ -62,8 +69,8 @@ def restart_tgtd(reset_failed=True):
     """
     Restart tgtd service.
     """
-    path.find_command('tgtd')
-    tgtd = service.Factory.create_service('tgtd')
+    path.find_command("tgtd")
+    tgtd = service.Factory.create_service("tgtd")
     if reset_failed:
         tgtd.reset_failed()
     if not tgtd.restart():
@@ -81,7 +88,7 @@ def iscsi_get_sessions():
     sessions = []
     if "No active sessions" not in output:
         for session in output.splitlines():
-            ip_addr = session.split()[2].split(',')[0]
+            ip_addr = session.split()[2].split(",")[0]
             target = session.split()[3]
             sessions.append((ip_addr, target))
     return sessions
@@ -127,7 +134,7 @@ def iscsi_node_del(target_name=None):
     :params target_name: Name of the target.
     """
     node_list = iscsi_get_nodes()
-    cmd = ''
+    cmd = ""
     if target_name:
         for node_tup in node_list:
             if target_name in node_tup:
@@ -136,8 +143,10 @@ def iscsi_node_del(target_name=None):
                 process.system(cmd, ignore_status=True)
                 break
         if not cmd:
-            LOG.error("The target '%s' for delete is not in target node"
-                      " record", target_name)
+            LOG.error(
+                "The target '%s' for delete is not in target node" " record",
+                target_name,
+            )
     else:
         for node_tup in node_list:
             cmd = "iscsiadm -m node -o delete -T %s " % node_tup[1]
@@ -157,14 +166,14 @@ def iscsi_logout(target_name=None):
     else:
         cmd = "iscsiadm --mode node --logout all"
 
-    output = ''
+    output = ""
     try:
         output = process.run(cmd).stdout_text
     except process.CmdError as detail:
         # iscsiadm will fail when no matching sessions found
         # This failure makes no sense when target name is not specified
         stderr = detail.result.stderr_text
-        if not target_name and 'No matching sessions' in stderr:
+        if not target_name and "No matching sessions" in stderr:
             LOG.info("%s: %s", detail, stderr)
         else:
             raise
@@ -210,7 +219,7 @@ class _IscsiComm(object):
         self.export_flag = False
         self.luns = None
         self.iscsi_lun_attrs = params.get("iscsi_lun_attrs")
-        self.restart_tgtd = 'yes' == params.get("restart_tgtd", "no")
+        self.restart_tgtd = "yes" == params.get("restart_tgtd", "no")
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
         else:
@@ -251,20 +260,26 @@ class _IscsiComm(object):
             self.unit = self.emulated_size[-1].upper()
             self.emulated_size = self.emulated_size[:-1]
             # maps K,M,G,T => (count, bs)
-            emulated_size = {'K': (1, 1),
-                             'M': (1, 1024),
-                             'G': (1024, 1024),
-                             'T': (1024, 1048576),
-                             }
+            emulated_size = {
+                "K": (1, 1),
+                "M": (1, 1024),
+                "G": (1024, 1024),
+                "T": (1024, 1048576),
+            }
             if self.unit in emulated_size:
                 block_size = emulated_size[self.unit][1]
                 size = int(self.emulated_size) * emulated_size[self.unit][0]
                 self.emulated_expect_size = block_size * size
-                self.create_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
-                                   % (self.emulated_image, size, block_size))
+                self.create_cmd = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
+                    self.emulated_image,
+                    size,
+                    block_size,
+                )
             else:
-                raise exceptions.TestError("Image size provided is not in valid"
-                                           " format, specify proper units [K|M|G|T]")
+                raise exceptions.TestError(
+                    "Image size provided is not in valid"
+                    " format, specify proper units [K|M|G|T]"
+                )
         else:
             self.emulated_image = emulated_image
             self.device = "device.%s" % os.path.basename(self.emulated_image)
@@ -283,8 +298,9 @@ class _IscsiComm(object):
         """
         Check if the portal can be found or not.
         """
-        return bool(re.findall("%s$" % self.target,
-                               iscsi_discover(self.portal_ip), re.M))
+        return bool(
+            re.findall("%s$" % self.target, iscsi_discover(self.portal_ip), re.M)
+        )
 
     def set_initiatorName(self, id, name):
         """
@@ -296,7 +312,7 @@ class _IscsiComm(object):
             if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
                 cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
                 process.system(cmd)
-            fd = open(ISCSI_CONFIG_FILE, 'w')
+            fd = open(ISCSI_CONFIG_FILE, "w")
             fd.write("InitiatorName=%s" % name)
             fd.close()
             restart_iscsid()
@@ -335,15 +351,14 @@ class _IscsiComm(object):
         device_name = []
         if self.logged_in():
             output = process.run(cmd).stdout_text
-            targets = output.split('Target: ')[1:]
+            targets = output.split("Target: ")[1:]
             for target in targets:
                 if self.target in target:
                     device_name = re.findall(pattern, target, re.S)
             try:
                 device_name = "/dev/%s" % device_name[0]
             except IndexError:
-                LOG.error(
-                    "Can not find target '%s' after login.", self.target)
+                LOG.error("Can not find target '%s' after login.", self.target)
         else:
             LOG.error("Session is not logged in yet.")
         return device_name
@@ -352,9 +367,9 @@ class _IscsiComm(object):
         """
         Set CHAP authentication for initiator.
         """
-        name_dict = {'node.session.auth.authmethod': 'CHAP'}
-        name_dict['node.session.auth.username'] = self.chap_user
-        name_dict['node.session.auth.password'] = self.chap_passwd
+        name_dict = {"node.session.auth.authmethod": "CHAP"}
+        name_dict["node.session.auth.username"] = self.chap_user
+        name_dict["node.session.auth.password"] = self.chap_passwd
         for name in list(name_dict.keys()):
             cmd = "iscsiadm --mode node --targetname %s " % self.target
             cmd += "--op update --name %s --value %s" % (name, name_dict[name])
@@ -467,8 +482,9 @@ class IscsiTGT(_IscsiComm):
         pattern = r"Target\s+\d:\s+%s" % self.target
         pattern += ".*Account information:\s(.*)ACL information"
         try:
-            target_account = re.findall(pattern, target_info,
-                                        re.S)[0].strip().splitlines()
+            target_account = (
+                re.findall(pattern, target_info, re.S)[0].strip().splitlines()
+            )
         except IndexError:
             target_account = []
         return list(map(str.strip, target_account))
@@ -481,8 +497,7 @@ class IscsiTGT(_IscsiComm):
         if self.chap_user not in self.get_chap_accounts():
             self.add_chap_account()
         if self.chap_user in self.get_target_account_info():
-            LOG.debug("Target %s already has account %s", self.target,
-                      self.chap_user)
+            LOG.debug("Target %s already has account %s", self.target, self.chap_user)
         else:
             cmd = "tgtadm --lld iscsi --op bind --mode account"
             cmd += " --tid %s --user %s" % (self.emulated_id, self.chap_user)
@@ -529,14 +544,15 @@ class IscsiTGT(_IscsiComm):
             cmd += "--tid %s -I ALL" % self.emulated_id
             process.system(cmd)
         else:
-            target_strs = re.findall("Target\s+(\d+):\s+%s$" %
-                                     self.target, output, re.M)
-            self.emulated_id = target_strs[0].split(':')[0].split()[-1]
+            target_strs = re.findall(
+                "Target\s+(\d+):\s+%s$" % self.target, output, re.M
+            )
+            self.emulated_id = target_strs[0].split(":")[0].split()[-1]
 
         cmd = "tgtadm --lld iscsi --mode target --op show"
         try:
             output = process.run(cmd).stdout_text
-        except process.CmdError:   # In case service stopped
+        except process.CmdError:  # In case service stopped
             restart_tgtd()
             output = process.run(cmd).stdout_text
 
@@ -546,11 +562,11 @@ class IscsiTGT(_IscsiComm):
             LOG.debug("Exported image already exists.")
             self.export_flag = True
         else:
-            tgt_str = re.search(r'.*(Target\s+\d+:\s+%s\s*.*)$' % self.target,
-                                output, re.DOTALL)
+            tgt_str = re.search(
+                r".*(Target\s+\d+:\s+%s\s*.*)$" % self.target, output, re.DOTALL
+            )
             if tgt_str:
-                luns = len(re.findall("\s+LUN:\s(\d+)",
-                                      tgt_str.group(1), re.M))
+                luns = len(re.findall("\s+LUN:\s(\d+)", tgt_str.group(1), re.M))
             else:
                 luns = len(re.findall("\s+LUN:\s(\d+)", output, re.M))
             cmd = "tgtadm --mode logicalunit --op new "
@@ -645,14 +661,18 @@ class IscsiLIO(_IscsiComm):
         process.system(acls_cmd + attr_cmd)
 
         # Create user and allow access
-        acls_cmd = ("targetcli /iscsi/%s/tpg1/acls/ create %s:client"
-                    % (self.target, self.target.split(":")[0]))
+        acls_cmd = "targetcli /iscsi/%s/tpg1/acls/ create %s:client" % (
+            self.target,
+            self.target.split(":")[0],
+        )
         output = process.run(acls_cmd).stdout_text
         if "Created Node ACL" not in output:
             raise exceptions.TestFail("Failed to create ACL. (%s)" % output)
 
-        comm_cmd = ("targetcli /iscsi/%s/tpg1/acls/%s:client/"
-                    % (self.target, self.target.split(":")[0]))
+        comm_cmd = "targetcli /iscsi/%s/tpg1/acls/%s:client/" % (
+            self.target,
+            self.target.split(":")[0],
+        )
         # Set userid
         userid_cmd = "%s set auth userid=%s" % (comm_cmd, self.chap_user)
         output = process.run(userid_cmd).stdout_text
@@ -675,10 +695,11 @@ class IscsiLIO(_IscsiComm):
         for all Endpoints in a TPG
         """
         auth_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
-        attr_cmd = ("set attribute %s %s %s" %
-                    ("demo_mode_write_protect=0",
-                     "generate_node_acls=1",
-                     "cache_dynamic_acls=1"))
+        attr_cmd = "set attribute %s %s %s" % (
+            "demo_mode_write_protect=0",
+            "generate_node_acls=1",
+            "cache_dynamic_acls=1",
+        )
         if self.enable_authentication:
             attr_cmd += " authentication=1"
         process.system(auth_cmd + attr_cmd)
@@ -708,8 +729,7 @@ class IscsiLIO(_IscsiComm):
             if not os.path.isfile(self.emulated_image):
                 process.system(self.create_cmd)
             else:
-                emulated_image_size = os.path.getsize(
-                    self.emulated_image) // 1024
+                emulated_image_size = os.path.getsize(self.emulated_image) // 1024
                 if emulated_image_size != self.emulated_expect_size:
                     # No need to remove, rebuild is fine
                     process.system(self.create_cmd)
@@ -736,27 +756,34 @@ class IscsiLIO(_IscsiComm):
             #    which enables the local file system cache.
 
             # Create a backstore
-            device_cmd = ("targetcli /backstores/%s/ create %s %s" %
-                          (self.iscsi_backend, self.device,
-                           self.emulated_image))
+            device_cmd = "targetcli /backstores/%s/ create %s %s" % (
+                self.iscsi_backend,
+                self.device,
+                self.emulated_image,
+            )
             output = process.run(device_cmd).stdout_text
             if "Created %s" % self.iscsi_backend not in output:
-                raise exceptions.TestFail("Failed to create %s %s. (%s)" %
-                                          (self.iscsi_backend, self.device,
-                                           output))
+                raise exceptions.TestFail(
+                    "Failed to create %s %s. (%s)"
+                    % (self.iscsi_backend, self.device, output)
+                )
 
             # Set attribute
             if self.iscsi_lun_attrs:
                 attr_cmd = "targetcli /backstores/%s/%s set attribute %s" % (
-                    self.iscsi_backend, self.device, self.iscsi_lun_attrs)
+                    self.iscsi_backend,
+                    self.device,
+                    self.iscsi_lun_attrs,
+                )
                 process.system(attr_cmd)
 
             # Create an IQN with a target named target_name
             target_cmd = "targetcli /iscsi/ create %s" % self.target
             output = process.run(target_cmd).stdout_text
             if "Created target" not in output:
-                raise exceptions.TestFail("Failed to create target %s. (%s)" %
-                                          (self.target, output))
+                raise exceptions.TestFail(
+                    "Failed to create target %s. (%s)" % (self.target, output)
+                )
 
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
             portal_info = process.run(check_portal).stdout_text
@@ -764,36 +791,37 @@ class IscsiLIO(_IscsiComm):
                 # Create portal
                 # 0.0.0.0 means binding to INADDR_ANY
                 # and using default IP port 3260
-                portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
-                              % (self.target, "0.0.0.0"))
+                portal_cmd = "targetcli /iscsi/%s/tpg1/portals/ create %s" % (
+                    self.target,
+                    "0.0.0.0",
+                )
                 output = process.run(portal_cmd).stdout_text
                 if "Created network portal" not in output:
-                    raise exceptions.TestFail("Failed to create portal. (%s)" %
-                                              output)
-            if ("ipv6" == utils_net.IPAddress(self.portal_ip).version and
-                    self.portal_ip not in portal_info):
+                    raise exceptions.TestFail("Failed to create portal. (%s)" % output)
+            if (
+                "ipv6" == utils_net.IPAddress(self.portal_ip).version
+                and self.portal_ip not in portal_info
+            ):
                 # Ipv6 portal address can't be created by default,
                 # create ipv6 portal if needed.
-                portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
-                              % (self.target, self.portal_ip))
+                portal_cmd = "targetcli /iscsi/%s/tpg1/portals/ create %s" % (
+                    self.target,
+                    self.portal_ip,
+                )
                 output = process.run(portal_cmd).stdout_text
                 if "Created network portal" not in output:
-                    raise exceptions.TestFail("Failed to create portal. (%s)" %
-                                              output)
+                    raise exceptions.TestFail("Failed to create portal. (%s)" % output)
             # Create lun
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
-            dev_cmd = "create /backstores/%s/%s" % (
-                self.iscsi_backend, self.device)
+            dev_cmd = "create /backstores/%s/%s" % (self.iscsi_backend, self.device)
             output = process.run(lun_cmd + dev_cmd).stdout_text
             luns = re.findall(r"Created LUN (\d+).", output)
             if not luns:
-                raise exceptions.TestFail("Failed to create lun. (%s)" %
-                                          output)
+                raise exceptions.TestFail("Failed to create lun. (%s)" % output)
             self.luns = luns[0]
 
             # Set firewall if it's enabled
-            output = process.run("firewall-cmd --state",
-                                 ignore_status=True).stdout_text
+            output = process.run("firewall-cmd --state", ignore_status=True).stdout_text
             if re.findall("^running", output, re.M):
                 # firewall is running
                 process.system("firewall-cmd --permanent --add-port=3260/tcp")
@@ -820,11 +848,12 @@ class IscsiLIO(_IscsiComm):
             # so that they can access all LUNs in the TPG
             # without further authentication.
             auth_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
-            attr_cmd = ("set attribute %s %s %s %s" %
-                        ("authentication=0",
-                         "demo_mode_write_protect=0",
-                         "generate_node_acls=1",
-                         "cache_dynamic_acls=1"))
+            attr_cmd = "set attribute %s %s %s %s" % (
+                "authentication=0",
+                "demo_mode_write_protect=0",
+                "generate_node_acls=1",
+                "cache_dynamic_acls=1",
+            )
             output = process.run(auth_cmd + attr_cmd).stdout_text
             LOG.info("Define access rights: %s" % output)
             # Discovery the target
@@ -845,8 +874,10 @@ class IscsiLIO(_IscsiComm):
             cmd = "targetcli /backstores/%s ls" % self.iscsi_backend
             output = process.run(cmd).stdout_text
             if re.findall("%s" % self.device, output, re.M):
-                dev_del = ("targetcli /backstores/%s/ delete %s"
-                           % (self.iscsi_backend, self.device))
+                dev_del = "targetcli /backstores/%s/ delete %s" % (
+                    self.iscsi_backend,
+                    self.device,
+                )
                 process.system(dev_del)
 
         # Delete IQN
@@ -871,10 +902,11 @@ class Iscsi(object):
     The class support different kinds of iSCSI backend (TGT and LIO),
     and return ISCSI instance.
     """
+
     @staticmethod
     def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
         iscsi_instance = None
-        ubuntu = distro.detect().name == 'Ubuntu'
+        ubuntu = distro.detect().name == "Ubuntu"
         # check and install iscsi initiator packages
         if ubuntu:
             iscsi_package = ["open-iscsi"]
@@ -882,21 +914,23 @@ class Iscsi(object):
             iscsi_package = ["iscsi-initiator-utils"]
 
         if not utils_package.package_install(iscsi_package):
-            raise exceptions.TestError("Failed to install iscsi initiator"
-                                       " packages")
+            raise exceptions.TestError("Failed to install iscsi initiator" " packages")
         # Install linux iscsi target software targetcli
         iscsi_package = ["targetcli"]
         if not utils_package.package_install(iscsi_package):
-            LOG.error("Failed to install targetcli trying with scsi-"
-                      "target-utils or tgt package")
+            LOG.error(
+                "Failed to install targetcli trying with scsi-"
+                "target-utils or tgt package"
+            )
             # try with scsi target utils if targetcli is not available
             if ubuntu:
                 iscsi_package = ["tgt"]
             else:
                 iscsi_package = ["scsi-target-utils"]
             if not utils_package.package_install(iscsi_package):
-                raise exceptions.TestError("Failed to install iscsi target and"
-                                           " initiator packages")
+                raise exceptions.TestError(
+                    "Failed to install iscsi target and" " initiator packages"
+                )
             iscsi_instance = IscsiTGT(params, root_dir)
         else:
             iscsi_instance = IscsiLIO(params, root_dir)

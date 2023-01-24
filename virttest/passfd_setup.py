@@ -1,4 +1,5 @@
 import os
+
 # pylint: disable=E0611
 import distutils.ccompiler
 import distutils.sysconfig
@@ -13,17 +14,17 @@ if float(PYTHON_VERSION) >= 3 and float(PYTHON_VERSION) < 3.8:
 
 OUTPUT_DIR = os.path.dirname(__file__)
 
-SOURCES = [os.path.join(OUTPUT_DIR, f) for f in ['passfd.c']]
-SHARED_OBJECT = '_passfd.so'
+SOURCES = [os.path.join(OUTPUT_DIR, f) for f in ["passfd.c"]]
+SHARED_OBJECT = "_passfd.so"
 
 
 def passfd_setup(output_dir=OUTPUT_DIR):
-    '''
+    """
     Compiles the passfd python extension.
 
     :param output_dir: where the _passfd.so module will be saved
     :return: None
-    '''
+    """
     if output_dir is None:
         output_dir = OUTPUT_DIR
 
@@ -31,18 +32,21 @@ def passfd_setup(output_dir=OUTPUT_DIR):
 
     c = distutils.ccompiler.new_compiler()
     distutils.sysconfig.customize_compiler(c)
-    objects = c.compile(SOURCES, include_dirs=[PYTHON_HEADERS],
-                        output_dir=data_dir.get_tmp_dir(),
-                        extra_postargs=['-fPIC'])
+    objects = c.compile(
+        SOURCES,
+        include_dirs=[PYTHON_HEADERS],
+        output_dir=data_dir.get_tmp_dir(),
+        extra_postargs=["-fPIC"],
+    )
     c.link_shared_object(objects, output_file, libraries=[PYTHON_LIB])
 
 
 def import_passfd():
-    '''
+    """
     Imports and lazily sets up the passfd module
 
     :return: passfd module
-    '''
+    """
     try:
         from virttest import passfd
     except ImportError:
@@ -52,8 +56,9 @@ def import_passfd():
     return passfd
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1:
         passfd_setup(sys.argv[1])
     else:

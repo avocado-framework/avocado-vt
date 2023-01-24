@@ -21,11 +21,12 @@ from virttest.utils_test import libvirt
 
 from virttest.libvirt_xml.devices.disk import Disk
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
-                session=None):
+def create_disk(
+    disk_type, path=None, size="500M", disk_format="raw", extra="", session=None
+):
     """
     Create disk on local or remote
 
@@ -40,25 +41,38 @@ def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
     """
     if session:
         if disk_type == "file":
-            disk_cmd = ("qemu-img create -f %s %s %s %s"
-                        % (disk_format, extra, path, size))
+            disk_cmd = "qemu-img create -f %s %s %s %s" % (
+                disk_format,
+                extra,
+                path,
+                size,
+            )
         else:
             # TODO: Add implementation for other types
             raise exceptions.TestError("Unknown disk type %s" % disk_type)
 
         status, stdout = utils_misc.cmd_status_output(disk_cmd, session=session)
         if status:
-            raise exceptions.TestError("Failed to create img on remote: cmd: {} "
-                                       "status: {}, stdout: {}"
-                                       .format(disk_cmd, status, stdout))
+            raise exceptions.TestError(
+                "Failed to create img on remote: cmd: {} "
+                "status: {}, stdout: {}".format(disk_cmd, status, stdout)
+            )
         return path
     else:
-        return libvirt.create_local_disk(disk_type, path=path, size=size,
-                                         disk_format=disk_format, extra=extra)
+        return libvirt.create_local_disk(
+            disk_type, path=path, size=size, disk_format=disk_format, extra=extra
+        )
 
 
-def create_primitive_disk_xml(type_name, disk_device, device_target, device_bus,
-                              device_format, disk_src_dict, disk_auth_dict):
+def create_primitive_disk_xml(
+    type_name,
+    disk_device,
+    device_target,
+    device_bus,
+    device_format,
+    disk_src_dict,
+    disk_auth_dict,
+):
     """
     Creates primitive disk xml
 
@@ -94,8 +108,15 @@ def create_primitive_disk_xml(type_name, disk_device, device_target, device_bus,
     return disk_xml
 
 
-def create_custom_metadata_disk(disk_path, disk_format,
-                                disk_device, device_target, device_bus, max_size, disk_inst=None):
+def create_custom_metadata_disk(
+    disk_path,
+    disk_format,
+    disk_device,
+    device_target,
+    device_bus,
+    max_size,
+    disk_inst=None,
+):
     """
     Create another disk for a given path,customize driver metadata attribute
 
@@ -111,15 +132,14 @@ def create_custom_metadata_disk(disk_path, disk_format,
     if disk_inst:
         custom_disk = disk_inst
     else:
-        custom_disk = Disk(type_name='file')
+        custom_disk = Disk(type_name="file")
 
     disk_attrs = {
-        'device': disk_device,
-        'source': {'attrs': {'file': disk_path}},
-        'target': {'dev': device_target, 'bus': device_bus},
-        'driver': {'name': 'qemu', 'type': disk_format},
-        'driver_metadatacache': {'max_size': int(max_size),
-                                 'max_size_unit': 'bytes'},
+        "device": disk_device,
+        "source": {"attrs": {"file": disk_path}},
+        "target": {"dev": device_target, "bus": device_bus},
+        "driver": {"name": "qemu", "type": disk_format},
+        "driver_metadatacache": {"max_size": int(max_size), "max_size_unit": "bytes"},
     }
 
     custom_disk.setup_attrs(**disk_attrs)
@@ -137,12 +157,13 @@ def get_images_with_xattr(vm):
     disks = vm.get_disk_devices()
     dirty_images = []
     for disk in disks:
-        disk_path = disks[disk]['source']
+        disk_path = disks[disk]["source"]
         getfattr_result = get_image_xattr(disk_path)
         if "selinux" in getfattr_result:
             dirty_images.append(disk_path)
-            LOG.debug("Image '%s' having xattr left: %s",
-                      disk_path, getfattr_result.stdout)
+            LOG.debug(
+                "Image '%s' having xattr left: %s", disk_path, getfattr_result.stdout
+            )
     return dirty_images
 
 
@@ -154,8 +175,11 @@ def clean_images_with_xattr(dirty_images):
     """
     for image in dirty_images:
         output = get_image_xattr(image)
-        attr_list = [line.split("=")[0] for line in output.split("\n") if len(line.split("=")) == 2
-                     and "trusted.libvirt" in line.split("=")[0]]
+        attr_list = [
+            line.split("=")[0]
+            for line in output.split("\n")
+            if len(line.split("=")) == 2 and "trusted.libvirt" in line.split("=")[0]
+        ]
         for attr in attr_list:
             clean_cmd = "setfattr -x $s" % attr
             process.run(clean_cmd, shell=True)
@@ -180,12 +204,18 @@ def get_first_disk_source(vm):
     :return: first disk of first device.
     """
     first_device = vm.get_first_disk_devices()
-    first_disk_src = first_device['source']
+    first_disk_src = first_device["source"]
     return first_disk_src
 
 
-def make_relative_path_backing_files(vm, pre_set_root_dir=None, origin_image=None, origin_image_format="qcow2",
-                                     created_image_format="qcow2", back_chain_lenghth=4):
+def make_relative_path_backing_files(
+    vm,
+    pre_set_root_dir=None,
+    origin_image=None,
+    origin_image_format="qcow2",
+    created_image_format="qcow2",
+    back_chain_lenghth=4,
+):
     """
     Create backing chain files of relative path for one image
 
@@ -204,7 +234,9 @@ def make_relative_path_backing_files(vm, pre_set_root_dir=None, origin_image=Non
     else:
         root_dir = pre_set_root_dir
         basename = origin_image
-    sub_folders = [chr(letter) for letter in range(ord('a'), ord('a') + back_chain_lenghth)]
+    sub_folders = [
+        chr(letter) for letter in range(ord("a"), ord("a") + back_chain_lenghth)
+    ]
     # Make external relative path backing files.
     backing_files_dict = collections.OrderedDict()
     for index in range(len(sub_folders)):
@@ -213,18 +245,27 @@ def make_relative_path_backing_files(vm, pre_set_root_dir=None, origin_image=Non
         if index == 0:
             backing_files_dict[key] = "%s" % basename
         else:
-            backing_key = sub_folders[index-1]
+            backing_key = sub_folders[index - 1]
             backing_files_dict[key] = "../%s/%s.img" % (backing_key, backing_key)
-    backing_file_path = _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
-                                                     origin_image_format, created_image_format)
-    return os.path.join(backing_file_path, "%s.img" % sub_folders[-1]), list(backing_files_dict.values())
+    backing_file_path = _execute_create_backend_file(
+        backing_files_dict, pre_set_root_dir, origin_image_format, created_image_format
+    )
+    return os.path.join(backing_file_path, "%s.img" % sub_folders[-1]), list(
+        backing_files_dict.values()
+    )
 
 
-def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=False,
-                                    disk_target="vda", disk_type="file",
-                                    snapshot_chain_lenghth=4,
-                                    create_source_file=False, snap_extra='',
-                                    disk_format='qcow2'):
+def create_reuse_external_snapshots(
+    vm,
+    pre_set_root_dir=None,
+    skip_first_one=False,
+    disk_target="vda",
+    disk_type="file",
+    snapshot_chain_lenghth=4,
+    create_source_file=False,
+    snap_extra="",
+    disk_format="qcow2",
+):
     """
     Create reuse external snapshots
 
@@ -245,7 +286,9 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
         root_dir = pre_set_root_dir
     meta_options = " --reuse-external --disk-only --no-metadata"
     # Make four external relative path backing files.
-    relative_sub_folders = [chr(letter) for letter in range(ord('a'), ord('a') + snapshot_chain_lenghth)]
+    relative_sub_folders = [
+        chr(letter) for letter in range(ord("a"), ord("a") + snapshot_chain_lenghth)
+    ]
     backing_file_dict = collections.OrderedDict()
     snapshot_external_disks = []
     for index in range(len(relative_sub_folders)):
@@ -259,22 +302,36 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
         external_snap_shot = "%s/%s" % (backing_file_path, value)
         snapshot_external_disks.append(external_snap_shot)
         if create_source_file:
-            libvirt.create_local_disk(disk_type, disk_format=disk_format,
-                                      path=external_snap_shot)
+            libvirt.create_local_disk(
+                disk_type, disk_format=disk_format, path=external_snap_shot
+            )
         if disk_type == "block":
-            options = "%s --diskspec %s,file=%s,stype=%s" % (meta_options, disk_target,
-                                                             external_snap_shot, disk_type)
+            options = "%s --diskspec %s,file=%s,stype=%s" % (
+                meta_options,
+                disk_target,
+                external_snap_shot,
+                disk_type,
+            )
         else:
-            options = "%s --diskspec %s,file=%s %s" % (meta_options, disk_target, external_snap_shot, snap_extra)
-        virsh.snapshot_create_as(vm.name, options,
-                                 ignore_status=False,
-                                 debug=True)
-    LOG.debug('reuse external snapshots:%s' % snapshot_external_disks)
+            options = "%s --diskspec %s,file=%s %s" % (
+                meta_options,
+                disk_target,
+                external_snap_shot,
+                snap_extra,
+            )
+        virsh.snapshot_create_as(vm.name, options, ignore_status=False, debug=True)
+    LOG.debug("reuse external snapshots:%s" % snapshot_external_disks)
     return root_dir, snapshot_external_disks
 
 
-def make_syslink_path_backing_files(pre_set_root_dir, volume_path_list, origin_image_format="qcow2",
-                                    created_image_format="qcow2", syslink_back_chain_lenghth=4, qemu_rebase=False):
+def make_syslink_path_backing_files(
+    pre_set_root_dir,
+    volume_path_list,
+    origin_image_format="qcow2",
+    created_image_format="qcow2",
+    syslink_back_chain_lenghth=4,
+    qemu_rebase=False,
+):
     """
     Create backing chain files of syslink path for one image
 
@@ -288,29 +345,45 @@ def make_syslink_path_backing_files(pre_set_root_dir, volume_path_list, origin_i
     :return: absolute path of top active file and syslink back chain files list
     """
     root_dir = pre_set_root_dir
-    syslink_folder_list = [chr(letter) for letter in range(ord('a'), ord('a') + syslink_back_chain_lenghth)]
+    syslink_folder_list = [
+        chr(letter) for letter in range(ord("a"), ord("a") + syslink_back_chain_lenghth)
+    ]
     backing_files_dict = collections.OrderedDict()
     # Make external relative path backing files.
     for index in range(len(syslink_folder_list)):
         key = syslink_folder_list[index]
         folder_path = os.path.join(root_dir, key)
         os.makedirs(folder_path, exist_ok=True)
-        #Create syslink
-        link_cmd = "ln -s  %s %s" % (volume_path_list[index], os.path.join(folder_path, "%s.img" % key))
+        # Create syslink
+        link_cmd = "ln -s  %s %s" % (
+            volume_path_list[index],
+            os.path.join(folder_path, "%s.img" % key),
+        )
         process.run(link_cmd, shell=True, ignore_status=False)
         if index == 0:
             continue
         else:
-            backing_key = syslink_folder_list[index-1]
+            backing_key = syslink_folder_list[index - 1]
             backing_files_dict[key] = "../%s/%s.img" % (backing_key, backing_key)
-    backing_file_path = _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
-                                                     origin_image_format, created_image_format, qemu_rebase=qemu_rebase)
-    return os.path.join(backing_file_path, "%s.img" % syslink_folder_list[-1]), list(backing_files_dict.values())
+    backing_file_path = _execute_create_backend_file(
+        backing_files_dict,
+        pre_set_root_dir,
+        origin_image_format,
+        created_image_format,
+        qemu_rebase=qemu_rebase,
+    )
+    return os.path.join(backing_file_path, "%s.img" % syslink_folder_list[-1]), list(
+        backing_files_dict.values()
+    )
 
 
-def _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
-                                 origin_image_format, created_image_format,
-                                 qemu_rebase=False):
+def _execute_create_backend_file(
+    backing_files_dict,
+    pre_set_root_dir,
+    origin_image_format,
+    created_image_format,
+    qemu_rebase=False,
+):
     """
     Execute create backing chain files
 
@@ -326,11 +399,18 @@ def _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
     for key, value in list(backing_files_dict.items()):
         backing_file_path = os.path.join(root_dir, key)
         if qemu_rebase:
-            cmd = ("cd %s && qemu-img rebase -f %s -u -b %s  -F %s %s"
-                   % (backing_file_path, created_image_format, value, disk_format, key + ".img"))
+            cmd = "cd %s && qemu-img rebase -f %s -u -b %s  -F %s %s" % (
+                backing_file_path,
+                created_image_format,
+                value,
+                disk_format,
+                key + ".img",
+            )
         else:
-            cmd = ("cd %s && qemu-img create -f %s -o backing_file=%s,backing_fmt=%s %s.img" % (
-                backing_file_path, created_image_format, value, disk_format, key))
+            cmd = (
+                "cd %s && qemu-img create -f %s -o backing_file=%s,backing_fmt=%s %s.img"
+                % (backing_file_path, created_image_format, value, disk_format, key)
+            )
 
         process.run(cmd, shell=True, ignore_status=False)
         disk_format = created_image_format
@@ -348,8 +428,9 @@ def do_blockcommit_repeatedly(vm, device_target, options, repeated_counts, **dar
     :param dargs: standardized virsh function API keywords
     """
     for count in range(repeated_counts):
-        virsh.blockcommit(vm.name, device_target,
-                          options, ignore_status=False, debug=True, **dargs)
+        virsh.blockcommit(
+            vm.name, device_target, options, ignore_status=False, debug=True, **dargs
+        )
 
 
 def make_external_disk_snapshots(vm, device_target, postfix_n, snapshot_take):
@@ -369,19 +450,15 @@ def make_external_disk_snapshots(vm, device_target, postfix_n, snapshot_take):
     external_snapshot_disks = []
     # Make external snapshots for disks only
     for count in range(1, snapshot_take + 1):
-        options = "%s_%s %s%s-desc " % (postfix_n, count,
-                                        postfix_n, count)
+        options = "%s_%s %s%s-desc " % (postfix_n, count, postfix_n, count)
         options += "--diskspec "
         diskname = basename.split(".")[0]
         snap_name = "%s.%s%s" % (diskname, postfix_n, count)
         disk_external = os.path.join(root_dir, snap_name)
         external_snapshot_disks.append(disk_external)
-        options += " %s,snapshot=external,file=%s" % (disk,
-                                                      disk_external)
+        options += " %s,snapshot=external,file=%s" % (disk, disk_external)
         options += "  --disk-only --atomic"
-        virsh.snapshot_create_as(vm.name, options,
-                                 ignore_status=False,
-                                 debug=True)
+        virsh.snapshot_create_as(vm.name, options, ignore_status=False, debug=True)
     return external_snapshot_disks
 
 
@@ -393,14 +470,17 @@ def cleanup_snapshots(vm, snap_del_disks=None):
     :param snap_del_disks: list containing snapshot files
     """
     snapshot_list_cmd = "virsh snapshot-list %s --tree" % vm.name
-    result_output = process.run(snapshot_list_cmd,
-                                ignore_status=False, shell=True).stdout_text
+    result_output = process.run(
+        snapshot_list_cmd, ignore_status=False, shell=True
+    ).stdout_text
     for line in result_output.rsplit("\n"):
         strip_line = line.strip()
         if strip_line and "|" not in strip_line:
-            if '+-' in strip_line:
+            if "+-" in strip_line:
                 strip_line = strip_line.split()[-1]
-            virsh.snapshot_delete(vm.name, strip_line, "--metadata", ignore_status=False, debug=True)
+            virsh.snapshot_delete(
+                vm.name, strip_line, "--metadata", ignore_status=False, debug=True
+            )
     # delete actual snapshot files if exists
     if snap_del_disks:
         for disk in snap_del_disks:
@@ -420,7 +500,7 @@ def get_chain_backing_files(disk_src_file):
         cmd = "qemu-img info -U %s --backing-chain" % disk_src_file
     ret = process.run(cmd, shell=True).stdout_text.strip()
     LOG.debug("The actual qemu-img output:%s\n", ret)
-    match = re.findall(r'(backing file: )(.+\n)', ret)
+    match = re.findall(r"(backing file: )(.+\n)", ret)
     qemu_img_info_backing_chain = []
     for i in range(len(match)):
         qemu_img_info_backing_chain.append(match[i][1].strip().split("(")[0].strip())
@@ -436,21 +516,21 @@ def get_mirror_part_in_xml(vm, disk_target):
     :param disk_target: target disk
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
-    disks = vmxml.devices.by_device_tag('disk')
+    disks = vmxml.devices.by_device_tag("disk")
     disk_xml = None
     for disk in disks:
-        if disk.target['dev'] != disk_target:
+        if disk.target["dev"] != disk_target:
             continue
         else:
             disk_xml = disk.xmltreefile
             break
     LOG.debug("disk xml in mirror: %s\n", disk_xml)
-    disk_mirror = disk_xml.find('mirror')
+    disk_mirror = disk_xml.find("mirror")
     job_details = []
     if disk_mirror is not None:
-        job_details.append(disk_mirror.get('job'))
-        job_details.append(disk_mirror.get('ready'))
-        job_details.append(disk_mirror.find('type'))
+        job_details.append(disk_mirror.get("job"))
+        job_details.append(disk_mirror.get("ready"))
+        job_details.append(disk_mirror.find("type"))
     return job_details
 
 
@@ -463,8 +543,7 @@ def create_mbxml(mb_params):
     """
     mb_xml = vm_xml.VMMemBackingXML()
     for attr_key in mb_params:
-        setattr(mb_xml, attr_key,
-                mb_params[attr_key])
+        setattr(mb_xml, attr_key, mb_params[attr_key])
     LOG.debug(mb_xml)
     return mb_xml.copy()
 
@@ -481,8 +560,9 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
     """
     try:
         session = vm.wait_for_login()
-        rpm_stat, out_put = session.cmd_status_output("rpm -q parted || "
-                                                      "yum install -y parted", 300)
+        rpm_stat, out_put = session.cmd_status_output(
+            "rpm -q parted || " "yum install -y parted", 300
+        )
         if rpm_stat != 0:
             raise exceptions.TestFail("Failed to query/install parted:\n%s", out_put)
 
@@ -509,15 +589,17 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
             LOG.error("Can't see added partition in VM")
             return False
 
-        device_source = os.path.join(os.sep, 'dev', added_part)
+        device_source = os.path.join(os.sep, "dev", added_part)
         libvirt.mk_label(device_source, session=session)
         libvirt.mk_part(device_source, size="10M", session=session)
         # Run partprobe to make the change take effect.
         process.run("partprobe", ignore_status=True, shell=True)
         libvirt.mkfs("/dev/%s1" % added_part, "ext3", session=session)
 
-        cmd = ("mount /dev/%s1 /mnt && echo '123' > /mnt/testfile"
-               " && cat /mnt/testfile && umount /mnt" % added_part)
+        cmd = (
+            "mount /dev/%s1 /mnt && echo '123' > /mnt/testfile"
+            " && cat /mnt/testfile && umount /mnt" % added_part
+        )
         s, o = session.cmd_status_output(cmd)
         LOG.info("Check disk operation in VM:\n%s", o)
         session.close()
@@ -540,19 +622,24 @@ def create_remote_disk_by_same_metadata(vm, params):
     :return:  str, the path of newly created image
     """
     disk_format = params.get("disk_format", "qcow2")
-    server_ip = params.get('server_ip', params.get('migrate_dest_host'))
-    server_user = params.get('server_user', params.get('remote_user'))
-    server_pwd = params.get('server_pwd', params.get('migrate_dest_pwd'))
+    server_ip = params.get("server_ip", params.get("migrate_dest_host"))
+    server_user = params.get("server_user", params.get("remote_user"))
+    server_pwd = params.get("server_pwd", params.get("migrate_dest_pwd"))
 
     blk_source = get_first_disk_source(vm)
     vsize = utils_misc.get_image_info(blk_source).get("vsize")
-    remote_session = remote_old.remote_login("ssh", server_ip, "22",
-                                             server_user, server_pwd,
-                                             r'[$#%]')
+    remote_session = remote_old.remote_login(
+        "ssh", server_ip, "22", server_user, server_pwd, r"[$#%]"
+    )
     utils_misc.make_dirs(os.path.dirname(blk_source), remote_session)
-    create_disk('file', path=blk_source, size=vsize,
-                disk_format=disk_format, extra='',
-                session=remote_session)
+    create_disk(
+        "file",
+        path=blk_source,
+        size=vsize,
+        disk_format=disk_format,
+        extra="",
+        session=remote_session,
+    )
 
     remote_session.close()
     return blk_source
@@ -570,20 +657,24 @@ def fill_null_in_vm(vm, target, size_value=500):
         session = vm.wait_for_login()
         if not utils_package.package_install(["parted"], session, timeout=300):
             LOG.error("Failed to install the required 'parted' package")
-        device_source = os.path.join(os.sep, 'dev', target)
+        device_source = os.path.join(os.sep, "dev", target)
         libvirt.mk_label(device_source, session=session)
         libvirt.mk_part(device_source, size="%sM" % size_value, session=session)
         # Run partprobe to make the change take effect.
         process.run("partprobe", ignore_status=True, shell=True)
         libvirt.mkfs("/dev/%s1" % target, "ext3", session=session)
         count_number = size_value - 100
-        cmd = ("mount /dev/%s1 /mnt && dd if=/dev/zero of=/mnt/testfile bs=1024 count=1024x%s "
-               " && umount /mnt" % (target, count_number))
+        cmd = (
+            "mount /dev/%s1 /mnt && dd if=/dev/zero of=/mnt/testfile bs=1024 count=1024x%s "
+            " && umount /mnt" % (target, count_number)
+        )
         s, o = session.cmd_status_output(cmd)
         LOG.info("Check disk operation in VM:\n%s", o)
         session.close()
         if s != 0:
-            raise exceptions.TestError("Error happened when executing command:\n%s" % cmd)
+            raise exceptions.TestError(
+                "Error happened when executing command:\n%s" % cmd
+            )
     except Exception as e:
         raise exceptions.TestError(str(e))
 
@@ -599,13 +690,13 @@ def check_virtual_disk_io(vm, partition):
     session = None
     try:
         session = vm.wait_for_login()
-        cmd = ("fdisk -l /dev/{0} && mkfs.ext4 -F /dev/{0} && "
-               "mkdir -p test && mount /dev/{0} test && echo"
-               " teststring > test/testfile && umount test"
-               .format(partition))
+        cmd = (
+            "fdisk -l /dev/{0} && mkfs.ext4 -F /dev/{0} && "
+            "mkdir -p test && mount /dev/{0} test && echo"
+            " teststring > test/testfile && umount test".format(partition)
+        )
         status, output = session.cmd_status_output(cmd)
-        LOG.debug("Disk operation in VM:\nexit code:\n%s\noutput:\n%s",
-                  status, output)
+        LOG.debug("Disk operation in VM:\nexit code:\n%s\noutput:\n%s", status, output)
         return status == 0
     except Exception as err:
         LOG.debug("Error happens when check disk io in vm: %s", str(err))

@@ -43,7 +43,7 @@ from virttest.staging import utils_memory
 
 ARCH = platform.machine()
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class THPError(Exception):
@@ -51,6 +51,7 @@ class THPError(Exception):
     """
     Base exception for Transparent Hugepage setup.
     """
+
     pass
 
 
@@ -59,6 +60,7 @@ class THPNotSupportedError(THPError):
     """
     Thrown when host does not support transparent hugepages.
     """
+
     pass
 
 
@@ -67,6 +69,7 @@ class THPWriteConfigError(THPError):
     """
     Thrown when host does not support transparent hugepages.
     """
+
     pass
 
 
@@ -75,6 +78,7 @@ class THPKhugepagedError(THPError):
     """
     Thrown when khugepaged is not behaving as expected.
     """
+
     pass
 
 
@@ -83,6 +87,7 @@ class PolkitConfigError(Exception):
     """
     Base exception for Polkit Config setup.
     """
+
     pass
 
 
@@ -91,6 +96,7 @@ class PolkitRulesSetupError(PolkitConfigError):
     """
     Thrown when setup polkit rules is not behaving as expected.
     """
+
     pass
 
 
@@ -99,6 +105,7 @@ class PolkitWriteLibvirtdConfigError(PolkitConfigError):
     """
     Thrown when setup libvirtd config file is not behaving as expected.
     """
+
     pass
 
 
@@ -107,11 +114,11 @@ class PolkitConfigCleanupError(PolkitConfigError):
     """
     Thrown when polkit config cleanup is not behaving as expected.
     """
+
     pass
 
 
 class TransparentHugePageConfig(object):
-
     def __init__(self, test, params, env, session=None):
         """
         Find paths for transparent hugepages and kugepaged configuration. Also,
@@ -129,14 +136,15 @@ class TransparentHugePageConfig(object):
         elif os.path.isdir(UPSTREAM_THP_PATH):
             self.thp_path = UPSTREAM_THP_PATH
         else:
-            raise THPNotSupportedError("System doesn't support transparent "
-                                       "hugepages")
+            raise THPNotSupportedError(
+                "System doesn't support transparent " "hugepages"
+            )
 
         tmp_list = []
         test_cfg = {}
         test_config = self.params.get("test_config", None)
         if test_config is not None:
-            tmp_list = re.split(';', test_config)
+            tmp_list = re.split(";", test_config)
         while len(tmp_list) > 0:
             tmp_cfg = tmp_list.pop()
             test_cfg[re.split(":", tmp_cfg)[0]] = re.split(":", tmp_cfg)[1]
@@ -152,13 +160,14 @@ class TransparentHugePageConfig(object):
             base_dir = f[0]
             if f[2]:
                 for name in f[2]:
-                    f_dir = kernel_interface.SysFS(os.path.join(base_dir, name),
-                                                   session=self.session)
+                    f_dir = kernel_interface.SysFS(
+                        os.path.join(base_dir, name), session=self.session
+                    )
                     parameter = str(f_dir.sys_fs_value).strip("[]")
                     LOG.debug("Reading path %s: %s", f_dir.sys_fs, parameter)
                     try:
                         # Verify if the path in question is writable
-                        f = open(f_dir.sys_fs, 'w')
+                        f = open(f_dir.sys_fs, "w")
                         f.close()
                         original_config[f_dir.sys_fs] = parameter
                         if isinstance(parameter, str):
@@ -190,28 +199,38 @@ class TransparentHugePageConfig(object):
         """
         Start, stop and frequency change test for khugepaged.
         """
+
         def check_status_with_value(action_list, file_name):
             """
             Check the status of khugepaged when set value to specify file.
             """
             for (act, ret) in action_list:
-                LOG.info("Writing path %s: %s, expected khugepage rc: %s ",
-                         file_name, act, ret)
+                LOG.info(
+                    "Writing path %s: %s, expected khugepage rc: %s ",
+                    file_name,
+                    act,
+                    ret,
+                )
                 khugepage = kernel_interface.SysFS(file_name, session=self.session)
                 khugepage.sys_fs_value = act
                 try:
-                    ret_val = process.system('pgrep khugepaged', shell=True,
-                                             verbose=False)
+                    ret_val = process.system(
+                        "pgrep khugepaged", shell=True, verbose=False
+                    )
                     if ret_val != ret:
-                        raise THPKhugepagedError("Khugepaged could not be set "
-                                                 "to expected status %s, "
-                                                 "instead actual status is %s "
-                                                 "for action %s" %
-                                                 (ret, ret_val, act))
+                        raise THPKhugepagedError(
+                            "Khugepaged could not be set "
+                            "to expected status %s, "
+                            "instead actual status is %s "
+                            "for action %s" % (ret, ret_val, act)
+                        )
                 except process.CmdError:
-                    raise THPKhugepagedError("Khugepaged still alive when"
-                                             "transparent huge page is "
-                                             "disabled")
+                    raise THPKhugepagedError(
+                        "Khugepaged still alive when"
+                        "transparent huge page is "
+                        "disabled"
+                    )
+
         LOG.info("Testing khugepaged")
         for file_path in self.file_list_str:
             action_list = []
@@ -257,7 +276,7 @@ class TransparentHugePageConfig(object):
         """:
         Restore the host's original configuration after test
         """
-        original_config = self.env.data.pop('THP_original_config')
+        original_config = self.env.data.pop("THP_original_config")
         LOG.info("Restoring host's original THP configuration")
         for path in original_config:
             LOG.info("Writing path %s: %s", path, original_config[path])
@@ -266,7 +285,6 @@ class TransparentHugePageConfig(object):
 
 
 class HugePageConfig(object):
-
     def __init__(self, params):
         """
         Gets environment variable values and calculates the target number
@@ -279,22 +297,24 @@ class HugePageConfig(object):
         self.max_vms = int(params.get("max_vms", 0))
         self.qemu_overhead = int(params.get("hugepages_qemu_overhead", 128))
         self.deallocate = params.get("hugepages_deallocate", "yes") == "yes"
-        self.hugepage_path = '/mnt/kvm_hugepage'
+        self.hugepage_path = "/mnt/kvm_hugepage"
         self.kernel_hp_file = params.get("kernel_hp_file", "/proc/sys/vm/nr_hugepages")
         if not os.path.exists(self.kernel_hp_file):
-            raise exceptions.TestSkipError("Hugepage config file is not found: "
-                                           "%s" % self.kernel_hp_file)
+            raise exceptions.TestSkipError(
+                "Hugepage config file is not found: " "%s" % self.kernel_hp_file
+            )
         self.over_commit_hp = "/proc/sys/vm/nr_overcommit_hugepages"
         self.over_commit = kernel_interface.ProcFS(self.over_commit_hp)
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
         # Unit is KB as default for hugepage size.
         try:
-            self.expected_hugepage_size = int(
-                params.get("expected_hugepage_size", 0))
+            self.expected_hugepage_size = int(params.get("expected_hugepage_size", 0))
         except TypeError:
-            LOG.warn("Invalid value 'expected_hugepage_size=%s'",
-                     params.get("expected_hugepage_size"))
+            LOG.warn(
+                "Invalid value 'expected_hugepage_size=%s'",
+                params.get("expected_hugepage_size"),
+            )
             self.expected_hugepage_size = 0
         self.hugepage_cpu_flag = params.get("hugepage_cpu_flag")
         self.hugepage_match_str = params.get("hugepage_match_str")
@@ -303,8 +323,7 @@ class HugePageConfig(object):
         self.hugepage_size = self.get_hugepage_size()
         if self.expected_hugepage_size:
             self.check_hugepage_size_as_expected()
-        self.hugepage_force_allocate = params.get("hugepage_force_allocate",
-                                                  "no")
+        self.hugepage_force_allocate = params.get("hugepage_force_allocate", "no")
         self.suggest_mem = None
         normalize_data_size = utils_misc.normalize_data_size
         vm_mem_minimum = params.get("vm_mem_minimum", "512M")
@@ -322,8 +341,9 @@ class HugePageConfig(object):
         else:
             target_hugepages = int(target_hugepages)
 
-        self.target_hugepages = (target_hugepages + self.ext_hugepages_surp -
-                                 overcommit_hugepages)
+        self.target_hugepages = (
+            target_hugepages + self.ext_hugepages_surp - overcommit_hugepages
+        )
         self.target_nodes = params.get("target_nodes")
         if self.target_nodes:
             self.target_node_num = {}
@@ -350,15 +370,19 @@ class HugePageConfig(object):
         host_cpu_flags = cpu.get_cpu_flags()
         host_ker_cml = utils_misc.get_ker_cmd()
         if self.hugepage_cpu_flag not in host_cpu_flags:
-            raise exceptions.TestSkipError("Your host does not support hugepage,"
-                                           "as miss the cpu flag %s on your host."
-                                           "Please check cpu flags %s on the host" %
-                                           (self.hugepage_cpu_flag, host_cpu_flags))
+            raise exceptions.TestSkipError(
+                "Your host does not support hugepage,"
+                "as miss the cpu flag %s on your host."
+                "Please check cpu flags %s on the host"
+                % (self.hugepage_cpu_flag, host_cpu_flags)
+            )
         if self.hugepage_match_str not in host_ker_cml:
-            raise exceptions.TestSkipError("Your host does not support hugepage, "
-                                           "as miss the %s in host kernel cmdline."
-                                           "Please check kernel cmdline %s on host" %
-                                           (self.hugepage_match_str, host_ker_cml))
+            raise exceptions.TestSkipError(
+                "Your host does not support hugepage, "
+                "as miss the %s in host kernel cmdline."
+                "Please check kernel cmdline %s on host"
+                % (self.hugepage_match_str, host_ker_cml)
+            )
 
     @error_context.context_aware
     def check_hugepage_size_as_expected(self):
@@ -367,21 +391,24 @@ class HugePageConfig(object):
         """
         error_context.context("Check whether the hugepage size as expected")
         if self.hugepage_size != self.expected_hugepage_size:
-            raise exceptions.TestSkipError("The current hugepage size on host does "
-                                           "not match the expected hugepage size.\n")
+            raise exceptions.TestSkipError(
+                "The current hugepage size on host does "
+                "not match the expected hugepage size.\n"
+            )
 
     def get_hugepage_size(self):
         """
         Get the current system setting for huge memory page size.
         """
-        with open('/proc/meminfo', 'r') as meminfo_fd:
+        with open("/proc/meminfo", "r") as meminfo_fd:
             meminfo = meminfo_fd.readlines()
         huge_line_list = [h for h in meminfo if h.startswith("Hugepagesize")]
         try:
             return int(huge_line_list[0].split()[1])
         except ValueError as e:
-            raise ValueError("Could not get huge page size setting from "
-                             "/proc/meminfo: %s" % e)
+            raise ValueError(
+                "Could not get huge page size setting from " "/proc/meminfo: %s" % e
+            )
 
     def get_target_hugepages(self):
         """
@@ -407,30 +434,39 @@ class HugePageConfig(object):
         if self.hugepage_force_allocate == "no":
             with open(self.kernel_hp_file, "r") as hugepage_allocated:
                 available_hugepages = int(hugepage_allocated.read().strip())
-            chunk_bottom = int(math.log(self.hugepage_size / utils_memory.getpagesize(), 2))
-            if ARCH in ['ppc64le', 's390x']:
+            chunk_bottom = int(
+                math.log(self.hugepage_size / utils_memory.getpagesize(), 2)
+            )
+            if ARCH in ["ppc64le", "s390x"]:
                 chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom)
             else:
-                chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom,
-                                                         zones="DMA32 Normal")
+                chunk_info = utils_memory.get_buddy_info(
+                    ">=%s" % chunk_bottom, zones="DMA32 Normal"
+                )
             for size in chunk_info:
-                available_hugepages += int(chunk_info[size] * math.pow(2,
-                                                                       int(int(size) - chunk_bottom)))
+                available_hugepages += int(
+                    chunk_info[size] * math.pow(2, int(int(size) - chunk_bottom))
+                )
 
             available_hugepages = available_hugepages - decreased_pages
             if target_hugepages > available_hugepages:
-                LOG.warn("This test requires more huge pages than we"
-                         " currently have, we'll try to allocate the"
-                         " biggest number the system can support.")
+                LOG.warn(
+                    "This test requires more huge pages than we"
+                    " currently have, we'll try to allocate the"
+                    " biggest number the system can support."
+                )
                 target_hugepages = available_hugepages
                 available_mem = available_hugepages * self.hugepage_size
-                self.suggest_mem = int(available_mem // self.vms // 1024 -
-                                       self.qemu_overhead)
+                self.suggest_mem = int(
+                    available_mem // self.vms // 1024 - self.qemu_overhead
+                )
                 if self.suggest_mem < self.lowest_mem_per_vm:
-                    raise MemoryError("This host doesn't have enough free "
-                                      "large memory pages for this test to "
-                                      "run (only %s MB memory available for "
-                                      "each guest)" % self.suggest_mem)
+                    raise MemoryError(
+                        "This host doesn't have enough free "
+                        "large memory pages for this test to "
+                        "run (only %s MB memory available for "
+                        "each guest)" % self.suggest_mem
+                    )
 
         return target_hugepages
 
@@ -453,12 +489,14 @@ class HugePageConfig(object):
             for path_name in os.listdir(self.pool_path):
                 LOG.debug("path name is %s" % path_name)
                 if os.path.isdir("%s/%s" % (self.pool_path, path_name)):
-                    hugepage_size.append(path_name.split('-')[1][:-2])
-                    LOG.debug(path_name.split('-')[1][:-2])
+                    hugepage_size.append(path_name.split("-")[1][:-2])
+                    LOG.debug(path_name.split("-")[1][:-2])
             return hugepage_size
         else:
-            raise ValueError("Root hugepage control sysfs directory %s did not"
-                             " exist" % self.pool_path)
+            raise ValueError(
+                "Root hugepage control sysfs directory %s did not"
+                " exist" % self.pool_path
+            )
 
     def get_kernel_hugepages(self, pagesize):
         """
@@ -497,7 +535,7 @@ class HugePageConfig(object):
         :param type: total pages or free pages
         :return: int, node huge pages number of given page size
         """
-        if type == 'free':
+        if type == "free":
             ptype = "free_hugepages"
         else:
             ptype = "nr_hugepages"
@@ -520,16 +558,17 @@ class HugePageConfig(object):
         obj.sys_fs_value = num
         # If node has some used hugepage, result will be larger than expected.
         if obj.sys_fs_value < int(num):
-            raise ValueError("Cannot set %s hugepages on node %s, please check"
-                             " if the node has enough memory" % (num, node))
+            raise ValueError(
+                "Cannot set %s hugepages on node %s, please check"
+                " if the node has enough memory" % (num, node)
+            )
 
     @error_context.context_aware
     def set_hugepages(self):
         """
         Sets the hugepage limit to the target hugepage value calculated.
         """
-        error_context.context(
-            "setting hugepages limit to %s" % self.target_hugepages)
+        error_context.context("setting hugepages limit to %s" % self.target_hugepages)
         try:
             with open(self.kernel_hp_file, "r") as hugepage_cfg:
                 hp = hugepage_cfg.readline().strip()
@@ -547,11 +586,13 @@ class HugePageConfig(object):
                 msg = "Can't read/write from kernel hugepage file"
                 raise exceptions.TestSetupFail(msg)
             if loop_hp == hp:
-                raise ValueError("Cannot set the kernel hugepage setting "
-                                 "to the target value of %d hugepages." %
-                                 self.target_hugepages)
-        LOG.debug("Successfully set %s large memory pages on host ",
-                  self.target_hugepages)
+                raise ValueError(
+                    "Cannot set the kernel hugepage setting "
+                    "to the target value of %d hugepages." % self.target_hugepages
+                )
+        LOG.debug(
+            "Successfully set %s large memory pages on host ", self.target_hugepages
+        )
 
     @error_context.context_aware
     def mount_hugepage_fs(self):
@@ -571,22 +612,28 @@ class HugePageConfig(object):
     def setup(self):
         LOG.debug("Number of VMs this test will use: %d", self.vms)
         LOG.debug("Amount of memory used by each vm: %s", self.mem)
-        LOG.debug("System setting for large memory page size: %s",
-                  self.hugepage_size)
+        LOG.debug("System setting for large memory page size: %s", self.hugepage_size)
         if self.over_commit.proc_fs_value > 0:
-            LOG.debug("Number of overcommit large memory pages will be set"
-                      " for this test: %s", self.over_commit.proc_fs_value)
-        LOG.debug("Number of large memory pages needed for this test: %s",
-                  self.target_hugepages)
+            LOG.debug(
+                "Number of overcommit large memory pages will be set"
+                " for this test: %s",
+                self.over_commit.proc_fs_value,
+            )
+        LOG.debug(
+            "Number of large memory pages needed for this test: %s",
+            self.target_hugepages,
+        )
         # Drop caches to clean some usable memory
         with open("/proc/sys/vm/drop_caches", "w") as caches:
-            caches.write('3')
+            caches.write("3")
         # Set hugepage may fail because of insufficient continual memory
         # Compact memory to get more continual memory
-        if (linux_modules.check_kernel_config("CONFIG_COMPACTION") ==
-                linux_modules.ModuleConfig.BUILTIN):
+        if (
+            linux_modules.check_kernel_config("CONFIG_COMPACTION")
+            == linux_modules.ModuleConfig.BUILTIN
+        ):
             with open("/proc/sys/vm/compact_memory", "w") as memory:
-                memory.write('1')
+                memory.write("1")
             # Check the number of available page
             with open("/proc/buddyinfo", "r") as buddyinfo:
                 info = buddyinfo.read()
@@ -615,7 +662,6 @@ class HugePageConfig(object):
 
 
 class KSMConfig(object):
-
     def __init__(self, params, env):
         """
         :param params: Dict like object containing parameters for the test.
@@ -654,10 +700,8 @@ class KSMConfig(object):
 
         self.default_status = []
         self.default_status.append(self.ksmctler.get_ksm_feature("run"))
-        self.default_status.append(self.ksmctler.get_ksm_feature(
-            "pages_to_scan"))
-        self.default_status.append(self.ksmctler.get_ksm_feature(
-            "sleep_millisecs"))
+        self.default_status.append(self.ksmctler.get_ksm_feature("pages_to_scan"))
+        self.default_status.append(self.ksmctler.get_ksm_feature("sleep_millisecs"))
         self.default_status.append(int(self.ksmtuned_process))
         self.default_status.append(self.ksm_module_loaded)
 
@@ -666,9 +710,13 @@ class KSMConfig(object):
             self.ksmctler.stop_ksmtuned()
 
         env.data["KSM_default_config"] = self.default_status
-        self.ksmctler.set_ksm_feature({"run": self.run,
-                                       "pages_to_scan": self.pages_to_scan,
-                                       "sleep_millisecs": self.sleep_ms})
+        self.ksmctler.set_ksm_feature(
+            {
+                "run": self.run,
+                "pages_to_scan": self.pages_to_scan,
+                "sleep_millisecs": self.sleep_ms,
+            }
+        )
 
     def cleanup(self, env):
         default_status = env.data.get("KSM_default_config")
@@ -691,13 +739,16 @@ class KSMConfig(object):
             # Nothing changed
             return
 
-        self.ksmctler.set_ksm_feature({"run": default_status[0],
-                                       "pages_to_scan": default_status[1],
-                                       "sleep_millisecs": default_status[2]})
+        self.ksmctler.set_ksm_feature(
+            {
+                "run": default_status[0],
+                "pages_to_scan": default_status[1],
+                "sleep_millisecs": default_status[2],
+            }
+        )
 
 
 class PrivateBridgeError(Exception):
-
     def __init__(self, brname):
         self.brname = brname
 
@@ -711,12 +762,12 @@ class PrivateBridgeConfig(object):
     def __init__(self, params=None):
         self.__dict__ = self.__shared_state
         if params is not None:
-            self.brname = params.get("priv_brname", 'atbr0')
-            self.subnet = params.get("priv_subnet", '192.168.58')
-            self.netmask = params.get("priv_netmask", '255.255.255.0')
+            self.brname = params.get("priv_brname", "atbr0")
+            self.subnet = params.get("priv_subnet", "192.168.58")
+            self.netmask = params.get("priv_netmask", "255.255.255.0")
             self.ip_version = params.get("bridge_ip_version", "ipv4")
             self.dhcp_server_pid = None
-            ports = params.get("priv_bridge_ports", '53 67').split()
+            ports = params.get("priv_bridge_ports", "53 67").split()
             s_port = params.get("guest_port_remote_shell", "10022")
             if s_port not in ports:
                 ports.append(s_port)
@@ -729,14 +780,14 @@ class PrivateBridgeConfig(object):
             self.iptables_rules = self._assemble_iptables_rules(ports)
             self.physical_nic = params.get("physical_nic")
             if self.physical_nic:
-                if self.physical_nic.split(':', 1)[0] == "shell":
+                if self.physical_nic.split(":", 1)[0] == "shell":
                     self.physical_nic = process.run(
-                        self.physical_nic.split(':', 1)[1], shell=True
+                        self.physical_nic.split(":", 1)[1], shell=True
                     ).stdout_text.strip()
                 if self.physical_nic not in utils_net.get_host_iface():
-                    raise exceptions.TestSetupFail("Physical network '%s'"
-                                                   "does not exist" %
-                                                   self.physical_nic)
+                    raise exceptions.TestSetupFail(
+                        "Physical network '%s'" "does not exist" % self.physical_nic
+                    )
             self.force_create = False
             if params.get("bridge_force_create", "no") == "yes":
                 self.force_create = True
@@ -747,25 +798,31 @@ class PrivateBridgeConfig(object):
         index = 0
         for port in port_list:
             index += 1
-            rules.append("INPUT %s -i %s -p tcp --dport %s -j ACCEPT" %
-                         (index, self.brname, port))
+            rules.append(
+                "INPUT %s -i %s -p tcp --dport %s -j ACCEPT"
+                % (index, self.brname, port)
+            )
             index += 1
-            rules.append("INPUT %s -i %s -p udp --dport %s -j ACCEPT" %
-                         (index, self.brname, port))
+            rules.append(
+                "INPUT %s -i %s -p udp --dport %s -j ACCEPT"
+                % (index, self.brname, port)
+            )
         rules.append("FORWARD 1 -m physdev --physdev-is-bridged -j ACCEPT")
-        rules.append("FORWARD 2 -d %s.0/24 -o %s -m state "
-                     "--state RELATED,ESTABLISHED -j ACCEPT" %
-                     (self.subnet, self.brname))
-        rules.append("FORWARD 3 -s %s.0/24 -i %s -j ACCEPT" %
-                     (self.subnet, self.brname))
-        rules.append("FORWARD 4 -i %s -o %s -j ACCEPT" %
-                     (self.brname, self.brname))
+        rules.append(
+            "FORWARD 2 -d %s.0/24 -o %s -m state "
+            "--state RELATED,ESTABLISHED -j ACCEPT" % (self.subnet, self.brname)
+        )
+        rules.append(
+            "FORWARD 3 -s %s.0/24 -i %s -j ACCEPT" % (self.subnet, self.brname)
+        )
+        rules.append("FORWARD 4 -i %s -o %s -j ACCEPT" % (self.brname, self.brname))
         return rules
 
     def _add_bridge(self):
         self.bridge_manager.add_bridge(self.brname)
-        setbr_cmd = ("ip link set %s type bridge stp_state 1"
-                     " forward_delay 400" % self.brname)
+        setbr_cmd = (
+            "ip link set %s type bridge stp_state 1" " forward_delay 400" % self.brname
+        )
         process.system(setbr_cmd)
         ip_fwd_path = "/proc/sys/net/%s/ip_forward" % self.ip_version
         with open(ip_fwd_path, "w") as ip_fwd:
@@ -774,8 +831,7 @@ class PrivateBridgeConfig(object):
             self.bridge_manager.add_port(self.brname, self.physical_nic)
 
     def _bring_bridge_up(self):
-        utils_net.set_net_if_ip(self.brname, "%s.1/%s" % (self.subnet,
-                                                          self.netmask))
+        utils_net.set_net_if_ip(self.brname, "%s.1/%s" % (self.subnet, self.netmask))
         utils_net.bring_up_ifname(self.brname)
 
     def _iptables_add(self, cmd):
@@ -792,22 +848,29 @@ class PrivateBridgeConfig(object):
         if not utils_package.package_install("dnsmasq"):
             exceptions.TestSkipError("Failed to install dnsmasq package")
         service.Factory.create_service("dnsmasq").stop()
-        process.system("dnsmasq --strict-order --bind-interfaces "
-                       "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
-                       "--dhcp-lease-max=253 "
-                       "--dhcp-no-override "
-                       "--pid-file=%s/dnsmasq.pid "
-                       "--log-facility=%s/dnsmasq.log" %
-                       (self.subnet, self.subnet, self.subnet,
-                        data_dir.get_tmp_dir(), data_dir.get_tmp_dir()))
+        process.system(
+            "dnsmasq --strict-order --bind-interfaces "
+            "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
+            "--dhcp-lease-max=253 "
+            "--dhcp-no-override "
+            "--pid-file=%s/dnsmasq.pid "
+            "--log-facility=%s/dnsmasq.log"
+            % (
+                self.subnet,
+                self.subnet,
+                self.subnet,
+                data_dir.get_tmp_dir(),
+                data_dir.get_tmp_dir(),
+            )
+        )
         self.dhcp_server_pid = None
         try:
-            self.dhcp_server_pid = int(open('%s/dnsmasq.pid' %
-                                            data_dir.get_tmp_dir(), 'r').read())
+            self.dhcp_server_pid = int(
+                open("%s/dnsmasq.pid" % data_dir.get_tmp_dir(), "r").read()
+            )
         except ValueError:
             raise PrivateBridgeError(self.brname)
-        LOG.debug("Started internal DHCP server with PID %s",
-                  self.dhcp_server_pid)
+        LOG.debug("Started internal DHCP server with PID %s", self.dhcp_server_pid)
 
     def _verify_bridge(self):
         if not self._br_exist():
@@ -868,8 +931,9 @@ class PrivateBridgeConfig(object):
                 pass
         else:
             try:
-                dhcp_server_pid = int(open('%s/dnsmasq.pid' %
-                                           data_dir.get_tmp_dir(), 'r').read())
+                dhcp_server_pid = int(
+                    open("%s/dnsmasq.pid" % data_dir.get_tmp_dir(), "r").read()
+                )
             except (ValueError, OSError):
                 return
             try:
@@ -882,7 +946,7 @@ class PrivateBridgeConfig(object):
 
     def _disable_nat(self):
         for rule in self.iptables_rules:
-            split_list = rule.split(' ')
+            split_list = rule.split(" ")
             # We need to remove numbering here
             split_list.pop(1)
             rule = " ".join(split_list)
@@ -896,8 +960,7 @@ class PrivateBridgeConfig(object):
 
     def cleanup(self):
         if self._br_exist() and not self._br_in_use():
-            LOG.debug(
-                "Cleaning up KVM test private bridge %s", self.brname)
+            LOG.debug("Cleaning up KVM test private bridge %s", self.brname)
             self._stop_dhcp_server()
             self._disable_nat()
             self._bring_bridge_down()
@@ -905,7 +968,6 @@ class PrivateBridgeConfig(object):
 
 
 class PrivateOvsBridgeConfig(PrivateBridgeConfig):
-
     def __init__(self, params=None):
         super(PrivateOvsBridgeConfig, self).__init__(params)
         ovs = versionable_class.factory(openvswitch.OpenVSwitchSystem)()
@@ -937,10 +999,21 @@ class PciAssignable(object):
     PF (physical Functions) or VF (Virtual Functions).
     """
 
-    def __init__(self, driver=None, driver_option=None, host_set_flag=None,
-                 kvm_params=None, vf_filter_re=None, pf_filter_re=None,
-                 device_driver=None, nic_name_re=None, static_ip=None,
-                 net_mask=None, start_addr_PF=None, pa_type=None):
+    def __init__(
+        self,
+        driver=None,
+        driver_option=None,
+        host_set_flag=None,
+        kvm_params=None,
+        vf_filter_re=None,
+        pf_filter_re=None,
+        device_driver=None,
+        nic_name_re=None,
+        static_ip=None,
+        net_mask=None,
+        start_addr_PF=None,
+        pa_type=None,
+    ):
         """
         Initialize parameter 'type' which could be:
         vf: Virtual Functions
@@ -1031,11 +1104,11 @@ class PciAssignable(object):
         :type mac: string
         """
         device = {}
-        device['type'] = device_type
+        device["type"] = device_type
         if name is not None:
-            device['name'] = name
+            device["name"] = name
         if mac:
-            device['mac'] = mac
+            device["mac"] = mac
         self.devices.append(device)
         self.devices_requested += 1
 
@@ -1080,8 +1153,7 @@ class PciAssignable(object):
                 if name and "ethname" in pf and name == pf["ethname"]:
                     for vf in pf["vf_ids"]:
                         vf_id = vf["vf_id"]
-                        if (not vf["occupied"] and
-                                not self.is_binded_to_stub(vf_id)):
+                        if not vf["occupied"] and not self.is_binded_to_stub(vf_id):
                             vf["occupied"] = True
                             return vf_id
             if vf_id is None:
@@ -1090,8 +1162,7 @@ class PciAssignable(object):
                         continue
                     for vf in pf["vf_ids"]:
                         vf_id = vf["vf_id"]
-                        if (not vf["occupied"] and
-                                not self.is_binded_to_stub(vf_id)):
+                        if not vf["occupied"] and not self.is_binded_to_stub(vf_id):
                             vf["occupied"] = True
                             return vf_id
 
@@ -1108,11 +1179,9 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci"
         drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
         if self.device_driver in os.readlink(drv_path):
-            error_context.context(
-                "Release device %s to host" % pci_id, LOG.info)
+            error_context.context("Release device %s to host" % pci_id, LOG.info)
 
-            stub_path = os.path.join(base_dir,
-                                     "drivers/%s" % self.device_driver)
+            stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
             cmd = "echo '%s' > %s/unbind" % (pci_id, stub_path)
             LOG.info("Run command in host: %s" % cmd)
             try:
@@ -1157,7 +1226,7 @@ class PciAssignable(object):
         vf_res_path = os.path.join(tub_path, "%s/resource*" % vf_id)
         cmd = "lsof %s" % vf_res_path
         output = process.run(cmd, timeout=60, ignore_status=True).stdout_text
-        if 'qemu' in output:
+        if "qemu" in output:
             return True
         else:
             return False
@@ -1172,11 +1241,10 @@ class PciAssignable(object):
         :rtype: string
         """
         for pf_info in self.pf_vf_info:
-            for vf_info in pf_info.get('vf_ids'):
+            for vf_info in pf_info.get("vf_ids"):
                 if vf_id == vf_info["vf_id"]:
-                    return pf_info['ethname'], pf_info["vf_ids"].index(vf_info)
-        raise ValueError("Could not find vf id '%s' in '%s'" % (vf_id,
-                                                                self.pf_vf_info))
+                    return pf_info["ethname"], pf_info["vf_ids"].index(vf_info)
+        raise ValueError("Could not find vf id '%s' in '%s'" % (vf_id, self.pf_vf_info))
 
     def get_pf_vf_info(self):
         """
@@ -1244,8 +1312,8 @@ class PciAssignable(object):
             devices = self.devices
         LOG.info("devices = %s", devices)
         for device in devices:
-            if device['type'] == 'vf':
-                name = device.get('name', None)
+            if device["type"] == "vf":
+                name = device.get("name", None)
                 vf_id = self._get_vf_pci_id(name)
                 LOG.info("vf_id = %s", vf_id)
                 if not vf_id:
@@ -1270,8 +1338,8 @@ class PciAssignable(object):
         if not devices:
             devices = self.devices
         for device in devices:
-            if device['type'] == 'pf':
-                name = device.get('name', None)
+            if device["type"] == "pf":
+                name = device.get("name", None)
                 pf_id = self._get_pf_pci_id(name)
                 if not pf_id:
                     continue
@@ -1304,16 +1372,19 @@ class PciAssignable(object):
             if d_type == "vf":
                 dev_id = vf_ids.pop(0)
                 (ethname, vf_num) = self.get_vf_num_by_id(dev_id)
-                set_mac_cmd = "ip link set dev %s vf %s mac %s " % (ethname,
-                                                                    vf_num,
-                                                                    device["mac"])
+                set_mac_cmd = "ip link set dev %s vf %s mac %s " % (
+                    ethname,
+                    vf_num,
+                    device["mac"],
+                )
                 process.run(set_mac_cmd)
 
             elif d_type == "pf":
                 dev_id = pf_ids.pop(0)
             dev_ids.append(dev_id)
-            unbind_driver = os.path.realpath(os.path.join(base_dir,
-                                                          "devices/%s/driver" % dev_id))
+            unbind_driver = os.path.realpath(
+                os.path.join(base_dir, "devices/%s/driver" % dev_id)
+            )
             self.dev_unbind_drivers[dev_id] = unbind_driver
         if len(dev_ids) != len(devices):
             LOG.error("Did not get enough PCI Device")
@@ -1342,8 +1413,7 @@ class PciAssignable(object):
         """
         pci_ids = []
         base_dir = "/sys/bus/pci/devices"
-        devices_link = os.path.join(base_dir,
-                                    "%s/iommu_group/devices/" % pci_id)
+        devices_link = os.path.join(base_dir, "%s/iommu_group/devices/" % pci_id)
         out = process.run("ls %s" % devices_link).stdout_text
 
         if out:
@@ -1354,9 +1424,11 @@ class PciAssignable(object):
         """
         Get the id of PF devices
         """
-        cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
-        PF_devices = [i for i in process.run(
-            cmd, shell=True).stdout_text.splitlines()]
+        cmd = (
+            "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'"
+            % self.pf_filter_re
+        )
+        PF_devices = [i for i in process.run(cmd, shell=True).stdout_text.splitlines()]
         if not PF_devices:
             raise exceptions.TestSkipError("No specified pf found in the host!")
         pf_ids = []
@@ -1373,17 +1445,20 @@ class PciAssignable(object):
         pf_devices = self.get_pf_ids()
         if (not self.start_addr_PF) or (not self.net_mask):
             raise exceptions.TestSetupFail(
-                "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
+                "No IP / netmask found, please populate starting IP address for PF devices in configuration file"
+            )
         ip_addr = ipaddress.ip_address(self.start_addr_PF)
         for PF in pf_devices:
             ifname = utils_misc.get_interface_from_pci_id(PF)
             ip_assign = "ifconfig %s %s netmask %s up" % (
-                ifname, ip_addr, self.net_mask)
+                ifname,
+                ip_addr,
+                self.net_mask,
+            )
             LOG.info("assign IP to PF device %s : %s", PF, ip_assign)
             cmd = process.system(ip_assign, shell=True, ignore_status=True)
             if cmd:
-                raise exceptions.TestSetupFail("Failed to assign IP : %s"
-                                               % cmd)
+                raise exceptions.TestSetupFail("Failed to assign IP : %s" % cmd)
             ip_addr += 1
         return True
 
@@ -1393,8 +1468,10 @@ class PciAssignable(object):
         """
         # The VF count should be multiplied with the total no.of PF's
         # present, rather than fixed number of network interfaces.
-        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(self.get_pf_ids())
-        return (self.get_vfs_count() == expected_count)
+        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(
+            self.get_pf_ids()
+        )
+        return self.get_vfs_count() == expected_count
 
     def get_controller_type(self):
         """
@@ -1402,7 +1479,12 @@ class PciAssignable(object):
         """
         try:
             cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
-            return process.run(cmd, shell=True).stdout_text.split("\n")[-1].strip().strip(':')
+            return (
+                process.run(cmd, shell=True)
+                .stdout_text.split("\n")[-1]
+                .strip()
+                .strip(":")
+            )
         except IndexError:
             LOG.debug("Unable to fetch the controller details")
             return None
@@ -1422,8 +1504,10 @@ class PciAssignable(object):
         """
         Generate portid for the VF's of SR-IOV Infiniband Adapter
         """
-        portid = "%s:%s" % (utils_net.generate_mac_address_simple(),
-                            utils_net.generate_mac_address_simple()[:5])
+        portid = "%s:%s" % (
+            utils_net.generate_mac_address_simple(),
+            utils_net.generate_mac_address_simple()[:5],
+        )
         return portid
 
     def set_linkvf_ib(self):
@@ -1435,23 +1519,24 @@ class PciAssignable(object):
             cmd = "ls -R /sys/class/infiniband/*/device/sriov/*"
             dev = process.run(cmd, shell=True).stdout_text
         except process.CmdError as detail:
-            LOG.error("No VF's found for set-up, command-failed as: %s",
-                      str(detail))
+            LOG.error("No VF's found for set-up, command-failed as: %s", str(detail))
             return False
-        for line in dev.split('\n\n'):
-            key = line.split(':')[0]
+        for line in dev.split("\n\n"):
+            key = line.split(":")[0]
             value = {}
-            for attr in line.split(':')[1].split():
-                if attr == 'policy':
-                    value[attr] = 'Follow'
-                if attr in ('node', 'port'):
+            for attr in line.split(":")[1].split():
+                if attr == "policy":
+                    value[attr] = "Follow"
+                if attr in ("node", "port"):
                     value[attr] = self.generate_ib_port_id()
             pids[key] = value
         for key in pids.keys():
             LOG.info("The key %s corresponds to %s", key, pids[key])
             for subkey in pids[key].keys():
-                status = process.system("echo %s > %s" % (pids[key][subkey],
-                                                          os.path.join(key, subkey)), shell=True)
+                status = process.system(
+                    "echo %s > %s" % (pids[key][subkey], os.path.join(key, subkey)),
+                    shell=True,
+                )
                 if status != 0:
                     return False
         return True
@@ -1489,7 +1574,7 @@ class PciAssignable(object):
             driver = self.driver
         if driver and driver != "mlx5_core":
             cmd = "modprobe -r %s" % driver
-        if ARCH == 'ppc64le' and driver == 'mlx5_core':
+        if ARCH == "ppc64le" and driver == "mlx5_core":
             pf_devices = self.get_pf_ids()
             LOG.info("Mellanox PF devices '%s'", pf_devices)
             for PF in pf_devices:
@@ -1532,9 +1617,8 @@ class PciAssignable(object):
         """
         # Check if the host support interrupt remapping. On PowerPC interrupt
         # remapping is not required
-        error_context.context("Set up host env for PCI assign test",
-                              LOG.info)
-        if ARCH != 'ppc64le':
+        error_context.context("Set up host env for PCI assign test", LOG.info)
+        if ARCH != "ppc64le":
             kvm_re_probe = True
             dmesg = process.run("dmesg", verbose=False).stdout_text
             ecap = re.findall("ecap\s+(.\w+)", dmesg)
@@ -1551,40 +1635,44 @@ class PciAssignable(object):
             # Try to re probe kvm module with interrupt remapping support
             if kvm_re_probe and self.auai_path:
                 cmd = "echo Y > %s" % self.auai_path
-                error_context.context("enable PCI passthrough with '%s'" % cmd,
-                                      LOG.info)
+                error_context.context(
+                    "enable PCI passthrough with '%s'" % cmd, LOG.info
+                )
                 try:
                     process.system(cmd)
                 except Exception:
-                    LOG.debug(
-                        "Can not enable the interrupt remapping support")
+                    LOG.debug("Can not enable the interrupt remapping support")
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
                 # If driver is not available modprobe it
-                if process.system('lsmod | grep vfio_pci', ignore_status=True,
-                                  shell=True):
+                if process.system(
+                    "lsmod | grep vfio_pci", ignore_status=True, shell=True
+                ):
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
                 if not ecap or (int(ecap[0], 16) & 8 != 8):
                     cmd = "echo Y > %s" % lnk
-                    error_context.context("enable PCI passthrough with '%s'" % cmd,
-                                          LOG.info)
+                    error_context.context(
+                        "enable PCI passthrough with '%s'" % cmd, LOG.info
+                    )
                     process.run(cmd)
         else:
             if self.device_driver == "vfio-pci":
-                if process.system('lsmod | grep vfio_pci', ignore_status=True,
-                                  shell=True):
+                if process.system(
+                    "lsmod | grep vfio_pci", ignore_status=True, shell=True
+                ):
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
         re_probe = False
         # If driver not available after modprobe try to remove it and reprobe
-        if process.system("lsmod | grep -w %s" % self.driver, ignore_status=True,
-                          shell=True):
+        if process.system(
+            "lsmod | grep -w %s" % self.driver, ignore_status=True, shell=True
+        ):
             re_probe = True
         # If driver is available and pa_type is vf then set VFs
-        elif self.pa_type == 'vf':
+        elif self.pa_type == "vf":
             pf_devices = self.get_pf_ids()
-            if (self.static_ip):
+            if self.static_ip:
                 self.assign_static_ip()
             for PF in pf_devices:
                 if not self.set_vf(PF, self.driver_option):
@@ -1601,21 +1689,20 @@ class PciAssignable(object):
             if not self.remove_driver() or not self.modprobe_driver():
                 return False
             pf_devices = self.get_pf_ids()
-            if (self.static_ip):
+            if self.static_ip:
                 self.assign_static_ip()
-            if self.pa_type == 'vf':
+            if self.pa_type == "vf":
                 for PF in pf_devices:
                     if not self.set_vf(PF, self.driver_option):
                         return False
                 if not self.check_vfs_count():
                     # Even after re-probe there are no VFs created
                     return False
-            dmesg = process.run("dmesg", timeout=60,
-                                ignore_status=True,
-                                verbose=False).stdout_text
+            dmesg = process.run(
+                "dmesg", timeout=60, ignore_status=True, verbose=False
+            ).stdout_text
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
-            LOG.info("Log dmesg after loading '%s' to '%s'.", self.driver,
-                     file_name)
+            LOG.info("Log dmesg after loading '%s' to '%s'.", self.driver, file_name)
             utils_misc.log_line(file_name, dmesg)
             self.setup = None
             return True
@@ -1632,9 +1719,8 @@ class PciAssignable(object):
         """
         # Check if the host support interrupt remapping. On PowerPC interrupt
         # remapping is not required
-        error_context.context(
-            "Clean up host env after PCI assign test", LOG.info)
-        if ARCH != 'ppc64le':
+        error_context.context("Clean up host env after PCI assign test", LOG.info)
+        if ARCH != "ppc64le":
             if self.kvm_params is not None:
                 for kvm_param, value in list(self.kvm_params.items()):
                     if open(kvm_param, "r").read().strip() != value:
@@ -1643,13 +1729,13 @@ class PciAssignable(object):
                         try:
                             process.system(cmd)
                         except Exception:
-                            LOG.error("Failed to write  '%s' to '%s'", value,
-                                      kvm_param)
+                            LOG.error("Failed to write  '%s' to '%s'", value, kvm_param)
 
         re_probe = False
         # if lsmod lists the driver then remove it to clean up
-        if not process.system('lsmod | grep %s' % self.driver,
-                              ignore_status=True, shell=True):
+        if not process.system(
+            "lsmod | grep %s" % self.driver, ignore_status=True, shell=True
+        ):
             if not self.remove_driver():
                 re_probe = True
 
@@ -1683,8 +1769,7 @@ class PciAssignable(object):
         for p_id in self.pci_ids:
             if self.device_driver == "vfio-pci":
                 pci_ids = self.get_same_group_devs(p_id)
-                LOG.info(
-                    "Following devices are in same group: %s", pci_ids)
+                LOG.info("Following devices are in same group: %s", pci_ids)
             else:
                 pci_ids = [p_id]
             for pci_id in pci_ids:
@@ -1697,46 +1782,46 @@ class PciAssignable(object):
                 if not os.path.exists(drv_path):
                     dev_prev_driver = ""
                 else:
-                    dev_prev_driver = os.path.realpath(os.path.join(drv_path,
-                                                                    os.readlink(drv_path)))
+                    dev_prev_driver = os.path.realpath(
+                        os.path.join(drv_path, os.readlink(drv_path))
+                    )
                 self.dev_drivers[pci_id] = dev_prev_driver
 
                 # Judge whether the device driver has been binded to stub
                 if not self.is_binded_to_stub(pci_id):
-                    error_context.context("Bind device %s to stub" % pci_id,
-                                          LOG.info)
+                    error_context.context("Bind device %s to stub" % pci_id, LOG.info)
                     # On Power architecture using short id would result in
                     # pci device lookup failure while writing vendor id to
                     # stub_new_id/stub_remove_id. Instead we should be using
                     # pci id as-is for vendor id.
-                    if ARCH != 'ppc64le':
+                    if ARCH != "ppc64le":
                         short_id = pci_id[5:]
                         vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
                     else:
                         vendor_id = utils_misc.get_vendor_from_pci_id(pci_id)
-                    stub_new_id = os.path.join(stub_path, 'new_id')
-                    unbind_dev = os.path.join(drv_path, 'unbind')
-                    stub_bind = os.path.join(stub_path, 'bind')
-                    stub_remove_id = os.path.join(stub_path, 'remove_id')
+                    stub_new_id = os.path.join(stub_path, "new_id")
+                    unbind_dev = os.path.join(drv_path, "unbind")
+                    stub_bind = os.path.join(stub_path, "bind")
+                    stub_remove_id = os.path.join(stub_path, "remove_id")
 
-                    info_write_to_files = [(vendor_id, stub_new_id),
-                                           (pci_id, unbind_dev),
-                                           (pci_id, stub_bind),
-                                           (vendor_id, stub_remove_id)]
+                    info_write_to_files = [
+                        (vendor_id, stub_new_id),
+                        (pci_id, unbind_dev),
+                        (pci_id, stub_bind),
+                        (vendor_id, stub_remove_id),
+                    ]
 
                     for content, f_name in info_write_to_files:
                         try:
                             LOG.info("Write '%s' to file '%s'", content, f_name)
-                            with open(f_name, 'w') as fn:
+                            with open(f_name, "w") as fn:
                                 fn.write(content)
                         except IOError:
-                            LOG.debug("Failed to write %s to file %s",
-                                      content, f_name)
+                            LOG.debug("Failed to write %s to file %s", content, f_name)
                             continue
 
                     if not self.is_binded_to_stub(pci_id):
-                        LOG.error(
-                            "Binding device %s to stub failed", pci_id)
+                        LOG.error("Binding device %s to stub failed", pci_id)
                     continue
                 else:
                     LOG.debug("Device %s already binded to stub", pci_id)
@@ -1752,8 +1837,7 @@ class PciAssignable(object):
         try:
             for pci_id in self.dev_drivers:
                 if not self._release_dev(pci_id):
-                    LOG.error(
-                        "Failed to release device %s to host", pci_id)
+                    LOG.error("Failed to release device %s to host", pci_id)
                 else:
                     LOG.info("Released device %s successfully", pci_id)
             if self.cleanup:
@@ -1799,7 +1883,7 @@ class LibvirtPolkitConfig(object):
         self.params = params
         distro_obj = distro.detect()
         # For ubuntu polkitd have to be used
-        if distro_obj.name.lower().strip() == 'ubuntu':
+        if distro_obj.name.lower().strip() == "ubuntu":
             self.polkit_name = "polkitd"
         self.polkitd = service.Factory.create_service(self.polkit_name)
         self.user = self.params.get("unprivileged_user")
@@ -1808,8 +1892,9 @@ class LibvirtPolkitConfig(object):
         # For libvirt before 5.6.0, still use 'action_id' and 'action_lookup'
         # for all rules required to setup polkit.
         self.action_list = []
-        if (libvirt_version.version_compare(5, 6, 0) and
-                self.params.get("action_matrix")):
+        if libvirt_version.version_compare(5, 6, 0) and self.params.get(
+            "action_matrix"
+        ):
             self.action_list = eval(self.params.get("action_matrix"))
         else:
             # This is for the versions before libvirt-5.6.0
@@ -1832,12 +1917,12 @@ class LibvirtPolkitConfig(object):
             # environment and "network" for the modular daemons environment,
             # it should set to "connect_driver:QEMU|network".
             for idx in range(len(self.attr)):
-                conn_driver = re.findall('connect_driver:(.+)\|(.+)', self.attr[idx])
+                conn_driver = re.findall("connect_driver:(.+)\|(.+)", self.attr[idx])
                 if conn_driver:
                     if utils_split_daemons.is_modular_daemon():
-                        self.attr[idx] = 'connect_driver:' + conn_driver[0][1]
+                        self.attr[idx] = "connect_driver:" + conn_driver[0][1]
                     else:
-                        self.attr[idx] = 'connect_driver:' + conn_driver[0][0]
+                        self.attr[idx] = "connect_driver:" + conn_driver[0][0]
                     LOG.debug("attr is updated to %s.", self.attr)
 
     def file_replace_append(self, fpath, pat, repl):
@@ -1852,8 +1937,8 @@ class LibvirtPolkitConfig(object):
         try:
             lines = open(fpath).readlines()
             if not any(re.search(pat, line) for line in lines):
-                f = open(fpath, 'a')
-                f.write(repl + '\n')
+                f = open(fpath, "a")
+                f.write(repl + "\n")
                 f.close()
                 return
             else:
@@ -1861,14 +1946,13 @@ class LibvirtPolkitConfig(object):
                 out = open(out_fpath, "w")
                 for line in lines:
                     if re.search(pat, line):
-                        out.write(repl + '\n')
+                        out.write(repl + "\n")
                     else:
                         out.write(line)
                 out.close()
                 os.rename(out_fpath, fpath)
         except Exception:
-            raise PolkitWriteLibvirtdConfigError("Failed to update file '%s'."
-                                                 % fpath)
+            raise PolkitWriteLibvirtdConfigError("Failed to update file '%s'." % fpath)
 
     def _setup_config_file(self, conf_path, conf_backup_path):
         """
@@ -1880,20 +1964,19 @@ class LibvirtPolkitConfig(object):
         shutil.copy(conf_path, conf_backup_path)
 
         # Set the API access control scheme
-        access_str = "access_drivers = [ \"polkit\" ]"
+        access_str = 'access_drivers = [ "polkit" ]'
         access_pat = "^ *access_drivers"
         self.file_replace_append(conf_path, access_pat, access_str)
 
         # Set UNIX socket access controls
-        sock_rw_str = "unix_sock_rw_perms = \"0777\""
+        sock_rw_str = 'unix_sock_rw_perms = "0777"'
         sock_rw_pat = "^ *unix_sock_rw_perms"
         self.file_replace_append(conf_path, sock_rw_pat, sock_rw_str)
 
         # Set authentication mechanism
-        auth_unix_str = "auth_unix_rw = \"none\""
+        auth_unix_str = 'auth_unix_rw = "none"'
         auth_unix_pat = "^ *auth_unix_rw"
-        self.file_replace_append(conf_path, auth_unix_pat,
-                                 auth_unix_str)
+        self.file_replace_append(conf_path, auth_unix_pat, auth_unix_str)
 
     def _setup_libvirtd(self):
         """
@@ -1904,9 +1987,15 @@ class LibvirtPolkitConfig(object):
         if not utils_split_daemons.is_modular_daemon():
             self._setup_config_file(self.conf_path, self.conf_backup_path)
         else:
-            for drv in ['virtqemud', 'virtnetworkd', 'virtnodedevd',
-                        'virtnwfilterd', 'virtsecretd',
-                        'virtstoraged', 'virtinterfaced']:
+            for drv in [
+                "virtqemud",
+                "virtnetworkd",
+                "virtnodedevd",
+                "virtnwfilterd",
+                "virtsecretd",
+                "virtstoraged",
+                "virtinterfaced",
+            ]:
                 conf_path = utils_config.get_conf_obj(drv).conf_path
                 conf_backup_path = conf_path + ".virttest.backup"
                 self._setup_config_file(conf_path, conf_backup_path)
@@ -1925,11 +2014,11 @@ class LibvirtPolkitConfig(object):
             :return: one rule
             """
             action_opt = []
-            rule_tmp = rule.replace('USERNAME', self.user)
+            rule_tmp = rule.replace("USERNAME", self.user)
             for i in range(len(action_lookup_list)):
-                attr_tmp = action_lookup_list[i].split(':')
-                action_tmp = action_str.replace('ATTR', attr_tmp[0])
-                action_tmp = action_tmp.replace('VAL', attr_tmp[1])
+                attr_tmp = action_lookup_list[i].split(":")
+                action_tmp = action_str.replace("ATTR", attr_tmp[0])
+                action_tmp = action_tmp.replace("VAL", attr_tmp[1])
                 action_opt.append(action_tmp)
                 if i > 0:
                     action_opt[i] = " %s " % lookup_oper + action_opt[i]
@@ -1938,8 +2027,8 @@ class LibvirtPolkitConfig(object):
             for i in range(len(action_opt)):
                 action_tmp += action_opt[i]
 
-            handle_tmp = handle.replace('ACTION_LOOKUP', action_tmp)
-            rule_tmp = rule_tmp.replace('HANDLE', handle_tmp)
+            handle_tmp = handle.replace("ACTION_LOOKUP", action_tmp)
+            rule_tmp = rule_tmp.replace("HANDLE", handle_tmp)
             return rule_tmp
 
         template = "polkit.addRule(function(action, subject) {\n"
@@ -1963,34 +2052,34 @@ class LibvirtPolkitConfig(object):
         try:
             # replace keys except 'ACTION_ID', these keys will remain same
             # as in different rules
-            rule_tmp = rule.replace('USERNAME', self.user)
+            rule_tmp = rule.replace("USERNAME", self.user)
             rules = ""
             if libvirt_version.version_compare(5, 6, 0) and self.action_list:
                 # The elem in self.action_list should be like:
                 # {'action_id': 'xxx', 'action_lookup': '["ss:xx", "ss:xx"]',
                 # 'lookup_oper': '&&'}
                 for one_action_dict in self.action_list:
-                    action_id = one_action_dict['action_id']
-                    action_lookup_list = eval(one_action_dict['action_lookup'])
+                    action_id = one_action_dict["action_id"]
+                    action_lookup_list = eval(one_action_dict["action_lookup"])
                     lookup_oper = ""
-                    if 'lookup_oper' in one_action_dict:
-                        lookup_oper = one_action_dict['lookup_oper']
+                    if "lookup_oper" in one_action_dict:
+                        lookup_oper = one_action_dict["lookup_oper"]
                     # get one rule with lookups and without action_id
                     rule_tmp = _get_one_rule(action_lookup_list, lookup_oper)
                     # replace 'ACTION_ID' and generate rules
-                    rules += rule_tmp.replace('ACTION_ID', action_id)
+                    rules += rule_tmp.replace("ACTION_ID", action_id)
             else:
                 if self.attr:
-                    rule_tmp = _get_one_rule(self.attr, '&&')
+                    rule_tmp = _get_one_rule(self.attr, "&&")
                 else:
-                    rule_tmp = rule_tmp.replace('HANDLE', "    ")
+                    rule_tmp = rule_tmp.replace("HANDLE", "    ")
 
                 # replace 'ACTION_ID' in loop and generate rules
                 for i in range(len(self.action_id)):
-                    rules += rule_tmp.replace('ACTION_ID', self.action_id[i])
+                    rules += rule_tmp.replace("ACTION_ID", self.action_id[i])
 
             # replace 'RULE' with rules in polkit template string
-            self.template = template.replace('RULE', rules)
+            self.template = template.replace("RULE", rules)
             LOG.debug("The polkit config rule is:\n%s" % self.template)
 
             # write the config file
@@ -2008,12 +2097,12 @@ class LibvirtPolkitConfig(object):
         libvirtd.restart()
         # Use 'testacl' if unprivileged_user in cfg contains string 'EXAMPLE',
         # and if user 'testacl' is not exist on host, create it for test.
-        if self.user.count('EXAMPLE'):
-            self.user = 'testacl'
+        if self.user.count("EXAMPLE"):
+            self.user = "testacl"
 
         cmd = "id %s" % self.user
         if process.system(cmd, ignore_status=True):
-            self.params['add_polkit_user'] = 'yes'
+            self.params["add_polkit_user"] = "yes"
             LOG.debug("Create new user '%s' on host." % self.user)
             cmd = "useradd %s" % self.user
             process.system(cmd, ignore_status=True)
@@ -2029,20 +2118,27 @@ class LibvirtPolkitConfig(object):
         try:
             if os.path.exists(self.polkit_rules_path):
                 os.unlink(self.polkit_rules_path)
-            for drv in ['virtqemud', 'virtnetworkd', 'virtnodedevd',
-                        'virtnwfilterd', 'virtsecretd',
-                        'virtstoraged', 'virtinterfaced', 'libvirtd']:
+            for drv in [
+                "virtqemud",
+                "virtnetworkd",
+                "virtnodedevd",
+                "virtnwfilterd",
+                "virtsecretd",
+                "virtstoraged",
+                "virtinterfaced",
+                "libvirtd",
+            ]:
                 conf_path = utils_config.get_conf_obj(drv).conf_path
                 conf_backup_path = conf_path + ".virttest.backup"
                 if os.path.exists(conf_backup_path):
                     os.rename(conf_backup_path, conf_path)
-            if self.user.count('EXAMPLE'):
-                self.user = 'testacl'
-            if self.params.get('add_polkit_user'):
+            if self.user.count("EXAMPLE"):
+                self.user = "testacl"
+            if self.params.get("add_polkit_user"):
                 LOG.debug("Delete the created user '%s'." % self.user)
                 cmd = "userdel -r %s" % self.user
                 process.system(cmd, ignore_status=True)
-                del self.params['add_polkit_user']
+                del self.params["add_polkit_user"]
         except Exception:
             raise PolkitConfigCleanupError("Failed to cleanup polkit config.")
 
@@ -2052,6 +2148,7 @@ class EGDConfigError(Exception):
     """
     Raise when setup local egd.pl server failed.
     """
+
     pass
 
 
@@ -2123,6 +2220,7 @@ class EGDConfig(object):
 
         def system_output_wrapper():
             return process.run(cmd, ignore_status=True).stdout_text
+
         output = wait.wait_for(system_output_wrapper, timeout=5)
         if not output:
             return 0
@@ -2152,6 +2250,7 @@ class EGDConfig(object):
                     if utils_misc.pid_is_alive(pid):
                         return False
                 return True
+
             # wait port released by egd.pl
             wait.wait_for(_all_killed, timeout=60)
         except OSError:
@@ -2187,12 +2286,9 @@ class StraceQemu(object):
     def _generate_cmd(self, vm):
         """Generate strace start command line"""
         pid = vm.get_pid()
-        template = ("{strace} -T -tt -e trace=all "
-                    "-o {logfile} -p {pid}")
+        template = "{strace} -T -tt -e trace=all " "-o {logfile} -p {pid}"
         logfile = os.path.join(self.root_dir, "%s.log" % pid)
-        kwargs = {"strace": self.process,
-                  "pid": pid,
-                  "logfile": logfile}
+        kwargs = {"strace": self.process, "pid": pid, "logfile": logfile}
         return template.format(**kwargs)
 
     def _start(self, cmd):
@@ -2241,8 +2337,9 @@ def remote_session(params):
     server_ip = params.get("server_ip", params.get("remote_ip"))
     server_user = params.get("server_user", params.get("remote_user"))
     server_pwd = params.get("server_pwd", params.get("remote_pwd"))
-    return remote.wait_for_login('ssh', server_ip, '22', server_user,
-                                 server_pwd, r"[\#\$]\s*$")
+    return remote.wait_for_login(
+        "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+    )
 
 
 def switch_indep_threads_mode(state="Y", params=None):
@@ -2261,46 +2358,53 @@ def switch_indep_threads_mode(state="Y", params=None):
         cmd_output = server_session.cmd_status_output(cmd)
         if cmd_output[0] != 0:
             server_session.close()
-            raise exceptions.TestSetupFail("Unable to get indep_threads_mode:"
-                                           " %s" % cmd_output[1])
+            raise exceptions.TestSetupFail(
+                "Unable to get indep_threads_mode:" " %s" % cmd_output[1]
+            )
         thread_mode = cmd_output[1].strip()
     else:
         try:
             thread_mode = process.run(cmd, shell=True).stdout_text
         except process.CmdError as info:
             thread_mode = info.result.stderr_text.strip()
-            raise exceptions.TestSetupFail("Unable to get indep_threads_mode "
-                                           "for power9 compat mode enablement"
-                                           ": %s" % thread_mode)
+            raise exceptions.TestSetupFail(
+                "Unable to get indep_threads_mode "
+                "for power9 compat mode enablement"
+                ": %s" % thread_mode
+            )
     if thread_mode != state:
         cmd = "echo %s > %s" % (state, indep_threads_mode)
         if params:
             server_user = params.get("server_user", "root")
-            if (server_user.lower() != "root"):
-                raise exceptions.TestSkipError("Turning indep_thread_mode %s "
-                                               "requires root privileges "
-                                               "(currently running "
-                                               "with user %s)" % (state,
-                                                                  server_user))
+            if server_user.lower() != "root":
+                raise exceptions.TestSkipError(
+                    "Turning indep_thread_mode %s "
+                    "requires root privileges "
+                    "(currently running "
+                    "with user %s)" % (state, server_user)
+                )
             cmd_output = server_session.cmd_status_output(cmd)
             server_session.close()
-            if (cmd_output[0] != 0):
-                raise exceptions.TestSetupFail("Unable to turn "
-                                               "indep_thread_mode "
-                                               "to %s: %s" % (state,
-                                                              cmd_output[1]))
+            if cmd_output[0] != 0:
+                raise exceptions.TestSetupFail(
+                    "Unable to turn "
+                    "indep_thread_mode "
+                    "to %s: %s" % (state, cmd_output[1])
+                )
             else:
-                LOG.debug("indep_thread_mode turned %s successfully "
-                          "in remote server", state)
+                LOG.debug(
+                    "indep_thread_mode turned %s successfully " "in remote server",
+                    state,
+                )
         else:
             try:
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
                 LOG.debug("indep_thread_mode turned %s successfully", state)
             except process.CmdError as info:
-                raise exceptions.TestSetupFail("Unable to turn "
-                                               "indep_thread_mode to "
-                                               "%s: %s" % (state, info))
+                raise exceptions.TestSetupFail(
+                    "Unable to turn " "indep_thread_mode to " "%s: %s" % (state, info)
+                )
 
 
 def switch_smt(state="off", params=None):
@@ -2320,31 +2424,35 @@ def switch_smt(state="off", params=None):
         smt_output = cmd_output[1].strip()
         if (cmd_output[0] != 0) and (smt_output not in SMT_DISABLED_STRS):
             server_session.close()
-            raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
-                                           % cmd_output[1])
+            raise exceptions.TestSetupFail(
+                "Couldn't get SMT of server: %s" % cmd_output[1]
+            )
     else:
         try:
             smt_output = process.run(cmd, shell=True).stdout_text.strip()
         except process.CmdError as info:
             smt_output = info.result.stderr_text.strip()
             if smt_output not in SMT_DISABLED_STRS:
-                raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
-                                               % smt_output)
+                raise exceptions.TestSetupFail(
+                    "Couldn't get SMT of server: %s" % smt_output
+                )
     smt_enabled = smt_output not in SMT_DISABLED_STRS
     if (state == "off" and smt_enabled) or (state == "on" and not smt_enabled):
         cmd = "ppc64_cpu --smt=%s" % state
         if params:
             server_user = params.get("server_user", "root")
-            if (server_user.lower() != "root"):
-                raise exceptions.TestSkipError("Turning SMT %s requires root "
-                                               "privileges(currently running "
-                                               "with user %s)" % (state,
-                                                                  server_user))
+            if server_user.lower() != "root":
+                raise exceptions.TestSkipError(
+                    "Turning SMT %s requires root "
+                    "privileges(currently running "
+                    "with user %s)" % (state, server_user)
+                )
             cmd_output = server_session.cmd_status_output(cmd)
             server_session.close()
-            if (cmd_output[0] != 0):
-                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s"
-                                               % (state, cmd_output[1]))
+            if cmd_output[0] != 0:
+                raise exceptions.TestSetupFail(
+                    "Unable to turn %s SMT :%s" % (state, cmd_output[1])
+                )
             else:
                 LOG.debug("SMT turned %s successfully in remote server", state)
         else:
@@ -2353,8 +2461,9 @@ def switch_smt(state="off", params=None):
                 process.run(cmd, verbose=True, shell=True)
                 LOG.debug("SMT turned %s successfully", state)
             except process.CmdError as info:
-                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s" %
-                                               (state, info))
+                raise exceptions.TestSetupFail(
+                    "Unable to turn %s SMT :%s" % (state, info)
+                )
 
 
 class LibvirtdDebugLog(object):
@@ -2366,8 +2475,9 @@ class LibvirtdDebugLog(object):
     path("libvirtd_debug_file") can be controlled.
     """
 
-    def __init__(self, test, log_level="1", log_file="", log_filters="1:*",
-                 log_permission=None):
+    def __init__(
+        self, test, log_level="1", log_file="", log_filters="1:*", log_permission=None
+    ):
         """
         initialize variables
 
@@ -2385,37 +2495,48 @@ class LibvirtdDebugLog(object):
         self.daemons_dict = {}
         self.daemons_dict["libvirtd"] = {
             "conf": utils_config.LibvirtdConfig(),
-            "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path}
+            "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path,
+        }
         if utils_split_daemons.is_modular_daemon():
             self.daemons_dict["libvirtd"]["conf"] = utils_config.VirtQemudConfig()
-            self.daemons_dict["libvirtd"]["backupfile"] = "%s.backup" % utils_config.VirtQemudConfig().conf_path
+            self.daemons_dict["libvirtd"]["backupfile"] = (
+                "%s.backup" % utils_config.VirtQemudConfig().conf_path
+            )
             self.daemons_dict["virtnetworkd"] = {
                 "conf": utils_config.VirtNetworkdConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtNetworkdConfig().conf_path}
+                "backupfile": "%s.backup" % utils_config.VirtNetworkdConfig().conf_path,
+            }
             self.daemons_dict["virtproxyd"] = {
                 "conf": utils_config.VirtProxydConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtProxydConfig().conf_path}
+                "backupfile": "%s.backup" % utils_config.VirtProxydConfig().conf_path,
+            }
             self.daemons_dict["virtstoraged"] = {
                 "conf": utils_config.VirtStoragedConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtStoragedConfig().conf_path}
+                "backupfile": "%s.backup" % utils_config.VirtStoragedConfig().conf_path,
+            }
             self.daemons_dict["virtinterfaced"] = {
                 "conf": utils_config.VirtInterfacedConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtInterfacedConfig().conf_path}
+                "backupfile": "%s.backup"
+                % utils_config.VirtInterfacedConfig().conf_path,
+            }
             self.daemons_dict["virtnodedevd"] = {
                 "conf": utils_config.VirtNodedevdConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtNodedevdConfig().conf_path}
+                "backupfile": "%s.backup" % utils_config.VirtNodedevdConfig().conf_path,
+            }
             self.daemons_dict["virtnwfilterd"] = {
                 "conf": utils_config.VirtNwfilterdConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtNwfilterdConfig().conf_path}
+                "backupfile": "%s.backup"
+                % utils_config.VirtNwfilterdConfig().conf_path,
+            }
             self.daemons_dict["virtsecretd"] = {
                 "conf": utils_config.VirtSecretdConfig(),
-                "backupfile": "%s.backup" % utils_config.VirtSecretdConfig().conf_path}
+                "backupfile": "%s.backup" % utils_config.VirtSecretdConfig().conf_path,
+            }
 
     def enable(self):
-        """ Enable libvirtd debug log """
+        """Enable libvirtd debug log"""
         if not self.log_file or not os.path.isdir(os.path.dirname(self.log_file)):
-            self.log_file = utils_misc.get_path(self.test.debugdir,
-                                                "libvirtd.log")
+            self.log_file = utils_misc.get_path(self.test.debugdir, "libvirtd.log")
         # param used during libvirtd cleanup
         self.test.params["libvirtd_debug_file"] = self.log_file
         if self.log_permission:
@@ -2435,13 +2556,15 @@ class LibvirtdDebugLog(object):
                 self.test.error(info)
 
             value.get("conf")["log_level"] = self.log_level
-            value.get("conf")["log_outputs"] = '"%s:file:%s"' % (self.log_level,
-                                                                 self.log_file)
+            value.get("conf")["log_outputs"] = '"%s:file:%s"' % (
+                self.log_level,
+                self.log_file,
+            )
             value.get("conf")["log_filters"] = '"%s"' % self.log_filters
         utils_libvirtd.Libvirtd(all_daemons=True).restart()
 
     def disable(self):
-        """ Disable libvirtd debug log """
+        """Disable libvirtd debug log"""
         for value in self.daemons_dict.values():
             os.rename(value.get("backupfile"), value.get("conf").conf_path)
         utils_libvirtd.Libvirtd(all_daemons=True).restart()

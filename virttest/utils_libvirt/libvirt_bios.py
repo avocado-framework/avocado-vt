@@ -7,7 +7,7 @@ Libvirt BIOS related utilities.
 import logging
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def remove_bootconfig_items_from_vmos(osxml):
@@ -21,10 +21,10 @@ def remove_bootconfig_items_from_vmos(osxml):
     # if they exist which may affect newly added same elements
     os_attrs = osxml.fetch_attrs()
     LOG.debug("<os> configuration:%s", os_attrs)
-    if os_attrs.get('os_firmware') == 'efi':
+    if os_attrs.get("os_firmware") == "efi":
         osxml.del_os_firmware()
-    if os_attrs.get('nvram'):
+    if os_attrs.get("nvram"):
         osxml.del_nvram()
-    if os_attrs.get('loader'):
+    if os_attrs.get("loader"):
         osxml.del_loader()
     return osxml

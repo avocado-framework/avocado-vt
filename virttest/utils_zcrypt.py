@@ -64,15 +64,18 @@ class CryptoDeviceInfoBuilder(object):
         :return: CryptoDeviceInfo instance
         """
         info = CryptoDeviceInfo()
-        err, out = cmd_status_output("lszcrypt -V", shell=True,
-                                     session=self.session,
-                                     timeout=CMD_TIMEOUT,
-                                     verbose=VERBOSE)
+        err, out = cmd_status_output(
+            "lszcrypt -V",
+            shell=True,
+            session=self.session,
+            timeout=CMD_TIMEOUT,
+            verbose=VERBOSE,
+        )
         if err:
             if NO_DEVICES not in out:
                 raise OSError("Error when running lszcrypt: %s" % out)
         else:
-            out = out.strip().split('\n')[2:]
+            out = out.strip().split("\n")[2:]
             for entry in out:
                 info.append(entry)
         return info
@@ -192,8 +195,18 @@ class CryptoDeviceInfoEntry(object):
         :return: device info entry
         """
         r = CryptoDeviceInfoEntry()
-        (r.id, r.type, r.mode, r.status, r.requests, r.pending,
-         r.hwtype, r.qdepth, r.functions, r.driver) = line.split()
+        (
+            r.id,
+            r.type,
+            r.mode,
+            r.status,
+            r.requests,
+            r.pending,
+            r.hwtype,
+            r.qdepth,
+            r.functions,
+            r.driver,
+        ) = line.split()
         return r
 
 
@@ -207,13 +220,11 @@ def _echo(value, sysfs):
     :return: None
     """
 
-    err, out = process.getstatusoutput("echo %s > %s" % (value, sysfs),
-                                       timeout=CMD_TIMEOUT,
-                                       verbose=VERBOSE)
+    err, out = process.getstatusoutput(
+        "echo %s > %s" % (value, sysfs), timeout=CMD_TIMEOUT, verbose=VERBOSE
+    )
     if err:
-        raise RuntimeError("Couldn't set value '%s' on '%s': %s" % (
-            value, sysfs, out
-        ))
+        raise RuntimeError("Couldn't set value '%s' on '%s': %s" % (value, sysfs, out))
 
 
 def load_vfio_ap(session=None):
@@ -224,10 +235,13 @@ def load_vfio_ap(session=None):
                     host if None
     :return: None
     """
-    err, out = cmd_status_output("modprobe vfio_ap", shell=True,
-                                 session=session,
-                                 timeout=CMD_TIMEOUT,
-                                 verbose=VERBOSE)
+    err, out = cmd_status_output(
+        "modprobe vfio_ap",
+        shell=True,
+        session=session,
+        timeout=CMD_TIMEOUT,
+        verbose=VERBOSE,
+    )
     if err:
         raise RuntimeError("Couldn't load vfio_ap: %s" % out)
 
@@ -240,10 +254,13 @@ def unload_vfio_ap(session=None):
                     host if None
     :return: None
     """
-    err, out = cmd_status_output("rmmod vfio_ap", shell=True,
-                                 session=session,
-                                 timeout=CMD_TIMEOUT,
-                                 verbose=VERBOSE)
+    err, out = cmd_status_output(
+        "rmmod vfio_ap",
+        shell=True,
+        session=session,
+        timeout=CMD_TIMEOUT,
+        verbose=VERBOSE,
+    )
     if err:
         raise RuntimeError("Couldn't unload vfio_ap: %s" % out)
 
@@ -324,8 +341,9 @@ class APMaskHelper(object):
 
 
 # sysfs path for the vfio-ap matrix devices
-PASSTHROUGH_SYSFS = ("/sys/devices/vfio_ap/"
-                     "matrix/mdev_supported_types/vfio_ap-passthrough/")
+PASSTHROUGH_SYSFS = (
+    "/sys/devices/vfio_ap/" "matrix/mdev_supported_types/vfio_ap-passthrough/"
+)
 
 
 class MatrixDevice(object):

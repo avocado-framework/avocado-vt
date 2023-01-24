@@ -35,7 +35,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
             virtual boolean, read-only, True/False from virt-xml-validate
     """
 
-    __slots__ = ('xml', 'virsh', 'xmltreefile', 'validates')
+    __slots__ = ("xml", "virsh", "xmltreefile", "validates")
     __uncompareable__ = __slots__
     __schema_name__ = None
 
@@ -45,17 +45,16 @@ class LibvirtXMLBase(propcan.PropCanBase):
 
         :param virsh_instance: virsh module or instance to use
         """
-        self.__dict_set__('xmltreefile', None)
-        self.__dict_set__('validates', None)
-        super(LibvirtXMLBase, self).__init__({'virsh': virsh_instance,
-                                              'xml': None})
+        self.__dict_set__("xmltreefile", None)
+        self.__dict_set__("validates", None)
+        super(LibvirtXMLBase, self).__init__({"virsh": virsh_instance, "xml": None})
         # Can't use accessors module here, would make circular dep.
 
     def __str__(self):
         """
         Returns raw XML as a string
         """
-        return str(self.__dict_get__('xml'))
+        return str(self.__dict_get__("xml"))
 
     def __eq__(self, other):
         # Dynamic accessor methods mean we cannot compare class objects
@@ -71,15 +70,19 @@ class LibvirtXMLBase(propcan.PropCanBase):
         for slot in slots - uncomparable:
             try:
                 dict_1[slot] = getattr(self, slot)
-            except (xcepts.LibvirtXMLNotFoundError,
-                    xcepts.LibvirtXMLAccessorError,
-                    AttributeError):
+            except (
+                xcepts.LibvirtXMLNotFoundError,
+                xcepts.LibvirtXMLAccessorError,
+                AttributeError,
+            ):
                 pass  # Unset virtual values won't have keys
             try:
                 dict_2[slot] = getattr(other, slot)
-            except (xcepts.LibvirtXMLNotFoundError,
-                    xcepts.LibvirtXMLAccessorError,
-                    AttributeError):
+            except (
+                xcepts.LibvirtXMLNotFoundError,
+                xcepts.LibvirtXMLAccessorError,
+                AttributeError,
+            ):
                 pass  # Unset virtual values won't have keys
         return dict_1 == dict_2
 
@@ -100,28 +103,30 @@ class LibvirtXMLBase(propcan.PropCanBase):
         """Accessor method for virsh property, make sure it's right type"""
         value_type = type(value)
         # issubclass can't work for classes using __slots__ (i.e. no __bases__)
-        if hasattr(value, 'VIRSH_EXEC') or hasattr(value, 'virsh_exec'):
-            self.__dict_set__('virsh', value)
+        if hasattr(value, "VIRSH_EXEC") or hasattr(value, "virsh_exec"):
+            self.__dict_set__("virsh", value)
         else:
-            raise xcepts.LibvirtXMLError("virsh parameter must be a module "
-                                         "named virsh or subclass of virsh.VirshBase "
-                                         "not a %s" % str(value_type))
+            raise xcepts.LibvirtXMLError(
+                "virsh parameter must be a module "
+                "named virsh or subclass of virsh.VirshBase "
+                "not a %s" % str(value_type)
+            )
 
     def set_xml(self, value):
         """
         Accessor method for 'xml' property to load using xml_utils.XMLTreeFile
         """
         # Always check to see if a "set" accessor is being called from __init__
-        if not self.__super_get__('INITIALIZED'):
-            self.__dict_set__('xml', value)
+        if not self.__super_get__("INITIALIZED"):
+            self.__dict_set__("xml", value)
         else:
             try:
-                if self.__dict_get__('xml') is not None:
-                    del self['xml']  # clean up old temporary files
+                if self.__dict_get__("xml") is not None:
+                    del self["xml"]  # clean up old temporary files
             except KeyError:
                 pass  # Allow other exceptions through
             # value could be filename or a string full of XML
-            self.__dict_set__('xml', xml_utils.XMLTreeFile(value))
+            self.__dict_set__("xml", xml_utils.XMLTreeFile(value))
 
     def get_xml(self):
         """
@@ -135,7 +140,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
         """
         try:
             # don't call get_xml() recursively
-            xml = self.__dict_get__('xml')
+            xml = self.__dict_get__("xml")
             if xml is None:
                 raise KeyError
         except (KeyError, AttributeError):
@@ -147,16 +152,17 @@ class LibvirtXMLBase(propcan.PropCanBase):
         Point instance directly at an already initialized XMLTreeFile instance
         """
         if not issubclass(type(value), xml_utils.XMLTreeFile):
-            raise xcepts.LibvirtXMLError("xmltreefile value must be XMLTreefile"
-                                         " type or subclass, not a %s"
-                                         % type(value))
-        self.__dict_set__('xml', value)
+            raise xcepts.LibvirtXMLError(
+                "xmltreefile value must be XMLTreefile"
+                " type or subclass, not a %s" % type(value)
+            )
+        self.__dict_set__("xml", value)
 
     def del_xmltreefile(self):
         """
         Remove all backing XML
         """
-        self.__dict_del__('xml')
+        self.__dict_del__("xml")
 
     def copy(self):
         """
@@ -166,10 +172,10 @@ class LibvirtXMLBase(propcan.PropCanBase):
         the_copy = self.__class__(virsh_instance=self.virsh)
         try:
             # file may not be accessible, obtain XML string value
-            xmlstr = str(self.__dict_get__('xml'))
+            xmlstr = str(self.__dict_get__("xml"))
             # Create fresh/new XMLTreeFile along with tmp files from XML content
             # content
-            the_copy.__dict_set__('xml', xml_utils.XMLTreeFile(xmlstr))
+            the_copy.__dict_set__("xml", xml_utils.XMLTreeFile(xmlstr))
         except xcepts.LibvirtXMLError:  # Allow other exceptions through
             pass  # no XML was loaded yet
         return the_copy
@@ -183,8 +189,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
         """
         section = self.xmltreefile.find(xpath)
         if section is None:
-            raise xcepts.LibvirtXMLNotFoundError(
-                "Path %s is not found." % xpath)
+            raise xcepts.LibvirtXMLNotFoundError("Path %s is not found." % xpath)
 
         return self.xmltreefile.get_element_string(xpath, index=index)
 
@@ -193,8 +198,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
         Accessor method for 'validates' property returns virt-xml-validate T/F
         """
         # self.xml is the filename
-        ret = self.virt_xml_validate(self.xml,
-                                     self.__super_get__('__schema_name__'))
+        ret = self.virt_xml_validate(self.xml, self.__super_get__("__schema_name__"))
         if ret.exit_status == 0:
             return True
         else:
@@ -225,9 +229,9 @@ class LibvirtXMLBase(propcan.PropCanBase):
         """
         Return CmdResult from running virt-xml-validate on backing XML
         """
-        command = 'virt-xml-validate %s' % filename
+        command = "virt-xml-validate %s" % filename
         if schema_name:
-            command += ' %s' % schema_name
+            command += " %s" % schema_name
         cmdresult = process.run(command, ignore_status=True)
         cmdresult.stdout = cmdresult.stdout_text
         cmdresult.stderr = cmdresult.stderr_text
@@ -291,32 +295,33 @@ class LibvirtXMLBase(propcan.PropCanBase):
 
         for key, value in attrs.items():
             if key not in self.__all_slots__:
-                raise AttributeError('Cannot set attribute "%s" to %s object.'
-                                     'There is no such attribute.'
-                                     % (key, self.__class__))
-            get_func = eval('self.get_%s' % key)
+                raise AttributeError(
+                    'Cannot set attribute "%s" to %s object.'
+                    "There is no such attribute." % (key, self.__class__)
+                )
+            get_func = eval("self.get_%s" % key)
 
             # Skip Getters if they are customized
             if not isinstance(get_func, propcan.PropCanBase):
                 continue
 
             # Is XMLElementNest or not
-            subclass = get_func.get('subclass')
+            subclass = get_func.get("subclass")
             if subclass is None:
                 setattr(self, key, value)
             else:
                 # Whether to keep the sub-xml instance and modify it
                 # or completely re-create one
-                reset_all = value.get('reset_all') is True
-                if 'reset_all' in value:
-                    value.pop('reset_all')
+                reset_all = value.get("reset_all") is True
+                if "reset_all" in value:
+                    value.pop("reset_all")
                 # If Element tag is not found, we need to create a new instance
                 # to set the attributes.
                 # If reset_all, it means we will discard the existing instance
                 # of current sub-xml and create a new one to replace it.
                 if reset_all or not self.xmltreefile.find(key):
                     # Get args to create an instance of subclass
-                    subclass_dargs = get_func.get('subclass_dargs')
+                    subclass_dargs = get_func.get("subclass_dargs")
                     # Create an instance of subclass with given args
                     target_obj = subclass(**subclass_dargs)
                 else:
@@ -359,15 +364,17 @@ class LibvirtXMLBase(propcan.PropCanBase):
 
         """
         attrs = {}
-        slots = set(self.__all_slots__) - set(self.__uncompareable__) - {'device_tag'}
+        slots = set(self.__all_slots__) - set(self.__uncompareable__) - {"device_tag"}
         for key in slots:
             try:
                 # Try to get values of each attribute, slot by slot
                 value = self[key]
-            except (xcepts.LibvirtXMLAccessorError,
-                    xcepts.LibvirtXMLNotFoundError,
-                    AttributeError,
-                    KeyError):
+            except (
+                xcepts.LibvirtXMLAccessorError,
+                xcepts.LibvirtXMLNotFoundError,
+                AttributeError,
+                KeyError,
+            ):
                 continue
             else:
                 # Got value and check the type of value. If it's an nested xml
@@ -403,8 +410,10 @@ def load_xml_module(path, name, type_list):
     """
     # Module names and tags are always all lower-case
     name = str(name).lower()
-    errmsg = ("Unknown/unsupported type '%s', supported types %s"
-              % (str(name), type_list))
+    errmsg = "Unknown/unsupported type '%s', supported types %s" % (
+        str(name),
+        type_list,
+    )
     if name not in type_list:
         raise xcepts.LibvirtXMLError(errmsg)
     try:
@@ -412,12 +421,13 @@ def load_xml_module(path, name, type_list):
         # Enforce capitalized class names
         return getattr(mod_obj, name.capitalize())
     except TypeError as detail:
-        raise xcepts.LibvirtXMLError(errmsg + ': %s' % str(detail))
+        raise xcepts.LibvirtXMLError(errmsg + ": %s" % str(detail))
     except ImportError as detail:
-        raise xcepts.LibvirtXMLError("Can't find module %s in %s: %s"
-                                     % (name, path, str(detail)))
+        raise xcepts.LibvirtXMLError(
+            "Can't find module %s in %s: %s" % (name, path, str(detail))
+        )
     except AttributeError as detail:
-        raise xcepts.LibvirtXMLError("Can't find class %s in %s module in "
-                                     "%s: %s"
-                                     % (name.capitalize(), name, path,
-                                        str(detail)))
+        raise xcepts.LibvirtXMLError(
+            "Can't find class %s in %s module in "
+            "%s: %s" % (name.capitalize(), name, path, str(detail))
+        )

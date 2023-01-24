@@ -7,10 +7,10 @@ Virtualization test - utility functions for libvirt
 import re
 import logging
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-def convert_to_dict(content, pattern=r'(\d+) +(\S+)'):
+def convert_to_dict(content, pattern=r"(\d+) +(\S+)"):
     """
     Put the content into a dict according to the pattern.
 

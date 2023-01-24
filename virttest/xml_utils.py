@@ -43,16 +43,17 @@ import string
 import logging
 from six import StringIO
 from xml.parsers import expat
+
 # We *have* to use our ElementTree fork :(
 from virttest import element_tree as ElementTree
 
 # Also used by unittests
-TMPPFX = 'xml_utils_temp_'
-TMPSFX = '.xml'
-EXSFX = '_exception_retained'
+TMPPFX = "xml_utils_temp_"
+TMPSFX = ".xml"
+EXSFX = "_exception_retained"
 ENCODING = "UTF-8"
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class TempXMLFile(object):
@@ -192,7 +193,7 @@ class TempXMLFile(object):
             os.rename(self.name, self.name + EXSFX)
         else:
             self.unlink()  # safe if file was renamed
-        if hasattr(super(TempXMLFile, self), '__exit__'):
+        if hasattr(super(TempXMLFile, self), "__exit__"):
             super(TempXMLFile, self).__exit__(exc_type, exc_value, traceback)
 
     def __del__(self):
@@ -230,8 +231,7 @@ class XMLBackup(TempXMLFile):
         """
         Inform user that file was not auto-deleted due to exceptional exit.
         """
-        LOG.info("Retaining backup of %s in %s", self.sourcefilename,
-                 self.name + EXSFX)
+        LOG.info("Retaining backup of %s in %s", self.sourcefilename, self.name + EXSFX)
 
     def backup(self):
         """
@@ -241,8 +241,7 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).seek(0)
         super(XMLBackup, self).truncate(0)
         with open(self.sourcefilename, "r") as source_file:
-            shutil.copyfileobj(source_file,
-                               super(XMLBackup, self))
+            shutil.copyfileobj(source_file, super(XMLBackup, self))
         super(XMLBackup, self).flush()
 
     def restore(self):
@@ -253,8 +252,7 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).seek(0)
         with open(self.sourcefilename, "w") as source_file:
             source_file.truncate(0)
-            shutil.copyfileobj(super(XMLBackup, self),
-                               source_file)
+            shutil.copyfileobj(super(XMLBackup, self), source_file)
 
 
 class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
@@ -290,8 +288,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # sourcebackupfile now safe to use for base class initialization
         XMLBackup.__init__(self, self.sourcebackupfile.name)
         try:
-            ElementTree.ElementTree.__init__(self, element=None,
-                                             file=self.name)
+            ElementTree.ElementTree.__init__(self, element=None, file=self.name)
         except expat.ExpatError:
             raise IOError("Error parsing XML: '%s'" % xml)
         # Required for TemplateXML class to work
@@ -317,11 +314,9 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # self is the 'original', so backup/restore logic is reversed
         super(XMLTreeFile, self).backup()
         try:
-            ElementTree.ElementTree.__init__(self, element=None,
-                                             file=self.name)
+            ElementTree.ElementTree.__init__(self, element=None, file=self.name)
         except expat.ExpatError:
-            raise IOError("Original XML is corrupt: '%s'"
-                          % self.sourcebackupfile.name)
+            raise IOError("Original XML is corrupt: '%s'" % self.sourcebackupfile.name)
 
     def backup_copy(self):
         """Return a copy of instance, including copies of files"""
@@ -369,7 +364,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         root = self.getroot()
         assert root in list(parent_map.values())
         if element == root:
-            return '.'
+            return "."
         # List of strings reversed at end
         path_list = []
         while element != root:
@@ -380,7 +375,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
             #     path_list.append(u"%s[%d]" % (element.tag, element_index))
             # else:
             #     path_list.append(u"%s" % element.tag)
-            path_list.append(u"%s" % element.tag)
+            path_list.append("%s" % element.tag)
             element = parent_map[element]
         assert element == root
         path_list.reverse()
@@ -411,7 +406,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         Creates all elements in simplistic xpath from root if not exist
         """
         cur_element = self.getroot()
-        for tag in xpath.split('/'):
+        for tag in xpath.split("/"):
             next_element = cur_element.find(tag)
             if next_element is None:
                 next_element = ElementTree.SubElement(cur_element, tag)
@@ -514,5 +509,7 @@ class TemplateXML(XMLTreeFile):
         Raise an IOError to protect the original template source.
         """
 
-        raise IOError("Protecting template source, disallowing restore to %s" %
-                      self.sourcefilename)
+        raise IOError(
+            "Protecting template source, disallowing restore to %s"
+            % self.sourcefilename
+        )

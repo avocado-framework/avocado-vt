@@ -43,10 +43,18 @@ from virttest import utils_config
 # list of symbol names NOT to wrap as Virtadmin class methods
 # Everything else from globals() will become a method of Virtadmin class
 NOCLOSE = list(globals().keys()) + [
-    'NOCLOSE', 'SCREENSHOT_ERROR_COUNT', 'VIRTADMIN_COMMAND_CACHE',
-    'VIRTADMIN_EXEC', 'VirtadminBase', 'VirtadminClosure', 'VirtadminSession', 'Virtadmin',
-    'VirtadminPersistent', 'VirtadminConnectBack', 'VIRTADMIN_COMMAND_GROUP_CACHE',
-    'VIRTADMIN_COMMAND_GROUP_CACHE_NO_DETAIL',
+    "NOCLOSE",
+    "SCREENSHOT_ERROR_COUNT",
+    "VIRTADMIN_COMMAND_CACHE",
+    "VIRTADMIN_EXEC",
+    "VirtadminBase",
+    "VirtadminClosure",
+    "VirtadminSession",
+    "Virtadmin",
+    "VirtadminPersistent",
+    "VirtadminConnectBack",
+    "VIRTADMIN_COMMAND_GROUP_CACHE",
+    "VIRTADMIN_COMMAND_GROUP_CACHE_NO_DETAIL",
 ]
 
 # Needs to be in-scope for Virtadmin* class screenshot method and module function
@@ -62,12 +70,13 @@ VIRTADMIN_COMMAND_GROUP_CACHE_NO_DETAIL = False
 try:
     VIRTADMIN_EXEC = path.find_command("virt-admin")
 except path.CmdNotFoundError:
-    logging.getLogger('avocado.app').warning(
+    logging.getLogger("avocado.app").warning(
         "virt-admin executable not set or found on path, virtadmin-admin module"
-        " will not function normally")
-    VIRTADMIN_EXEC = '/bin/true'
+        " will not function normally"
+    )
+    VIRTADMIN_EXEC = "/bin/true"
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtadminBase(propcan.PropCanBase):
@@ -76,18 +85,18 @@ class VirtadminBase(propcan.PropCanBase):
     Base Class storing libvirt Connection & state to a host
     """
 
-    __slots__ = ('uri', 'ignore_status', 'debug', 'virtadmin_exec', 'readonly')
+    __slots__ = ("uri", "ignore_status", "debug", "virtadmin_exec", "readonly")
 
     def __init__(self, *args, **dargs):
         """
         Initialize instance with virtadmin_exec always set to something
         """
         init_dict = dict(*args, **dargs)
-        init_dict['virtadmin_exec'] = init_dict.get('virtadmin_exec', VIRTADMIN_EXEC)
-        init_dict['uri'] = init_dict.get('uri', None)
-        init_dict['debug'] = init_dict.get('debug', False)
-        init_dict['ignore_status'] = init_dict.get('ignore_status', False)
-        init_dict['readonly'] = init_dict.get('readonly', False)
+        init_dict["virtadmin_exec"] = init_dict.get("virtadmin_exec", VIRTADMIN_EXEC)
+        init_dict["uri"] = init_dict.get("uri", None)
+        init_dict["debug"] = init_dict.get("debug", False)
+        init_dict["ignore_status"] = init_dict.get("ignore_status", False)
+        init_dict["readonly"] = init_dict.get("readonly", False)
         super(VirtadminBase, self).__init__(init_dict)
 
     def get_uri(self):
@@ -96,7 +105,7 @@ class VirtadminBase(propcan.PropCanBase):
         """
         # self.get() would call get_uri() recursively
         try:
-            return self.__dict_get__('uri')
+            return self.__dict_get__("uri")
         except KeyError:
             return None
 
@@ -109,14 +118,23 @@ class VirtadminSession(aexpect.ShellSession):
 
     # No way to get virtadmin sub-command "exit" status
     # Check output against list of known error-status strings
-    ERROR_REGEX_LIST = ['error:\s*.+$', '.*failed.*']
+    ERROR_REGEX_LIST = ["error:\s*.+$", ".*failed.*"]
 
-    def __init__(self, virtadmin_exec=None, uri=None, a_id=None,
-                 prompt=r"virt-admin\s*[\#\>]\s*", remote_ip=None,
-                 remote_user=None, remote_pwd=None,
-                 ssh_remote_auth=False, readonly=False,
-                 unprivileged_user=None,
-                 auto_close=False, check_libvirtd=True):
+    def __init__(
+        self,
+        virtadmin_exec=None,
+        uri=None,
+        a_id=None,
+        prompt=r"virt-admin\s*[\#\>]\s*",
+        remote_ip=None,
+        remote_user=None,
+        remote_pwd=None,
+        ssh_remote_auth=False,
+        readonly=False,
+        unprivileged_user=None,
+        auto_close=False,
+        check_libvirtd=True,
+    ):
         """
         Initialize virtadmin session server, or client if id set.
 
@@ -155,13 +173,20 @@ class VirtadminSession(aexpect.ShellSession):
             else:
                 pref_auth = "-o PreferredAuthentications=hostbased,publickey"
             # ssh_cmd is not None flags this as remote session
-            ssh_cmd = ("ssh -o UserKnownHostsFile=/dev/null %s -p %s %s@%s"
-                       % (pref_auth, 22, self.remote_user, self.remote_ip))
+            ssh_cmd = "ssh -o UserKnownHostsFile=/dev/null %s -p %s %s@%s" % (
+                pref_auth,
+                22,
+                self.remote_user,
+                self.remote_ip,
+            )
             if uri:
-                self.virtadmin_exec = ("%s \"%s -c '%s'\""
-                                       % (ssh_cmd, virtadmin_exec, self.uri))
+                self.virtadmin_exec = "%s \"%s -c '%s'\"" % (
+                    ssh_cmd,
+                    virtadmin_exec,
+                    self.uri,
+                )
             else:
-                self.virtadmin_exec = ("%s \"%s\"" % (ssh_cmd, virtadmin_exec))
+                self.virtadmin_exec = '%s "%s"' % (ssh_cmd, virtadmin_exec)
         else:  # setting up a local session or re-using a session
             self.virtadmin_exec = virtadmin_exec
             if self.uri:
@@ -169,31 +194,38 @@ class VirtadminSession(aexpect.ShellSession):
             ssh_cmd = None  # flags not-remote session
 
         if unprivileged_user:
-            self.virtadmin_exec = "su - %s -c '%s'" % (unprivileged_user,
-                                                       self.virtadmin_exec)
+            self.virtadmin_exec = "su - %s -c '%s'" % (
+                unprivileged_user,
+                self.virtadmin_exec,
+            )
 
         # aexpect tries to auto close session because no clients connected yet
-        aexpect.ShellSession.__init__(self, self.virtadmin_exec, a_id,
-                                      prompt=prompt, auto_close=auto_close)
+        aexpect.ShellSession.__init__(
+            self, self.virtadmin_exec, a_id, prompt=prompt, auto_close=auto_close
+        )
 
         # Handle remote session prompts:
         # 1.remote to remote with ssh
         # 2.local to remote with "virtadmin -c uri"
         if ssh_remote_auth or self.uri:
             # Handle ssh / password prompts
-            remote.handle_prompts(self, self.remote_user, self.remote_pwd,
-                                  prompt, debug=True)
+            remote.handle_prompts(
+                self, self.remote_user, self.remote_pwd, prompt, debug=True
+            )
 
         # fail if libvirtd is not running
         if check_libvirtd:
-            if self.cmd_status('uri', timeout=60) != 0:
-                LOG.debug("Persistent virt-admin session is not responding, "
-                          "libvirtd may be dead.")
+            if self.cmd_status("uri", timeout=60) != 0:
+                LOG.debug(
+                    "Persistent virt-admin session is not responding, "
+                    "libvirtd may be dead."
+                )
                 self.auto_close = True
-                raise aexpect.ShellStatusError(virtadmin_exec, 'uri')
+                raise aexpect.ShellStatusError(virtadmin_exec, "uri")
 
-    def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
-                          print_func=None, safe=False):
+    def cmd_status_output(
+        self, cmd, timeout=60, internal_timeout=None, print_func=None, safe=False
+    ):
         """
         Send a virtadmin command and return its exit status and output.
 
@@ -231,20 +263,27 @@ class VirtadminSession(aexpect.ShellSession):
         :returns: The command result object.
         """
         exit_status, stdout = self.cmd_status_output(cmd, timeout=timeout)
-        stderr = ''  # no way to retrieve this separately
+        stderr = ""  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
         result.stdout = result.stdout_text
         result.stderr = result.stderr_text
         if not ignore_status and exit_status:
-            raise process.CmdError(cmd, result,
-                                   "Virtadmin Command returned non-zero exit status")
+            raise process.CmdError(
+                cmd, result, "Virtadmin Command returned non-zero exit status"
+            )
         if debug:
             LOG.debug(result)
         return result
 
-    def read_until_output_matches(self, patterns, filter_func=lambda x: x,
-                                  timeout=60, internal_timeout=None,
-                                  print_func=None, match_func=None):
+    def read_until_output_matches(
+        self,
+        patterns,
+        filter_func=lambda x: x,
+        timeout=60,
+        internal_timeout=None,
+        print_func=None,
+        match_func=None,
+    ):
         """
         Read from child using read_nonblocking until a pattern matches.
 
@@ -275,15 +314,13 @@ class VirtadminSession(aexpect.ShellSession):
         end_time = time.time() + timeout
         while True:
             try:
-                r, w, x = select.select([fd], [], [],
-                                        max(0, end_time - time.time()))
+                r, w, x = select.select([fd], [], [], max(0, end_time - time.time()))
             except (select.error, TypeError):
                 break
             if not r:
                 raise aexpect.ExpectTimeoutError(patterns, o)
             # Read data from child
-            data = self.read_nonblocking(internal_timeout,
-                                         end_time - time.time())
+            data = self.read_nonblocking(internal_timeout, end_time - time.time())
             if not data:
                 break
             # Print it if necessary
@@ -293,7 +330,7 @@ class VirtadminSession(aexpect.ShellSession):
             # Look for patterns
             o += data
 
-            out = ''
+            out = ""
             match = match_func(filter_func(o), patterns)
             if match is not None:
                 output = o.splitlines()
@@ -311,7 +348,7 @@ class VirtadminSession(aexpect.ShellSession):
                 #       'quit' to quit
                 #
                 # virtadmin #  Id    Name                           State
-                #----------------------------------------------------
+                # ----------------------------------------------------
                 #
                 # virtadmin #
                 # the session help info is included, and the exact output
@@ -336,13 +373,12 @@ class VirtadminSession(aexpect.ShellSession):
                 for i in reversed(list(range(len(output) - 1))):
                     if match_func(output[i].strip(), patterns) is not None:
                         if re.split(patterns[match], output[i])[-1]:
-                            output[i] = re.split(patterns[match],
-                                                 output[i])[-1]
+                            output[i] = re.split(patterns[match], output[i])[-1]
                             output_slice = output[i:]
                         else:
-                            output_slice = output[i + 1:]
+                            output_slice = output[i + 1 :]
                         for j in range(len(output_slice) - 1):
-                            output_slice[j] = output_slice[j] + '\n'
+                            output_slice[j] = output_slice[j] + "\n"
                         for k in range(len(output_slice)):
                             out += output_slice[k]
                         return match, out
@@ -350,8 +386,7 @@ class VirtadminSession(aexpect.ShellSession):
 
         # Check if the child has terminated
         if utils_misc.wait_for(lambda: not self.is_alive(), 5, 0, 0.1):
-            raise aexpect.ExpectProcessTerminatedError(patterns,
-                                                       self.get_status(), o)
+            raise aexpect.ExpectProcessTerminatedError(patterns, self.get_status(), o)
         else:
             # This shouldn't happen
             raise aexpect.ExpectError(patterns, o)
@@ -370,8 +405,10 @@ class VirtadminClosure(object):
         Callable reference_function with weak ref dict_like_instance
         """
         if not issubclass(dict_like_instance.__class__, dict):
-            raise ValueError("dict_like_instance %s must be dict or subclass"
-                             % dict_like_instance.__class__.__name__)
+            raise ValueError(
+                "dict_like_instance %s must be dict or subclass"
+                % dict_like_instance.__class__.__name__
+            )
         self.reference_function = reference_function
         self.dict_like_weakref = weakref.ref(dict_like_instance)
 
@@ -422,9 +459,16 @@ class VirtadminPersistent(Virtadmin):
     Execute libvirt operations using persistent virtadmin session.
     """
 
-    __slots__ = ('session_id', 'remote_pwd', 'remote_user', 'uri',
-                 'remote_ip', 'ssh_remote_auth', 'unprivileged_user',
-                 'readonly')
+    __slots__ = (
+        "session_id",
+        "remote_pwd",
+        "remote_user",
+        "uri",
+        "remote_ip",
+        "ssh_remote_auth",
+        "unprivileged_user",
+        "readonly",
+    )
 
     # B/c the auto_close of VirtadminSession is False, we
     # need to manage the ref-count of it manually.
@@ -432,7 +476,7 @@ class VirtadminPersistent(Virtadmin):
 
     def __init__(self, *args, **dargs):
         super(VirtadminPersistent, self).__init__(*args, **dargs)
-        if self.get('session_id') is None:
+        if self.get("session_id") is None:
             # set_uri does not call when INITIALIZED = False
             # and no session_id passed to super __init__
             self.new_session()
@@ -487,14 +531,13 @@ class VirtadminPersistent(Virtadmin):
         If a persistent session exists, close it down.
         """
         try:
-            session_id = self.__dict_get__('session_id')
+            session_id = self.__dict_get__("session_id")
             if session_id:
                 try:
                     existing = VirtadminSession(a_id=session_id)
                     if existing.is_alive():
                         self.counter_decrease()
-                except (aexpect.ShellStatusError,
-                        aexpect.ShellProcessTerminatedError):
+                except (aexpect.ShellStatusError, aexpect.ShellProcessTerminatedError):
                     # session was already closed
                     pass  # don't check is_alive or update counter
                 self.__dict_del__("session_id")
@@ -508,41 +551,45 @@ class VirtadminPersistent(Virtadmin):
         """
         # Accessors may call this method, avoid recursion
         # Must exist, can't be None
-        virtadmin_exec = self.__dict_get__('virtadmin_exec')
-        uri = self.__dict_get__('uri')  # Must exist, can be None
-        readonly = self.__dict_get__('readonly')
+        virtadmin_exec = self.__dict_get__("virtadmin_exec")
+        uri = self.__dict_get__("uri")  # Must exist, can be None
+        readonly = self.__dict_get__("readonly")
         try:
-            remote_user = self.__dict_get__('remote_user')
+            remote_user = self.__dict_get__("remote_user")
         except KeyError:
             remote_user = "root"
         try:
-            remote_pwd = self.__dict_get__('remote_pwd')
+            remote_pwd = self.__dict_get__("remote_pwd")
         except KeyError:
             remote_pwd = None
         try:
-            remote_ip = self.__dict_get__('remote_ip')
+            remote_ip = self.__dict_get__("remote_ip")
         except KeyError:
             remote_ip = None
         try:
-            ssh_remote_auth = self.__dict_get__('ssh_remote_auth')
+            ssh_remote_auth = self.__dict_get__("ssh_remote_auth")
         except KeyError:
             ssh_remote_auth = False
         try:
-            unprivileged_user = self.__dict_get__('unprivileged_user')
+            unprivileged_user = self.__dict_get__("unprivileged_user")
         except KeyError:
             unprivileged_user = None
 
         self.close_session()
         # Always create new session
-        new_session = VirtadminSession(virtadmin_exec, uri, a_id=None,
-                                       remote_ip=remote_ip,
-                                       remote_user=remote_user,
-                                       remote_pwd=remote_pwd,
-                                       ssh_remote_auth=ssh_remote_auth,
-                                       unprivileged_user=unprivileged_user,
-                                       readonly=readonly)
+        new_session = VirtadminSession(
+            virtadmin_exec,
+            uri,
+            a_id=None,
+            remote_ip=remote_ip,
+            remote_user=remote_user,
+            remote_pwd=remote_pwd,
+            ssh_remote_auth=ssh_remote_auth,
+            unprivileged_user=unprivileged_user,
+            readonly=readonly,
+        )
         session_id = new_session.get_id()
-        self.__dict_set__('session_id', session_id)
+        self.__dict_set__("session_id", session_id)
 
     def set_uri(self, uri):
         """
@@ -550,11 +597,11 @@ class VirtadminPersistent(Virtadmin):
         """
         if not self.INITIALIZED:
             # Allow __init__ to call new_session
-            self.__dict_set__('uri', uri)
+            self.__dict_set__("uri", uri)
         else:
             # If the uri is changing
-            if self.__dict_get__('uri') != uri:
-                self.__dict_set__('uri', uri)
+            if self.__dict_get__("uri") != uri:
+                self.__dict_set__("uri", uri)
                 self.new_session()
             # otherwise do nothing
 
@@ -565,7 +612,7 @@ class VirtadminConnectBack(VirtadminPersistent):
     Persistent virtadmin session connected back from a remote host
     """
 
-    __slots__ = ('remote_ip', )
+    __slots__ = ("remote_ip",)
 
     def new_session(self):
         """
@@ -574,25 +621,29 @@ class VirtadminConnectBack(VirtadminPersistent):
 
         # Accessors may call this method, avoid recursion
         # Must exist, can't be None
-        virtadmin_exec = self.__dict_get__('virtadmin_exec')
-        uri = self.__dict_get__('uri')  # Must exist, can be None
-        remote_ip = self.__dict_get__('remote_ip')
+        virtadmin_exec = self.__dict_get__("virtadmin_exec")
+        uri = self.__dict_get__("uri")  # Must exist, can be None
+        remote_ip = self.__dict_get__("remote_ip")
         try:
-            remote_user = self.__dict_get__('remote_user')
+            remote_user = self.__dict_get__("remote_user")
         except KeyError:
-            remote_user = 'root'
+            remote_user = "root"
         try:
-            remote_pwd = self.__dict_get__('remote_pwd')
+            remote_pwd = self.__dict_get__("remote_pwd")
         except KeyError:
             remote_pwd = None
         super(VirtadminConnectBack, self).close_session()
-        new_session = VirtadminSession(virtadmin_exec, uri, a_id=None,
-                                       remote_ip=remote_ip,
-                                       remote_user=remote_user,
-                                       remote_pwd=remote_pwd,
-                                       ssh_remote_auth=True)
+        new_session = VirtadminSession(
+            virtadmin_exec,
+            uri,
+            a_id=None,
+            remote_ip=remote_ip,
+            remote_user=remote_user,
+            remote_pwd=remote_pwd,
+            ssh_remote_auth=True,
+        )
         session_id = new_session.get_id()
-        self.__dict_set__('session_id', session_id)
+        self.__dict_set__("session_id", session_id)
 
     @staticmethod
     def kosher_args(remote_ip, uri):
@@ -614,9 +665,9 @@ class VirtadminConnectBack(VirtadminPersistent):
             uri is None,
             uri == "",
             bool(uri.count("default")),
-            bool(uri.count(':///')),
+            bool(uri.count(":///")),
             bool(uri.count("localhost")),
-            bool(uri.count("127."))
+            bool(uri.count("127.")),
         ]
         return True not in all_false
 
@@ -634,15 +685,15 @@ def command(cmd, **dargs):
     :raise: CmdError if non-zero exit status and ignore_status=False
     """
 
-    virtadmin_exec = dargs.get('virtadmin_exec', VIRTADMIN_EXEC)
-    uri = dargs.get('uri', None)
-    debug = dargs.get('debug', False)
+    virtadmin_exec = dargs.get("virtadmin_exec", VIRTADMIN_EXEC)
+    uri = dargs.get("uri", None)
+    debug = dargs.get("debug", False)
     # Caller deals with errors
-    ignore_status = dargs.get('ignore_status', True)
-    session_id = dargs.get('session_id', None)
-    readonly = dargs.get('readonly', False)
-    unprivileged_user = dargs.get('unprivileged_user', None)
-    timeout = dargs.get('timeout', None)
+    ignore_status = dargs.get("ignore_status", True)
+    session_id = dargs.get("session_id", None)
+    readonly = dargs.get("readonly", False)
+    unprivileged_user = dargs.get("unprivileged_user", None)
+    timeout = dargs.get("timeout", None)
 
     # Check if this is a VirtadminPersistent method call
     if session_id:
@@ -667,8 +718,9 @@ def command(cmd, **dargs):
             LOG.debug("Ignore readonly flag for this virtadmin session")
         if timeout is None:
             timeout = 60
-        ret = session.cmd_result(cmd, ignore_status=ignore_status,
-                                 debug=debug, timeout=timeout)
+        ret = session.cmd_result(
+            cmd, ignore_status=ignore_status, debug=debug, timeout=timeout
+        )
         # Mark return value with session it came from
         ret.from_session_id = session_id
     else:
@@ -676,7 +728,7 @@ def command(cmd, **dargs):
         # Readonly mode
         if readonly:
             LOG.error("readonly mode is not supported by virt-admin yet.")
-#            cmd = " -r " + cmd
+        #            cmd = " -r " + cmd
 
         if uri:
             # uri argument IS being used
@@ -691,9 +743,9 @@ def command(cmd, **dargs):
             cmd = "su - %s -c '%s'" % (unprivileged_user, cmd)
 
         # Raise exception if ignore_status is False
-        ret = process.run(cmd, timeout=timeout, verbose=debug,
-                          ignore_status=ignore_status,
-                          shell=True)
+        ret = process.run(
+            cmd, timeout=timeout, verbose=debug, ignore_status=ignore_status, shell=True
+        )
         # Mark return as not coming from persistent virtadmin session
         ret.from_session_id = None
 
@@ -860,9 +912,14 @@ def client_info(server_name, client_id, **dargs):
     return command(cmd, **dargs)
 
 
-def srv_threadpool_set(server_name, min_workers=None,
-                       max_workers=None, prio_workers=None,
-                       options=None, **dargs):
+def srv_threadpool_set(
+    server_name,
+    min_workers=None,
+    max_workers=None,
+    prio_workers=None,
+    options=None,
+    **dargs
+):
     """
     Run srv-threadpool-set in virt-admin session
     :param server_name: set the workpool parameters of this server.
@@ -884,8 +941,9 @@ def srv_threadpool_set(server_name, min_workers=None,
     return command(cmd, **dargs)
 
 
-def srv_clients_set(server_name, max_unauth_clients=None,
-                    max_clients=None, options=None, **dargs):
+def srv_clients_set(
+    server_name, max_unauth_clients=None, max_clients=None, options=None, **dargs
+):
     """
     Run srv-clients-set: set server's client-related configuration limits.
     :param max_unauth_clients: set the upper limit to number of clients

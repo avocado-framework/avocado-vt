@@ -8,68 +8,74 @@ except ImportError:
 
 
 SYSLOG_PORT = 514
-DEFAULT_FORMAT = '[AutotestSyslog (%s.%s)] %s'
+DEFAULT_FORMAT = "[AutotestSyslog (%s.%s)] %s"
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def set_default_format(message_format):
-    '''
+    """
     Changes the default message format
 
     :type message_format: string
     :param message_format: a message format string with 3 placeholders:
                            facility, priority and message.
-    '''
+    """
     global DEFAULT_FORMAT
     DEFAULT_FORMAT = message_format
 
 
 def get_default_format():
-    '''
+    """
     Returns the current default message format
-    '''
+    """
     return DEFAULT_FORMAT
 
 
 class RequestHandler(socketserver.BaseRequestHandler):
 
-    '''
+    """
     A request handler that relays all received messages as DEBUG
-    '''
+    """
 
-    RECORD_RE = re.compile('\<(\d+)\>(.*)')
+    RECORD_RE = re.compile("\<(\d+)\>(.*)")
 
-    (LOG_EMERG,
-     LOG_ALERT,
-     LOG_CRIT,
-     LOG_ERR,
-     LOG_WARNING,
-     LOG_NOTICE,
-     LOG_INFO,
-     LOG_DEBUG) = list(range(8))
+    (
+        LOG_EMERG,
+        LOG_ALERT,
+        LOG_CRIT,
+        LOG_ERR,
+        LOG_WARNING,
+        LOG_NOTICE,
+        LOG_INFO,
+        LOG_DEBUG,
+    ) = list(range(8))
 
-    (LOG_KERN,
-     LOG_USER,
-     LOG_MAIL,
-     LOG_DAEMON,
-     LOG_AUTH,
-     LOG_SYSLOG,
-     LOG_LPR,
-     LOG_NEWS,
-     LOG_UUCP,
-     LOG_CRON,
-     LOG_AUTHPRIV,
-     LOG_FTP) = list(range(12))
+    (
+        LOG_KERN,
+        LOG_USER,
+        LOG_MAIL,
+        LOG_DAEMON,
+        LOG_AUTH,
+        LOG_SYSLOG,
+        LOG_LPR,
+        LOG_NEWS,
+        LOG_UUCP,
+        LOG_CRON,
+        LOG_AUTHPRIV,
+        LOG_FTP,
+    ) = list(range(12))
 
-    (LOG_LOCAL0,
-     LOG_LOCAL1,
-     LOG_LOCAL2,
-     LOG_LOCAL3,
-     LOG_LOCAL4,
-     LOG_LOCAL5,
-     LOG_LOCAL6,
-     LOG_LOCAL7) = list(range(16, 24))
+    (
+        LOG_LOCAL0,
+        LOG_LOCAL1,
+        LOG_LOCAL2,
+        LOG_LOCAL3,
+        LOG_LOCAL4,
+        LOG_LOCAL5,
+        LOG_LOCAL6,
+        LOG_LOCAL7,
+    ) = list(range(16, 24))
 
     PRIORITY_NAMES = {
         LOG_ALERT: "alert",
@@ -79,7 +85,7 @@ class RequestHandler(socketserver.BaseRequestHandler):
         LOG_ERR: "err",
         LOG_INFO: "info",
         LOG_NOTICE: "notice",
-        LOG_WARNING: "warning"
+        LOG_WARNING: "warning",
     }
 
     FACILITY_NAMES = {
@@ -107,22 +113,24 @@ class RequestHandler(socketserver.BaseRequestHandler):
     }
 
     def decodeFacilityPriority(self, priority):
-        '''
+        """
         Decode both the facility and priority embedded in a syslog message
 
         :type priority: integer
         :param priority: an integer with facility and priority encoded
         :return: a tuple with two strings
-        '''
+        """
         f = priority >> 3
         p = priority & 7
-        return (self.FACILITY_NAMES.get(f, 'unknown'),
-                self.PRIORITY_NAMES.get(p, 'unknown'))
+        return (
+            self.FACILITY_NAMES.get(f, "unknown"),
+            self.PRIORITY_NAMES.get(p, "unknown"),
+        )
 
     def log(self, data, message_format=None):
-        '''
+        """
         Logs the received message as a DEBUG message
-        '''
+        """
         match = self.RECORD_RE.match(data)
         if match:
             if message_format is None:
@@ -134,39 +142,34 @@ class RequestHandler(socketserver.BaseRequestHandler):
 
 
 class RequestHandlerTcp(RequestHandler):
-
     def handle(self):
-        '''
+        """
         Handles a single request
-        '''
+        """
         data = self.request.recv(4096)
         self.log(data)
 
 
 class RequestHandlerUdp(RequestHandler):
-
     def handle(self):
-        '''
+        """
         Handles a single request
-        '''
+        """
         data = self.request[0]
         self.log(data)
 
 
 class SysLogServerUdp(socketserver.UDPServer):
-
     def __init__(self, address):
         socketserver.UDPServer.__init__(self, address, RequestHandlerUdp)
 
 
 class SysLogServerTcp(socketserver.TCPServer):
-
     def __init__(self, address):
         socketserver.TCPServer.__init__(self, address, RequestHandlerTcp)
 
 
-def syslog_server(address='', port=SYSLOG_PORT,
-                  tcp=True, terminate_callable=None):
+def syslog_server(address="", port=SYSLOG_PORT, tcp=True, terminate_callable=None):
     if tcp:
         klass = SysLogServerTcp
     else:
@@ -183,6 +186,6 @@ def syslog_server(address='', port=SYSLOG_PORT,
             syslog.handle_request()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     LOG.setLevel(logging.DEBUG)
     syslog_server()

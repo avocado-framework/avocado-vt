@@ -13,13 +13,13 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 class StubNotFoundError(Exception):
 
-    'Raised when god is asked to unstub an attribute that was not stubbed'
+    "Raised when god is asked to unstub an attribute that was not stubbed"
     pass
 
 
 class CheckPlaybackError(Exception):
 
-    'Raised when mock playback does not match recorded calls.'
+    "Raised when mock playback does not match recorded calls."
     pass
 
 
@@ -34,6 +34,7 @@ class SaveDataAfterCloseStringIO(StringIO):
       final_data: Set to the StringIO's getvalue() data when close() is
           called.  None if close() has not been called.
     """
+
     final_data = None
 
     def close(self):
@@ -42,13 +43,11 @@ class SaveDataAfterCloseStringIO(StringIO):
 
 
 class argument_comparator(object):
-
     def is_satisfied_by(self, parameter):
         raise NotImplementedError
 
 
 class equality_comparator(argument_comparator):
-
     def __init__(self, value):
         self.value = value
 
@@ -69,14 +68,12 @@ class equality_comparator(argument_comparator):
             # recurse on lists/tuples
             if len(actual_arg) != len(expected_arg):
                 return False
-            for actual_item, expected_item in list(
-                    zip(actual_arg, expected_arg)):
+            for actual_item, expected_item in list(zip(actual_arg, expected_arg)):
                 if not cls._compare(actual_item, expected_item):
                     return False
         elif isinstance(expected_arg, dict):
             # recurse on dicts
-            if not cls._compare(sorted(actual_arg.keys()),
-                                sorted(expected_arg.keys())):
+            if not cls._compare(sorted(actual_arg.keys()), sorted(expected_arg.keys())):
                 return False
             for key, value in six.iteritems(actual_arg):
                 if not cls._compare(value, expected_arg[key]):
@@ -96,7 +93,6 @@ class equality_comparator(argument_comparator):
 
 
 class regex_comparator(argument_comparator):
-
     def __init__(self, pattern, flags=0):
         self.regex = re.compile(pattern, flags)
 
@@ -108,7 +104,6 @@ class regex_comparator(argument_comparator):
 
 
 class is_string_comparator(argument_comparator):
-
     def is_satisfied_by(self, parameter):
         return isinstance(parameter, basestring)
 
@@ -117,7 +112,6 @@ class is_string_comparator(argument_comparator):
 
 
 class is_instance_comparator(argument_comparator):
-
     def __init__(self, cls):
         self.cls = cls
 
@@ -129,22 +123,21 @@ class is_instance_comparator(argument_comparator):
 
 
 class anything_comparator(argument_comparator):
-
     def is_satisfied_by(self, parameter):
         return True
 
     def __str__(self):
-        return 'anything'
+        return "anything"
 
 
 class base_mapping(object):
-
     def __init__(self, symbol, return_obj, *args, **dargs):
         self.return_obj = return_obj
         self.symbol = symbol
         self.args = [equality_comparator(arg) for arg in args]
-        self.dargs = dict((key, equality_comparator(value))
-                          for key, value in six.iteritems(dargs))
+        self.dargs = dict(
+            (key, equality_comparator(value)) for key, value in six.iteritems(dargs)
+        )
         self.error = None
 
     def match(self, *args, **dargs):
@@ -174,10 +167,8 @@ class base_mapping(object):
 
 
 class function_mapping(base_mapping):
-
     def __init__(self, symbol, return_val, *args, **dargs):
-        super(function_mapping, self).__init__(symbol, return_val, *args,
-                                               **dargs)
+        super(function_mapping, self).__init__(symbol, return_val, *args, **dargs)
 
     def and_return(self, return_obj):
         self.return_obj = return_obj
@@ -195,9 +186,7 @@ class function_any_args_mapping(function_mapping):
 
 
 class mock_function(object):
-
-    def __init__(self, symbol, default_return_val=None,
-                 record=None, playback=None):
+    def __init__(self, symbol, default_return_val=None, record=None, playback=None):
         self.default_return_val = default_return_val
         self.num_calls = 0
         self.args = []
@@ -233,12 +222,17 @@ class mock_function(object):
 
 
 class mask_function(mock_function):
-
-    def __init__(self, symbol, original_function, default_return_val=None,
-                 record=None, playback=None):
-        super(mask_function, self).__init__(symbol,
-                                            default_return_val,
-                                            record, playback)
+    def __init__(
+        self,
+        symbol,
+        original_function,
+        default_return_val=None,
+        record=None,
+        playback=None,
+    ):
+        super(mask_function, self).__init__(
+            symbol, default_return_val, record, playback
+        )
         self.original_function = original_function
 
     def run_original_function(self, *args, **dargs):
@@ -246,9 +240,7 @@ class mask_function(mock_function):
 
 
 class mock_class(object):
-
-    def __init__(self, cls, name, default_ret_val=None,
-                 record=None, playback=None):
+    def __init__(self, cls, name, default_ret_val=None, record=None, playback=None):
         self.__name = name
         self.__record = record
         self.__playback = playback
@@ -260,14 +252,15 @@ class mock_class(object):
             orig_symbol = getattr(cls, symbol)
             if callable(orig_symbol):
                 f_name = "%s.%s" % (self.__name, symbol)
-                func = mock_function(f_name, default_ret_val,
-                                     self.__record, self.__playback)
+                func = mock_function(
+                    f_name, default_ret_val, self.__record, self.__playback
+                )
                 setattr(self, symbol, func)
             else:
                 setattr(self, symbol, orig_symbol)
 
     def __repr__(self):
-        return '<mock_class: %s>' % self.__name
+        return "<mock_class: %s>" % self.__name
 
 
 class mock_god(object):
@@ -320,14 +313,12 @@ class mock_god(object):
                 if isinstance(super_class, object):
                     obj = super_class.__new__(typ)
                 else:
-                    obj = super(cls_sub, typ).__new__(typ, *args,
-                                                      **dargs)
+                    obj = super(cls_sub, typ).__new__(typ, *args, **dargs)
 
                 typ.cls_count += 1
                 obj_name = "%s_%s" % (name, typ.cls_count)
                 for symbol in dir(obj):
-                    if (symbol.startswith("__") and
-                            symbol.endswith("__")):
+                    if symbol.startswith("__") and symbol.endswith("__"):
                         continue
 
                     if isinstance(getattr(typ, symbol, None), property):
@@ -335,16 +326,11 @@ class mock_god(object):
 
                     orig_symbol = getattr(obj, symbol)
                     if callable(orig_symbol):
-                        f_name = ("%s.%s" %
-                                  (obj_name, symbol))
-                        func = mock_function(f_name,
-                                             default_ret_val,
-                                             record,
-                                             playback)
+                        f_name = "%s.%s" % (obj_name, symbol)
+                        func = mock_function(f_name, default_ret_val, record, playback)
                         setattr(obj, symbol, func)
                     else:
-                        setattr(obj, symbol,
-                                orig_symbol)
+                        setattr(obj, symbol, orig_symbol)
 
                 return obj
 
@@ -358,16 +344,18 @@ class mock_god(object):
         the public attributes of cls.  default_ret_val sets the
         default_ret_val on all methods of the cls mock.
         """
-        return mock_class(cls, name, default_ret_val,
-                          self.__record_call, self.__method_playback)
+        return mock_class(
+            cls, name, default_ret_val, self.__record_call, self.__method_playback
+        )
 
     def create_mock_function(self, symbol, default_return_val=None):
         """
         create a mock_function with name symbol and default return
         value of default_ret_val.
         """
-        return mock_function(symbol, default_return_val,
-                             self.__record_call, self.__method_playback)
+        return mock_function(
+            symbol, default_return_val, self.__record_call, self.__method_playback
+        )
 
     def mock_up(self, obj, name, default_ret_val=None):
         """
@@ -382,22 +370,25 @@ class mock_god(object):
             orig_symbol = getattr(obj, symbol)
             if callable(orig_symbol):
                 f_name = "%s.%s" % (name, symbol)
-                func = mask_function(f_name, orig_symbol,
-                                     default_ret_val,
-                                     self.__record_call,
-                                     self.__method_playback)
+                func = mask_function(
+                    f_name,
+                    orig_symbol,
+                    default_ret_val,
+                    self.__record_call,
+                    self.__method_playback,
+                )
                 setattr(obj, symbol, func)
 
     def stub_with(self, namespace, symbol, new_attribute):
-        original_attribute = getattr(namespace, symbol,
-                                     self.NONEXISTENT_ATTRIBUTE)
+        original_attribute = getattr(namespace, symbol, self.NONEXISTENT_ATTRIBUTE)
 
         # You only want to save the original attribute in cases where it is
         # directly associated with the object in question. In cases where
         # the attribute is actually inherited via some sort of hierarchy
         # you want to delete the stub (restoring the original structure)
-        attribute_is_inherited = (hasattr(namespace, '__dict__') and
-                                  symbol not in namespace.__dict__)
+        attribute_is_inherited = (
+            hasattr(namespace, "__dict__") and symbol not in namespace.__dict__
+        )
         if attribute_is_inherited:
             original_attribute = self.NONEXISTENT_ATTRIBUTE
 
@@ -426,8 +417,7 @@ class mock_god(object):
         :param symbol: The attribute within the namespace to stub out.
         :param object_to_return: The value that the stub should return whenever it is called.
         """
-        self.stub_with(namespace, symbol,
-                       lambda *args, **dargs: object_to_return)
+        self.stub_with(namespace, symbol, lambda *args, **dargs: object_to_return)
 
     def _perform_unstub(self, stub):
         namespace, symbol, orig_attr, new_attr = stub
@@ -453,23 +443,27 @@ class mock_god(object):
 
     def __method_playback(self, symbol, *args, **dargs):
         if self._debug:
-            print(' * Mock call: ' + _dump_function_call(symbol, args, dargs),
-                  file=sys.__stdout__)
+            print(
+                " * Mock call: " + _dump_function_call(symbol, args, dargs),
+                file=sys.__stdout__,
+            )
 
         if len(self.recording) != 0:
             # self.recording is subscriptable (deque), ignore E1136
-            func_call = self.recording[0]   # pylint: disable=E1136
+            func_call = self.recording[0]  # pylint: disable=E1136
             if func_call.symbol != symbol:
-                msg = ("Unexpected call: %s\nExpected: %s"
-                       % (_dump_function_call(symbol, args, dargs),
-                          func_call))
+                msg = "Unexpected call: %s\nExpected: %s" % (
+                    _dump_function_call(symbol, args, dargs),
+                    func_call,
+                )
                 self._append_error(msg)
                 return None
 
             if not func_call.match(*args, **dargs):
-                msg = ("Incorrect call: %s\nExpected: %s"
-                       % (_dump_function_call(symbol, args, dargs),
-                          func_call))
+                msg = "Incorrect call: %s\nExpected: %s" % (
+                    _dump_function_call(symbol, args, dargs),
+                    func_call,
+                )
                 self._append_error(msg)
                 return None
 
@@ -480,8 +474,7 @@ class mock_god(object):
             else:
                 return func_call.return_obj
         else:
-            msg = ("unexpected call: %s"
-                   % (_dump_function_call(symbol, args, dargs)))
+            msg = "unexpected call: %s" % (_dump_function_call(symbol, args, dargs))
             self._append_error(msg)
             return None
 
@@ -490,7 +483,7 @@ class mock_god(object):
 
     def _append_error(self, error):
         if self._debug:
-            print(' *** ' + error, file=sys.__stdout__)
+            print(" *** " + error, file=sys.__stdout__)
         if self._fail_fast:
             raise CheckPlaybackError(error)
         self.errors.append(error)
@@ -502,12 +495,12 @@ class mock_god(object):
         """
         if len(self.errors) > 0:
             if self._debug:
-                print('\nPlayback errors:')
+                print("\nPlayback errors:")
             for error in self.errors:
                 print(error, file=sys.__stdout__)
 
             if self._ut:
-                self._ut.fail('\n'.join(self.errors))
+                self._ut.fail("\n".join(self.errors))
 
             raise CheckPlaybackError
         elif len(self.recording) != 0:
@@ -518,7 +511,7 @@ class mock_god(object):
                 print(error, file=sys.__stdout__)
 
             if self._ut:
-                self._ut.fail('\n'.join(errors))
+                self._ut.fail("\n".join(errors))
 
             raise CheckPlaybackError
         self.recording.clear()
@@ -528,8 +521,8 @@ class mock_god(object):
         self.orig_stdout = sys.stdout
         self.orig_stderr = sys.stderr
 
-        self.mock_streams_stdout = StringIO('')
-        self.mock_streams_stderr = StringIO('')
+        self.mock_streams_stdout = StringIO("")
+        self.mock_streams_stderr = StringIO("")
 
         sys.stdout = self.mock_streams_stdout
         sys.stderr = self.mock_streams_stderr
@@ -539,8 +532,10 @@ class mock_god(object):
         output strings"""
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
-        values = (self.mock_streams_stdout.getvalue(),
-                  self.mock_streams_stderr.getvalue())
+        values = (
+            self.mock_streams_stdout.getvalue(),
+            self.mock_streams_stderr.getvalue(),
+        )
 
         self.mock_streams_stdout.close()
         self.mock_streams_stderr.close()
@@ -559,4 +554,4 @@ def _dump_function_call(symbol, args, dargs):
         arg_vec.append(_arg_to_str(arg))
     for key, val in six.iteritems(dargs):
         arg_vec.append("%s=%s" % (key, _arg_to_str(val)))
-    return "%s(%s)" % (symbol, ', '.join(arg_vec))
+    return "%s(%s)" % (symbol, ", ".join(arg_vec))
