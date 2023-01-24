@@ -72,6 +72,7 @@ avocado_devel_task:
   container:
     image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
     kvm: true
+  allow_failures: $AVOCADO_SRC == 'git+https://github.com/avocado-framework/avocado#egg=avocado_framework'
   env:
     matrix:
       # Latest Avocado
