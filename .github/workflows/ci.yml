@@ -21,8 +21,6 @@ jobs:
         run: ./selftests/signedoff-check.sh
       - name: Install make
         run: sudo apt-get update && sudo apt-get install -y make
-      - name: Install dependencies
-        run: pip install -r requirements-travis.txt
       - name: Run tests
         run: make check
 
@@ -47,8 +45,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install -r requirements-travis.txt
       - name: Check out Avocado libs
         uses: actions/checkout@v2
         with:

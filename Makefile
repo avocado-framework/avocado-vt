@@ -45,7 +45,10 @@ include Makefile.include
 requirements: pip
 	- $(PYTHON) -m pip install -r requirements.txt
 
-check:
+requirements-dev: pip
+	- $(PYTHON) -m pip install -r requirements-dev.txt
+
+check: requirements-dev
 	inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003,W605 --disable-style W605,W606,E501,E265,W601,E402,E722,E741 --exclude avocado-libs,scripts/github --no-license-check
 	pylint --errors-only --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
 
