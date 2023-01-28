@@ -518,6 +518,15 @@ class Target(object):
 
         return options
 
+    def _get_kubevirt_options(self):
+        """
+        Construct output options for -o kubevirt
+        """
+        os_directory = self._get_os_directory()
+        options = " -os %s" % os_directory
+
+        return options
+
     def get_target_options(self):
         """
         Return command options.
