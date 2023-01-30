@@ -1150,7 +1150,7 @@ class QDevice(QCustomDevice):
         pvpanic = self.get_param("driver") in ("pvpanic")
 
         expect_string_val = ("write-cache", "disable-legacy", "intremap",
-                             "serial")
+                             "serial", "eim")
 
         for key, val in self.params.items():
             # wwn needs to be presented as hexadecimal
@@ -1174,13 +1174,15 @@ class QDevice(QCustomDevice):
             # min_io_size, opt_io_size from device ( "driver": "usb-storage" )
             # discard_granularity from device ("driver": "scsi-hd") and
             # ("driver": "virtio-blk-pci")
+            # guest-stats-polling-interval from
+            # device ("driver": "virtio-balloon-ccw")
             elif key in ("physical_block_size", "logical_block_size",
                          "bootindex", "max_sectors", "num_queues",
                          "virtqueue_size", "discard_granularity", "period",
                          "max-bytes", "max-write-zeroes-sectors", "queue-size",
                          "max-discard-sectors", "num-queues", "host_mtu",
                          "speed", "vectors", "node", "events", "min_io_size",
-                         "opt_io_size"):
+                         "opt_io_size", "guest-stats-polling-interval"):
                 command_dict[key] = int(val)
             # port from usb related driver
             elif key == "port" and usb_driver:
@@ -1613,12 +1615,11 @@ class Memory(QObject):
         return False
 
     def _cmdline_json(self):
-        command_dict = {}
         out = "-%s " % self.type
         params = self.params.copy()
-        self._convert_memobj_args(params)
-        command_dict["qom-type"] = params.pop("backend")
-        return out + '\'' + json.dumps(dict(command_dict, **params)) + '\''
+        params["qom-type"] = params.pop("backend")
+        params = self._convert_memobj_args(params)
+        return out + '\'' + json.dumps(params) + '\''
 
     @staticmethod
     def _convert_memobj_args(args):
@@ -1631,14 +1632,24 @@ class Memory(QObject):
         :return: Converted args.
         :rtype: dict
         """
+        command_dict = {}
         for key, val in args.items():
-            if "size" == key:
-                args[key] = int(utils_numeric.normalize_data_size(val, "B"))
-            # "share" from object( "qom-type": "memory-backend-memfd" )
-            # "reserve" from object( "qom-type": "memory-backend-memfd" )
-            # "hugetlb" from object( "qom-type": "memory-backend-memfd" )
-            elif key in ("share", "reserve", "hugetlb"):
-                args[key] = val == "yes"
+            if key in ("size", "align"):
+                command_dict[key] = int(utils_numeric.normalize_data_size(val,
+                                                                          "B"))
+            # "share", "reserve", "hugetlb"
+            # from object( "qom-type": "memory-backend-memfd" )
+            # "prealloc", "dump", "merge"
+            # from -object ("qom-type": "memory-backend-ram")
+            # readonly from -object("qom-type": "memory-backend-file")
+            elif key in ("share", "reserve", "hugetlb",
+                         "prealloc", "dump", "merge", "readonly"):
+                command_dict[key] = val in ("yes", "on")
+            elif key == "host-nodes":
+                command_dict[key] = list(map(int, val.split()))
+            else:
+                command_dict[key] = val
+        return command_dict
 
 
 class Dimm(QDevice):
