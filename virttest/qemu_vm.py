@@ -2760,8 +2760,10 @@ class VM(virt_vm.BaseVM):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
 
-        # Add options for all virtio devices
-        virtio_devices = filter(lambda x: re.search(r"(?:^virtio-)|(?:^vhost-)",
+        # Add options for virtio devices which match the pattern
+        virtio_dev_filter = params.get("virtio_dev_filter",
+                                       "(?:^virtio-)|(?:^vhost-)")
+        virtio_devices = filter(lambda x: re.search(virtio_dev_filter,
                                                     x.get_param('driver', '')),
                                 devices)
         for device in virtio_devices:
@@ -2778,7 +2780,7 @@ class VM(virt_vm.BaseVM):
                 "ats": params.get("virtio_dev_ats"),
                 "aer": params.get("virtio_dev_aer")}
             for key, value in properties_to_be_set.items():
-                if value and key in dev_properties:
+                if key not in device.params and value and key in dev_properties:
                     device.set_param(key, value)
 
         # set tag for pcic
