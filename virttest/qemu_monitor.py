@@ -2805,7 +2805,8 @@ class QMPMonitor(Monitor):
         args = {"id": dev_id, "node-name": node_name}
         return self.cmd(cmd, args)
 
-    def blockdev_change_medium(self, dev_id, filename, fmt=None, mode=None):
+    def blockdev_change_medium(self, dev_id, filename, fmt=None, mode=None,
+                               force=None):
         """
         Changes the medium inserted into a block device by ejecting the current
         medium and loading a new image file which is inserted as the new medium
@@ -2820,6 +2821,8 @@ class QMPMonitor(Monitor):
         :type fmt: str
         :param mode: Change the read-only mode of the device.
         :type mode: str
+        :param force: Change the media force.
+        :type force: bool
         :return: The response of command.
         """
         cmd = "blockdev-change-medium"
@@ -2829,6 +2832,8 @@ class QMPMonitor(Monitor):
             args["format"] = fmt
         if mode is not None:
             args["read-only-mode"] = mode
+        if force is not None:
+            args["force"] = force
         return self.cmd(cmd, args)
 
     def blockdev_create(self, job_id, options):
