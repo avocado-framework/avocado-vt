@@ -3454,7 +3454,11 @@ class VM(virt_vm.BaseVM):
                                                                    timeout)
                 except qemu_monitor.MonitorConnectError as detail:
                     LOG.error(detail)
+                    status = self.process.get_status()
+                    output = self.process.get_output().strip()
                     self.destroy()
+                    if not self.process.is_alive():
+                        raise virt_vm.VMCreateError(qemu_command, status, output)
                     raise
 
                 # Add this monitor to the list
