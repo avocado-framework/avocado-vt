@@ -246,7 +246,7 @@ class Disk(base.TypedDeviceBase):
         :return: a disk backingstore list where each element is primitive virttest.element_tree._ElementInterface object
         """
         backingstore_list = []
-        for elem in self.xmltreefile.getiterator('backingStore'):
+        for elem in self.xmltreefile.iter('backingStore'):
             backingstore_list.append(elem)
         return backingstore_list
 

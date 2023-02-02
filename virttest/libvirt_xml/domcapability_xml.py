@@ -169,7 +169,8 @@ class DomCapFeaturesXML(base.LibvirtXMLBase):
         """
         enum_list = []
         for enum_node in self.xmltreefile.findall('/gic/enum'):
-            xml_str = xml_utils.ElementTree.tostring(enum_node)
+            xml_str = xml_utils.ElementTree.tostring(enum_node,
+                                                     encoding='unicode')
             new_enum = EnumXML()
             new_enum.xml = xml_str
             enum_list.append(new_enum)

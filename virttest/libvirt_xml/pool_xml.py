@@ -6,12 +6,13 @@ import os
 import logging
 import tempfile
 
+from xml.etree import ElementTree as ET
+
 from avocado.utils import process
 
 from .. import data_dir
 from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
-from virttest import element_tree as ET
 
 LOG = logging.getLogger('avocado.' + __name__)
 
@@ -242,14 +243,14 @@ class PoolXMLBase(base.LibvirtXMLBase):
         root.append(value.xmltreefile.getroot())
         xmltreefile.write()
 
-    def add_source(self, tag, attr, text=None):
+    def add_source(self, tag, attr):
         xmltreefile = self.__dict_get__('xml')
         try:
             node = xmltreefile.find('/source')
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         if node is not None:
-            ET.SubElement(node, tag, attr, text)
+            ET.SubElement(node, tag, attr)
         xmltreefile.write()
 
 

@@ -4,8 +4,9 @@ Specializations of base.AccessorBase for particular XML manipulation types
 
 import logging
 
+from xml.etree.ElementTree import tostring
+
 from virttest import xml_utils
-from virttest import element_tree
 from virttest.propcan import PropCanBase
 from virttest.libvirt_xml import xcepts, base
 
@@ -751,7 +752,7 @@ class XMLElementList(AccessorGeneratorBase):
             # user-defined marshal functions might want to use
             # index numbers to filter/skip certain elements
             # but also support specific item ordering.
-            for child in parent.getchildren():
+            for child in list(parent):
                 # Call user-defined helper to translate Element
                 # into simple pre-defined format.
 
@@ -759,18 +760,12 @@ class XMLElementList(AccessorGeneratorBase):
                 # xml objects, first create xmltreefile for new object
                 if self.has_subclass:
                     new_xmltreefile = xml_utils.XMLTreeFile(
-                        element_tree.tostring(child))
+                        tostring(child, encoding='unicode'))
                     item = self.marshal_to(child.tag, new_xmltreefile,
                                            index, self.libvirtxml)
                 else:
-                    try:
-                        # To support an optional text parameter, compatible
-                        # with no text parameter.
-                        item = self.marshal_to(child.tag, dict(list(child.items())),
-                                               index, self.libvirtxml, child.text)
-                    except TypeError:
-                        item = self.marshal_to(child.tag, dict(list(child.items())),
-                                               index, self.libvirtxml)
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
+                                           index, self.libvirtxml)
                 if item is not None:
                     result.append(item)
                 # Always use absolute index (even if item was None)
@@ -828,34 +823,9 @@ class XMLElementList(AccessorGeneratorBase):
                     self.xmltreefile().write()
                     continue
 
-                # Handle element text values in element_tuple[1].
-                text = None
-                new_dict = element_tuple[1].copy()
-                if 'text' in list(element_tuple[1].keys()):
-                    del new_dict['text']
-
-                # To support text in element, marshal_from may return an
-                # additional text value, check the length of element tuple
-                if len(element_tuple) == 3:
-                    text = element_tuple[2]
-                parent_element = xml_utils.ElementTree.SubElement(
-                    parent,
-                    element_tuple[0],
-                    new_dict,
-                    text)
-
-                # To support child element contains text, create sub element
-                # with text under new created parent element.
-                if 'text' in list(element_tuple[1].keys()):
-                    text_dict = element_tuple[1]['text']
-                    attr_dict = {}
-                    for text_key, text_val in list(text_dict.items()):
-                        xml_utils.ElementTree.SubElement(
-                            parent_element,
-                            text_key,
-                            attr_dict,
-                            text_val)
-
+                xml_utils.ElementTree.SubElement(parent,
+                                                 element_tuple[0],
+                                                 element_tuple[1])
                 index += 1
             self.xmltreefile().write()
 
@@ -875,23 +845,17 @@ class XMLElementList(AccessorGeneratorBase):
             # Don't delete while traversing list
             todel = []
             index = 0
-            for child in parent.getchildren():
+            for child in list(parent):
                 # To support directly deleting xml elements xml objects,
                 # first create xmltreefile for new object
                 if self.has_subclass:
                     new_xmltreefile = xml_utils.XMLTreeFile(
-                        element_tree.tostring(child))
+                        tostring(child, encoding='unicode'))
                     item = self.marshal_to(child.tag, new_xmltreefile,
                                            index, self.libvirtxml)
                 else:
-                    try:
-                        # To support an optional text parameter, compatible
-                        # with no text parameter.
-                        item = self.marshal_to(child.tag, dict(list(child.items())),
-                                               index, self.libvirtxml, child.text)
-                    except TypeError:
-                        item = self.marshal_to(child.tag, dict(list(child.items())),
-                                               index, self.libvirtxml)
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
+                                           index, self.libvirtxml)
                 # Always use absolute index (even if item was None)
                 index += 1
                 # Account for case where child elements are mixed in

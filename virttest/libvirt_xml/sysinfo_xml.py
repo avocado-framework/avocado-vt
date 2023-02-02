@@ -33,7 +33,7 @@ class SysinfoXML(base.LibvirtXMLBase):
         processor_nodes = self.xmltreefile.findall('processor')
         for i in range(len(processor_nodes)):
             temp_dict = {}
-            entry_nodes = processor_nodes[i].getchildren()
+            entry_nodes = list(processor_nodes[i])
             if entry_nodes:
                 for entry in entry_nodes:
                     entry_attr = dict(list(entry.items()))

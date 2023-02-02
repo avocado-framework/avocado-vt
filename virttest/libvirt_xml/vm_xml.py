@@ -662,8 +662,11 @@ class VMXML(VMXMLBase):
         # TODO: Look up hypervisor_type on incoming XML
         vmxml = VMXML(virsh_instance=virsh_instance)
         result = virsh_instance.dumpxml(vm_name, extra=options)
-        vmxml['xml'] = result.stdout_text.strip()
-        return vmxml
+        if result.exit_status == 0:
+            vmxml['xml'] = result.stdout_text.strip()
+            return vmxml
+        else:
+            return None
 
     @staticmethod
     def new_from_inactive_dumpxml(vm_name, options="", virsh_instance=base.virsh):
@@ -761,7 +764,7 @@ class VMXML(VMXMLBase):
         str_new = "domain-" + new_name
         vmxml.vm_name = new_name
         for channel in vmxml.get_agent_channels():
-            for child in channel._children:
+            for child in list(channel):
                 if 'path' in list(child.attrib.keys()):
                     child.attrib['path'] = child.attrib['path'].replace(str_old, str_new)
         if uuid is None:
@@ -1287,7 +1290,8 @@ class VMXML(VMXMLBase):
         else:
             try:
                 source = serial.find('source')
-                serial.remove(source)
+                if source:
+                    serial.remove(source)
             except AssertionError:
                 pass  # Element not found, already removed.
         xmltreefile.write()

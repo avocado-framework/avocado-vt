@@ -96,7 +96,7 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
         """
         if protocol:
             protocol_class = librarian.get(protocol)
-            protocol_node = self.xmltreefile.getroot().getchildren()[0]
+            protocol_node = list(self.xmltreefile.getroot())[0]
             protocol_node.tag = protocol
             new_one = protocol_class.new_from_element(protocol_node)
             new_one.xmltreefile = self.xmltreefile
@@ -119,7 +119,7 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
         """
         Delete protocol in rule xml
         """
-        protocol_node = self.xmltreefile.getroot().getchildren()
+        protocol_node = list(self.xmltreefile.getroot())
         if protocol_node:
             self.xmltreefile.remove(protocol_node[0])
             self.xmltreefile.write()
@@ -193,7 +193,7 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         source_root = self.xmltreefile.findall('rule')
         for i in range(len(source_root)):
             if rule_protocol:
-                protocol_node = source_root[i].getchildren()[0]
+                protocol_node = list(source_root[i])[0]
                 if protocol_node.tag == rule_protocol:
                     rule_index.append(i)
             else:
@@ -322,8 +322,8 @@ class NwfilterXML(NwfilterXMLBase):
         rule_dict_attr = {}
         rule_nodes = self.xmltreefile.findall('rule')
         for i in range(len(rule_nodes)):
-            if rule_nodes[i].getchildren():
-                protocol_node = rule_nodes[i].getchildren()[0]
+            if list(rule_nodes[i]):
+                protocol_node = list(rule_nodes[i])[0]
                 protocol = protocol_node.tag
                 pro_dict = dict(list(protocol_node.items()))
                 rule_dict = dict(list(rule_nodes[i].items()))
@@ -364,7 +364,7 @@ class NwfilterXML(NwfilterXMLBase):
         all_rules = self.xmltreefile.findall('rule')
 
         for i in all_rules:
-            protocol_node = i.getchildren()
+            protocol_node = list(i)
             if protocol_node:
                 if protocol:
                     # Each rule node only have one protocol node, so
