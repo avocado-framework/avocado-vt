@@ -986,9 +986,13 @@ class QemuImg(storage.QemuImg):
         convert_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.convert_cmd, **cmd_dict)
 
-        LOG.info("Convert image %s from %s to %s", self.image_filename,
-                 self.image_format, convert_image.image_format)
-        process.run(convert_cmd)
+        timeout = convert_params.get_numeric("image_conversion_timeout", -1)
+        timeout = None if timeout == -1 else timeout
+
+        LOG.info("Convert image %s from %s to %s with timeout %s",
+                 self.image_filename, self.image_format,
+                 convert_image.image_format, timeout)
+        process.run(convert_cmd, timeout=timeout)
         if convert_image.encryption_config.key_secret:
             convert_image.encryption_config.key_secret.save_to_file()
 
