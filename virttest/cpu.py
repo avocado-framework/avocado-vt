@@ -527,7 +527,8 @@ def check_vcpu_domstats(vm, exp_vcpu):
     return status
 
 
-def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
+def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False,
+                     check_numa=True):
     """
     Check domain vcpu, including vcpucount, vcpuinfo, vcpupin, vcpu number and
     cputune in domain xml, vcpu number inside the domain.
@@ -542,6 +543,7 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
     :param vcpupin: A Dict of expect vcpu affinity
     :param option: Option for virsh commands(setvcpu, setvcpus etc)
     :param guest_agent: True if agent present
+    :param check_numa: If to check NUMA, default is True
 
     :return: True if the exp_vcpu values matches with virsh API values
             False if not
@@ -551,19 +553,23 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
 
     # 1.1 Check virsh vcpucount output
     if not check_vcpucount(vm, exp_vcpu, option, guest_agent):
+        logging.debug("check_vcpucount failed")
         final_result = False
 
     # 1.2 Check virsh vcpuinfo output
     if not check_vcpuinfo(vm, exp_vcpu):
+        logging.debug("check_vcpuinfo failed")
         final_result = False
 
     # 1.3 Check affinity from virsh vcpupin,virsh vcpuinfo, xml(cputune)
     if vcpupin:
         if not check_affinity(vm, vcpupin):
+            logging.debug("check_affinity failed")
             final_result = False
 
     # 1.4 Check the vcpu count in the xml
     if not check_xmlcount(vm, exp_vcpu, option):
+        logging.debug("check_xmlcount failed")
         final_result = False
 
     if vm.is_alive() and (not vm.is_paused()) and "live" in option:
@@ -572,12 +578,15 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
         if not utils_misc.wait_for(lambda: check_if_vm_vcpu_match(exp_vcpu['guest_live'],
                                                                   vm),
                                    vcpu_hotplug_timeout, text="wait for vcpu online"):
+            logging.debug("check_if_vm_vcpu_match failed")
             final_result = False
         # 1.6 Check guest numa
-        if not guest_numa_check(vm, exp_vcpu):
+        if check_numa and not guest_numa_check(vm, exp_vcpu):
+            logging.debug("guest_numa_check failed")
             final_result = False
     # 1.7 Check virsh domstats output
     if not check_vcpu_domstats(vm, exp_vcpu):
+        logging.debug("check_vcpu_domstats failed")
         final_result = False
 
     return final_result
