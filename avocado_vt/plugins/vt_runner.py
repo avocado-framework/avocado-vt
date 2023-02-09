@@ -61,6 +61,8 @@ class VirtTest(test.VirtTest):
     def runTest(self):
         status = "PASS"
         fail_reason = ""
+        fail_class = ""
+        traceback_log = ""
         try:
             messages.start_logging(self._config, self.queue)
             self.setUp()
@@ -70,23 +72,34 @@ class VirtTest(test.VirtTest):
         except exceptions.TestBaseException as detail:
             status = detail.status
             fail_reason = (astring.to_text(detail))
+            fail_class = detail.__class__.__name__
+            traceback_log = traceback.format_exc()
             if status == "ERROR" or status not in teststatus.STATUSES:
                 status = "ERROR"
-                self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
+                self.queue.put(messages.StderrMessage.get(traceback_log))
             else:
-                self.queue.put(messages.LogMessage.get(traceback.format_exc()))
+                self.queue.put(messages.LogMessage.get(traceback_log))
         except Exception as detail:
             status = "ERROR"
             try:
                 fail_reason = (astring.to_text(detail))
+                fail_class = detail.__class__.__name__
+                traceback_log = traceback.format_exc()
             except TypeError:
                 fail_reason = ("Unable to get exception, check the traceback "
                                "in `debug.log` for details.")
-            self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
+            self.queue.put(messages.StderrMessage.get(traceback_log))
         finally:
             if 'avocado_test_' in self.logdir:
                 self._save_log_dir()
-            self.queue.put(messages.FinishedMessage.get(status, fail_reason))
+            try:
+                self.queue.put(messages.FinishedMessage.get(status,
+                                                            fail_reason=fail_reason,
+                                                            class_name="VirtTest",
+                                                            fail_class=fail_class,
+                                                            traceback=traceback_log))
+            except TypeError:
+                self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
 class VTTestRunner(BaseRunner):
