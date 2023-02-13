@@ -233,7 +233,7 @@ def get_linux_disks(session, partition=False):
     return disks_dict
 
 
-def get_windows_disks_index(session, image_size, timeout=60):
+def get_windows_disks_index(session, image_size, timeout=60, partition=False):
     """
     Get all disks index which show in 'diskpart list disk'.
     except for system disk.
@@ -243,6 +243,8 @@ def get_windows_disks_index(session, image_size, timeout=60):
     :param session: session object to guest.
     :param image_size: image size. e.g. 40M
     :param timeout: timeout for getting disks index.
+    :param partition: if true, list all disks; otherwise,
+                      list only disks with no partition.
     :return: a list with all disks index except for system disk.
     """
     disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
@@ -259,7 +261,11 @@ def get_windows_disks_index(session, image_size, timeout=60):
         disk_size = str(int(image_size[:-1]) * 1024) + " MB"
     else:
         disk_size = image_size[:-1] + " GB"
-    regex_str = 'Disk (\d+).*?%s.*?%s' % (disk_size, disk_size)
+    if partition:
+        regex_str = 'Disk (\d+).*?%s' % (disk_size)
+    else:
+        regex_str = 'Disk (\d+).*?%s.*?%s' % (disk_size, disk_size)
+
     for disk in disks.splitlines():
         if disk.startswith("  Disk"):
             o = re.findall(regex_str, disk, re.I | re.M)
