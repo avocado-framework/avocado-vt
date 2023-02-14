@@ -6,6 +6,7 @@ http://libvirt.org/formatdomain.html#elementsDisks
 
 from virttest.libvirt_xml import accessors, xcepts
 from virttest.libvirt_xml.devices import base, librarian
+from virttest.libvirt_xml.devices.seclabel import Seclabel
 
 
 class Disk(base.TypedDeviceBase):
@@ -297,7 +298,8 @@ class Disk(base.TypedDeviceBase):
                                      tag_name='source')
             accessors.XMLElementList('seclabels', self, parent_xpath='/',
                                      marshal_from=self.marshal_from_seclabel,
-                                     marshal_to=self.marshal_to_seclabel)
+                                     marshal_to=self.marshal_to_seclabel,
+                                     has_subclass=True)
             accessors.XMLElementList('hosts', self, parent_xpath='/',
                                      marshal_from=self.marshal_from_host,
                                      marshal_to=self.marshal_to_host)
@@ -332,33 +334,24 @@ class Disk(base.TypedDeviceBase):
         @staticmethod
         def marshal_from_seclabel(item, index, libvirtxml):
             """Convert a Seclabel instance into tag + attributes"""
-            del index           # not used
-            del libvirtxml      # not used
-            root = item.xmltreefile.getroot()
-            if root.tag == 'seclabel':
-                new_dict = dict(list(root.items()))
-                text_dict = {}
-                # Put element text into dict under key 'text'
-                for key in ('label', 'baselabel'):
-                    text_val = item.xmltreefile.findtext(key)
-                    if text_val:
-                        text_dict.update({key: text_val})
-                if text_dict:
-                    new_dict['text'] = text_dict
-                return (root.tag, new_dict)
+            if isinstance(item, Seclabel):
+                return 'seclabel', item
+            elif isinstance(item, dict):
+                seclabel = Seclabel()
+                seclabel.setup_attrs(**item)
+                return 'seclabel', seclabel
             else:
                 raise xcepts.LibvirtXMLError("Expected a list of seclabel "
                                              "instances, not a %s" % str(item))
 
         @staticmethod
-        def marshal_to_seclabel(tag, attr_dict, index, libvirtxml):
+        def marshal_to_seclabel(tag, new_treefile, index, libvirtxml):
             """Convert a tag + attributes into a Seclabel instance"""
             del index           # not used
             if tag != 'seclabel':
                 return None     # Don't convert this item
-            Seclabel = librarian.get('seclabel')
             newone = Seclabel(virsh_instance=libvirtxml.virsh)
-            newone.update(attr_dict)
+            newone.xmltreefile = new_treefile
             return newone
 
         @staticmethod
