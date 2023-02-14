@@ -2456,7 +2456,8 @@ class VMClockXML(base.LibvirtXMLBase):
                                  forbidden=[],
                                  parent_xpath="/",
                                  marshal_from=self.marshal_from_timer,
-                                 marshal_to=self.marshal_to_timer)
+                                 marshal_to=self.marshal_to_timer,
+                                 has_subclass=True)
         super(VMClockXML, self).__init__(virsh_instance=virsh_instance)
         # Set default offset for clock
         self.xml = '<clock/>'
@@ -2479,55 +2480,55 @@ class VMClockXML(base.LibvirtXMLBase):
             accessors.XMLAttribute(property_name="name",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='name')
             accessors.XMLAttribute(property_name="present",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='present')
             accessors.XMLAttribute(property_name="track",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='track')
             accessors.XMLAttribute(property_name="tickpolicy",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='tickpolicy')
             accessors.XMLAttribute(property_name="frequency",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='frequency')
             accessors.XMLAttribute(property_name="mode",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock',
+                                   parent_xpath='/',
                                    tag_name='timer',
                                    attribute='mode')
             accessors.XMLAttribute(property_name="catchup_threshold",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock/timer',
+                                   parent_xpath='/timer',
                                    tag_name='catchup',
                                    attribute='threshold')
             accessors.XMLAttribute(property_name="catchup_slew",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock/timer',
+                                   parent_xpath='/timer',
                                    tag_name='catchup',
                                    attribute='slew')
             accessors.XMLAttribute(property_name="catchup_limit",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/clock/timer',
+                                   parent_xpath='/timer',
                                    tag_name='catchup',
                                    attribute='limit')
             super(VMClockXML.TimerXML, self).__init__(
@@ -2536,32 +2537,27 @@ class VMClockXML(base.LibvirtXMLBase):
             # name is mandatory for timer
             self.name = timer_name
 
-        def update(self, attr_dict):
-            for attr, value in list(attr_dict.items()):
-                setattr(self, attr, value)
-
     @staticmethod
     def marshal_from_timer(item, index, libvirtxml):
         """Convert a TimerXML instance into tag + attributes"""
-        del index
-        del libvirtxml
-        timer = item.xmltreefile.find("clock/timer")
-        try:
-            return (timer.tag, dict(list(timer.items())))
-        except AttributeError:  # Didn't find timer
-            raise xcepts.LibvirtXMLError("Expected a list of timer "
+        if isinstance(item, VMClockXML.TimerXML):
+            return 'timer', item
+        elif isinstance(item, dict):
+            timer = VMClockXML.TimerXML()
+            timer.setup_attrs(**item)
+            return 'timer', timer
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of TimerXML "
                                          "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_timer(tag, attr_dict, index, libvirtxml):
+    def marshal_to_timer(tag, new_treefile, index, libvirtxml):
         """Convert a tag + attributes to a TimerXML instance"""
-        del index
-        if tag == 'timer':
-            newone = VMClockXML.TimerXML(virsh_instance=libvirtxml.virsh)
-            newone.update(attr_dict)
-            return newone
-        else:
-            return None
+        if tag != 'timer':
+            return None  # Don't convert this item
+        newone = VMClockXML.TimerXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
 
 class CacheTuneXML(base.LibvirtXMLBase):
