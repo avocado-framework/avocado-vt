@@ -133,7 +133,7 @@ class CapabilityXML(base.LibvirtXMLBase):
         Accessor method for power_management_list property (in __slots__)
         """
         xmltreefile = self.__dict_get__('xml')
-        pms = xmltreefile.find('host').find('power_management').getchildren()
+        pms = list(xmltreefile.find('host').find('power_management'))
         return [pm.tag for pm in pms]
 
     def get_feature_list(self):
@@ -269,7 +269,7 @@ class TopologyXML(base.LibvirtXMLBase):
             if not cell_node.find('memory') and withmem:
                 continue
             xml_str = xml_utils.ElementTree.tostring(
-                cell_node)
+                cell_node, encoding='unicode')
             new_cell = CellXML()
             new_cell.xml = xml_str
             cell_list.append(new_cell)

@@ -6,6 +6,7 @@ import os
 import glob
 import logging
 import sys
+from xml.etree import ElementTree
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +14,6 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
 from virttest import xml_utils
-from virttest import element_tree as ElementTree
 
 
 class xml_test_data(unittest.TestCase):
@@ -321,7 +321,7 @@ class test_templatized_xml(xml_test_data):
         txtb = xml_utils.TemplateXMLTreeBuilder(**self.MAPPING)
         txtb.feed(self.FULLREPLACE)
         et = txtb.close()
-        result = ElementTree.tostring(et)
+        result = ElementTree.tostring(et, encoding='unicode')
         self.assertEqual(result, self.RESULTCHECK)
 
     def test_TemplateXMLTreeBuilder_nosub(self):
@@ -329,13 +329,13 @@ class test_templatized_xml(xml_test_data):
         # elementtree pukes on identifiers starting with $
         txtb.feed(self.RESULTCHECK)
         et = txtb.close()
-        result = ElementTree.tostring(et)
+        result = ElementTree.tostring(et, encoding='unicode')
         self.assertEqual(result, self.RESULTCHECK)
 
     def test_TemplateXML(self):
         tx = xml_utils.TemplateXML(self.FULLREPLACE, **self.MAPPING)
         et = ElementTree.ElementTree(None, tx.name)
-        check = ElementTree.tostring(et.getroot())
+        check = ElementTree.tostring(et.getroot(), encoding='unicode')
         self.assertEqual(check, self.RESULTCHECK)
 
     def test_restore_fails(self):

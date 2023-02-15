@@ -36,6 +36,7 @@
     module for examples.
 """
 
+import io
 import os
 import shutil
 import tempfile
@@ -43,25 +44,24 @@ import string
 import logging
 from six import StringIO
 from xml.parsers import expat
-# We *have* to use our ElementTree fork :(
-from virttest import element_tree as ElementTree
+from xml.etree import ElementTree
 
 # Also used by unittests
 TMPPFX = 'xml_utils_temp_'
 TMPSFX = '.xml'
 EXSFX = '_exception_retained'
-ENCODING = "UTF-8"
+ENCODING = "unicode"
 
 LOG = logging.getLogger('avocado.' + __name__)
 
 
-class TempXMLFile(object):
+class TempXMLFile(io.FileIO):
 
     """
     Temporary XML file auto-removed on instance del / module exit.
     """
 
-    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="w+", buffsz=1):
+    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="w+"):
         """
         Initialize temporary XML file removed on instance destruction.
 
@@ -70,11 +70,9 @@ class TempXMLFile(object):
         param: mode: second parameter to file()/open()
         param: buffer: third parameter to file()/open()
         """
-        self.fd, self.path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
-        os.close(self.fd)
-        self.open_file = open(self.path, mode, buffsz)
-        self.name = self.open_file.name
-        super(TempXMLFile, self).__init__()
+        fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+        os.close(fd)
+        super(TempXMLFile, self).__init__(path, mode)
 
     def _info(self):
         """
@@ -91,96 +89,6 @@ class TempXMLFile(object):
             self.close()
         except (OSError, IOError):
             LOG.info("unlink file fail")
-
-    def close(self):
-        """
-        Close file
-        """
-        try:
-            self.open_file.close()
-        except IOError:
-            LOG.info("close file fail")
-
-    def seek(self, offset, whence=0):
-        """
-        Seek offset of one opened file
-        """
-        try:
-            self.open_file.seek(offset, whence)
-        except IOError:
-            LOG.info("seek file fail")
-
-    def flush(self):
-        """
-        Flush buffer.
-        """
-        try:
-            self.open_file.flush()
-        except IOError:
-            LOG.info("flush file fail")
-
-    def truncate(self, size):
-        """
-        Truncate the file to at most size bytes.
-        """
-        try:
-            self.open_file.truncate(size)
-        except IOError:
-            LOG.info("truncate file fail")
-
-    def tell(self):
-        """
-        returns the current position of the file read/write pointer within file.
-        """
-        try:
-            return self.open_file.tell()
-        except IOError:
-            LOG.info("tell file fail")
-
-    def write(self, content):
-        """
-        Write content to the file.
-        """
-        try:
-            self.open_file.write(content)
-        except IOError:
-            LOG.info("write file fail")
-
-    def read(self, size=None):
-        """
-        Read file content at most size bytes, returned as a string.
-        """
-        try:
-            if size is not None:
-                return self.open_file.read(size)
-            else:
-                return self.open_file.read()
-        except IOError:
-            LOG.info("read file fail")
-
-    def readline(self, size=None):
-        """
-        Read next line file content from the file, as a string.
-        """
-        try:
-            if size is not None:
-                return self.open_file.readline(size)
-            else:
-                return self.open_file.readline()
-        except IOError:
-            LOG.info("readline file fail")
-
-    def readlines(self, size=None):
-        """
-        Read list of strings, each a line from the file.
-        """
-        try:
-            if size is not None:
-                return self.open_file.readlines(size)
-            else:
-                return self.open_file.readlines()
-        except IOError:
-            LOG.info("readlines file fail")
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
@@ -240,7 +148,7 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).flush()
         super(XMLBackup, self).seek(0)
         super(XMLBackup, self).truncate(0)
-        with open(self.sourcefilename, "r") as source_file:
+        with open(self.sourcefilename, "rb") as source_file:
             shutil.copyfileobj(source_file,
                                super(XMLBackup, self))
         super(XMLBackup, self).flush()
@@ -285,7 +193,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         except (IOError, OSError):
             # Assume xml is a string that needs a temporary source file
             self.sourcebackupfile = TempXMLFile()
-            self.sourcebackupfile.write(xml)
+            self.sourcebackupfile.write(xml.encode())
             self.sourcebackupfile.close()
         # sourcebackupfile now safe to use for base class initialization
         XMLBackup.__init__(self, self.sourcebackupfile.name)
@@ -346,7 +254,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         param: element: Search only below this element
         """
         d = {}
-        for p in self.getiterator(element):
+        for p in self.iter(element):
             for c in p:
                 d[c] = p
         return d
@@ -411,7 +319,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         Creates all elements in simplistic xpath from root if not exist
         """
         cur_element = self.getroot()
-        for tag in xpath.split('/'):
+        for tag in xpath.strip('/').split('/'):
             next_element = cur_element.find(tag)
             if next_element is None:
                 next_element = ElementTree.SubElement(cur_element, tag)
@@ -421,7 +329,8 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         """
         Returns the string for the element on xpath.
         """
-        return ElementTree.tostring(self.findall(xpath)[index])
+        return ElementTree.tostring(self.findall(xpath)[index],
+                                    encoding='unicode')
 
     # This overrides the file.write() method
     def write(self, filename=None, encoding=ENCODING):
@@ -437,6 +346,13 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
     def read(self, xml):
         self.__del__()
         self.__init__(xml)
+
+    def find(self, path):
+        if path == '/':
+            return self.getroot()
+        if path[:1] == "/":
+            path = "." + path
+        return super().find(path)
 
 
 class Sub(object):
@@ -458,7 +374,7 @@ class Sub(object):
         return string.Template(text).safe_substitute(**self._mapping)
 
 
-class TemplateXMLTreeBuilder(ElementTree.XMLTreeBuilder, Sub):
+class TemplateXMLTreeBuilder(ElementTree.XMLParser, Sub):
 
     """Resolve XML templates into temporary file-backed ElementTrees"""
 
@@ -472,10 +388,10 @@ class TemplateXMLTreeBuilder(ElementTree.XMLTreeBuilder, Sub):
         """
 
         Sub.__init__(self, **mapping)
-        ElementTree.XMLTreeBuilder.__init__(self, target=self.BuilderClass())
+        ElementTree.XMLParser.__init__(self, target=self.BuilderClass())
 
     def feed(self, data):
-        ElementTree.XMLTreeBuilder.feed(self, self.substitute(data))
+        ElementTree.XMLParser.feed(self, self.substitute(data))
 
 
 class TemplateXML(XMLTreeFile):
