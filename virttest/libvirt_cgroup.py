@@ -420,8 +420,11 @@ class CgroupTest(object):
                     # no need to check scheduler type, it's fixed for qemu
                     continue
                 if "quota" in schedinfo_item:
-                    if schedinfo_value in ["-1", "18446744073709551",
-                                           "17592186044415"]:
+                    if (schedinfo_value in ["18446744073709551", "17592186044415"]
+                            or int(schedinfo_value) < 0):
+                        # When set cfs_quota values with negative values or
+                        # maximum acceptable values, it's means 'max' or
+                        # 'unlimited', so match these values to 'max'.
                         standardized_virsh_output_info[schedinfo_item] = "max"
                         continue
                 standardized_virsh_output_info[schedinfo_item] = schedinfo_value
