@@ -999,3 +999,15 @@ class QemuAgent(Monitor):
         cmd = "guest-get-devices"
         self.check_has_command(cmd)
         return self.cmd(cmd=cmd)
+
+    def get_diskstats(self):
+        """
+        Get the disk status info of guest OS.
+
+        :return: a list of disk status such as 'name' and 'read-sectors'
+        'write-sectors' 'weight-ticks'...
+        """
+        cmd = "guest-get-diskstats"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
+
