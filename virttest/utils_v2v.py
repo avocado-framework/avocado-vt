@@ -413,6 +413,8 @@ class Target(object):
 
         if self.new_name:
             options += ' -on %s' % self.new_name
+        # save v2v -on option's value
+        self.params.get('params').update({'v2v_cmd_opt_on': self.new_name})
 
         if self.input_mode is not None:
             options = " -i %s %s" % (self.input_mode, options)
