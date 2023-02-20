@@ -1197,6 +1197,10 @@ class QDevice(QCustomDevice):
             elif val in ('off', 'no', "false") \
                     and key not in expect_string_val:
                 command_dict[key] = False
+            # requested-size from device("driver": "virtio-mem-pci")
+            elif key in ("requested-size", ):
+                command_dict[key] = int(utils_numeric.normalize_data_size(val,
+                                                                          "B"))
             else:
                 command_dict[key] = val
 
