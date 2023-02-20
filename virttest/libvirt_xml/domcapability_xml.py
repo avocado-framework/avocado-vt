@@ -3,7 +3,6 @@ Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomaincaps.html
 """
 import logging
-import six
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
@@ -215,28 +214,33 @@ class EnumXML(base.LibvirtXMLBase):
                                  libvirtxml=self,
                                  parent_xpath='/',
                                  marshal_from=self.marshal_from_values,
-                                 marshal_to=self.marshal_to_values)
+                                 marshal_to=self.marshal_to_values,
+                                 has_subclass=True)
         super(EnumXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<enum/>'
 
     @staticmethod
     def marshal_from_values(item, index, libvirtxml):
-        """Convert a EnumXML instance into a tag + attributes"""
-        del index           # not used
-        del libvirtxml      # not used
-        if isinstance(item, six.string_types):
-            return ("value", {}, item)
+        """
+        Convert an ValueXML object to value tag and xml element.
+        """
+        if isinstance(item, ValueXML):
+            return 'value', item
+        elif isinstance(item, str):
+            value = ValueXML()
+            value.value = item
+            return 'value', value
         else:
-            raise xcepts.LibvirtXMLError("Expected a str attributes,"
-                                         " not a %s" % str(item))
+            raise xcepts.LibvirtXMLError("Expected a list of ValueXML "
+                                         "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_values(tag, attr_dict, index, libvirtxml, text):
-        """Convert a tag + attributes into a EnumXML instance"""
-        del attr_dict                # not used
-        del index                    # not used
+    def marshal_to_values(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a value tag xml element to an object of ValueXML.
+        """
         if tag != 'value':
-            return None
+            return None     # Don't convert this item
         newone = ValueXML(virsh_instance=libvirtxml.virsh)
-        newone.value = text
+        newone.xmltreefile = new_treefile
         return newone
