@@ -38,6 +38,7 @@ cpu
 efi
 env
 environ
+etree
 cgroup
 ip
 rtype
@@ -187,6 +188,7 @@ num
 polkit
 pos
 xpath
+xpaths
 cpus
 fsfreeze
 OVS
