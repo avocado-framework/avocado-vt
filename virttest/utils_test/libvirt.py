@@ -3954,6 +3954,39 @@ def check_domuuid_compliant_with_rfc4122(dom_uuid_value):
     return dom_uuid_segments[2].startswith('4') and dom_uuid_segments[3][0] in '89ab'
 
 
+def check_xpaths(xml, xpaths, text=None):
+    """
+    Check if the xml has elements that match all xpaths and optionally
+    contain a given text.
+
+    :param xml: Libvirt XML instance
+    :param xpaths: list of xpath expressions as supported by etree.ElementTree
+    :param text: string to match the text node of matching elements
+                 per default this is not checked if not given
+    :return: None
+    :raises: TestFail if no element matches all xpaths
+             and optionally the given text node
+    """
+    test_failure = exceptions.TestFail("XML did not match all xpaths or text."
+                                       " XPaths: %s"
+                                       " Text: %s"
+                                       " XML: %s" % (xpaths, text, xml))
+
+    matches = set(xml.xmltreefile.findall(xpaths[0]))
+
+    if not matches:
+        raise test_failure
+
+    for xpath in xpaths[0:]:
+        matches &= set(xml.xmltreefile.findall(xpath))
+
+    if not matches:
+        raise test_failure
+
+    if text is not None and not [x for x in matches if x.text == text]:
+        raise test_failure
+
+
 def check_dumpxml(vm, content, err_ignore=False):
     """
     Check the specified content in the VM dumpxml
