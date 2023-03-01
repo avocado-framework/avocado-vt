@@ -992,7 +992,7 @@ class BaseVM(object):
                 found.
         """
         panic_re = [r"BUG:.*---\[ end trace .* \]---"]
-        panic_re.append(r"----------\[ cut here.* BUG .*\[ end trace .* \]---")
+        panic_re.append(r"----------\[ cut here.*\[ end trace .* \]---")
         panic_re.append(r"general protection fault:.* RSP.*>")
         panic_re = "|".join(panic_re)
         if self.serial_console:
