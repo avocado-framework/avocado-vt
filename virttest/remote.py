@@ -405,7 +405,7 @@ class RemoteRunner(object):
     def __init__(self, client="ssh", host=None, port="22", username="root",
                  password=None, prompt=r"[\#\$]\s*$", linesep="\n",
                  log_filename=None, timeout=240, internal_timeout=10,
-                 session=None, preferred_authenticaton='password',
+                 session=None, preferred_authentication='password',
                  log_function=None):
         """
         Initialization of RemoteRunner. Init a session login to remote host or
@@ -425,7 +425,7 @@ class RemoteRunner(object):
                 for each step of the login procedure (e.g. the "Are you sure"
                 prompt or the password prompt)
         :param session: An existing session
-        :param preferred_authenticaton: The preferred authentication of SSH connection
+        :param preferred_authentication: The preferred authentication of SSH connection
         :param log_function: If specified, log all output using this function
         :see: wait_for_login()
         :raise: Whatever wait_for_login() raises
@@ -438,7 +438,7 @@ class RemoteRunner(object):
                                           password, prompt, linesep,
                                           log_filename, log_function,
                                           timeout, internal_timeout,
-                                          preferred_authenticaton=preferred_authenticaton)
+                                          preferred_authentication=preferred_authentication)
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
