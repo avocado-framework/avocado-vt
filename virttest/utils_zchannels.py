@@ -85,12 +85,30 @@ class SubchannelPaths(object):
             x[53:61],
             x[62:]] for x in out.split("\n")[2:]]
 
+    def get_device(self, devid=None):
+        """
+        Returns the device info that matches the devid.
+
+        Requires get_info() to be called first.
+
+        :param devid: The ccw device id, e.g. 0.0.5000
+        :return: The device matching the devid
+        """
+        if not devid:
+            return None
+        match = [x for x in self.devices if x[self.HEADER["Device"]] == devid]
+        if match:
+            return match[0]
+        else:
+            return None
+
     def get_first_unused_and_safely_removable(self):
         """
-        Returns device subchannel id of the first unused device that
+        Returns the device info of the first unused device that
         does not share all channel path ids with any other used device.
 
         Requires get_info() to be called first.
+        :return: Device info
         """
         used = [x for x in self.devices if x[self.HEADER["Use"]] == "yes"]
         unused = [x for x in self.devices if x not in used]
