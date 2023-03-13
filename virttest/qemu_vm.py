@@ -49,7 +49,7 @@ from virttest import error_context
 from virttest import utils_vsock
 from virttest import utils_vdpa
 from virttest import error_event
-from virttest.qemu_devices import qdevices, qcontainer
+from virttest.qemu_devices import qdevices, qcontainer, qdeviceformat
 from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
 from virttest.qemu_capabilities import Flags
 from virttest.utils_params import Params
@@ -3301,9 +3301,9 @@ class VM(virt_vm.BaseVM):
             try:
                 self.devices, self.spice_options = self.make_create_command()
                 self.update_vga_global_default(params, migration_mode)
-                LOG.debug(self.devices.str_short())
-                LOG.debug(self.devices.str_bus_short())
-                qemu_command = self.devices.cmdline()
+                # qemu_command = self.devices.cmdline()
+                qemu_command = qdeviceformat.get_each_devices_representation(
+                    self.devices, self.params.get("qemu_cmdline_format_cfg", ":"))
             except (exceptions.TestSkipError, exceptions.TestCancel):
                 # TestSkipErrors should be kept as-is so we generate SKIP
                 # results instead of bogus FAIL results

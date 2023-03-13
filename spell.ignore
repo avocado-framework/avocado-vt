@@ -1592,6 +1592,7 @@ pvuuid
 QAuthZ
 QBaseDevice
 QBlockdevNode
+qcon
 QCustomDevice
 qdevice
 Qdevice
