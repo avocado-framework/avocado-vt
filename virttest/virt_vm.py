@@ -185,6 +185,16 @@ class VMDeadError(VMError):
         return (msg)
 
 
+class VMKernelCrashError(VMError):
+
+    def __init__(self, kernel_crash):
+        VMError.__init__(self, kernel_crash)
+        LOG.debug(kernel_crash)
+
+    def __str__(self):
+        return ("VM hit a kernel crash, see debug/serial log for details")
+
+
 class VMDeadKernelCrashError(VMError):
 
     def __init__(self, kernel_crash):
@@ -988,8 +998,9 @@ class BaseVM(object):
         """
         Find kernel crash message on the VM serial console.
 
-        :raise: VMDeadKernelCrashError, in case a kernel crash message was
-                found.
+        :raise VMKernelCrashError: if a kernel crash message was found.
+        :raise VMDeadKernelCrashError: if a kernel crash message was found
+                                       and the VM is dead.
         """
         panic_re = [r"BUG:.*---\[ end trace .* \]---"]
         panic_re.append(r"----------\[ cut here.*\[ end trace .* \]---")
@@ -1002,7 +1013,9 @@ class BaseVM(object):
                 return
             match = re.search(panic_re, data, re.DOTALL | re.MULTILINE | re.I)
             if match:
-                raise VMDeadKernelCrashError(match.group(0))
+                if self.is_dead():
+                    raise VMDeadKernelCrashError(match.group(0))
+                raise VMKernelCrashError(match.group(0))
 
     @session_handler
     def verify_dmesg(self, dmesg_log_file=None, connect_uri=None):
