@@ -1198,7 +1198,8 @@ class QDevice(QCustomDevice):
                     and key not in expect_string_val:
                 command_dict[key] = False
             # requested-size from device("driver": "virtio-mem-pci")
-            elif key in ("requested-size", ):
+            # label-size from device("driver": "nvdimm")
+            elif key in ("requested-size", "label-size"):
                 command_dict[key] = int(utils_numeric.normalize_data_size(val,
                                                                           "B"))
             else:
@@ -1646,7 +1647,8 @@ class Memory(QObject):
             # "prealloc", "dump", "merge"
             # from -object ("qom-type": "memory-backend-ram")
             # readonly from -object("qom-type": "memory-backend-file")
-            elif key in ("share", "reserve", "hugetlb",
+            # pmem from -object("qom-type": "memory-backend-file")
+            elif key in ("share", "reserve", "hugetlb", "pmem",
                          "prealloc", "dump", "merge", "readonly"):
                 command_dict[key] = val in ("yes", "on")
             elif key == "host-nodes":
