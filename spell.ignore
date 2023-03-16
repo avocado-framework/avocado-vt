@@ -1187,6 +1187,7 @@ humanmonitors
 hvm
 hwaddr
 hwtype
+hyperv
 hypervisors
 IB
 ibm
@@ -1808,6 +1809,7 @@ statematch
 staticmethod
 statm
 statvfs
+stimer
 stoped
 stor
 storable
