@@ -4229,7 +4229,7 @@ class VM(virt_vm.BaseVM):
                 tun_tap_dev = "/dev/net/tun"
                 python_tapfds = utils_net.open_tap(tun_tap_dev, nic.ifname,
                                                    queues=nic.queues,
-                                                   vnet_hdr=False)
+                                                   vnet_hdr=True)
             elif nic.nettype == "macvtap":
                 macvtap_mode = self.params.get("macvtap_mode", "vepa")
                 o_macvtap = utils_net.create_macvtap(nic.ifname, macvtap_mode,

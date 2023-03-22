@@ -4,7 +4,6 @@ http://libvirt.org/formatnetwork.html
 """
 
 import logging
-import six
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
@@ -245,30 +244,35 @@ class DNSXML(base.LibvirtXMLBase):
                                    tag_name='host', attribute='ip')
             accessors.XMLElementList('hostnames', self, parent_xpath='/',
                                      marshal_from=self.marshal_from_hostname,
-                                     marshal_to=self.marshal_to_hostname)
+                                     marshal_to=self.marshal_to_hostname,
+                                     has_subclass=True)
             super(DNSXML.HostXML, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<host/>'
 
         @staticmethod
         def marshal_from_hostname(item, index, libvirtxml):
-            """Convert a HostnameXML instance into a tag + attributes"""
-            del index           # not used
-            del libvirtxml      # not used
-            if isinstance(item, six.string_types):
-                return ("hostname", {}, item)
+            """
+            Convert an HostnameXML object to hostname tag and xml element.
+            """
+            if isinstance(item, DNSXML.HostnameXML):
+                return 'hostname', item
+            elif isinstance(item, str):
+                hostname = DNSXML.HostnameXML()
+                hostname.hostname = item
+                return 'hostname', hostname
             else:
-                raise xcepts.LibvirtXMLError("Expected a str attributes,"
-                                             " not a %s" % str(item))
+                raise xcepts.LibvirtXMLError("Expected a list of HostnameXML "
+                                             "instances, not a %s" % str(item))
 
         @staticmethod
-        def marshal_to_hostname(tag, attr, index, libvirtxml, text):
-            """Convert a tag + attributes into a HostnameXML instance"""
-            del attr                     # not used
-            del index                    # not used
+        def marshal_to_hostname(tag, new_treefile, index, libvirtxml):
+            """
+            Convert a hostname tag xml element to an object of hostnameXML.
+            """
             if tag != 'hostname':
-                return None     # Don't convert this item
+                return None  # Don't convert this item
             newone = DNSXML.HostnameXML(virsh_instance=libvirtxml.virsh)
-            newone.hostname = text
+            newone.xmltreefile = new_treefile
             return newone
 
     def new_host(self, **dargs):
@@ -663,6 +667,10 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         elif isinstance(item, dict):
             ip = IPXML()
             ip.setup_attrs(**item)
+            # To deal with ipv6, which should not have netmask attribute which
+            # is configured by default when being init()
+            if item.get('family') == 'ipv6':
+                ip.del_netmask()
             return 'ip', ip
         else:
             raise xcepts.LibvirtXMLError("Expected a list of IPXML "

@@ -39,6 +39,8 @@ def create_or_del_network(net_dict, is_del=False, remote_args=None):
     if not is_del:
         net_dev = libvirt.network_xml.NetworkXML(net_dict.get("name"))
         net_dev.setup_attrs(**net_dict)
+        LOG.debug(f'Creating network with xml:\n'
+                  f'{net_dev}')
 
         if not remote_virsh_session:
             if net_dev.get_active():

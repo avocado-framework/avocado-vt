@@ -1011,3 +1011,13 @@ class QemuAgent(Monitor):
         self.check_has_command(cmd)
         return self.cmd(cmd)
 
+    def get_cpustats(self):
+        """
+        Get the cpu status info of guest OS.
+
+        :return: a list of cpu status such as 'user' and 'idle'
+        'nice' and 'steal'...
+        """
+        cmd = "guest-get-cpustats"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)

@@ -300,9 +300,18 @@ class HugePageConfig(object):
         self.hugepage_match_str = params.get("hugepage_match_str")
         if self.hugepage_cpu_flag and self.hugepage_match_str:
             self.check_hugepage_support()
-        self.hugepage_size = self.get_hugepage_size()
-        if self.expected_hugepage_size:
-            self.check_hugepage_size_as_expected()
+        if self.kernel_hp_file == "/proc/sys/vm/nr_hugepages":
+            self.hugepage_size = self.get_hugepage_size()
+            if self.expected_hugepage_size:
+                self.check_hugepage_size_as_expected()
+        else:
+            try:
+                self.hugepage_size = int(re.search(r"(\d+)kB",
+                                                   self.kernel_hp_file).groups()[0])
+            except:
+                raise ValueError("Could not get huge page size setting "
+                                 "from %s" % self.kernel_hp_file)
+
         self.hugepage_force_allocate = params.get("hugepage_force_allocate",
                                                   "no")
         self.suggest_mem = None
@@ -368,7 +377,7 @@ class HugePageConfig(object):
         error_context.context("Check whether the hugepage size as expected")
         if self.hugepage_size != self.expected_hugepage_size:
             raise exceptions.TestSkipError("The current hugepage size on host does "
-                                           "not match the expected hugepage size.\n")
+                                           "not match the expected hugepage size.")
 
     def get_hugepage_size(self):
         """

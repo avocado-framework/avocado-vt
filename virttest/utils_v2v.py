@@ -413,6 +413,8 @@ class Target(object):
 
         if self.new_name:
             options += ' -on %s' % self.new_name
+        # save v2v -on option's value
+        self.params.get('params').update({'v2v_cmd_opt_on': self.new_name})
 
         if self.input_mode is not None:
             options = " -i %s %s" % (self.input_mode, options)
@@ -1635,7 +1637,7 @@ def get_vddk_thumbprint(host, password, uri_type, prompt=r"[\#\$\[\]]"):
         host=host,
         password=password,
         prompt=prompt,
-        preferred_authenticaton='password,keyboard-interactive')
+        preferred_authentication='password,keyboard-interactive')
     cmdresult = r_runner.run(cmd)
     LOG.debug("vddk thumbprint:\n%s", cmdresult.stdout)
     vddk_thumbprint = cmdresult.stdout.strip().split('=')[1]
@@ -1650,7 +1652,7 @@ def v2v_setup_ssh_key(
         port=22,
         server_type=None,
         auto_close=True,
-        preferred_authenticaton=None,
+        preferred_authentication=None,
         user_known_hosts_file=None,
         unprivileged_user=None,
         public_key=None):
@@ -1664,7 +1666,7 @@ def v2v_setup_ssh_key(
     :param server_type: the type of remote server, the values could be 'esx' or 'None'.
     :param auto_close: If it's True, the session will closed automatically,
                        else Uses should call v2v_setup_ssh_key_cleanup to close the session
-    :param preferred_authenticaton: The preferred authentication of SSH connection
+    :param preferred_authentication: The preferred authentication of SSH connection
     :param user_known_hosts_file: one or more files to use for the user host key database
 
     :return: A tuple (public_key, session) will always be returned
@@ -1674,8 +1676,8 @@ def v2v_setup_ssh_key(
               (hostname, port, username))
     try:
         # Both Xen and ESX can work with following settings.
-        if not preferred_authenticaton:
-            preferred_authenticaton = 'password,keyboard-interactive'
+        if not preferred_authentication:
+            preferred_authentication = 'password,keyboard-interactive'
         if not user_known_hosts_file:
             user_known_hosts_file = os.path.expanduser('~/.ssh/known_hosts')
 
@@ -1693,7 +1695,7 @@ def v2v_setup_ssh_key(
             password=password,
             prompt=r"[\#\$\[\]%]",
             verbose=True,
-            preferred_authenticaton=preferred_authenticaton,
+            preferred_authentication=preferred_authentication,
             user_known_hosts_file=user_known_hosts_file)
 
         # Add rstrip to avoid blank lines in authorized_keys on remote server
