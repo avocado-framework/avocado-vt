@@ -174,7 +174,7 @@ class VMXMLBase(LibvirtXMLBase):
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
                  'iothreadids', 'defaultiothread', 'memory', 'memory_unit',
-                 'perf', 'keywrap', 'sysinfo', 'idmap', 'clock')
+                 'perf', 'keywrap', 'sysinfo', 'idmap', 'clock', 'description')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -202,6 +202,11 @@ class VMXMLBase(LibvirtXMLBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='title')
+        accessors.XMLElementText(property_name="description",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='description')
         accessors.XMLElementInt(property_name="iothreads",
                                 libvirtxml=self,
                                 forbidden=None,
