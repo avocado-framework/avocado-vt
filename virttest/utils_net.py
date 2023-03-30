@@ -4380,6 +4380,7 @@ def get_channel_info(session, interface):
     if s:
         LOG.error("Get channel parameters for vm failed:%s" % o)
         return {}, {}
+    LOG.debug('Channel info:\n%s', o)
     maximum = {}
     current = {}
     # Just for temp
