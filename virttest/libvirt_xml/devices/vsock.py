@@ -10,7 +10,7 @@ from virttest.libvirt_xml.devices import base, librarian
 
 class Vsock(base.UntypedDeviceBase):
 
-    __slots__ = ('model_type', 'cid', 'address', 'alias')
+    __slots__ = ('model_type', 'cid', 'address', 'alias', 'driver')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('model_type', self,
@@ -28,6 +28,8 @@ class Vsock(base.UntypedDeviceBase):
         accessors.XMLElementDict('alias', self,
                                  parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLElementDict('driver', self, parent_xpath='/',
+                                 tag_name='driver')
         super(Vsock, self).__init__(device_tag='vsock',
                                     virsh_instance=virsh_instance)
         self.xml = '<vsock/>'
