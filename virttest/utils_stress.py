@@ -210,6 +210,10 @@ def install_stressapptest(vm):
     :param vm: the vm to be installed with stressapptest
     """
     session = vm.wait_for_login(timeout=360)
+    if utils_package.package_install("stressapptest", session, timeout=300):
+        session.close()
+        return
+
     name = ["git", "gcc", "gcc-c++", "make"]
     if not utils_package.package_install(name, session, timeout=300):
         raise exceptions.TestError("Installation of packages %s in guest "
