@@ -1648,8 +1648,10 @@ class Memory(QObject):
             # from -object ("qom-type": "memory-backend-ram")
             # readonly from -object("qom-type": "memory-backend-file")
             # pmem from -object("qom-type": "memory-backend-file")
+            # discard-data from object("qom-type": "memory-backend-file")
             elif key in ("share", "reserve", "hugetlb", "pmem",
-                         "prealloc", "dump", "merge", "readonly"):
+                         "prealloc", "dump", "merge", "readonly",
+                         "discard-data"):
                 command_dict[key] = val in ("yes", "on")
             elif key == "host-nodes":
                 command_dict[key] = list(map(int, val.split()))
