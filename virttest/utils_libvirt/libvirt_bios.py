@@ -27,4 +27,6 @@ def remove_bootconfig_items_from_vmos(osxml):
         osxml.del_nvram()
     if os_attrs.get('loader'):
         osxml.del_loader()
+    if os_attrs.get('firmware'):
+        osxml.del_firmware()
     return osxml
