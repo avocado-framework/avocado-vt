@@ -1176,13 +1176,15 @@ class QDevice(QCustomDevice):
             # ("driver": "virtio-blk-pci")
             # guest-stats-polling-interval from
             # device ("driver": "virtio-balloon-ccw")
+            # acpi-index from device("driver": "virtio-net-pci")
             elif key in ("physical_block_size", "logical_block_size",
                          "bootindex", "max_sectors", "num_queues",
                          "virtqueue_size", "discard_granularity", "period",
                          "max-bytes", "max-write-zeroes-sectors", "queue-size",
                          "max-discard-sectors", "num-queues", "host_mtu",
                          "speed", "vectors", "node", "events", "min_io_size",
-                         "opt_io_size", "guest-stats-polling-interval"):
+                         "opt_io_size", "guest-stats-polling-interval",
+                         "acpi-index"):
                 command_dict[key] = int(val)
             # port from usb related driver
             elif key == "port" and usb_driver:
