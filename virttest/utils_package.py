@@ -201,6 +201,15 @@ class LocalPackageMgr(manager.SoftwareManager):
         self.func = super(LocalPackageMgr, self).__getattr__('remove')
         return self.operate(True)
 
+    def upgrade(self):
+        """
+        Use package manager upgrade packages
+
+        :return: if upgrade succeed return True, else False
+        """
+        self.func = super(LocalPackageMgr, self).__getattr__('upgrade')
+        return self.operate(True)
+
 
 def package_manager(session, pkg):
     """
@@ -241,3 +250,16 @@ def package_remove(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
     """
     mgr = package_manager(session, pkg)
     return utils_misc.wait_for(mgr.remove, timeout)
+
+
+def package_upgrade(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
+    """
+    Try to upgrade packages on system with package manager.
+
+    :param pkg: package name or list of packages
+    :param session: session Object
+    :param timeout: timeout for upgrade with session
+    :return: True if all packages upgraded, False if any error
+    """
+    mgr = package_manager(session, pkg)
+    return utils_misc.wait_for(mgr.upgrade, timeout)
