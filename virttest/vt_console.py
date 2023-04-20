@@ -219,3 +219,8 @@ class ConsoleSession(object):
         self.__verify_session_status()
         return self.__manager.proxy_call(self.read_up_to_prompt.__name__,
                                          *args, **kwargs)
+
+    def get_output(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.get_output.__name__,
+                                         *args, **kwargs)

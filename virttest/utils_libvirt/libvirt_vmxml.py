@@ -85,7 +85,8 @@ def create_vm_device_by_type(dev_type, dev_dict):
     return dev_obj
 
 
-def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0):
+def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0,
+                     virsh_instance=virsh):
     """
      Get specified device , update it with given dev_dict if the device exists,
      Create the device if it does not exist
@@ -103,9 +104,9 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0):
 
         vmxml.devices = xml_devices
         vmxml.xmltreefile.write()
-        vmxml.sync()
+        vmxml.sync(virsh_instance=virsh_instance)
     except IndexError:
         dev_obj = create_vm_device_by_type(dev_type, dev_dict)
-        libvirt.add_vm_device(vmxml, dev_obj)
+        libvirt.add_vm_device(vmxml, dev_obj, virsh_instance=virsh_instance)
 
     return dev_obj
