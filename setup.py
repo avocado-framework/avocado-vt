@@ -85,7 +85,7 @@ if __name__ == "__main__":
                   'avocado-vt = avocado_vt.plugins.vt_runner:VTTestRunner',
                   ],
               },
-          install_requires=["netifaces", "simplejson", "six", "aexpect",
+          install_requires=["netifaces", "six", "aexpect",
                             "avocado-framework>=82.1"],
           cmdclass={'clean': Clean},
           )
