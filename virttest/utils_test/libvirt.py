@@ -3727,7 +3727,8 @@ def customize_libvirt_config(params,
                              extra_params=None,
                              is_recover=False,
                              config_object=None,
-                             restart_libvirt=True):
+                             restart_libvirt=True,
+                             force=False):
     """
     Customize configuration files for libvirt
     on local and remote host if needed
@@ -3747,6 +3748,8 @@ def customize_libvirt_config(params,
     :param restart_libvirt: can disable the restart of the libvirt after
                             applying config changes, default is True for
                             providing restart
+    :param force: True for not converting the daemon name in modular environment
+                  Otherwise False
     :return: utils_config.LibvirtConfigCommon object
     """
     # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
@@ -3756,7 +3759,7 @@ def customize_libvirt_config(params,
                        "virtstoraged", "virtinterfaced", "virtnodedevd",
                        "virtnwfilterd", "virtsecretd"]
     if utils_split_daemons.is_modular_daemon():
-        if config_type in ["libvirtd"]:
+        if config_type in ["libvirtd"] and not force:
             config_type = "virtqemud"
     else:
         if config_type in modular_daemons:
