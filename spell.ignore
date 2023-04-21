@@ -409,7 +409,6 @@ Netperf
 nohup
 numatune
 ovmf
-passfd
 pc
 postprocess
 Postprocess

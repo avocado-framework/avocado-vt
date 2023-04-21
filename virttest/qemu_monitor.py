@@ -6,6 +6,7 @@ Interfaces to the QEMU monitor.
 
 from __future__ import division
 
+import array
 import json
 import logging
 import os
@@ -17,7 +18,6 @@ import time
 
 import six
 
-from . import passfd_setup
 from . import utils_misc
 from . import cartesian_config
 from . import data_dir
@@ -287,7 +287,6 @@ class Monitor(object):
         self.monitor_params = monitor_params
         self._lock = threading.RLock()
         self._log_lock = threading.RLock()
-        self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
         vm_pid = vm.get_pid()
@@ -850,20 +849,31 @@ class HumanMonitor(Monitor):
                 pass
         return False, "\n".join(s.splitlines())
 
-    def _send(self, cmd):
+    def _send(self, cmd, fds=None):
         """
         Send a command without waiting for output.
 
-        :param cmd: Command to send, type: bytes
+        :param cmd: Command to send
+        :type cmd: bytes
+        :param fds: File descriptors to send, if any
+        :type fds: list[int] | None
         :raise MonitorLockError: Raised if the lock cannot be acquired
         :raise MonitorSocketError: Raised if a socket error occurs
         """
+        func = self._socket.sendall
+        args = [cmd + b"\n"]
+        if fds:
+            func = self._socket.sendmsg
+            args = [
+                args,
+                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))]
+            ]
         if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % cmd)
         try:
             try:
-                self._socket.sendall(cmd + b"\n")
+                func(*args)
                 self._log_lines(cmd.decode(errors="replace"))
             except socket.error as e:
                 raise MonitorSocketError("Could not send monitor command %r" %
@@ -920,17 +930,15 @@ class HumanMonitor(Monitor):
         try:
             # Read any data that might be available
             self._recvall()
-            if fd is not None:
-                if self._passfd is None:
-                    self._passfd = passfd_setup.import_passfd()
-                # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(self._socket, fd, b"%s\n" % cmd.encode())
-                self._log_lines(cmd)
-            else:
-                # Send command
-                if debug:
-                    LOG.debug("Send command: %s" % cmd)
-                self._send(cmd.encode())
+            # Send command
+            msg = cmd.encode()
+            fds = (
+                [fd.fileno() if not isinstance(fd, int) else fd]
+                if fd is not None else None
+            )
+            if debug:
+                LOG.debug("Send command: %s" % cmd)
+            self._send(msg, fds)
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
             # Remove command echo from output
@@ -1846,15 +1854,26 @@ class QMPMonitor(Monitor):
         self._events += [obj for obj in objs if "event" in obj]
         return objs
 
-    def _send(self, data):
+    def _send(self, data, fds=None):
         """
         Send raw bytes data without waiting for response.
 
-        :param data: Data to send type: bytes
+        :param data: Data to send
+        :type data: bytes
+        :param fds: File descriptors to send, if any
+        :type fds: list[int] | None
         :raise MonitorSocketError: Raised if a socket error occurs
         """
+        func = self._socket.sendall
+        args = [data + b'\n']
+        if fds:
+            func = self._socket.sendmsg
+            args = [
+                args,
+                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))]
+            ]
         try:
-            self._socket.sendall(data)
+            func(*args)
             self._log_lines(data.decode(errors="replace"))
         except socket.error as e:
             raise MonitorSocketError("Could not send data: %r" % data, e)
@@ -2002,18 +2021,15 @@ class QMPMonitor(Monitor):
             self._read_objects()
             # Send command
             q_id = utils_misc.generate_random_string(8)
-            cmdobj = self._build_cmd(cmd, args, q_id)
+            cmdobj = json.dumps(self._build_cmd(cmd, args, q_id))
+            msg = cmdobj.encode()
+            fds = (
+                [fd.fileno() if not isinstance(fd, int) else fd]
+                if fd is not None else None
+            )
             if debug:
                 LOG.debug("Send command: %s" % cmdobj)
-            if fd is not None:
-                if self._passfd is None:
-                    self._passfd = passfd_setup.import_passfd()
-                # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(
-                    self._socket, fd, json.dumps(cmdobj).encode() + b"\n")
-                self._log_lines(str(cmdobj))
-            else:
-                self._send(json.dumps(cmdobj).encode() + b"\n")
+            self._send(msg, fds)
             # Read response
             r = self._get_response(q_id, timeout)
             if r is None:
