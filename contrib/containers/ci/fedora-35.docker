@@ -1,6 +1,6 @@
 FROM fedora:35
 LABEL description "Fedora image used on integration checks, such as cirrus-ci"
-RUN dnf -y install make python3-wheel python3-pip git xz tcpdump nc iproute iputils gcc python3-devel qemu-kvm qemu-img
+RUN dnf -y install make python3-wheel python3-pip git xz tcpdump nc iproute iputils gcc qemu-kvm qemu-img
 RUN dnf -y clean all
 RUN mkdir -p /var/lib/avocado/data/avocado-vt/images/ /root/avocado/data/avocado-vt/images/
 RUN curl -s https://avocado-project.org/data/assets/jeos/27/jeos-27-64.qcow2.xz | xz -d > /var/lib/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2

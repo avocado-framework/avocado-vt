@@ -88,15 +88,6 @@ the basic purpose of building and cloning virtual machines.
 
     $ yum install virt-install
 
-To run all tests that involve filedescriptor passing, you need python-devel.
-The reason is, this test suite is compatible with python 2.4, whereas a
-std lib to pass filedescriptors was only introduced in python 3.2. Therefore,
-we had to introduce a C python extension that is compiled on demand.
-
-::
-
-    $ yum install python-devel
-
 
 It's useful to also install:
 
