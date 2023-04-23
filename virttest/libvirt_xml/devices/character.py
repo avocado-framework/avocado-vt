@@ -6,6 +6,7 @@ http://libvirt.org/formatdomain.html#elementCharSerial
 
 from virttest.libvirt_xml import base, accessors, xcepts
 from virttest.libvirt_xml.devices import base
+from virttest.libvirt_xml.devices.seclabel import Seclabel
 
 
 class CharacterBase(base.TypedDeviceBase):
@@ -108,10 +109,10 @@ class CharacterBase(base.TypedDeviceBase):
             """
             Convert an xml object to seclabel tag and xml element.
             """
-            if isinstance(item, CharacterBase.Source.Seclabel):
+            if isinstance(item, Seclabel):
                 return 'seclabel', item
             elif isinstance(item, dict):
-                seclabel = CharacterBase.Source.Seclabel()
+                seclabel = Seclabel()
                 seclabel.setup_attrs(**item)
                 return 'seclabel', seclabel
             else:
@@ -125,18 +126,6 @@ class CharacterBase(base.TypedDeviceBase):
             """
             if tag != 'seclabel':
                 return None
-            newone = CharacterBase.Source.Seclabel(virsh_instance=libvirtxml.virsh)
+            newone = Seclabel(virsh_instance=libvirtxml.virsh)
             newone.xmltreefile = new_treefile
             return newone
-
-        class Seclabel(base.base.LibvirtXMLBase):
-
-            __slots__ = ('attrs', 'label')
-
-            def __init__(self, virsh_instance=base.base.virsh):
-                accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                         tag_name='seclabel')
-                accessors.XMLElementText('label', self, parent_xpath='/',
-                                         tag_name='label')
-                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-                self.xml = '<seclabel/>'
