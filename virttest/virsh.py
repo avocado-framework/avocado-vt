@@ -642,14 +642,15 @@ class EventNotFoundError(Exception):
 class EventTracker(object):
 
     @staticmethod
-    def start_get_event(vm_name, event_cmd='event {} --all --loop'):
+    def start_get_event(vm_name, event_cmd='event {} --all --loop', uri=None):
         """
         Use a virsh session with subcommand 'event' to catch events
         :param vm_name: name of the vm to be catched
         :param event_cmd: cmd to check event
         :return: the virsh session with 'event'
         """
-        virsh_session = aexpect.ShellSession(VIRSH_EXEC)
+        virsh_exec = f'{VIRSH_EXEC} -c {uri}' if uri else VIRSH_EXEC
+        virsh_session = aexpect.ShellSession(virsh_exec)
         event_cmd = event_cmd.format(vm_name)
         LOG.info('Sending "%s" to virsh shell', event_cmd)
         virsh_session.sendline(event_cmd)
@@ -715,9 +716,11 @@ class EventTracker(object):
             wait_for_event = _get_arg_value('wait_for_event')
             event_type = _get_arg_value('event_type')
             event_timeout = _get_arg_value('event_timeout')
+            uri = _get_arg_value('uri')
 
             if wait_for_event is True and event_type is not None:
-                virsh_session = EventTracker.start_get_event(str(args[0]))
+                virsh_session = EventTracker.start_get_event(str(args[0]),
+                                                             uri=uri)
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
