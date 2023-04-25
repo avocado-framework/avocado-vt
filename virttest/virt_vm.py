@@ -1276,9 +1276,20 @@ class BaseVM(object):
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
                          utils_misc.generate_random_string(4)))
-        remote.copy_files_to(address, client, username, password, port,
-                             host_path, guest_path, limit, log_filename,
-                             verbose, timeout, interface=neigh_attach_if,
+        log_function = utils_misc.log_line
+        remote.copy_files_to(address,
+                             client,
+                             username,
+                             password,
+                             port,
+                             host_path,
+                             guest_path,
+                             limit=limit,
+                             log_filename=log_filename,
+                             log_function=log_function,
+                             verbose=verbose,
+                             timeout=timeout,
+                             interface=neigh_attach_if,
                              filesize=filesize)
         utils_misc.close_log_file(log_filename)
 
@@ -1312,9 +1323,20 @@ class BaseVM(object):
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
                          utils_misc.generate_random_string(4)))
-        remote.copy_files_from(address, client, username, password, port,
-                               guest_path, host_path, limit, log_filename,
-                               verbose, timeout, interface=neigh_attach_if,
+        log_function = utils_misc.log_line
+        remote.copy_files_from(address,
+                               client,
+                               username,
+                               password,
+                               port,
+                               guest_path,
+                               host_path,
+                               limit=limit,
+                               log_filename=log_filename,
+                               log_function=log_function,
+                               verbose=verbose,
+                               timeout=timeout,
+                               interface=neigh_attach_if,
                                filesize=filesize)
         utils_misc.close_log_file(log_filename)
 
