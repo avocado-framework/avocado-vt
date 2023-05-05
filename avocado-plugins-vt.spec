@@ -112,7 +112,7 @@ Xunit output, among others.
 * Thu Jan 19 2023 Cleber Rosa <crosa@redhat.com> - 100.1-1
 - New release
 
-* Thu Jul 20 2022 Xu Han <xuhan@redhat.com> - 98.0-2
+* Wed Jul 20 2022 Xu Han <xuhan@redhat.com> - 98.0-2
 - Removed python3-netaddr dependency
 
 * Thu Jul 14 2022 Cleber Rosa <crosa@redhat.com> - 98.0-1
