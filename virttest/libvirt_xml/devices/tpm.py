@@ -48,8 +48,10 @@ class Tpm(base.UntypedDeviceBase):
             string. encryption secret
         active_pcr_banks:
             string.  backend active_pcr_banks
+        source:
+            string.  backend source
         """
-        __slots__ = ('backend_type', 'backend_version', 'persistent_state', 'device_path', 'encryption_secret', 'active_pcr_banks')
+        __slots__ = ('backend_type', 'backend_version', 'persistent_state', 'device_path', 'encryption_secret', 'active_pcr_banks', 'source')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute(property_name="backend_type",
@@ -84,6 +86,10 @@ class Tpm(base.UntypedDeviceBase):
                                      subclass=self.ActivePCRBanks,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
+            accessors.XMLElementDict(property_name="source",
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     tag_name='source')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<backend/>'
 
