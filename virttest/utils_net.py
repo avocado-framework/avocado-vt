@@ -3886,25 +3886,36 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_default_gateway(iface_name=False, session=None):
+def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
+                        force_dhcp=False):
     """
     Get the Default Gateway or Interface of host or guest.
 
     :param iface_name: Whether default interface (True), or default gateway
-                       (False) is returned.
-    :return: A string of the host's or guest's default gateway or interface.
-    :rtype: string
+                        (False) is returned, defaults to False
+    :param session: shell/console session if any, defaults to None
+    :param ip_ver: ip version, defaults to 'ipv4'
+    :return: default gateway of target iface
     """
-    if iface_name:
-        cmd = "ip route | awk '/default/ { print $5 }'"
+    if ip_ver == 'ipv4':
+        ip_cmd = 'ip route'
+    elif ip_ver == 'ipv6':
+        ip_cmd = 'ip -6 route'
     else:
-        cmd = "ip route | awk '/default/ { print $3 }'"
+        raise ValueError(f'Unrecognized IP version {ip_ver}')
+    if force_dhcp:
+        ip_cmd = ip_cmd + '|grep dhcp'
+    if iface_name:
+        cmd = "%s | awk '/default/ { print $5 }'" % ip_cmd
+    else:
+        cmd = "%s | awk '/default/ { print $3 }'" % ip_cmd
     try:
         if session:
             output = session.cmd_output(cmd).strip()
-            LOG.debug("Guest default gateway is %s" % output)
+            LOG.debug("Guest default gateway is %s", output)
         else:
             output = process.run(cmd, shell=True).stdout_text.rstrip()
+            LOG.debug("Host default gateway is %s", output)
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         LOG.error("Failed to get the default GateWay")
         return None
