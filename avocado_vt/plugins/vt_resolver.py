@@ -44,8 +44,12 @@ class VTResolverUtils(DiscoveryMixIn):
             if self.config.get(
                 "run.max_parallel_tasks", self.config.get(
                     "nrunner.max_parallel_tasks", 1)) != 1:
-                warnings.warn("The VT NextRunner can be run only "
-                              "with max-parallel-tasks set to 1")
+                if self.config.get(
+                    "run.spawner", self.config.get(
+                        "nrunner.spawner", "process")) != "lxc":
+                    warnings.warn("The VT NextRunner can be run only "
+                                  "with max-parallel-tasks set to 1 with a process "
+                                  "spawner, did you forget to use an LXC spawner?")
             return ReferenceResolution(reference,
                                        ReferenceResolutionResult.SUCCESS,
                                        runnables)
