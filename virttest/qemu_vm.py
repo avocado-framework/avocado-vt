@@ -4860,6 +4860,12 @@ class VM(virt_vm.BaseVM):
                         if os.path.isfile(save2):
                             os.remove(save2)
 
+            # FIXME: Never remove the source VM's files when doing a local
+            # migration because these files are still being used by the
+            # target VM, let the target VM do the cleanup work
+            if local and self.devices.temporary_image_snapshots:
+                self.devices.temporary_image_snapshots.clear()
+
             # Switch self <-> clone
             temp = self.clone(copy_state=True)
             self.destroy(gracefully=False)      # self is the source dead vm
