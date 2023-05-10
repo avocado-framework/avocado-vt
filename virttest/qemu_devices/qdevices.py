@@ -1556,7 +1556,13 @@ class Memory(QObject):
                                              "policy", "host-nodes", "share",
                                              "merge", "dump", "prealloc-threads",
                                              "reserve",
-                                             "x-use-canonical-path-for-ramblock-id"]}
+                                             "x-use-canonical-path-for-ramblock-id"],
+                      "memory-backend-memfd-private": ["size", "prealloc", "backend",
+                                                       "seal", "policy", "host-nodes",
+                                                       "share", "merge", "dump",
+                                                       "hugetlb", "hugetlbsize",
+                                                       "prealloc-threads", "reserve",
+                                                       "x-use-canonical-path-for-ramblock-id"]}
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)

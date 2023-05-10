@@ -299,6 +299,9 @@ class DevContainer(object):
         # -object sev-guest
         if self.has_object('sev-guest'):
             self.caps.set_flag(Flags.SEV_GUEST)
+        # -object sev-snp-guest
+        if self.has_object('sev-snp-guest'):
+            self.caps.set_flag(Flags.SNP_GUEST)
         # -object tdx-guest
         if self.has_object('tdx-guest'):
             self.caps.set_flag(Flags.TDX_GUEST)
@@ -3309,6 +3312,22 @@ class DevContainer(object):
                        e.g. params.object_params('vm1')
         :return: the secret QObject device
         """
+        def _gen_sev_common_props(params):
+            """
+            Generate the common sev properties:
+              cbitpos and reduced-phys-bits, upm-mode
+            see 'SevCommonProperties' for references
+            """
+            # FIXME: Set the following two options from sev capabilities
+            # if they are not set yet
+            sev_common_props = dict()
+            sev_common_props['cbitpos'] = int(params['vm_sev_cbitpos'])
+            sev_common_props['reduced-phys-bits'] = int(params['vm_sev_reduced_phys_bits'])
+            if params.get('vm_sev_upm_mode'):
+                sev_common_props['upm-mode'] = params['vm_sev_upm_mode']
+
+            return sev_common_props
+
         def _gen_sev_obj_props(obj_id, params):
             """
             Generate the properties of the sev-guest object.
@@ -3325,22 +3344,10 @@ class DevContainer(object):
                 raise ValueError('Unsupported sev-guest object')
 
             backend, sev_obj_props = 'sev-guest', {'id': obj_id}
+            sev_obj_props.update(_gen_sev_common_props(params))
 
             # Set policy=3 if vm_sev_policy is not set
             sev_obj_props['policy'] = int(params.get('vm_sev_policy', 3))
-
-            # FIXME: Set the following two options from sev capabilities
-            # if they are not set yet
-            sev_obj_props['cbitpos'] = int(params['vm_sev_cbitpos'])
-            sev_obj_props['reduced-phys-bits'] = int(params['vm_sev_reduced_phys_bits'])
-
-            # FIXME: If these files are host dependent, we have to find
-            # another way to set them, because different files are needed
-            # when migrating the vm from one host to another
-            if params.get('vm_sev_session_file'):
-                sev_obj_props['session-file'] = params['vm_sev_session_file']
-            if params.get('vm_sev_dh_cert_file'):
-                sev_obj_props['dh-cert-file'] = params['vm_sev_dh_cert_file']
 
             if params.get('vm_sev_kernel_hashes'):
                 sev_obj_props['kernel-hashes'] = params.get_boolean(
@@ -3348,6 +3355,49 @@ class DevContainer(object):
                 )
 
             return backend, sev_obj_props
+
+        def _gen_snp_obj_props(obj_id, params):
+            """
+            Generate the properties of the sev-snp-guest object.
+
+            Required:
+              policy, cbitpos and reduced-phys-bits
+            Optional:
+
+            :return: a tuple of (backend, sev-snp-guest QObject properties dict)
+            """
+            if Flags.SNP_GUEST not in self.caps:
+                raise ValueError('Unsupported sev-snp-guest object')
+
+            backend, snp_obj_props = 'sev-snp-guest', {'id': obj_id}
+            snp_obj_props.update(_gen_sev_common_props(params))
+
+            # Set policy=0x30000 if vm_snp_policy is not set
+            snp_obj_props['policy'] = int(params.get('vm_snp_policy', 0x30000))
+
+            if params.get('vm_snp_init_flags'):
+                snp_obj_props['init-flags'] = int(params['vm_snp_init_flags'])
+            if params.get('vm_snp_guest_visible_workarounds'):
+                snp_obj_props['guest-visible-workarounds'] = params['vm_snp_guest_visible_workarounds']
+            if params.get('vm_snp_id_block'):
+                snp_obj_props['id-block'] = params['vm_snp_id_block']
+            if params.get('vm_snp_id_auth'):
+                snp_obj_props['id-auth'] = params['vm_snp_id_auth']
+            if params.get('vm_snp_auth_key_enabled'):
+                snp_obj_props['auth-key-enabled'] = params.get_boolean(
+                    'vm_snp_auth_key_enabled'
+                )
+            if params.get('vm_snp_host_data'):
+                snp_obj_props['host-data'] = params['vm_snp_host_data']
+
+            # FIXME: coconut qemu only, if we use it, its default value
+            # should be 'on'
+            if params.get('vm_snp_svsm_enabled'):
+                snp_obj_props['svsm'] = params.get_boolean(
+                    'vm_snp_svsm_enabled'
+                )
+
+            return backend, snp_obj_props
 
         def _gen_tdx_obj_props(obj_id, params):
             """
@@ -3363,6 +3413,7 @@ class DevContainer(object):
 
         obj_props_handlers = {
             'sev': _gen_sev_obj_props,
+            'snp': _gen_snp_obj_props,
             'tdx': _gen_tdx_obj_props
         }
 

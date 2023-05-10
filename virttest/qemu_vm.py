@@ -1548,20 +1548,34 @@ class VM(virt_vm.BaseVM):
             there is one and only one security object defined in qemu,
             e.g. -object sev-guest,id=lsec0
             """
+            def _update_mach_props_for_snp(params):
+                # FIXME: amd qemu only, for coconut qemu, svsm bin is
+                # set via pflash drive
+                snp_mach_props = {'svsm': params.get('vm_svsm_bin')}
+                return snp_mach_props
+
+            def _update_mach_props_for_sev(params):
+                sev_mach_props = {}
+                return sev_mach_props
+
+            def _update_mach_props_for_tdx(params):
+                tdx_mach_props = {'kvm-type': 'tdx'}
+                return tdx_mach_props
+
             obj = devices.secure_guest_object_define_by_params('lsec0', params)
             devices.insert(obj)
 
-            machine_dev = devices.get_by_properties({"type": "machine"})[0]
-            machine_dev.set_param("confidential-guest-support", obj.get_qid())
-
+            mach_props = {'confidential-guest-support', obj.get_qid()}
             sectype = params["vm_secure_guest_type"]
-            sev_mach_props = {}
-            tdx_mach_props = {'kvm-type': 'tdx'}
-            backend_props = {
-                'sev': sev_mach_props,
-                'tdx': tdx_mach_props
+            mach_props_handlers = {
+                'sev': _update_mach_props_for_sev,
+                'snp': _update_mach_props_for_snp,
+                'tdx': _update_mach_props_for_tdx
             }
-            for k, v in backend_props.get(sectype, {}):
+            mach_props.update(mach_props_handlers[sectype](params))
+
+            machine_dev = devices.get_by_properties({"type": "machine"})[0]
+            for k, v in mach_props:
                 machine_dev.set_param(k, v)
 
         # End of command line option wrappers
