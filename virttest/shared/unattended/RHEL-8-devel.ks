@@ -57,6 +57,7 @@ dmidecode
 alsa-utils
 sg3_utils
 -gnome-initial-setup
+KVM_TEST_PACKAGES_PKGS
 %end
 
 %post
@@ -108,15 +109,20 @@ EOF
 cat >> '/home/test/.bashrc' << EOF
 alias shutdown='sudo shutdown'
 EOF
-# Install and lock packages specified via 'kickstart_instlock_pkgs' parameter
-install_and_lock()
+# Install packages specified via 'kickstart_post_pkgs' parameter
+install_pkgs()
 {
-    for PKG in KVM_TEST_PKGS; do
+    for PKG in KVM_TEST_POST_PKGS; do
         ECHO "dnf install $PKG -y --nogpgcheck"
         dnf install $PKG -y --nogpgcheck
         if [ $? -ne 0 ]; then
             ECHO "$PKG installation failed."
         fi
+}
+# Lock packages specified via 'kickstart_lock_pkgs' parameter
+lock_pkgs()
+{
+    for PKG in KVM_TEST_LOCK_PKGS; do
         ECHO "dnf versionlock add $PKG"
         dnf versionlock add $PKG
         if [ $? -ne 0 ]; then
@@ -124,6 +130,7 @@ install_and_lock()
         fi
     done
 }
-install_and_lock
+install_pkgs
+lock_pkgs
 ECHO 'Post set up finished'
 %end
