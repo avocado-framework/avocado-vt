@@ -1712,8 +1712,13 @@ class VM(virt_vm.BaseVM):
 
             sectype = params["vm_secure_guest_type"]
             sev_mach_props = {}
+            snp_mach_props = {}
             tdx_mach_props = {}
-            backend_props = {"sev": sev_mach_props, "tdx": tdx_mach_props}
+            backend_props = {
+                "sev": sev_mach_props,
+                "snp": snp_mach_props,
+                "tdx": tdx_mach_props,
+            }
             for k, v in backend_props.get(sectype, {}).items():
                 machine_dev.set_param(k, v)
 
