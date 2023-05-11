@@ -4,10 +4,13 @@ An easy way to log lines to files when the logging system can't be used
 
 :copyright: 2020 Red Hat Inc.
 """
+import logging
 import os
+import re
 import time
 import threading
 
+from avocado.core import exceptions
 from avocado.utils import aurl
 from avocado.utils import path as utils_path
 from aexpect.utils.genio import _open_log_files
@@ -15,6 +18,7 @@ from avocado.utils.astring import string_safe_encode
 
 from virttest import data_dir
 
+LOG = logging.getLogger('avocado.' + __name__)
 
 _log_file_dir = data_dir.get_tmp_dir()
 _log_lock = threading.RLock()
@@ -77,6 +81,29 @@ def log_line(filename, line):
         _open_log_files[base_file].flush()
     finally:
         _log_lock.release()
+
+
+def get_match_count(file_path, key_message, encoding='ISO-8859-1'):
+    """
+    Get expected messages count in path
+
+    :param file_path: file path to be checked
+    :param key_message: key message that needs to be captured
+    :param encoding: encoding method ,default 'ISO-8859-1'
+    :return count: the count of key message
+    """
+    count = 0
+    try:
+        with open(file_path, 'r', encoding=encoding) as fp:
+            for line in fp.readlines():
+                if re.findall(key_message, line):
+                    count += 1
+                    LOG.debug("Get '%s' in %s %s times" % (key_message,
+                                                           file_path, str(count)))
+    except IOError as details:
+        raise exceptions.TestError("Fail to read :%s and get error: %s" % (
+            file_path, details))
+    return count
 
 
 def set_log_file_dir(directory):
