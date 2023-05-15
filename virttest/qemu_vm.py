@@ -1273,7 +1273,7 @@ class VM(virt_vm.BaseVM):
             """Add primary vga device."""
             fallback = params.get("vga_use_legacy_expression") == "yes"
             machine_type = params.get("machine_type", '')
-            parent_bus = {'aobject': 'pci.0'}
+            parent_bus = self._get_bus(params, 'vga')
             vga_dev_map = {
                 "std": "VGA",
                 "cirrus": "cirrus-vga",
@@ -1289,13 +1289,11 @@ class VM(virt_vm.BaseVM):
             elif machine_type.startswith('s390-ccw-virtio'):
                 if vga == 'virtio':
                     vga_dev = 'virtio-gpu-ccw'
-                    parent_bus = None
                 else:
                     vga_dev = None
             elif '-mmio:' in machine_type:
                 if vga == 'virtio':
                     vga_dev = 'virtio-gpu-device'
-                    parent_bus = None
                 else:
                     vga_dev = None
             if vga_dev is None:
@@ -1717,14 +1715,14 @@ class VM(virt_vm.BaseVM):
         # Add device virtio-iommu, it must be added before any virtio devices
         if (params.get_boolean('virtio_iommu') and
                 devices.has_device('virtio-iommu-pci')):
-            iommu_params = {"pcie_direct_plug":
-                            params.get("virtio_iommu_direct_plug", "yes")}
+            iommu_params = {"pcie_direct_plug": "yes"}
             virtio_iommu_extra_params = params.get("virtio_iommu_extra_params")
             if virtio_iommu_extra_params:
                 for extra_param in virtio_iommu_extra_params.strip(",").split(","):
                     key, value = extra_param.split('=')
                     iommu_params[key] = value
-            dev = QDevice('virtio-iommu-pci', iommu_params, parent_bus=pci_bus)
+            dev = QDevice('virtio-iommu-pci', iommu_params,
+                          parent_bus={'aobject': 'pci.0'})
             set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
                                       "virtio_iommu")
             devices.insert(dev)
