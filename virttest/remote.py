@@ -511,7 +511,7 @@ class VMManager(object):
         :param username: username of target system
         :param password: password of target system
         """
-        if isinstance(runner, VMManager):
+        if isinstance(runner, RemoteRunner):
             run_func = runner.run
             session = runner.session
         elif isinstance(runner, aexpect.ShellSession):
@@ -524,7 +524,10 @@ class VMManager(object):
         pub_key = '~/.ssh/id_rsa.pub'
         # Check the private key and public key file on remote host.
         cmd = f"ls {pri_key} {pub_key};echo $?"
-        result = run_func(cmd).strip()[-1]
+        if isinstance(runner, RemoteRunner):
+            result = run_func(cmd).stdout.strip()[-1]
+        else:
+            result = run_func(cmd).strip()[-1]
         if result == '0':
             LOG.info("SSH key pair already exist")
         else:
@@ -542,7 +545,7 @@ class VMManager(object):
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
         """
-        VMManager.set_ssh_auth(self.runner, self.vmip,
+        VMManager.set_ssh_auth(self.runner, self.vm_ip,
                                self.vm_user, self.vm_pwd)
 
     def check_network(self, count=5, timeout=60):
