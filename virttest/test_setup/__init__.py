@@ -613,10 +613,11 @@ class HugePageConfig(object):
     def cleanup(self):
         if self.deallocate:
             error_context.context("trying to deallocate hugepage memory")
-            try:
-                process.system("umount %s" % self.hugepage_path)
-            except process.CmdError:
-                return
+            if os.path.ismount(self.hugepage_path):
+                try:
+                    process.system("umount %s" % self.hugepage_path)
+                except process.CmdError:
+                    return
             process.system("echo 0 > %s" % self.kernel_hp_file, shell=True)
             self.over_commit.proc_fs_value = 0
             self.ext_hugepages_surp = utils_memory.get_num_huge_pages_surp()
