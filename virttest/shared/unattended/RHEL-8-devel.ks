@@ -118,6 +118,7 @@ install_pkgs()
         if [ $? -ne 0 ]; then
             ECHO "$PKG installation failed."
         fi
+    done
 }
 # Lock packages specified via 'kickstart_lock_pkgs' parameter
 lock_pkgs()
