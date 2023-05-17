@@ -314,7 +314,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
                 # to set the attributes.
                 # If reset_all, it means we will discard the existing instance
                 # of current sub-xml and create a new one to replace it.
-                if reset_all or not self.xmltreefile.find(key):
+                if reset_all or self.xmltreefile.find(key) is None:
                     # Get args to create an instance of subclass
                     subclass_dargs = get_func.get('subclass_dargs')
                     # Create an instance of subclass with given args
