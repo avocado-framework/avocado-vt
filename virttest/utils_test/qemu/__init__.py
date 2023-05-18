@@ -17,6 +17,7 @@ More specifically:
 """
 
 import logging
+import math
 import os
 import re
 import time
@@ -495,10 +496,28 @@ class MemoryBaseTest(object):
         :return: free memory report by guest OS in MB
         """
         os_type = vm.params.get("os_type")
-        timeout = float(vm.params.get("login_timeout", 600))
+        timeout = vm.params.get_numeric("login_timeout", 600, float)
         try:
             session = vm.wait_for_login(timeout=timeout)
             return utils_misc.get_free_mem(session, os_type)
+        finally:
+            session.close()
+
+    @classmethod
+    def _get_linux_guest_crashkernel_size(cls, vm):
+        """
+        Linux guest OS reported crashkernel size in MB.
+        :param vm: VM Object
+        :return: crashkernel report by guest OS in MB
+        """
+        timeout = vm.params.get_numeric("login_timeout", 600, float)
+        session = vm.wait_for_login(timeout=timeout)
+        try:
+            crashkernel = session.cmd_output("cat /sys/kernel/kexec_crash_size")
+            crashkernel = utils_misc.normalize_data_size(
+                crashkernel, order_magnitude="M"
+            )
+            return math.ceil(float(crashkernel))
         finally:
             session.close()
 
@@ -761,6 +780,11 @@ class MemoryHotplugTest(MemoryBaseTest):
         #  let system perceive it.
         time.sleep(wait_time)
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
+        if self.os_type == "linux":
+            crashkernel_size = super(
+                MemoryHotplugTest, self
+            )._get_linux_guest_crashkernel_size(vm)
+            guest_mem_size += crashkernel_size
         vm_mem_size = self.get_vm_mem(vm)
         if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
             msg = (
