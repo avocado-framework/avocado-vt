@@ -499,30 +499,54 @@ class VMManager(object):
         self.cmd_output = self.cmd_output_safe
         self.cmd = self.cmd_output_safe
 
+    @staticmethod
+    def set_ssh_auth(runner, ip, username, password):
+        """
+        Static method of Setup SSH passwordless access from source system
+        to target system
+
+        :param runner: runner of source system, instance of VMManager or
+                       aexpect.ShellSession
+        :param ip: ip of target system
+        :param username: username of target system
+        :param password: password of target system
+        """
+        if isinstance(runner, RemoteRunner):
+            run_func = runner.run
+            session = runner.session
+        elif isinstance(runner, aexpect.ShellSession):
+            run_func = runner.cmd_output
+            session = runner
+        else:
+            raise TypeError('runner should be instance of VMManager or '
+                            'aexpect.ShellSession')
+        pri_key = '~/.ssh/id_rsa'
+        pub_key = '~/.ssh/id_rsa.pub'
+        # Check the private key and public key file on remote host.
+        cmd = f"ls {pri_key} {pub_key};echo $?"
+        if isinstance(runner, RemoteRunner):
+            result = run_func(cmd).stdout.strip()[-1]
+        else:
+            result = run_func(cmd).strip()[-1]
+        if result == '0':
+            LOG.info("SSH key pair already exist")
+        else:
+            LOG.debug("Create new SSH key pair")
+            run_func(f"ssh-keygen -t rsa -q -N '' -f {pri_key}")
+        # To avoid the host key checking
+        ssh_opts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+        ssh_copy_id = f"ssh-copy-id {ssh_opts} -i {pub_key} {username}@{ip}"
+        session.sendline(ssh_copy_id)
+
+        handle_prompts(session, username, password, r"[\#\$]\s*$", debug=True)
+
     def setup_ssh_auth(self):
         """
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
         """
-        pri_key = '~/.ssh/id_rsa'
-        pub_key = '~/.ssh/id_rsa.pub'
-        # Check the private key and public key file on remote host.
-        cmd = "ls %s %s" % (pri_key, pub_key)
-        result = self.runner.run(cmd, ignore_status=True)
-        if result.exit_status:
-            LOG.debug("Create new SSH key pair")
-            self.runner.run("ssh-keygen -t rsa -q -N '' -f %s" % pri_key)
-        else:
-            LOG.info("SSH key pair already exist")
-        session = self.runner.session
-        # To avoid the host key checking
-        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
-                                 "-o StrictHostKeyChecking=no")
-        session.sendline("ssh-copy-id %s -i %s root@%s"
-                         % (ssh_options, pub_key, self.vm_ip))
-
-        handle_prompts(session, self.vm_user, self.vm_pwd,
-                       r"[\#\$]\s*$", debug=True)
+        VMManager.set_ssh_auth(self.runner, self.vm_ip,
+                               self.vm_user, self.vm_pwd)
 
     def check_network(self, count=5, timeout=60):
         """

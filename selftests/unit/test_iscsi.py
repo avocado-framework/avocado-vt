@@ -15,9 +15,6 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 from virttest.unittest_utils import mock
 from virttest import iscsi
 from virttest import utils_selinux
-from virttest.staging import service
-
-ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
 
 class iscsi_test(unittest.TestCase):
@@ -25,9 +22,6 @@ class iscsi_test(unittest.TestCase):
     def setup_stubs_init(self):
         path.find_command.expect_call("iscsiadm")
         path.find_command.expect_call("targetcli")
-
-    def setup_stubs_set_initiatorName(self, iscsi_obj):
-        os.path.isfile.expect_call(ISCSI_CONFIG_FILE).and_return(False)
 
     def setup_stubs_login(self, iscsi_obj):
         c_cmd = "dd if=/dev/zero of=/tmp/iscsitest count=1024 bs=1K"
@@ -38,8 +32,6 @@ class iscsi_test(unittest.TestCase):
         os.path.isfile.expect_call(iscsi_obj.emulated_image).and_return(False)
         process.system.expect_call(c_cmd)
         self.setup_stubs_export_target(iscsi_obj)
-        if "127.0.0.1" in iscsi_obj.portal_ip:
-            self.setup_stubs_set_initiatorName(iscsi_obj)
         self.setup_stubs_portal_visible(iscsi_obj, "127.0.0.1:3260,1 %s"
                                         % iscsi_obj.target)
         lg_msg = "successful"
@@ -119,7 +111,6 @@ class iscsi_test(unittest.TestCase):
         self.setup_stubs_set_chap_auth_initiator(iscsi_obj)
         cmd = "targetcli / saveconfig"
         process.system.expect_call(cmd)
-        self.setup_stubs_restart_iscsid(reset_failed=True)
 
     def setup_stubs_get_target_id(self, iscsi_obj):
         s_cmd = "targetcli ls /iscsi 1"
@@ -137,12 +128,6 @@ class iscsi_test(unittest.TestCase):
         process.system.expect_call(n_cmd)
         a_msg = "Account list:\n %s" % iscsi_obj.chap_user
         self.setup_stubs_get_chap_accounts(a_msg)
-
-    def setup_stubs_delete_chap_account(self, iscsi_obj):
-        self.setup_stubs_get_chap_accounts(iscsi_obj)
-        d_cmd = "tgtadm --lld iscsi --op delete --mode account"
-        d_cmd += " --user %s" % iscsi_obj.chap_user
-        process.system.expect_call(d_cmd)
 
     def setup_stubs_get_target_account_info(self):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
@@ -169,18 +154,6 @@ class iscsi_test(unittest.TestCase):
             u_cmd = "iscsiadm --mode node --targetname %s " % iscsi_obj.target
             u_cmd += "--op update --name %s --value %s" % (name, u_name[name])
             process.system.expect_call(u_cmd)
-
-    def setup_stubs_restart_iscsid(self, reset_failed=True):
-        path.find_command.expect_call("iscsid")
-
-        class iscsid:
-            pass
-        self.god.stub_function(service.Factory, 'create_service')
-        self.god.stub_function(iscsid, 'reset_failed')
-        self.god.stub_function(iscsid, 'restart')
-        service.Factory.create_service.expect_call("iscsid").and_return(iscsid)
-        iscsid.reset_failed.expect_call().and_return(True)
-        iscsid.restart.expect_call().and_return(True)
 
     def setUp(self):
         # The normal iscsi with iscsi server should configure following
@@ -213,8 +186,7 @@ class iscsi_test(unittest.TestCase):
         iscsi_emulated.login()
         self.setup_stubs_get_device_name(iscsi_emulated)
         self.assertNotEqual(iscsi_emulated.get_device_name(), "")
-        fname = "%s-%s" % (ISCSI_CONFIG_FILE, iscsi_emulated.id)
-        self.setup_stubs_cleanup(iscsi_emulated, fname=fname)
+        self.setup_stubs_cleanup(iscsi_emulated)
         iscsi_emulated.cleanup()
         self.god.check_playback()
 

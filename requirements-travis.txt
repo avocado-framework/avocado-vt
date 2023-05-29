@@ -1,8 +1,7 @@
 Sphinx==1.3b1
 # inspektor (static and style checks)
-pylint==2.12.2
+pylint==2.15.10
 inspektor==0.5.3
 aexpect>=1.6.4
-simplejson==3.8.0
 netifaces==0.11.0
 pyenchant==3.2.2

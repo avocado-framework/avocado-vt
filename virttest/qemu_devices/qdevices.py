@@ -1176,13 +1176,15 @@ class QDevice(QCustomDevice):
             # ("driver": "virtio-blk-pci")
             # guest-stats-polling-interval from
             # device ("driver": "virtio-balloon-ccw")
+            # acpi-index from device("driver": "virtio-net-pci")
             elif key in ("physical_block_size", "logical_block_size",
                          "bootindex", "max_sectors", "num_queues",
                          "virtqueue_size", "discard_granularity", "period",
                          "max-bytes", "max-write-zeroes-sectors", "queue-size",
                          "max-discard-sectors", "num-queues", "host_mtu",
                          "speed", "vectors", "node", "events", "min_io_size",
-                         "opt_io_size", "guest-stats-polling-interval"):
+                         "opt_io_size", "guest-stats-polling-interval",
+                         "acpi-index"):
                 command_dict[key] = int(val)
             # port from usb related driver
             elif key == "port" and usb_driver:
@@ -1198,7 +1200,8 @@ class QDevice(QCustomDevice):
                     and key not in expect_string_val:
                 command_dict[key] = False
             # requested-size from device("driver": "virtio-mem-pci")
-            elif key in ("requested-size", ):
+            # label-size from device("driver": "nvdimm")
+            elif key in ("requested-size", "label-size"):
                 command_dict[key] = int(utils_numeric.normalize_data_size(val,
                                                                           "B"))
             else:
@@ -1646,8 +1649,11 @@ class Memory(QObject):
             # "prealloc", "dump", "merge"
             # from -object ("qom-type": "memory-backend-ram")
             # readonly from -object("qom-type": "memory-backend-file")
-            elif key in ("share", "reserve", "hugetlb",
-                         "prealloc", "dump", "merge", "readonly"):
+            # pmem from -object("qom-type": "memory-backend-file")
+            # discard-data from object("qom-type": "memory-backend-file")
+            elif key in ("share", "reserve", "hugetlb", "pmem",
+                         "prealloc", "dump", "merge", "readonly",
+                         "discard-data"):
                 command_dict[key] = val in ("yes", "on")
             elif key == "host-nodes":
                 command_dict[key] = list(map(int, val.split()))

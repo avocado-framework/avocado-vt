@@ -174,7 +174,7 @@ class VMXMLBase(LibvirtXMLBase):
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
                  'iothreadids', 'defaultiothread', 'memory', 'memory_unit',
-                 'perf', 'keywrap', 'sysinfo', 'idmap', 'clock')
+                 'perf', 'keywrap', 'sysinfo', 'idmap', 'clock', 'description')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -202,6 +202,11 @@ class VMXMLBase(LibvirtXMLBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='title')
+        accessors.XMLElementText(property_name="description",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='description')
         accessors.XMLElementInt(property_name="iothreads",
                                 libvirtxml=self,
                                 forbidden=None,
@@ -3250,65 +3255,19 @@ class VMFeaturesXML(base.LibvirtXMLBase):
 
     Elements:
         feature_list       list of top level element
-        hyperv_relaxed:    attribute - state
-        hyperv_vapic:      attribute - state
-        hyperv_spinlocks:  attributes - state, retries
         kvm_hidden:        attribute - state
         pvspinlock:        attribute - state
         smm:               attribute - state
         kvm_dirty_ring:    attribute - state, size
     """
 
-    __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
-                 'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
-                 'hyperv_tlbflush_state', 'hyperv_frequencies_state',
-                 'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
+    __slots__ = ('feature_list',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt',
                  'htm', 'smm_tseg_unit', 'smm_tseg', 'nested_hv',
                  'pmu', 'kvm_poll_control', 'ioapic',
                  'kvm_dirty_ring_state', 'kvm_dirty_ring_size')
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute(property_name='hyperv_relaxed_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='relaxed',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_vapic_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='vapic',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_spinlocks_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='spinlocks',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_spinlocks_retries',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='spinlocks',
-                               attribute='retries')
-        accessors.XMLAttribute(property_name='hyperv_vpindex_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='vpindex',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_tlbflush_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='tlbflush',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_frequencies_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='frequencies',
-                               attribute='state')
-        accessors.XMLAttribute(property_name='hyperv_reenlightenment_state',
-                               libvirtxml=self,
-                               parent_xpath='/hyperv',
-                               tag_name='reenlightenment',
-                               attribute='state')
         accessors.XMLAttribute(property_name='kvm_hidden_state',
                                libvirtxml=self,
                                parent_xpath='/kvm',
@@ -3336,6 +3295,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                attribute='state')
         accessors.XMLElementText('smm_tseg', self, parent_xpath='/smm',
                                  tag_name='tseg')
+        accessors.XMLElementNest(property_name='hyperv',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='hyperv',
+                                 subclass=VMFeaturesHypervXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         accessors.XMLElementNest(property_name='hpt',
                                  libvirtxml=self,
                                  parent_xpath='/',
@@ -3768,6 +3734,110 @@ class VMIothreadidsXML(base.LibvirtXMLBase):
         if tag != 'iothread':
             return None
         return dict(attr_dict)
+
+
+class VMFeaturesHypervXML(base.LibvirtXMLBase):
+    """
+    hyperv tag XML class of features tag
+    """
+    __slots__ = ('mode', 'relaxed', 'vapic', 'spinlocks', 'vpindex',
+                 'runtime', 'synic', 'stimer', 'direct', 'reset',
+                 'vendor_id', 'frequencies', 'reenlightenment',
+                 'tlbflush', 'ipi', 'evmcs', 'avic')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute(property_name="mode",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='hyperv',
+                               attribute='mode')
+        accessors.XMLElementDict(property_name='relaxed',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='relaxed')
+        accessors.XMLElementDict(property_name='vapic',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='vapic')
+        accessors.XMLElementDict(property_name='spinlocks',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='spinlocks')
+        accessors.XMLElementDict(property_name='vpindex',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='vpindex')
+        accessors.XMLElementDict(property_name='runtime',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='runtime')
+        accessors.XMLElementDict(property_name='synic',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='synic')
+        accessors.XMLElementDict(property_name='reset',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='reset')
+        accessors.XMLElementDict(property_name='vendor_id',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='vendor_id')
+        accessors.XMLElementDict(property_name='frequencies',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='frequencies')
+        accessors.XMLElementDict(property_name='reenlightenment',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='reenlightenment')
+        accessors.XMLElementDict(property_name='tlbflush',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='tlbflush')
+        accessors.XMLElementDict(property_name='ipi',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='ipi')
+        accessors.XMLElementDict(property_name='evmcs',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='evmcs')
+        accessors.XMLElementDict(property_name='avic',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='avic')
+        accessors.XMLElementNest(property_name='stimer',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='stimer',
+                                 subclass=VMFeaturesStimerXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+
+        super(VMFeaturesHypervXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<hyperv/>'
+
+
+class VMFeaturesStimerXML(base.LibvirtXMLBase):
+    """
+    stimer tag XML class of features tag
+    """
+    __slots__ = ('state', 'direct')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute(property_name="state",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='stimer',
+                               attribute='state')
+        accessors.XMLElementDict(property_name="direct",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='direct')
+        super(VMFeaturesStimerXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<stimer/>'
 
 
 class VMFeaturesHptXML(base.LibvirtXMLBase):

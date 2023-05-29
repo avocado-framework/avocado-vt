@@ -16,7 +16,7 @@ class Interface(base.TypedDeviceBase):
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
                  'virtualport', 'alias', "ips", "teaming", "vlan", "port",
-                 'acpi')
+                 'acpi', 'portForwards')
 
     def __init__(self, type_name='network', virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -143,6 +143,13 @@ class Interface(base.TypedDeviceBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='port')
+        accessors.XMLElementList(property_name='portForwards',
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_portForwards,
+                                 marshal_to=self.marshal_to_portForwards,
+                                 has_subclass=True)
 
     # For convenience
     Address = librarian.get('address')
@@ -169,6 +176,32 @@ class Interface(base.TypedDeviceBase):
         if not tag == 'ip':
             return None              # skip this one
         return dict(attr_dict)       # return copy of dict, not reference
+
+    @staticmethod
+    def marshal_from_portForwards(item, index, libvirtxml):
+        """
+        Convert an PortForward object to portForward tag and xml element.
+        """
+        if isinstance(item, Interface.PortForward):
+            return 'portForward', item
+        elif isinstance(item, dict):
+            portForward = Interface.PortForward()
+            portForward.setup_attrs(**item)
+            return 'portForward', portForward
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of PortForward "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_portForwards(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a portForward tag xml element to an object of PortForward.
+        """
+        if tag != 'portForward':
+            return None  # Don't convert this item
+        newone = Interface.PortForward(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     def new_bandwidth(self, **dargs):
         """
@@ -341,3 +374,45 @@ class Interface(base.TypedDeviceBase):
                                      tag_name="parameters")
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<virtualport/>'
+
+    class PortForward(base.base.LibvirtXMLBase):
+        """
+        Interface portForward xml class.
+
+        Properties:
+
+        attrs:
+            dict.
+        ranges:
+            list.
+        """
+        __slots__ = ("attrs", "ranges")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementDict(property_name='attrs',
+                                     libvirtxml=self,
+                                     forbidden=None,
+                                     parent_xpath='/',
+                                     tag_name='portForward')
+            accessors.XMLElementList(property_name='ranges',
+                                     libvirtxml=self,
+                                     forbidden=None,
+                                     parent_xpath='/',
+                                     marshal_from=self.marshal_from_ranges,
+                                     marshal_to=self.marshal_to_ranges)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<portForward/>'
+
+        @staticmethod
+        def marshal_from_ranges(item, index, libvirtxml):
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError("Expected a dictionary of range"
+                                             "attributes, not a %s"
+                                             % str(item))
+            return ('range', dict(item))
+
+        @staticmethod
+        def marshal_to_ranges(tag, attr_dict, index, libvirtxml):
+            if not tag == 'range':
+                return None
+            return dict(attr_dict)

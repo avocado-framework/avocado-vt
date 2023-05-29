@@ -1,4 +1,3 @@
-install
 KVM_TEST_MEDIUM
 GRAPHICAL_OR_TEXT
 poweroff
@@ -30,24 +29,21 @@ KVM_TEST_REPOS
 @gnome-desktop
 @fonts
 @smart-card
-python3-pillow
+dhcp-client
 python3-six
 python3-pyparsing
-python3-dnf-plugin-versionlock
 net-tools
 NetworkManager
 dconf
 watchdog
 coreutils
 usbutils
-spice-gtk3
 docbook-utils
 sgml-common
 openjade
 virt-viewer
 pulseaudio-libs-devel
 mesa-libGL-devel
-pygtk2-devel
 libjpeg-turbo-devel
 spice-vdagent
 usbredir
@@ -57,27 +53,26 @@ dmidecode
 alsa-utils
 sg3_utils
 -gnome-initial-setup
-KVM_TEST_PACKAGES_PKGS
 %end
 
 %post
 # Output to all consoles defined in /proc/consoles, use "major:minor" as
 # device names are unreliable on some platforms
 # https://bugzilla.redhat.com/show_bug.cgi?id=1351968
-function ECHO { for TTY in `cat /proc/consoles | awk '{print $NF}'`; do source "/sys/dev/char/$TTY/uevent" && echo "$*" > /dev/$DEVNAME; done }
+function ECHO { for TTY in `cat /proc/consoles | grep -v ttyS0 | awk '{print $NF}'`; do source "/sys/dev/char/$TTY/uevent" && echo "$*" > /dev/$DEVNAME; done }
 ECHO "OS install is completed"
 case $(arch) in
     "x86_64")
         arg="console=tty0 console=ttyS0"
         ;;
     "s390x")
-        arg="console=hvc0 serial"
+        arg="console=hvc0 console=ttyS0"
         ;;
     "ppc64le")
-        arg="console=hvc0,38400"
+        arg="console=hvc0 console=ttyS0"
         ;;
     "aarch64")
-        arg="console=ttyAMA0 console=ttyS0 serial"
+        arg="console=ttyAMA0 console=ttyS0"
         ;;
 esac
 ECHO "remove rhgb quiet by grubby and add kernel console parameters"
@@ -85,19 +80,16 @@ grubby --remove-args="rhgb quiet" --args="$arg" --update-kernel=$(grubby --defau
 ECHO "dhclient"
 dhclient
 ECHO "systemctl enable sshd"
+sed -i "s/^#PermitRootLogin .*/PermitRootLogin yes/g" /etc/ssh/sshd_config
 systemctl enable sshd
 ECHO "iptables -F"
 iptables -F
 ECHO "systemctl enable NetworkManager"
 systemctl enable NetworkManager.service
-ECHO "update ifcfg-eth0"
-sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-eth0
 ECHO "Disable lock cdrom udev rules"
 sed -i "/--lock-media/s/^/#/" /usr/lib/udev/rules.d/60-cdrom_id.rules 2>/dev/null>&1
 #Workaround for graphical boot as anaconda seems to always instert skipx
 systemctl set-default graphical.target
-sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-*
-sed -i "s/ONBOOT=no/ONBOOT=yes/" /etc/sysconfig/network-scripts/ifcfg-*
 cat > '/etc/gdm/custom.conf' << EOF
 [daemon]
 AutomaticLogin=test
@@ -109,29 +101,5 @@ EOF
 cat >> '/home/test/.bashrc' << EOF
 alias shutdown='sudo shutdown'
 EOF
-# Install packages specified via 'kickstart_post_pkgs' parameter
-install_pkgs()
-{
-    for PKG in KVM_TEST_POST_PKGS; do
-        ECHO "dnf install $PKG -y --nogpgcheck"
-        dnf install $PKG -y --nogpgcheck
-        if [ $? -ne 0 ]; then
-            ECHO "$PKG installation failed."
-        fi
-    done
-}
-# Lock packages specified via 'kickstart_lock_pkgs' parameter
-lock_pkgs()
-{
-    for PKG in KVM_TEST_LOCK_PKGS; do
-        ECHO "dnf versionlock add $PKG"
-        dnf versionlock add $PKG
-        if [ $? -ne 0 ]; then
-            ECHO "$PKG version lock failed."
-        fi
-    done
-}
-install_pkgs
-lock_pkgs
 ECHO 'Post set up finished'
 %end

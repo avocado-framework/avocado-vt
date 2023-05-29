@@ -69,7 +69,7 @@ Xunit output, among others.
 %package -n python3-%{name}
 Summary: %{summary}
 Requires: python3, python3-devel, python3-avocado >= 51.0, python3-aexpect
-Requires: python3-netifaces, python3-simplejson
+Requires: python3-netifaces
 %{?python_provide:%python_provide python3-%{srcname}}
 %description -n python3-%{name}
 Avocado Virt Test is a plugin that lets you execute virt-tests

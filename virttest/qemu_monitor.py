@@ -61,6 +61,10 @@ class MonitorProtocolError(MonitorError):
     pass
 
 
+class MonitorCmdError(MonitorError):
+    pass
+
+
 class MonitorNotSupportedError(MonitorError):
     pass
 
@@ -81,10 +85,22 @@ class MonitorNotSupportedMigCapError(MonitorNotSupportedError):
     pass
 
 
-class QMPCmdError(MonitorError):
+class HumanCmdError(MonitorCmdError):
+
+    def __init__(self, cmd, out):
+        MonitorError.__init__(self, cmd, out)
+        self.cmd = cmd
+        self.out = out
+
+    def __str__(self):
+        return ("Human monitor command %r failed    "
+                "error message: %r)" % (self.cmd, self.out))
+
+
+class QMPCmdError(MonitorCmdError):
 
     def __init__(self, cmd, qmp_args, data):
-        MonitorError.__init__(self, cmd, qmp_args, data)
+        MonitorCmdError.__init__(self, cmd, qmp_args, data)
         self.cmd = cmd
         self.qmp_args = qmp_args
         self.data = data
@@ -923,6 +939,8 @@ class HumanMonitor(Monitor):
             if s:
                 if o:
                     self._log_response(cmd, o, debug)
+                    if "Error: " in o:
+                        raise HumanCmdError(cmd, o)
                 return o
             else:
                 msg = ("Could not find (qemu) prompt after command '%s'. "

@@ -532,7 +532,8 @@ class QemuImg(storage.QemuImg):
             "preallocated": (None, "preallocation", ("qcow2", "raw", "luks")),
             "image_cluster_size": (None, "cluster_size", ("qcow2",)),
             "lazy_refcounts": (None, "lazy_refcounts", ("qcow2",)),
-            "qcow2_compatible": (None, "compat", ("qcow2",))
+            "qcow2_compatible": (None, "compat", ("qcow2",)),
+            "image_extent_size_hint": (None, "extent_size_hint", ("qcow2", "raw", "luks"))
         }
         image_format = params.get("image_format", "qcow2")
         options = []

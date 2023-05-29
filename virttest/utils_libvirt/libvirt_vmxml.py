@@ -54,6 +54,34 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
         raise exceptions.TestFail(msg)
 
 
+def check_guest_xml_by_xpaths(vmxml, xpaths_text):
+    """
+    Check if the xml has elements/attributes/texts that match all xpaths and texts
+
+    :param xml: Libvirt VMXML instance
+    :param xpaths_texts: a structured list containing all elements/attributes
+                         xpaths and text to be matched, e.g.:
+                        [
+                        {'element_attrs': [".//maxMemory[@slots='16']", ".//maxMemory[@unit='KiB']",...,], 'text': '15360000'}
+                        {'element_attrs': [".//memory[@unit='KiB']", ..., valuenn], 'text': 'aaa'}
+                        {'element_attrs': ["./os/bootmenu[@enable='yes']", ..., valuenn]}
+                        ]
+    """
+    for xpath_text in xpaths_text:
+        elem_attrs_list = xpath_text['element_attrs']
+        elem_text = xpath_text.get('text', '')
+        for one_elem_attr in elem_attrs_list:
+            matches = vmxml.xmltreefile.findall(one_elem_attr)
+            if not matches:
+                raise exceptions.TestFail("XML did not match xpath: %s" % one_elem_attr)
+            if elem_text and any([x for x in matches if x.text != elem_text]):
+                raise exceptions.TestFail("XML did not match text '%s' "
+                                          "for the xpath '%s'" % (elem_text,
+                                                                  one_elem_attr))
+        LOG.debug("Matched the xpaths '%s' with text '%s'" % (elem_attrs_list,
+                                                              elem_text))
+
+
 def remove_vm_devices_by_type(vm, device_type):
     """
     Remove devices of a given type.
@@ -85,7 +113,8 @@ def create_vm_device_by_type(dev_type, dev_dict):
     return dev_obj
 
 
-def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0):
+def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0,
+                     virsh_instance=virsh):
     """
      Get specified device , update it with given dev_dict if the device exists,
      Create the device if it does not exist
@@ -103,9 +132,9 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0):
 
         vmxml.devices = xml_devices
         vmxml.xmltreefile.write()
-        vmxml.sync()
+        vmxml.sync(virsh_instance=virsh_instance)
     except IndexError:
         dev_obj = create_vm_device_by_type(dev_type, dev_dict)
-        libvirt.add_vm_device(vmxml, dev_obj)
+        libvirt.add_vm_device(vmxml, dev_obj, virsh_instance=virsh_instance)
 
     return dev_obj

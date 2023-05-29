@@ -386,7 +386,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
                         value = [v.fetch_attrs() for v in value]
                 # If the element is bool type, only return value when
                 # it's True
-                if value is not False:
+                if value is not False and value is not None:
                     attrs[key] = value
 
         return attrs

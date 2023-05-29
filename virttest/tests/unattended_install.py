@@ -433,12 +433,30 @@ class UnattendedInstallConfig(object):
             content = "\n".join(lines)
             contents = re.sub(dummy_repos_re, content, contents)
 
-        dummy_pkgs_re = r'\bKVM_TEST_PKGS\b'
-        if re.search(dummy_pkgs_re, contents):
-            # Extra packages to be installed and locked
+        # NOTE: This is an experimental feature to install extra packages
+        # during %packages step, even it supports kickstart syntax rules, we
+        # should only use it for add packages.
+        dummy_packages_pkgs_re = r'\bKVM_TEST_PACKAGES_PKGS\b'
+        if re.search(dummy_packages_pkgs_re, contents):
+            # Extra packages to be installed at "%packages" step
             # Use space as a separator for multiple pkgs
-            pkgs = self.params.get("kickstart_instlock_pkgs", "")
-            contents = re.sub(dummy_pkgs_re, pkgs, contents)
+            pkgs = self.params.get("kickstart_packages_pkgs", "").split()
+            content = "\n".join(pkgs)
+            contents = re.sub(dummy_packages_pkgs_re, content, contents)
+
+        dummy_post_pkgs_re = r'\bKVM_TEST_POST_PKGS\b'
+        if re.search(dummy_post_pkgs_re, contents):
+            # Extra packages to be installed at "%post" step
+            # Use space as a separator for multiple pkgs
+            pkgs = self.params.get("kickstart_post_pkgs", "")
+            contents = re.sub(dummy_post_pkgs_re, pkgs, contents)
+
+        dummy_lock_pkgs_re = r'\bKVM_TEST_LOCK_PKGS\b'
+        if re.search(dummy_lock_pkgs_re, contents):
+            # Packages to be locked
+            # Use space as a separator for multiple pkgs
+            pkgs = self.params.get("kickstart_lock_pkgs", "")
+            contents = re.sub(dummy_lock_pkgs_re, pkgs, contents)
 
         dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
         if re.search(dummy_logging_re, contents):

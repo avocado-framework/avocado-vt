@@ -789,6 +789,7 @@ abspath
 accelgroup
 AccessorBase
 ACK
+acpi
 actiongroup
 addrs
 addxxx
@@ -1187,6 +1188,7 @@ humanmonitors
 hvm
 hwaddr
 hwtype
+hyperv
 hypervisors
 IB
 ibm
@@ -1808,6 +1810,7 @@ statematch
 staticmethod
 statm
 statvfs
+stimer
 stoped
 stor
 storable

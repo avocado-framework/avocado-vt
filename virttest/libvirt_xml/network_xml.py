@@ -667,6 +667,10 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         elif isinstance(item, dict):
             ip = IPXML()
             ip.setup_attrs(**item)
+            # To deal with ipv6, which should not have netmask attribute which
+            # is configured by default when being init()
+            if item.get('family') == 'ipv6':
+                ip.del_netmask()
             return 'ip', ip
         else:
             raise xcepts.LibvirtXMLError("Expected a list of IPXML "

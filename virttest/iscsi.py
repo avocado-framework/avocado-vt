@@ -26,8 +26,6 @@ from virttest.staging import service
 
 LOG = logging.getLogger('avocado.' + __name__)
 
-ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
-
 
 def get_image_filename(portal, target, lun=0, user=None, password=None):
     """
@@ -38,24 +36,6 @@ def get_image_filename(portal, target, lun=0, user=None, password=None):
     auth = '{user}:{password}@'.format(
         user=user, password=password) if user and password else ''
     return uri.format(auth=auth, portal=portal, target=target, lun=lun)
-
-
-def restart_iscsid(reset_failed=True):
-    """
-    Restart iscsid service.
-    """
-    path.find_command('iscsid')
-    iscsid = service.Factory.create_service('iscsid')
-    if reset_failed:
-        iscsid.reset_failed()
-    if not iscsid.restart():
-        return False
-    else:
-        # Make sure exist connection is operational after recovery
-        process.run('iscsiadm -m node --rescan', timeout=30,
-                    verbose=False, ignore_status=True,
-                    shell=True)
-        return True
 
 
 def restart_tgtd(reset_failed=True):
@@ -286,21 +266,6 @@ class _IscsiComm(object):
         return bool(re.findall("%s$" % self.target,
                                iscsi_discover(self.portal_ip), re.M))
 
-    def set_initiatorName(self, id, name):
-        """
-        back up and set up the InitiatorName
-        """
-        if os.path.isfile("%s" % ISCSI_CONFIG_FILE):
-            LOG.debug("Try to update iscsi initiatorname")
-            # Don't override the backup file
-            if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
-                cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
-                process.system(cmd)
-            fd = open(ISCSI_CONFIG_FILE, 'w')
-            fd.write("InitiatorName=%s" % name)
-            fd.close()
-            restart_iscsid()
-
     def login(self):
         """
         Login session for both real iscsi device and emulated iscsi.
@@ -309,17 +274,10 @@ class _IscsiComm(object):
         login_flag = False
         if self.portal_visible():
             login_flag = True
-        elif self.initiator:
-
-            self.set_initiatorName(id=self.id, name=self.initiator)
-            if self.portal_visible():
-                login_flag = True
         elif self.emulated_image:
             self.export_target()
             # If both iSCSI server and iSCSI client are on localhost.
             # It's necessary to set up the InitiatorName.
-            if "127.0.0.1" in self.portal_ip:
-                self.set_initiatorName(id=self.id, name=self.target)
             if self.portal_visible():
                 login_flag = True
 
@@ -377,10 +335,6 @@ class _IscsiComm(object):
         """
         self.logout()
         iscsi_node_del(self.target)
-        if os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, self.id)):
-            cmd = "mv %s-%s %s" % (ISCSI_CONFIG_FILE, self.id, ISCSI_CONFIG_FILE)
-            process.system(cmd)
-            restart_iscsid()
         if self.export_flag:
             self.delete_target()
         if confirmed:
@@ -448,15 +402,6 @@ class IscsiTGT(_IscsiComm):
         # Check the new add account exist
         if self.chap_user not in self.get_chap_accounts():
             LOG.error("Can't find account %s" % self.chap_user)
-
-    def delete_chap_account(self):
-        """
-        Delete the CHAP authentication account
-        """
-        if self.chap_user in self.get_chap_accounts():
-            cmd = "tgtadm --lld iscsi --op delete --mode account"
-            cmd += " --user %s" % self.chap_user
-            process.system(cmd)
 
     def get_target_account_info(self):
         """
@@ -629,45 +574,6 @@ class IscsiLIO(_IscsiComm):
                         target = None
         return target
 
-    def set_chap_acls_target(self):
-        """
-        set CHAP(acls) authentication on a target.
-        it will require authentication
-        before an initiator is allowed to log in and access devices.
-
-        notice:
-            Individual ACL entries override common TPG Authentication,
-            which can be set by set_chap_auth_target().
-        """
-        # Enable ACL nodes
-        acls_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
-        attr_cmd = "set attribute generate_node_acls=0"
-        process.system(acls_cmd + attr_cmd)
-
-        # Create user and allow access
-        acls_cmd = ("targetcli /iscsi/%s/tpg1/acls/ create %s:client"
-                    % (self.target, self.target.split(":")[0]))
-        output = process.run(acls_cmd).stdout_text
-        if "Created Node ACL" not in output:
-            raise exceptions.TestFail("Failed to create ACL. (%s)" % output)
-
-        comm_cmd = ("targetcli /iscsi/%s/tpg1/acls/%s:client/"
-                    % (self.target, self.target.split(":")[0]))
-        # Set userid
-        userid_cmd = "%s set auth userid=%s" % (comm_cmd, self.chap_user)
-        output = process.run(userid_cmd).stdout_text
-        if self.chap_user not in output:
-            raise exceptions.TestFail("Failed to set user. (%s)" % output)
-
-        # Set password
-        passwd_cmd = "%s set auth password=%s" % (comm_cmd, self.chap_passwd)
-        output = process.run(passwd_cmd).stdout_text
-        if self.chap_passwd not in output:
-            raise exceptions.TestFail("Failed to set password. (%s)" % output)
-
-        # Save configuration
-        process.system("targetcli / saveconfig")
-
     def set_chap_auth_target(self):
         """
         set up authentication information for every single initiator,
@@ -832,9 +738,6 @@ class IscsiLIO(_IscsiComm):
 
         # Save configuration
         process.system("targetcli / saveconfig")
-
-        # Restart iSCSI service
-        restart_iscsid()
 
     def delete_target(self):
         """

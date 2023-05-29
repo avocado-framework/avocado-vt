@@ -3722,31 +3722,37 @@ def get_linux_ifname(session, mac_address=""):
                                "mac %s" % mac_address)
 
 
-def get_linux_iface_info(mac, session=None):
+def get_linux_iface_info(iface='', mac=None, session=None):
     """
-    Get host/guest info of certain interface with given mac address.
+    Get host/guest info of certain interface with given mac address or
+    interface name.
 
-    :param mac: string type, mac address of given interface
-    :param session: session of given vm, default to None
+    :param iface: string type, name of given interface, defaults to ''
+    :param mac: string type, mac address of given interface, defaults to None
+    :param session: session of given vm, defaults to None
     :return: dict-type info of interface, None if not get any
     """
-    ip_cmd = 'ip -json a'
+    ip_cmd = f'ip -json addr show {iface}'
+    run_func = session.cmd_output if session else process.getoutput
 
     try:
-        if session:
-            ip_output_str = session.cmd_output(ip_cmd).strip()
-        else:
-            ip_output_str = process.run(ip_cmd).stdout_text.strip()
+        ip_output_str = run_func(ip_cmd).strip()
         ip_info = json.loads(ip_output_str)
-        LOG.debug('interfaces inside vm:\n %s', ip_info)
+        LOG.debug(f'Interface info {iface}:\n{ip_info}')
     except Exception as why:
-        LOG.error('Failed to get interfaces inside vm. Reason: %s', str(why))
+        LOG.error(f'Failed to get interface info via "ip" command. '
+                  f'Reason: {str(why)}')
         return None
 
-    for iface in ip_info:
-        if iface.get('address') == mac:
-            return iface
-    return None
+    if mac:
+        for iface in ip_info:
+            if iface.get('address') == mac:
+                return iface
+        return None
+    if iface:
+        return ip_info[0]
+    else:
+        return ip_info
 
 
 def update_mac_ip_address(vm, timeout=240):
@@ -3886,25 +3892,36 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_default_gateway(iface_name=False, session=None):
+def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
+                        force_dhcp=False):
     """
     Get the Default Gateway or Interface of host or guest.
 
     :param iface_name: Whether default interface (True), or default gateway
-                       (False) is returned.
-    :return: A string of the host's or guest's default gateway or interface.
-    :rtype: string
+                        (False) is returned, defaults to False
+    :param session: shell/console session if any, defaults to None
+    :param ip_ver: ip version, defaults to 'ipv4'
+    :return: default gateway of target iface
     """
-    if iface_name:
-        cmd = "ip route | awk '/default/ { print $5 }'"
+    if ip_ver == 'ipv4':
+        ip_cmd = 'ip route'
+    elif ip_ver == 'ipv6':
+        ip_cmd = 'ip -6 route'
     else:
-        cmd = "ip route | awk '/default/ { print $3 }'"
+        raise ValueError(f'Unrecognized IP version {ip_ver}')
+    if force_dhcp:
+        ip_cmd = ip_cmd + '|grep dhcp'
+    if iface_name:
+        cmd = "%s | awk '/default/ { print $5 }'" % ip_cmd
+    else:
+        cmd = "%s | awk '/default/ { print $3 }'" % ip_cmd
     try:
         if session:
             output = session.cmd_output(cmd).strip()
-            LOG.debug("Guest default gateway is %s" % output)
+            LOG.debug("Guest default gateway is %s", output)
         else:
             output = process.run(cmd, shell=True).stdout_text.rstrip()
+            LOG.debug("Host default gateway is %s", output)
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         LOG.error("Failed to get the default GateWay")
         return None
@@ -4380,6 +4397,7 @@ def get_channel_info(session, interface):
     if s:
         LOG.error("Get channel parameters for vm failed:%s" % o)
         return {}, {}
+    LOG.debug('Channel info:\n%s', o)
     maximum = {}
     current = {}
     # Just for temp
