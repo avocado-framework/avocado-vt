@@ -26,6 +26,7 @@ def get_unprivileged_vm(vm_name, user, passwd, **args):
     params = utils_params.Params()
     params['connect_uri'] = f'qemu+ssh://{user}@localhost/session'
     params['serials'] = args.get('serials', 'serial0')
+    params['status_test_command'] = args.get('status_test_command', 'echo $?')
     params.update(args)
     root_dir = args.get('root_dir', f'/home/{user}/')
     addr_cache = args.get('address_cache', {})
