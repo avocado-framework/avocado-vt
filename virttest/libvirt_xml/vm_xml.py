@@ -3108,7 +3108,7 @@ class VMOSXML(base.LibvirtXMLBase):
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
                  'nvram_attrs', 'nvram_source', 'secure', 'bootmenu_timeout',
-                 'os_firmware', 'firmware')
+                 'os_firmware', 'firmware', 'loader_stateless')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -3150,6 +3150,8 @@ class VMOSXML(base.LibvirtXMLBase):
                                tag_name='loader', attribute='readonly')
         accessors.XMLAttribute('loader_type', self, parent_xpath='/',
                                tag_name='loader', attribute='type')
+        accessors.XMLAttribute('loader_stateless', self, parent_xpath='/',
+                               tag_name='loader', attribute='stateless')
         accessors.XMLElementText('nvram', self, parent_xpath='/',
                                  tag_name='nvram')
         accessors.XMLElementDict('nvram_attrs', self, parent_xpath='/',
