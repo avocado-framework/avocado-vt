@@ -1089,9 +1089,13 @@ class DevContainer(object):
                 pflash_code_filename = params[firmware_name + "_code_filename"]
                 pflash_code_path = os.path.join(firmware_path,
                                                 pflash_code_filename)
+                pflash_code_format = utils_misc.get_image_info(
+                    pflash_code_path)["format"]
                 pflash_vars_filename = params[firmware_name + "_vars_filename"]
                 pflash_vars_src_path = os.path.join(firmware_path,
                                                     pflash_vars_filename)
+                pflash_vars_format = utils_misc.get_image_info(
+                    pflash_vars_src_path)["format"]
 
                 # To ignore the influence from backends
                 first_image = images[0]
@@ -1101,17 +1105,20 @@ class DevContainer(object):
                                                current_data_dir, first_image)
                 img_info = json.loads(img_obj.info(True, "json"))
                 if img_obj.is_remote_image():
-                    pflash_vars_name = "%s_%s_%s_%s_VARS.fd" % \
-                        (self.vmname, params['guest_name'],
-                         params['image_backend'], img_info.get("format"))
+                    pflash_vars_name = (f"{self.vmname}_"
+                                        f"{params['guest_name']}_"
+                                        f"{params['image_backend']}_"
+                                        f"{img_info.get('format')}_"
+                                        f"VARS.{pflash_vars_format}")
                     pflash_vars_path = os.path.join(current_data_dir,
                                                     pflash_vars_name)
                 else:
                     img_path, img_name = os.path.split(img_info.get("filename"))
 
-                    pflash_vars_name = "%s_%s_%s_VARS.fd" % \
-                        (self.vmname, '_'.join(img_name.split(".")),
-                         params['image_backend'])
+                    pflash_vars_name = (f"{self.vmname}_"
+                                        f"{'_'.join(img_name.split('.'))}_"
+                                        f"{params['image_backend']}_"
+                                        f"VARS.{pflash_vars_format}")
                     pflash_vars_path = os.path.join(img_path,
                                                     pflash_vars_name)
                     if not os.access(pflash_vars_path, os.W_OK):
@@ -1123,9 +1130,17 @@ class DevContainer(object):
 
                 pflash0, pflash1 = (firmware_name + '_code',
                                     firmware_name + '_vars')
+                # Firmware code file
                 if Flags.BLOCKDEV in self.caps:
                     protocol_pflash0 = qdevices.QBlockdevProtocolFile(pflash0)
-                    format_pflash0 = qdevices.QBlockdevFormatRaw(pflash0)
+                    if pflash_code_format == "raw":
+                        format_pflash0 = qdevices.QBlockdevFormatRaw(pflash0)
+                    elif pflash_code_format == "qcow2":
+                        format_pflash0 = qdevices.QBlockdevFormatQcow2(pflash0)
+                    else:
+                        raise NotImplementedError(
+                            f"pflash does not support {pflash_code_format} "
+                            f"format firmware code file yet.")
                     format_pflash0.add_child_node(protocol_pflash0)
                     protocol_pflash0.set_param("driver", "file")
                     protocol_pflash0.set_param("filename", pflash_code_path)
@@ -1139,15 +1154,24 @@ class DevContainer(object):
                 else:
                     devs.append(qdevices.QDrive(pflash0, use_device=False))
                     devs[-1].set_param("if", "pflash")
-                    devs[-1].set_param("format", "raw")
+                    devs[-1].set_param("format", pflash_code_format)
                     devs[-1].set_param("readonly", "on")
                     devs[-1].set_param("file", pflash_code_path)
                 if (not os.path.exists(pflash_vars_path) or
                         params.get("restore_%s_vars" % firmware_name) == "yes"):
                     shutil.copy2(pflash_vars_src_path, pflash_vars_path)
+
+                # Firmware vars file
                 if Flags.BLOCKDEV in self.caps:
                     protocol_pflash1 = qdevices.QBlockdevProtocolFile(pflash1)
-                    format_pflash1 = qdevices.QBlockdevFormatRaw(pflash1)
+                    if pflash_vars_format == "raw":
+                        format_pflash1 = qdevices.QBlockdevFormatRaw(pflash1)
+                    elif pflash_vars_format == "qcow2":
+                        format_pflash1 = qdevices.QBlockdevFormatQcow2(pflash1)
+                    else:
+                        raise NotImplementedError(
+                            f"pflash does not support {pflash_vars_format} "
+                            f"format firmware vars file yet.")
                     format_pflash1.add_child_node(protocol_pflash1)
                     protocol_pflash1.set_param("driver", "file")
                     protocol_pflash1.set_param("filename", pflash_vars_path)
@@ -1161,7 +1185,7 @@ class DevContainer(object):
                 else:
                     devs.append(qdevices.QDrive(pflash1, use_device=False))
                     devs[-1].set_param("if", "pflash")
-                    devs[-1].set_param("format", "raw")
+                    devs[-1].set_param("format", pflash_vars_format)
                     devs[-1].set_param("file", pflash_vars_path)
 
             return devs, machine_cmd
