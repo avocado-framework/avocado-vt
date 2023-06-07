@@ -9,6 +9,8 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
+from virttest.staging import utils_memory
+
 LOG = logging.getLogger('avocado.' + __name__)
 
 
@@ -54,3 +56,16 @@ def normalize_mem_size(mem_size, mem_unit):
         raise exceptions.TestError(e)
 
     return int(mem_size * 1024 ** mem_unit_idx)
+
+
+def consume_vm_freememory(vm_session):
+    """
+    Verify the free memory of the vm can be consumed normally
+
+    :param vm_session: vm session
+    """
+    vm_session.cmd_status('swapoff -a')
+    free_mem = utils_memory.freememtotal(vm_session)
+    cmd = 'memhog %dk' % (free_mem - 100000)
+    status, stdout = vm_session.cmd_status_output(cmd, timeout=60)
+    return (status, stdout)
