@@ -279,7 +279,7 @@ class HugePageConfig(object):
         self.max_vms = int(params.get("max_vms", 0))
         self.qemu_overhead = int(params.get("hugepages_qemu_overhead", 128))
         self.deallocate = params.get("hugepages_deallocate", "yes") == "yes"
-        self.hugepage_path = '/mnt/kvm_hugepage'
+        self.hugepage_path = params.get("hugepage_path", "/mnt/kvm_hugepage")
         self.kernel_hp_file = params.get("kernel_hp_file", "/proc/sys/vm/nr_hugepages")
         if not os.path.exists(self.kernel_hp_file):
             raise exceptions.TestSkipError("Hugepage config file is not found: "
