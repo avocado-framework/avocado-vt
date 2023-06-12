@@ -45,7 +45,7 @@ ARCH = platform.machine()
 CPU_TYPES = {"AuthenticAMD": ["EPYC-Milan", "EPYC-Rome", "EPYC", "Opteron_G5",
                               "Opteron_G4", "Opteron_G3", "Opteron_G2",
                               "Opteron_G1"],
-             "GenuineIntel": ["Snowridge", "Cooperlake",
+             "GenuineIntel": ["SapphireRapids", "Snowridge", "Cooperlake",
                               "Icelake-Server", "Icelake-Server-noTSX",
                               "Icelake-Client", "Icelake-Client-noTSX",
                               "Cascadelake-Server", "Cascadelake-Server-noTSX",
@@ -64,6 +64,9 @@ CPU_TYPES_RE = {"EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
                 "Opteron_G3": "cx16,sse4a",
                 "Opteron_G2": "cx16",
                 "Opteron_G1": "",
+                "SapphireRapids": ("serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+                                   "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+                                   "avx512_fp16"),
                 "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote",
                 "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
                 "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
