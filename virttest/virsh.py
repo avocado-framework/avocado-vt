@@ -3325,6 +3325,19 @@ def domblklist(name, options=None, **dargs):
     return command(cmd, **dargs)
 
 
+def domhostname(name, options='', **dargs):
+    """
+    Get the domain hostname
+
+    :param name: name of domain
+    :param options: options of domifaddr
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+
+    return command('domhostname %s %s' % (name, options), **dargs)
+
+
 def domiflist(name, options='', extra='', **dargs):
     """
     Get the domain network devices
