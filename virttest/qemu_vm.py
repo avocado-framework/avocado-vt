@@ -1273,7 +1273,9 @@ class VM(virt_vm.BaseVM):
             """Add primary vga device."""
             fallback = params.get("vga_use_legacy_expression") == "yes"
             machine_type = params.get("machine_type", '')
-            parent_bus = self._get_bus(params, 'vga')
+            pcie = (machine_type.startswith("q35") or
+                    machine_type.startswith("arm64-pci"))
+            parent_bus = self._get_bus(params, 'vga', pcie)
             vga_dev_map = {
                 "std": "VGA",
                 "cirrus": "cirrus-vga",
