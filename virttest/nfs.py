@@ -96,7 +96,7 @@ class Exportfs(object):
         ori_exported = self.ori_exported or nfs_exported(session=self.session)
         if self.is_exported():
             exported_options = ori_exported[self.entry_tag]
-            options = [_ for _ in self.options if _ not in exported_options]
+            options = [_ for _ in self.options if _ not in exported_options.split(',')]
             if options:
                 self.ori_options = exported_options
                 return True
