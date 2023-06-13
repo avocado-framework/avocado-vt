@@ -3864,8 +3864,11 @@ def check_logfile(search_str, log_file, str_in_log=True,
         return True
 
 
-def check_qemu_cmd_line(content, err_ignore=False,
-                        remote_params=None, runner_on_target=None):
+def check_qemu_cmd_line(content,
+                        err_ignore=False,
+                        remote_params=None,
+                        runner_on_target=None,
+                        expect_exist=True):
     """
     Check the specified content in the qemu command line
     :param content: the desired string to search
@@ -3873,6 +3876,8 @@ def check_qemu_cmd_line(content, err_ignore=False,
                        False to raise exception when fail
     :param remote_params: The params for remote executing
     :param runner_on_target:  Remote runner
+    :param expect_exist: bool, True to expect the content exist
+                               Otherwise False
     :return: True if exist, False otherwise
     """
     cmd = 'pgrep -a qemu'
@@ -3881,15 +3886,19 @@ def check_qemu_cmd_line(content, err_ignore=False,
     else:
         cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)
         qemu_line = cmd_result.stdout
-    if re.search(r'%s' % content, qemu_line):
-        LOG.info("Expected '%s' was found in qemu command line" % content)
-    else:
+    search_result = True if re.search(r'%s' % content, qemu_line) else False
+    if search_result ^ expect_exist:
         if err_ignore:
             return False
         else:
-            raise exceptions.TestFail("Expected '%s' was NOT found in "
-                                      "qemu command line" % content)
-    return True
+            raise exceptions.TestFail("Expecting '%s' does%s "
+                                      "exist in qemu command line, "
+                                      "but %sfound" % (content,
+                                                       '' if expect_exist else ' not',
+                                                       ' not' if expect_exist else ''))
+    else:
+        LOG.info("Qemu command line check for '%s': PASS", content)
+        return True
 
 
 def check_cmd_output(cmd, content, err_ignore=False, session=None):
