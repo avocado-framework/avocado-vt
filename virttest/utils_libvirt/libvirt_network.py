@@ -120,7 +120,7 @@ def check_established(params):
             cmdRes = remote.run_remote_cmd(cmd, params)
 
         if expected_network_conn_num:
-            pat_str = r'.*%s:.*ESTABLISHED.*%s.*' % (server_ip, service_to_check)
+            pat_str = r'.*%s:%s.*ESTABLISHED.*%s.*' % (server_ip, port_to_check, service_to_check)
             findall = re.findall(pat_str, cmdRes.stdout_text.strip())
             if len(findall) != int(expected_network_conn_num):
                 raise exceptions.TestFail("Failed to check network connection between "
