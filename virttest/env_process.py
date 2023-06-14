@@ -1079,7 +1079,7 @@ def preprocess(test, params, env):
             if selinux_local:
                 params['set_sebool_local'] = "yes"
                 params['local_boolean_varible'] = "virt_use_nfs"
-                params['local_boolean_value'] = "on"
+                params['local_boolean_value'] = params.get("local_boolean_value", "on")
         # configure selinux on remote host to permit migration
         if migration_setup:
             cmd = "cat /etc/os-release | grep '^PRETTY_NAME'"
