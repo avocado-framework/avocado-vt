@@ -3084,7 +3084,8 @@ class KSMController(object):
         Verify whether ksm is running.
         """
         if self.interface == "sysfs":
-            running = process.run("cat %s" % self.ksm_params["run"]).stdout_text
+            running = process.run(
+                "cat %s" % self.ksm_params["run"]).stdout_text.strip()
         else:
             output = process.run("ksmctl info").stdout_text
             try:
