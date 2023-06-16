@@ -74,7 +74,7 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text):
             matches = vmxml.xmltreefile.findall(one_elem_attr)
             if not matches:
                 raise exceptions.TestFail("XML did not match xpath: %s" % one_elem_attr)
-            if elem_text and any([x for x in matches if x.text != elem_text]):
+            if elem_text and any([True for x in matches if x.text != elem_text]):
                 raise exceptions.TestFail("XML did not match text '%s' "
                                           "for the xpath '%s'" % (elem_text,
                                                                   one_elem_attr))
