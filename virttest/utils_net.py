@@ -3737,8 +3737,8 @@ def get_linux_iface_info(iface='', mac=None, session=None):
 
     try:
         ip_output_str = run_func(ip_cmd).strip()
+        LOG.debug(f'Interface info {iface}:\n{ip_output_str}')
         ip_info = json.loads(ip_output_str)
-        LOG.debug(f'Interface info {iface}:\n{ip_info}')
     except Exception as why:
         LOG.error(f'Failed to get interface info via "ip" command. '
                   f'Reason: {str(why)}')
