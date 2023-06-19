@@ -538,7 +538,7 @@ class VMManager(object):
         ssh_copy_id = f"ssh-copy-id {ssh_opts} -i {pub_key} {username}@{ip}"
         session.sendline(ssh_copy_id)
 
-        handle_prompts(session, username, password, r"[\#\$]\s*$", debug=True)
+        handle_prompts(session, username, password, r"[\#\$]\s*$", timeout=30, debug=True)
 
     def setup_ssh_auth(self):
         """
