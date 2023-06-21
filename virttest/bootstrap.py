@@ -51,7 +51,7 @@ mandatory_programs = {'qemu': basic_program_requirements + ['gcc'],
                                                                  'virt-manager',
                                                                  'virt-xml']}
 
-mandatory_headers = {'qemu': ['Python.h', 'types.h', 'socket.h', 'unistd.h'],
+mandatory_headers = {'qemu': [],
                      'spice': [],
                      'libvirt': [],
                      'openvswitch': [],

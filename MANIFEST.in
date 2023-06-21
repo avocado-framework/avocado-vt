@@ -1,7 +1,6 @@
 include LICENSE
 include README.rst
 include VERSION
-include virttest/passfd.c
 recursive-include avocado_vt/conf.d *
 recursive-include virttest/test-providers.d *
 recursive-include virttest/backends *

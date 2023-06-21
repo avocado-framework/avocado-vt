@@ -297,7 +297,6 @@ with experience. Some notes:
     gdb
     iasl
     libvirt
-    python-devel
     ntpdate
     gstreamer-plugins-good
     gstreamer-python

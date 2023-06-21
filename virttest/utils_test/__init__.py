@@ -942,7 +942,7 @@ class AvocadoGuest(object):
         self.prerequisites = {'packages': ['git'],
                               'python': ['python', 'python-pip', 'python-devel'],
                               'python2': ['python2', 'python2-pip', 'python2-devel'],
-                              'python3': ['python3', 'python3-pip', 'python3-devel']}
+                              'python3': ['python3', 'python3-pip']}
         if self.avocado_vt:
             self.vt_type = self.params.get("vt_type", "qemu")
             self.vt_arch = self.params.get("vt_arch", "")
