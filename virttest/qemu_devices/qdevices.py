@@ -3404,3 +3404,18 @@ class QUnixSocketBus(QSparseBus):
     def _update_device_props(self, device, addr):
         """Update device properties."""
         self._set_device_props(device, addr)
+
+
+class QMachine(QCustomDevice):
+
+    def __init__(self, params=None, aobject=None, parent_bus=None,
+                 child_bus=None):
+        super(QMachine, self).__init__("machine", params=params,
+                                       aobject=aobject, parent_bus=parent_bus,
+                                       child_bus=child_bus, backend="type")
+
+    def _cmdline_raw(self):
+        if not self.params:
+            # -machine allows empty line
+            return ""
+        return super()._cmdline_raw()
