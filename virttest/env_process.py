@@ -9,10 +9,6 @@ import shutil
 import sys
 import copy
 import multiprocessing
-try:
-    from urllib.request import ProxyHandler, build_opener, install_opener
-except ImportError:
-    from urllib2 import ProxyHandler, build_opener, install_opener
 
 import aexpect
 from aexpect import remote
@@ -56,6 +52,8 @@ from virttest.utils_version import VersionInterval
 from virttest.staging import service
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.os_posix import UlimitConfig
+from virttest.test_setup.networking import NetworkProxies
+
 
 try:
     import PIL.Image
@@ -999,17 +997,8 @@ def preprocess(test, params, env):
 
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(UlimitConfig)
+    _setup_manager.register(NetworkProxies)
     _setup_manager.do_setup()
-
-    # enable network proxies setting in urllib2
-    if params.get("network_proxies"):
-        proxies = {}
-        for proxy in re.split(r"[,;]\s*", params["network_proxies"]):
-            proxy = dict([re.split(r"_proxy:\s*", proxy)])
-            proxies.update(proxy)
-        handler = ProxyHandler(proxies)
-        opener = build_opener(handler)
-        install_opener(opener)
 
     vm_type = params.get('vm_type')
 
