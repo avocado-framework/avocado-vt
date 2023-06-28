@@ -297,7 +297,11 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
                                         "selector = '%s'" %
                                         (re_name, matching_images,
                                          indirect_image_select))
-        for protected in params.get('indirect_image_blacklist', '').split(' '):
+        indirect_image_blacklist = params.get('indirect_image_blacklist', '').split(' ')
+        for disk in params.get('indirect_image_blacklist', '').split(' '):
+            if re.search(disk, image_name):
+                indirect_image_blacklist.remove(disk)
+        for protected in indirect_image_blacklist:
             match_image = re.match(protected, image_name)
             if match_image and match_image.group(0) == image_name:
                 # We just need raise an error if it is totally match, such as
