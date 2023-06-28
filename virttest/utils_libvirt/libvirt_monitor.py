@@ -103,26 +103,26 @@ def check_domjobinfo_output(params):
             raise exceptions.TestFail("Missing item: {}".format(domjobinfo))
 
     vm_name = params.get("main_vm")
-    expected_domjobinfo = eval(params.get("expected_domjobinfo"))
-    expected_domjobinfo_complete = eval(params.get("expected_domjobinfo_complete"))
+    expected_domjobinfo = eval(params.get("expected_domjobinfo", '{}'))
+    expected_domjobinfo_complete = eval(params.get("expected_domjobinfo_complete", '{}'))
     options = params.get("domjobinfo_options", "")
     postcopy_options = params.get("postcopy_options")
     remote_ip = params.get("server_ip")
 
     ret_domjobinfo = None
     LOG.info("Check domjobinfo output.")
-    if "src_items" in expected_domjobinfo:
+    if expected_domjobinfo and "src_items" in expected_domjobinfo:
         virsh_args = {"debug": True, "ignore_status": True}
         ret_domjobinfo = virsh.domjobinfo(vm_name, options, **virsh_args)
-        if "--completed" in options:
+        if "--completed" in options and expected_domjobinfo_complete:
             check_domjobinfo_items(expected_domjobinfo_complete["src_items"])
         else:
             check_domjobinfo_items(expected_domjobinfo["src_items"])
-    if "dest_items" in expected_domjobinfo:
+    if expected_domjobinfo and "dest_items" in expected_domjobinfo:
         dest_uri = "qemu+ssh://%s/system" % remote_ip
         virsh_args = {"debug": True, "ignore_status": True, "uri": dest_uri}
         ret_domjobinfo = virsh.domjobinfo(vm_name, options, **virsh_args)
-        if "--completed" in options:
+        if "--completed" in options and expected_domjobinfo_complete:
             check_domjobinfo_items(expected_domjobinfo_complete["dest_items"])
         else:
             check_domjobinfo_items(expected_domjobinfo["dest_items"])
