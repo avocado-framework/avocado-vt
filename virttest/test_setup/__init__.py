@@ -556,6 +556,8 @@ class HugePageConfig(object):
                 msg = "Can't read/write from kernel hugepage file"
                 raise exceptions.TestSetupFail(msg)
             if loop_hp == hp:
+                if loop_hp > 0:
+                    self.cleanup()
                 raise ValueError("Cannot set the kernel hugepage setting "
                                  "to the target value of %d hugepages." %
                                  self.target_hugepages)
