@@ -132,6 +132,10 @@ class MigrationTest(object):
             func = exceptions.TestFail
             uri_backup = vm.connect_uri
             vm.connect_uri = uri
+            vm.cleanup_serial_console()
+            vm.create_serial_console()
+            utils_net.update_mac_ip_address(vm, timeout=120)
+            vm.cleanup_serial_console()
             server_session = test_setup.remote_session(params)
             # after migration VM would take some time to respond and to
             # avoid the race of framework querying IP address before VM
