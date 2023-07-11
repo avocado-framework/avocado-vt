@@ -640,7 +640,7 @@ class KSMConfig(object):
         if self.run == "yes":
             self.run = "1"
         elif self.run == "no":
-            self.run == "0"
+            self.run = "0"
 
         # Get KSM module status if there is one
         self.ksmctler = utils_misc.KSMController()
@@ -697,6 +697,12 @@ class KSMConfig(object):
             # ksmtuned used to run in host. Start the process
             # and don't need set up the configures.
             self.ksmctler.start_ksmtuned()
+            # Ensure ksm it not enabled before return
+            if not wait.wait_for(lambda: not self.ksmctler.is_ksm_running(),
+                                 timeout=120, step=5,
+                                 text="Waiting for ksm to be disabled"):
+                LOG.warning("KSM is still running, subsequent test may not "
+                            "work as expected")
             return
 
         if default_status == self.default_status:
