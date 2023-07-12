@@ -424,8 +424,10 @@ def check_image(test, params, image_name, vm_process_status=None):
     """
     clone_master = params.get("clone_master", None)
     base_dir = data_dir.get_data_dir()
-    image = qemu_storage.QemuImg(params, base_dir, image_name)
     check_image_flag = params.get("check_image") == "yes"
+    if not check_image_flag:
+        return
+    image = qemu_storage.QemuImg(params, base_dir, image_name)
 
     if vm_process_status == "running" and check_image_flag:
         if params.get("skip_image_check_during_running") == "yes":
@@ -498,9 +500,11 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     restored, removed = (False, False)
     clone_master = params.get("clone_master", None)
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
-    image = qemu_storage.QemuImg(params, base_dir, image_name)
+    image = None
 
     if params.get("img_check_failed") == "yes":
+        image = qemu_storage.QemuImg(params, base_dir,
+                                     image_name) if not image else image
         if params.get("restore_image_on_check_error", "no") == "yes":
             image.backup_image(params, base_dir, "restore", True)
             restored = True
@@ -511,17 +515,25 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
         # example for this is when 'unattended_install' is run.
         if (params.get("backup_image_after_testing_passed", "no") == "yes" and
                 params.get("test_passed") == "True"):
+            image = qemu_storage.QemuImg(params, base_dir,
+                                         image_name) if not image else image
             image.backup_image(params, base_dir, "backup", True)
 
     if (not restored and params.get("restore_image", "no") == "yes"):
+        image = qemu_storage.QemuImg(params, base_dir,
+                                     image_name) if not image else image
         image.backup_image(params, base_dir, "restore", True)
         restored = True
 
     if (not restored and
             params.get("restore_image_after_testing", "no") == "yes"):
+        image = qemu_storage.QemuImg(params, base_dir,
+                                     image_name) if not image else image
         image.backup_image(params, base_dir, "restore", True)
 
     if params.get("img_check_failed") == "yes":
+        image = qemu_storage.QemuImg(params, base_dir,
+                                     image_name) if not image else image
         if params.get("remove_image_on_check_error", "no") == "yes":
             cl_images = params.get("master_images_clone", "")
             if image_name in cl_images.split():
@@ -529,6 +541,8 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                 removed = True
 
     if (not removed and params.get("remove_image", "yes") == "yes"):
+        image = qemu_storage.QemuImg(params, base_dir,
+                                     image_name) if not image else image
         LOG.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
             image.remove()
