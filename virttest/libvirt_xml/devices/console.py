@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices.character import CharacterBase
 class Console(CharacterBase):
 
     __slots__ = ('protocol_type', 'target_port', 'target_type', 'sources',
-                 'alias')
+                 'alias', 'log')
 
     def __init__(self, type_name='pty', virsh_instance=base.virsh):
         accessors.XMLAttribute('protocol_type', self, parent_xpath='/',
@@ -26,6 +26,8 @@ class Console(CharacterBase):
                                  has_subclass=True)
         accessors.XMLElementDict('alias', self, parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLElementDict('log', self, parent_xpath='/',
+                                 tag_name='log')
         super(
             Console, self).__init__(device_tag='console', type_name=type_name,
                                     virsh_instance=virsh_instance)
