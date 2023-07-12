@@ -31,6 +31,7 @@ from virttest import lvm
 from virttest import ceph
 from virttest import nvme
 from virttest import data_dir
+from virttest import vdpa_blk
 
 LOG = logging.getLogger('avocado.' + __name__)
 
@@ -182,6 +183,8 @@ def get_image_filename(params, root_dir, basename=False):
     storage_type = params.get("storage_type")
     if image_name:
         image_format = params.get("image_format", "qcow2")
+        if storage_type == "vhost-vdpa":
+            return vdpa_blk.get_image_filename(image_name)
         if enable_curl:
             # required libcurl params
             curl_protocol = params['curl_protocol']
