@@ -920,6 +920,11 @@ class QBlockdevProtocol(QBlockdevNode):
         super(QBlockdevProtocol, self).__init__(aobject, None, False)
 
 
+class QBlockdevProtocolVirtioBlkVhostVdpa(QBlockdevProtocol):
+    """ New a protocol virtio-blk-vhost-vdpa blockdev node. """
+    TYPE = 'virtio-blk-vhost-vdpa'
+
+
 class QBlockdevProtocolFile(QBlockdevProtocol):
     """ New a protocol file blockdev node. """
     TYPE = 'file'
