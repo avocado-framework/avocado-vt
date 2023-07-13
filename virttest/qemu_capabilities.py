@@ -26,6 +26,7 @@ class Flags(object):
     MIGRATION_PARAMS = _auto_value()
     SEV_GUEST = _auto_value()
     TDX_GUEST = _auto_value()
+    FLOPPY_DEVICE = _auto_value()
 
 
 class MigrationParams(object):

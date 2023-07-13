@@ -81,6 +81,7 @@ class DevContainer(object):
     BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
     SMP_DIES_VERSION_SCOPE = '[4.1.0, )'
     SMP_CLUSTERS_VERSION_SCOPE = '[7.0.0, )'
+    FLOPPY_DEVICE_VERSION_SCOPE = '[5.1.0, )'
 
     MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = '[5.1.0, )'
     MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = '[5.1.0, )'
@@ -302,6 +303,9 @@ class DevContainer(object):
         # -object tdx-guest
         if self.has_object('tdx-guest'):
             self.caps.set_flag(Flags.TDX_GUEST)
+        # -device floppy,drive=$drive
+        if self.__qemu_ver in VersionInterval(self.FLOPPY_DEVICE_VERSION_SCOPE):
+            self.caps.set_flag(Flags.FLOPPY_DEVICE)
 
         if (self.has_qmp_cmd('migrate-set-parameters') and
                 self.has_hmp_cmd('migrate_set_parameter')):
@@ -2395,9 +2399,13 @@ class DevContainer(object):
             devices[-1].set_param('port', unit)
             devices[-1].set_param('removable', removable, bool)
         elif fmt == 'floppy':
-            # Overwrite qdevices.QDevice with qdevices.QFloppy
-            devices[-1] = qdevices.QFloppy(unit, 'drive_%s' % name, name,
-                                           ({'busid': 'drive_%s' % name}, {'type': fmt}))
+            if Flags.FLOPPY_DEVICE in self.caps:
+                devices[-1] = qdevices.QDevice('floppy', aobject=name, parent_bus={'busid': 'drive_%s' % name})
+                devices[-1].set_param('unit', unit)
+            else:
+                # Overwrite qdevices.QDevice with qdevices.QFloppy
+                devices[-1] = qdevices.QFloppy(unit, 'drive_%s' % name, name,
+                                               ({'busid': 'drive_%s' % name}, {'type': fmt}))
         else:
             LOG.warn('Using default device handling (disk %s)', name)
             devices[-1].set_param('driver', fmt)
