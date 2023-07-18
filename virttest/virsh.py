@@ -3461,7 +3461,7 @@ def numatune(name, mode=None, nodeset=None, options=None, **dargs):
     """
     cmd = "numatune %s" % name
     if options:
-        cmd += " --%s" % options
+        cmd += " %s" % options
     if mode:
         cmd += " --mode %s" % mode
     if nodeset:
@@ -3925,13 +3925,13 @@ def emulatorpin(name, cpulist=None, options=None, **dargs):
     Control or query domain emulator affinity
     :param name: name of domain
     :param cpulist: a list of physical CPU numbers
-    :param options: options may be live, config and current
+    :param options: options may be --live, --config and --current
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
     cmd = "emulatorpin %s" % name
     if options:
-        cmd += " --%s" % options
+        cmd += " %s" % options
     if cpulist:
         cmd += " --cpulist %s" % cpulist
 
