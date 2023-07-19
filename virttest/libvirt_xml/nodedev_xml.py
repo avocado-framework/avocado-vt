@@ -152,15 +152,41 @@ class MdevXML(CAPXML):
     """
     class for capability whose type is mdev
     """
-    __slots__ = ('type_id', 'uuid')
+    __slots__ = ('type_id', 'uuid', 'attrs')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute('type_id', self, parent_xpath='/',
                                tag_name='type', attribute='id')
         accessors.XMLElementText('uuid', self, parent_xpath='/',
                                  tag_name='uuid')
+        accessors.XMLElementList(property_name='attrs',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_attrs,
+                                 marshal_to=self.marshal_to_attrs,
+                                 has_subclass=False)
         super(MdevXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = (' <capability type=\'mdev\'></capability>')
+
+    @staticmethod
+    def marshal_from_attrs(item, index, libvirtxml):
+        """Convert dictionary to an xml object"""
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of host"
+                                         " attributes, not a %s"
+                                         % str(item))
+        return ('attr', dict(item))
+
+    @staticmethod
+    def marshal_to_attrs(tag, attr_dict, index, libvirtxml):
+        """Convert xml object to a dictionary"""
+        del index
+        del libvirtxml
+        if tag != 'attr':
+            return None
+        return dict(attr_dict)
 
 
 class StorageXML(CAPXML):
@@ -315,7 +341,7 @@ class PCIXML(CAPXML):
         Return the sysfs_subdir in .
 
         Example:
-            pci_bus/0000\:00/device/0000\:00\:00.0/
+            pci_bus/0000:00/device/0000:00:00.0/
         """
         domain = self.domain
         bus = self.bus
