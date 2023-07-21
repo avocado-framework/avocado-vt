@@ -1128,7 +1128,7 @@ def get_first_disk(session=None):
     first_disk = ""
     disks = get_parts_list(session=session)
     for disk in disks:
-        pattern = re.compile('[0-9]+')
+        pattern = re.compile('p[0-9]+') if 'nvme' in disk else re.compile('[0-9]+')
         if not pattern.findall(disk):
             first_disk = disk
             break
