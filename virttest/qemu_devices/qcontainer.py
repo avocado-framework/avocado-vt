@@ -2896,6 +2896,20 @@ class DevContainer(object):
         props = json.loads(group_params.get("throttle_group_parameters", "{}"))
         return QThrottleGroup(name, props)
 
+    def thread_context_define_by_params(self, params, name):
+        """
+        Create thread-context object from params.
+        """
+        tc_params = Params()
+        prefix = 'vm_thread_context_'
+        for key in params:
+            if key.startswith(prefix):
+                new_key = key.rsplit(prefix)[1]
+                tc_params[new_key] = params[key]
+        dev = qdevices.QObject("thread-context", params=tc_params)
+        dev.set_param("id", "%s-%s" % ("thread_context", name))
+        return dev
+
     def memory_object_define_by_params(self, params, name):
         """
         Create memory object from params, default backend type is
