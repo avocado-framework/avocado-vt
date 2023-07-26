@@ -1614,7 +1614,11 @@ class VMXML(VMXMLBase):
         """
         vmxml = VMXML.new_from_inactive_dumpxml(
             vm_name, virsh_instance=virsh_instance)
-        graphic = vmxml.xmltreefile.find('devices').findall('graphics')
+        devices = vmxml.xmltreefile.find('devices')
+        graphic = devices.findall('graphics')
+        if not graphic:
+            graphic = [xml_utils.ElementTree.SubElement(devices, 'graphics')]
+            graphic[0].set('type', 'vnc')
         for key in attr:
             LOG.debug("Set %s='%s'" % (key, attr[key]))
             graphic[index].set(key, attr[key])
