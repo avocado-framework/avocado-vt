@@ -64,12 +64,30 @@ class Uri(object):
         Uri dispatcher.
 
         :param hostname: String with host name.
+        :param vpx_dc: String with vpx data center.
+        :param esx_ip: String with ESX server IP address.
         """
         uri_func = getattr(self, "_get_%s_uri" % self.hyper)
         self.host = hostname
         self.vpx_dc = vpx_dc
         self.esx_ip = esx_ip
         self.username = username if username else 'root'
+        self.vpx_no_username = False
+        return uri_func()
+
+    def get_uri_without_username(self, hostname, vpx_dc=None, esx_ip=None):
+        """
+        Uri dispatcher.
+
+        :param hostname: String with host name.
+        :param vpx_dc: String with vpx data center.
+        :param esx_ip: String with ESX server IP address.
+        """
+        uri_func = getattr(self, "_get_%s_uri" % self.hyper)
+        self.host = hostname
+        self.vpx_dc = vpx_dc
+        self.esx_ip = esx_ip
+        self.vpx_no_username = True
         return uri_func()
 
     def _get_kvm_uri(self):
@@ -92,12 +110,21 @@ class Uri(object):
         """
         uri = ''
         if self.vpx_dc and self.esx_ip:
-            uri = "vpx://%s@%s/%s/%s/?no_verify=1" % (self.username,
-                                                      self.host,
-                                                      self.vpx_dc,
-                                                      self.esx_ip)
+            if self.vpx_no_username:
+                uri = "vpx://%s/%s/%s/?no_verify=1" % (
+                                                       self.host,
+                                                       self.vpx_dc,
+                                                       self.esx_ip)
+            else:
+                uri = "vpx://%s@%s/%s/%s/?no_verify=1" % (self.username,
+                                                          self.host,
+                                                          self.vpx_dc,
+                                                          self.esx_ip)
         if not self.vpx_dc and self.esx_ip:
-            uri = "esx://%s@%s/?no_verify=1" % (self.username, self.esx_ip)
+            if self.vpx_no_username:
+                uri = "esx://%s/?no_verify=1" % (self.esx_ip)
+            else:
+                uri = "esx://%s@%s/?no_verify=1" % (self.username, self.esx_ip)
         return uri
 
     # add new hypervisor in here.
@@ -182,6 +209,7 @@ class Target(object):
         self.input_file = self.params.get('input_file')
         self.new_name = self.params.get('new_name')
         self.username = self.params.get('username', 'root')
+        self.vpx_no_username = self.params.get('vpx_no_username')
         self.vmx_nfs_src = self.params.get('vmx_nfs_src')
         self.has_genid = self.params.get('has_genid')
         # --mac arguments with format as v2v, multiple macs can be
@@ -576,6 +604,7 @@ class VMCheck(object):
         self.os_type = params.get('os_type', 'linux')
         self.target = params.get('target')
         self.username = params.get('vm_user', 'root')
+        self.vpx_no_username = params.get('vpx_no_username')
         self.password = params.get('vm_pwd')
         self.nic_index = params.get('nic_index', 0)
         self.export_name = params.get('export_name')
@@ -1324,6 +1353,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False, shell=Fa
     hostname = params.get('hostname')
     vpx_dc = params.get('vpx_dc')
     esxi_host = params.get('esxi_host', params.get('esx_ip'))
+    vpx_no_username = params.get('vpx_no_username')
     opts_extra = params.get('v2v_opts')
     # Set v2v_cmd_timeout to 5 hours, the value can give v2v enough time to execute,
     # and avoid v2v process be killed by mistake.
@@ -1351,7 +1381,10 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False, shell=Fa
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
     if src_uri_type == 'esx':
         vpx_dc = None
-    uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host, vpx_username)
+    if vpx_no_username:
+        uri = uri_obj.get_uri_without_username(hostname, vpx_dc, esxi_host)
+    else:
+        uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host, vpx_username)
 
     try:
         # Pre-process for v2v
