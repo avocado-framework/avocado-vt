@@ -689,29 +689,7 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
     log = ""
     console_cmd = "cat /proc/cpuinfo"
     try:
-        while True:
-            match, text = session.read_until_last_line_matches(
-                [r"[E|e]scape character is", r"login:",
-                 r"[P|p]assword:", session.prompt],
-                timeout, internal_timeout=1)
-
-            if match == 0:
-                if debug:
-                    LOG.debug("Got '^]', sending '\\n'")
-                session.sendline()
-            elif match == 1:
-                if debug:
-                    LOG.debug("Got 'login:', sending '%s'", user)
-                session.sendline(user)
-            elif match == 2:
-                if debug:
-                    LOG.debug("Got 'Password:', sending '%s'", passwd)
-                session.sendline(passwd)
-            elif match == 3:
-                if debug:
-                    LOG.debug("Got Shell prompt -- logged in")
-                break
-
+        virsh_console_login(session, user, passwd, timeout, debug=debug)
         status, output = session.cmd_status_output(console_cmd)
         LOG.info("output of command:\n%s", output)
         session.close()
@@ -727,6 +705,40 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
         return False
 
     return True
+
+
+def virsh_console_login(session, user, passwd, timeout=10, debug=False):
+    """
+    Login console
+
+    :param session: login session
+    :param user: login user name
+    :param passwd: login user password
+    :param timeout: time out
+    :param debug: Whether to enable debug
+    """
+    while True:
+        match, text = session.read_until_last_line_matches(
+            [r"[E|e]scape character is", r"login:",
+             r"[P|p]assword:", session.prompt],
+            timeout, internal_timeout=1)
+
+        if match == 0:
+            if debug:
+                LOG.debug("Got '^]', sending '\\n'")
+            session.sendline()
+        elif match == 1:
+            if debug:
+                LOG.debug("Got 'login:', sending '%s'", user)
+            session.sendline(user)
+        elif match == 2:
+            if debug:
+                LOG.debug("Got 'Password:', sending '%s'", passwd)
+            session.sendline(passwd)
+        elif match == 3:
+            if debug:
+                LOG.debug("Got Shell prompt -- logged in")
+            break
 
 
 def pci_info_from_address(address_dict, radix=10, type="label"):
