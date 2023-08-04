@@ -56,7 +56,7 @@ class equality_comparator(argument_comparator):
     def _types_match(arg1, arg2):
         if isinstance(arg1, basestring) and isinstance(arg2, basestring):
             return True
-        return type(arg1) == type(arg2)
+        return isinstance(arg1, type(arg2))
 
     @classmethod
     def _compare(cls, actual_arg, expected_arg):
