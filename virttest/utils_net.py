@@ -4342,6 +4342,7 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     cmd = "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"\
           "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
+    process.run('lsmod | grep openvswitch', shell=True, verbose=True, ignore_status=True)
     return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
                                         ignore_status=ignore_status,
                                         session=session)
