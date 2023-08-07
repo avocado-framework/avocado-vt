@@ -164,7 +164,7 @@ class SectionlessConfig(object):
         self[option] = '%s' % float(value)
 
     def set_boolean(self, option, value):
-        if type(value) == str:
+        if isinstance(value, str):
             value = int(value)
         if bool(value):
             self[option] = '1'

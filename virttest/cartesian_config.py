@@ -1275,11 +1275,11 @@ class Lexer(object):
         """
         if end_tokens is None:
             end_tokens = [LEndL]
-        return [x for x in self.get_until_gen(end_tokens) if type(x) != LWhite]
+        return [x for x in self.get_until_gen(end_tokens) if not isinstance(x, LWhite)]
 
     def rest_line_gen(self):
         token = next(self.generator)
-        while type(token) != LEndL:
+        while not isinstance(token, LEndL):
             yield token
             token = next(self.generator)
 
@@ -1287,7 +1287,7 @@ class Lexer(object):
         return [x for x in self.rest_line_gen()]
 
     def rest_line_no_white(self):
-        return [x for x in self.rest_line_gen() if type(x) != LWhite]
+        return [x for x in self.rest_line_gen() if not isinstance(x, LWhite)]
 
     def rest_line_as_LString(self):
         self.rest_as_string = True
@@ -1307,7 +1307,7 @@ class Lexer(object):
 
     def get_next_check_nw(self, lType):
         token = next(self.generator)
-        while type(token) == LWhite:
+        while isinstance(token, LWhite):
             token = next(self.generator)
         if type(token) in lType:
             return type(token), token
@@ -1329,7 +1329,7 @@ class Lexer(object):
 
 def next_nw(gener):
     token = next(gener)
-    while type(token) == LWhite:
+    while isinstance(token, LWhite):
         token = next(gener)
     return token
 
@@ -1410,7 +1410,7 @@ def parse_filter(lexer, tokens):
                                   lexer.linenum)
             dots = 1
             token = next(tokens)
-            while type(token) == LWhite:
+            while isinstance(token, LWhite):
                 token = next(tokens)
             typet, token = lexer.check_token(token, [LIdentifier,
                                                      LComa, LDot,
@@ -1590,7 +1590,7 @@ class Parser(object):
 
                         op.set_operands(identifier, value)
                         d_nin_val = "$" not in value
-                        if type(op) == LSet and d_nin_val:  # Optimization
+                        if isinstance(op, LSet) and d_nin_val:  # Optimization
                             op.apply_to_dict(pre_dict)
                         else:
                             if pre_dict:
@@ -1610,7 +1610,7 @@ class Parser(object):
                                               op)]
                         lexer.get_next_check([LEndL])
 
-                    elif type(identifier[-1]) == LColon:  # condition:
+                    elif isinstance(identifier[-1], LColon):  # condition:
                         # Parse:
                         #    xxx.yyy.(aaa=bbb):
                         identifier = [token] + identifier[:-1]
@@ -1678,13 +1678,13 @@ class Parser(object):
                         else:
                             raw_name = [x for x in name[:-1]]
                             name = [x for x in name[:-1]
-                                    if type(x) == LIdentifier]
+                                    if isinstance(x, LIdentifier)]
 
                         token = next(lexer.generator)
-                        while type(token) == LWhite:
+                        while isinstance(token, LWhite):
                             token = next(lexer.generator)
                         tokens = None
-                        if type(token) != LEndL:
+                        if not isinstance(token, LEndL):
                             tokens = [token] + lexer.get_until([LEndL])
                             deps = parse_filter(lexer, tokens)
                         else:
@@ -1796,7 +1796,7 @@ class Parser(object):
                             elif typet == LSet:  # [xxx = yyyy]
                                 tokens = lexer.get_until_no_white([LRBracket,
                                                                    LEndL])
-                                if type(tokens[-1]) == LRBracket:
+                                if isinstance(tokens[-1], LRBracket):
                                     if ident not in meta:
                                         meta[ident] = []
                                     meta[ident].append(tokens[:-1])
@@ -1812,7 +1812,7 @@ class Parser(object):
 
                     if "default" in meta:
                         for wd in meta["default"]:
-                            if type(wd) != list:
+                            if not isinstance(wd, list):
                                 raise ParserError("Syntax ERROR expected "
                                                   "[default=xxx]",
                                                   lexer.line,

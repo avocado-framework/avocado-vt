@@ -235,7 +235,7 @@ Please check sysinfo directory in autotest result to get more details.
 
         for line in range(len(s1)):
             tmp = []
-            if type(s1[line]) != list:
+            if not isinstance(s1[line], list):
                 tmp = s1[line]
             else:
                 if len(s1[line][0]) < 2:

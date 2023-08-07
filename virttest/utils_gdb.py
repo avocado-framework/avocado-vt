@@ -99,9 +99,9 @@ def _parse_result(result_str):
 
     for key, value_str in _split_result_str(result_str):
         value = _parse_result(value_str)
-        if type(result) == list:
+        if isinstance(result, list):
             result.append((key, value))
-        elif type(result) == dict:
+        elif isinstance(result, dict):
             result[key] = value
 
     return result
