@@ -50,7 +50,7 @@ from virttest.utils_version import VersionInterval
 from virttest.staging import service
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.os_posix import UlimitConfig
-from virttest.test_setup.networking import NetworkProxies
+from virttest.test_setup.networking import NetworkProxies, BridgeConfig
 
 
 # lazy imports for dependencies that are not needed in all modes of use
@@ -1016,6 +1016,7 @@ def preprocess(test, params, env):
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(UlimitConfig)
     _setup_manager.register(NetworkProxies)
+    _setup_manager.register(BridgeConfig)
     _setup_manager.do_setup()
 
     vm_type = params.get('vm_type')
@@ -1033,24 +1034,6 @@ def preprocess(test, params, env):
                                                              log_filters,
                                                              log_permission)
             libvirtd_debug_log.enable()
-
-    setup_pb = False
-    ovs_pb = False
-    for nic in params.get('nics', "").split():
-        nic_params = params.object_params(nic)
-        if nic_params.get('netdst') == 'private':
-            setup_pb = True
-            params_pb = nic_params
-            params['netdst_%s' % nic] = nic_params.get("priv_brname", 'atbr0')
-            if nic_params.get("priv_br_type") == "openvswitch":
-                ovs_pb = True
-
-    if setup_pb:
-        if ovs_pb:
-            brcfg = test_setup.PrivateOvsBridgeConfig(params_pb)
-        else:
-            brcfg = test_setup.PrivateBridgeConfig(params_pb)
-        brcfg.setup()
 
     base_dir = data_dir.get_data_dir()
     if params.get("storage_type") == "iscsi":
@@ -1867,32 +1850,6 @@ def postprocess(test, params, env):
         migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
         if params.get("setup_ssh") == "yes" and params.get("ssh_conn_obj"):
             del params["ssh_conn_obj"]
-
-    setup_pb = False
-    ovs_pb = False
-    for nic in params.get('nics', "").split():
-        nic_params = params.object_params(nic)
-        if params.get('netdst_%s' % nic) == 'private':
-            setup_pb = True
-            params_pb = nic_params
-            break
-    else:
-        setup_pb = params.get("netdst") == 'private'
-        params_pb = params
-
-    if params_pb.get("priv_br_type") == "openvswitch":
-        ovs_pb = True
-
-    if setup_pb:
-        try:
-            if ovs_pb:
-                brcfg = test_setup.PrivateOvsBridgeConfig(params_pb)
-            else:
-                brcfg = test_setup.PrivateBridgeConfig(params_pb)
-            brcfg.cleanup()
-        except Exception as details:
-            err += "\nPB cleanup: %s" % str(details).replace('\\n', '\n  ')
-            LOG.error(details)
 
     if params.get("verify_host_dmesg", "yes") == "yes":
         dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")

@@ -4,6 +4,7 @@ import re
 import urllib.request
 
 from virttest.test_setup.core import Setuper
+from virttest.test_setup import PrivateBridgeConfig, PrivateOvsBridgeConfig
 
 
 class NetworkProxies(Setuper):
@@ -26,3 +27,48 @@ class NetworkProxies(Setuper):
             process in which such installation has taken place.
         """
         pass
+
+
+class BridgeConfig(Setuper):
+
+    def setup(self):
+        setup_pb = False
+        ovs_pb = False
+        for nic in self.params.get('nics', "").split():
+            nic_params = self.params.object_params(nic)
+            if nic_params.get('netdst') == 'private':
+                setup_pb = True
+                params_pb = nic_params
+                self.params['netdst_%s' % nic] = nic_params.get("priv_brname", 'atbr0')
+                if nic_params.get("priv_br_type") == "openvswitch":
+                    ovs_pb = True
+
+        if setup_pb:
+            if ovs_pb:
+                brcfg = PrivateOvsBridgeConfig(params_pb)
+            else:
+                brcfg = PrivateBridgeConfig(params_pb)
+            brcfg.setup()
+
+    def cleanup(self):
+        setup_pb = False
+        ovs_pb = False
+        for nic in self.params.get('nics', "").split():
+            nic_params = self.params.object_params(nic)
+            if nic_params.get('netdst') == 'private':
+                setup_pb = True
+                params_pb = nic_params
+                break
+        else:
+            setup_pb = self.params.get("netdst") == 'private'
+            params_pb = self.params
+
+        if params_pb.get("priv_br_type") == "openvswitch":
+            ovs_pb = True
+
+        if setup_pb:
+            if ovs_pb:
+                brcfg = PrivateOvsBridgeConfig(params_pb)
+            else:
+                brcfg = PrivateBridgeConfig(params_pb)
+            brcfg.cleanup()
