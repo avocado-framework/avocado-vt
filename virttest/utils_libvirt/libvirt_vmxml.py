@@ -54,7 +54,7 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
         raise exceptions.TestFail(msg)
 
 
-def check_guest_xml_by_xpaths(vmxml, xpaths_text):
+def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
     """
     Check if the xml has elements/attributes/texts that match all xpaths and texts
 
@@ -66,6 +66,9 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text):
                         {'element_attrs': [".//memory[@unit='KiB']", ..., valuenn], 'text': 'aaa'}
                         {'element_attrs': ["./os/bootmenu[@enable='yes']", ..., valuenn]}
                         ]
+    :param ignore_status: boolean, True to raise an exception when not matched
+                                   False to not raise an exception when not matched
+    :return: boolean, True when matched, False when not matched
     """
     for xpath_text in xpaths_text:
         elem_attrs_list = xpath_text['element_attrs']
@@ -73,13 +76,20 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text):
         for one_elem_attr in elem_attrs_list:
             matches = vmxml.xmltreefile.findall(one_elem_attr)
             if not matches:
-                raise exceptions.TestFail("XML did not match xpath: %s" % one_elem_attr)
+                if ignore_status:
+                    return False
+                else:
+                    raise exceptions.TestFail("XML did not match xpath: %s" % one_elem_attr)
             if elem_text and any([True for x in matches if x.text != elem_text]):
-                raise exceptions.TestFail("XML did not match text '%s' "
-                                          "for the xpath '%s'" % (elem_text,
-                                                                  one_elem_attr))
+                if ignore_status:
+                    return False
+                else:
+                    raise exceptions.TestFail("XML did not match text '%s' "
+                                              "for the xpath '%s'" % (elem_text,
+                                                                      one_elem_attr))
         LOG.debug("Matched the xpaths '%s' with text '%s'" % (elem_attrs_list,
                                                               elem_text))
+    return True
 
 
 def remove_vm_devices_by_type(vm, device_type):
