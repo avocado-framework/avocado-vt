@@ -1,0 +1,58 @@
+class Conductor(object):
+    CHANNEL_TYPE = None
+
+	def __init__(self, node_id):
+        self._channel = None
+        self._node_id = node_id
+
+    def _worker(self, node_id):
+        return get_node(node_id)
+
+    def create(self):
+        pass
+
+    def destroy(self):
+        pass
+
+    @property
+    def channel(self):
+        return self._channel
+
+
+class RPCConductor(Conductor):
+    CHANNEL_TYPE = 'rpc'
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def create(self):
+        node = self._worker(self._node_id)
+        self._channel = node.proxy.virt
+
+    def destroy(self):
+        self._channel = None
+
+
+class SSHConductor(Conductor):
+    CHANNEL_TYPE = 'ssh'
+
+    def __init__(self, node_id):
+        super().__init__(node_id)
+
+    def create(self):
+        node = self._worker(self._node_id)
+        self._channel = node.connect(node.connection_auth)
+
+    def destroy(self):
+        self._channel.close()
+        self._channel = None
+
+
+class Channel(object):
+    @staticmethod
+    def channel(node_id, channel_type):
+        for cls in Conductor.__subclasses__:
+            if cls.CHANNEL_TYPE = channel_type:
+                return cls(node_id)
+                break
+        return None
