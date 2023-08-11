@@ -3109,6 +3109,7 @@ class VMOSXML(base.LibvirtXMLBase):
         cmdline:      text
         dtb:          text
         firmware:     list attribute - feature
+        acpi:         list attribute - table
     TODO:
         initargs:     list
     """
@@ -3118,7 +3119,7 @@ class VMOSXML(base.LibvirtXMLBase):
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
                  'nvram_attrs', 'nvram_source', 'secure', 'bootmenu_timeout',
-                 'os_firmware', 'firmware', 'loader_stateless')
+                 'os_firmware', 'firmware', 'loader_stateless', 'acpi')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -3177,6 +3178,10 @@ class VMOSXML(base.LibvirtXMLBase):
         accessors.XMLElementNest('firmware', self, parent_xpath='/',
                                  tag_name='firmware',
                                  subclass=VMOSFWXML,
+                                 subclass_dargs={'virsh_instance': virsh_instance})
+        accessors.XMLElementNest('acpi', self, parent_xpath='/',
+                                 tag_name='acpi',
+                                 subclass=VMOSACPIXML,
                                  subclass_dargs={'virsh_instance': virsh_instance})
         super(VMOSXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<os/>'
@@ -4090,3 +4095,33 @@ class FeatureXML(base.LibvirtXMLBase):
                                tag_name='feature', attribute='name')
         super(FeatureXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<feature/>'
+
+
+# Sub-element of os acpi
+class VMOSACPIXML(base.LibvirtXMLBase):
+    """
+    Class to access <acpi> tag of OS XML
+
+    Elements:
+        acpi: list attribute
+        table: list attribute - type
+               text attribute
+
+    Example:
+        <acpi>
+            <table type="slic">/tmp/slic.dat</table>
+        </acpi>
+    """
+
+    __slots__ = ('table', 'table_type')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create a new VMOS acpi instance
+        """
+        accessors.XMLAttribute('table_type', self, parent_xpath='/',
+                               tag_name='table', attribute='type')
+        accessors.XMLElementText('table', self, parent_xpath='/',
+                                 tag_name='table')
+        super(VMOSACPIXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<acpi/>'
