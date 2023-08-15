@@ -1092,6 +1092,11 @@ class VM(virt_vm.BaseVM):
                 backend_options["size_mem"] = "%sM" % params["mem"]
                 if params.get("vm_mem_backend"):
                     backend_options["backend_mem"] = params.get("vm_mem_backend")
+                if params.get("vm_mem_backend") == "memory-backend-file":
+                    if not params.get("vm_mem_backend_path"):
+                        raise virt_vm.VMConfigMissingError(self.name,
+                                                           'vm_mem_backend_path')
+                    backend_options["mem-path_mem"] = params["vm_mem_backend_path"]
                 if params.get("hugepage_path"):
                     backend_options["backend_mem"] = "memory-backend-file"
                     backend_options["mem-path_mem"] = params["hugepage_path"]
