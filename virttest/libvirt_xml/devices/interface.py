@@ -16,7 +16,7 @@ class Interface(base.TypedDeviceBase):
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
                  'virtualport', 'alias', "ips", "teaming", "vlan", "port",
-                 'acpi', 'portForwards', 'trustGuestRxFilters')
+                 'acpi', 'portForwards', 'trustGuestRxFilters', 'source_local')
 
     def __init__(self, type_name='network', virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -31,6 +31,11 @@ class Interface(base.TypedDeviceBase):
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={'type_name': 'pci',
                                                  'virsh_instance': virsh_instance})
+        accessors.XMLElementDict(property_name="source_local",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/source',
+                                 tag_name='local')
         accessors.XMLAttribute(property_name="managed",
                                libvirtxml=self,
                                forbidden=None,
