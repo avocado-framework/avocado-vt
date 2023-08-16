@@ -88,6 +88,19 @@ def shrink_volume(session, vol_id, size):
     session.cmd(shrink_cmd.format(script_path))
 
 
+def check_shrink_completion_event(session, vol_id):
+    """
+    Check the disk extend or shrink finished in windows guest.
+
+    :param session: Session object.
+    :param vol_id: Drive letter.
+    """
+    cmd = 'wevtutil qe Application /q:"*[System/EventID=258]" /f:text'
+    status, output = session.cmd_status_output(cmd)
+    msg = "The storage optimizer successfully completed shrink on Windows (%s:)" % vol_id
+    return status == 0 and msg in output
+
+
 def get_disk_props_by_serial_number(session, serial_number, props):
     """
     Get disk drive value of properties by serial number in windows guest.
