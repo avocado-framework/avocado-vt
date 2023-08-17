@@ -2672,6 +2672,14 @@ class VM(virt_vm.BaseVM):
                                           "tpm")
             devices.insert(devs)
 
+        # Add host devices
+        for hostdev in params.objects("vm_hostdevs"):
+            hostdev_params = params.object_params(hostdev)
+            dev = devices.hostdev_define_by_params(hostdev, hostdev_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "hostdev")
+            devices.insert(dev)
+
         disable_kvm_option = ""
         if (devices.has_option("no-kvm")):
             disable_kvm_option = "-no-kvm"
