@@ -90,6 +90,7 @@ class VirtTest(test.VirtTest):
                                "in `debug.log` for details.")
             self.queue.put(messages.StderrMessage.get(traceback_log))
         finally:
+            self.queue.put(messages.WhiteboardMessage.get(self.whiteboard))
             if 'avocado_test_' in self.logdir:
                 self._save_log_dir()
             try:
