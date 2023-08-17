@@ -945,6 +945,7 @@ class TLSConnection(ConnectionBase):
     server_info_ip: Use a specific IP address in server.info
     scp_list_server: the file list to be scped to the server
     scp_list_client: the file list to be scped to the client
+    set_ip_addr: True to set ip address in server info
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -958,7 +959,7 @@ class TLSConnection(ConnectionBase):
                  'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
                  'special_cn', 'server_setup_local', 'server_info_ip',
                  'daemon_conf', 'daemon_socket_conf', 'scp_list_server',
-                 'scp_list_client')
+                 'scp_list_client', 'set_ip_addr')
 
     def __init__(self, *args, **dargs):
         """
@@ -1004,6 +1005,8 @@ class TLSConnection(ConnectionBase):
                         "TLS connection will not setup normally")
             CERTTOOL = '/bin/true'
         self.CERTTOOL = CERTTOOL
+
+        self.set_ip_addr = "yes" == init_dict.get('set_ip_addr', 'yes')
 
         self.qemu_tls = "yes" == init_dict.get('qemu_tls', 'no')
         self.qemu_chardev_tls = "yes" == init_dict.get('qemu_chardev_tls', 'no')
@@ -1308,7 +1311,7 @@ class TLSConnection(ConnectionBase):
             ip_addr = self.server_info_ip
         # build a server key.
         build_server_key(tmp_dir, server_cn, ip_addr, self.CERTTOOL,
-                         self.credential_dict, on_local)
+                         self.credential_dict, on_local, self.set_ip_addr)
 
         # scp cacert.pem, servercert.pem and serverkey.pem to server.
         if on_local:
@@ -1673,7 +1676,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
 
 def build_server_key(tmp_dir, server_cn="TLSServer", server_ip="SERVER.IP",
                      certtool="certtool", credential_dict=None,
-                     on_local=False):
+                     on_local=False, set_ip_addr=True):
     """
     (1).initialization for variables.
     (2).make a private key with certtool command.
@@ -1684,6 +1687,7 @@ def build_server_key(tmp_dir, server_cn="TLSServer", server_ip="SERVER.IP",
     :param certtool: cert command
     :param credential_dict: A dict for credential files' names
     :param on_local: True to clean up old server key on source host
+    :param set_ip_addr: True to set ip address in server info
     """
     # initialize variables
     # sometimes, need to reuse previous CA cert
@@ -1720,7 +1724,8 @@ def build_server_key(tmp_dir, server_cn="TLSServer", server_ip="SERVER.IP",
     serverinfo_file.write("organization = AUTOTEST.VIRT\n")
     serverinfo_file.write("cn = %s\n" % (server_cn))
     serverinfo_file.write("dns_name = %s\n" % (server_cn))
-    serverinfo_file.write("ip_address = %s\n" % (server_ip))
+    if set_ip_addr:
+        serverinfo_file.write("ip_address = %s\n" % (server_ip))
     serverinfo_file.write("tls_www_server\n")
     serverinfo_file.write("encryption_key\n")
     serverinfo_file.write("signing_key\n")
