@@ -3988,18 +3988,19 @@ class DevContainer(object):
 
         :return: The defined host device object
         """
-        driver = params.get('vm_hostdev_driver')
+        driver = params.get("vm_hostdev_driver")
         if not self.has_device(driver):
             raise virt_vm.VMDeviceNotSupportedError(self.vmname, driver)
         dev_params = Params(
-            {'driver': driver,
-             'id': name,
-             'host': params['vm_hostdev_host'],
-             'failover_pair_id': params.get("vm_hostdev_failover_pair_id")
-             }
+            {
+                "driver": driver,
+                "id": name,
+                "host": params["vm_hostdev_host"],
+                "failover_pair_id": params.get("vm_hostdev_failover_pair_id"),
+            }
         )
         # TODO: Support vfio-ap and vfio-ccw, currently only for pci devices
-        dev_bus = bus or {'aobject': params.get('pci_bus', 'pci.0')}
+        dev_bus = bus or {"aobject": params.get("pci_bus", "pci.0")}
         dev = qdevices.QDevice(driver, dev_params, parent_bus=dev_bus)
         for ext_k, ext_v in params.get_dict("vm_hostdev_extra_params").items():
             dev.set_param(ext_k, ext_v)
