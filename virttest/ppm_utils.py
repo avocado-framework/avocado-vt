@@ -424,7 +424,10 @@ def add_timestamp(image, timestamp, margin=2):
     font = ImageFont.load_default()
     watermark = time.strftime('%c', time.localtime(timestamp))
     # bar height = text height + top margin + bottom margin
-    bar_height = font.getsize(watermark)[1] + 2 * margin
+    if hasattr(font, 'getbbox'):
+        bar_height = font.getbbox(watermark)[3] + 2 * margin
+    else:
+        bar_height = font.getsize(watermark)[1] + 2 * margin
 
     # place bar at the bottom
     new_image = ImageOps.expand(image, border=(0, 0, 0, bar_height),
