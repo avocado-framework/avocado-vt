@@ -147,4 +147,5 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0,
         dev_obj = create_vm_device_by_type(dev_type, dev_dict)
         libvirt.add_vm_device(vmxml, dev_obj, virsh_instance=virsh_instance)
 
+    LOG.debug(f'XML of {dev_type} device is:\n{dev_obj}')
     return dev_obj
