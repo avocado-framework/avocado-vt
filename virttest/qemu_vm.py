@@ -1257,6 +1257,15 @@ class VM(virt_vm.BaseVM):
 
             return secret_cmdline + " -spice %s" % (",".join(spice_opts))
 
+        def add_thread_context(devices, params):
+            for thread_context in params.objects("vm_thread_contexts"):
+                thread_context_params = params.object_params(thread_context)
+                dev = devices.thread_context_define_by_params(thread_context_params, thread_context)
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "thread_contexts")
+                devices.insert(dev)
+            return devices
+
         def add_qxl(qxl_nr, base_addr=29):
             """
             adds extra qxl devices
@@ -1770,6 +1779,9 @@ class VM(virt_vm.BaseVM):
         # Add Memory devices
         add_memorys(devices, params)
         mem = int(params.get("mem", 0))
+
+        # Add thread context object
+        add_thread_context(devices, params)
 
         # Get cpu model, before add smp, to determine cpu topology
         cpu_model = params.get("cpu_model", "")
