@@ -6,6 +6,7 @@
 
 import sys
 import importlib
+import importlib.util
 from importlib.machinery import (SourceFileLoader, SOURCE_SUFFIXES,
                                  SourcelessFileLoader, BYTECODE_SUFFIXES,
                                  ExtensionFileLoader, EXTENSION_SUFFIXES)
@@ -70,3 +71,20 @@ def load_source(name, path):
     """
     spec = importlib.util.spec_from_file_location(name, path)
     return _load_from_spec(spec)
+
+
+def lazy_import(name):
+    """ Allows for an early import that is initialized upon use (lazy import).
+
+    :param name: Name of the module that is going to be imported
+    :type name: String
+    """
+    spec = importlib.util.find_spec(name)
+    if spec is None:
+        raise ImportError(f"Could not import module {name}")
+    loader = importlib.util.LazyLoader(spec.loader)
+    spec.loader = loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    loader.exec_module(module)
+    return module
