@@ -214,34 +214,14 @@ class PoolXMLBase(base.LibvirtXMLBase):
                                 libvirtxml=self,
                                 parent_xpath='/target/permissions',
                                 tag_name='group')
+        accessors.XMLElementNest(property_name='source',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='source',
+                                 subclass=SourceXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         super(PoolXMLBase, self).__init__(virsh_instance=virsh_instance)
-
-    def get_source(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            source_root = xmltreefile.reroot('/source')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        sourcexml = SourceXML(virsh_instance=self.__dict_get__('virsh'))
-        sourcexml.xmltreefile = source_root
-        return sourcexml
-
-    def del_source(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/source')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
-
-    def set_source(self, value):
-        if not issubclass(type(value), SourceXML):
-            raise xcepts.LibvirtXMLError(
-                "Value must be a SourceXML or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        self.del_source()
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
 
     def add_source(self, tag, attr):
         xmltreefile = self.__dict_get__('xml')

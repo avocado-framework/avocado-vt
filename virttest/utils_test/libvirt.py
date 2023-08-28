@@ -3367,7 +3367,7 @@ def new_disk_vol_name(pool_name):
     if poolxml.get_type(pool_name) != "disk":
         LOG.error("This is not a disk pool")
         return None
-    disk = poolxml.get_source().device_path[5:]
+    disk = poolxml.source.device_path[5:]
     part_num = len(list(filter(lambda s: s.startswith(disk),
                                utils_misc.utils_disk.get_parts_list())))
     return disk + str(part_num)
