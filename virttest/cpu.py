@@ -1348,8 +1348,9 @@ def get_cpu_info_from_virsh(params):
         f.write(xml)
     try:
         LOG.info("Get cpu model and features from virsh")
-        virsh.define(xml_file)
-        virsh.start(name)
+        timeout = 180
+        virsh.define(xml_file, timeout=timeout)
+        virsh.start(name, timeout=timeout)
     except Exception as err:
         LOG.error(err)
         return
@@ -1358,8 +1359,8 @@ def get_cpu_info_from_virsh(params):
         return cpu_info
     finally:
         if virsh.is_alive(name):
-            virsh.destroy(name, ignore_status=True)
-        virsh.undefine(name, ignore_status=True)
+            virsh.destroy(name, ignore_status=True, timeout=timeout)
+        virsh.undefine(name, ignore_status=True, timeout=timeout)
 
 
 def recombine_qemu_cpu_flags(base, suggestion):
