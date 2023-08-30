@@ -4687,12 +4687,13 @@ def domstats(domains="", options="", **dargs):
     return command(cmd, **dargs)
 
 
-def freepages(cellno=None, pagesize=None, options="", **dargs):
+def freepages(cellno=None, pagesize=None, sizeunit="", options="", **dargs):
     """
     Display available free pages for the NUMA cell
 
     :param cellno: NUMA cell number
-    :param pagesize: Page size (in kibibytes)
+    :param pagesize: Page size
+    :param sizeunit: Page size unit
     :param options: Extra options
     :param dargs: Standardized virsh function API keywords
     :return: CmdResult instance
@@ -4702,6 +4703,9 @@ def freepages(cellno=None, pagesize=None, options="", **dargs):
         cmd += " --cellno %s" % cellno
     if pagesize is not None:
         cmd += " --pagesize %s" % pagesize
+        if sizeunit:
+            cmd += sizeunit
+
     return command(cmd, **dargs)
 
 
