@@ -25,7 +25,7 @@ class CapabilityXML(base.LibvirtXMLBase):
     # e.g. guest_count etc.
 
     __slots__ = ('uuid', 'guest_capabilities', 'cpu_count', 'arch', 'model',
-                 'vendor', 'feature_list', 'power_management_list',
+                 'vendor', 'feature_list', 'power_management_list', 'cpu_pages',
                  'cpu_topology', 'cells_topology', 'iommu')
     __schema_name__ = "capability"
 
@@ -62,6 +62,11 @@ class CapabilityXML(base.LibvirtXMLBase):
                                  forbidden=['del'],
                                  parent_xpath='/host/cpu',
                                  tag_name='topology')
+        accessors.XMLElementList(property_name="cpu_pages",
+                                 libvirtxml=self,
+                                 parent_xpath='/host/cpu',
+                                 marshal_from=self.marshal_from_pages,
+                                 marshal_to=self.marshal_to_pages)
         accessors.XMLElementDict(property_name="iommu",
                                  libvirtxml=self,
                                  forbidden=['del'],
@@ -83,6 +88,30 @@ class CapabilityXML(base.LibvirtXMLBase):
         super(CapabilityXML, self).__init__(virsh_instance)
         # calls set_xml accessor method
         self['xml'] = self.__dict_get__('virsh').capabilities()
+
+    @staticmethod
+    def marshal_from_pages(item, index, libvirtxml):
+        """
+        Convert a dict to pages tag and attributes.
+        """
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of pages "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('pages', dict(item))
+
+    @staticmethod
+    def marshal_to_pages(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a pages tag and attributes to a dict.
+        """
+        del index
+        del libvirtxml
+        if tag != 'pages':
+            return None
+        return dict(attr_dict)
 
     def get_guest_capabilities(self):
         """
@@ -266,7 +295,7 @@ class TopologyXML(base.LibvirtXMLBase):
         """
         cell_list = []
         for cell_node in self.xmltreefile.findall('/cells/cell'):
-            if not cell_node.find('memory') and withmem:
+            if cell_node.find('memory') is None and withmem:
                 continue
             xml_str = xml_utils.ElementTree.tostring(
                 cell_node, encoding='unicode')
@@ -323,7 +352,8 @@ class CellXML(base.LibvirtXMLBase):
                                  libvirtxml=self,
                                  parent_xpath='/',
                                  marshal_from=self.marshal_from_pages,
-                                 marshal_to=self.marshal_to_pages)
+                                 marshal_to=self.marshal_to_pages,
+                                 has_subclass=True)
         accessors.XMLElementList(property_name="sibling",
                                  libvirtxml=self,
                                  parent_xpath='/distances',
@@ -345,27 +375,28 @@ class CellXML(base.LibvirtXMLBase):
     @staticmethod
     def marshal_from_pages(item, index, libvirtxml):
         """
-        Convert a dict to pages tag and attributes.
+        Convert a xml object to pages tag and xml element.
         """
-        del index
-        del libvirtxml
-        if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of pages "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('pages', dict(item))
+        if isinstance(item, CellPagesXML):
+            return 'pages', item
+        elif isinstance(item, dict):
+            cell_page = CellPagesXML()
+            cell_page.setup_attrs(**item)
+            return 'pages', cell_page
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of CellPagesXML "
+                                         "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_pages(tag, attr_dict, index, libvirtxml, text):
+    def marshal_to_pages(tag, new_treefile, index, libvirtxml):
         """
-        Convert a pages tag and attributes to a dict.
+        Convert a pages tag xml element to an object of CellPagesXML.
         """
-        del index
-        del libvirtxml
         if tag != 'pages':
-            return None
-        attr_dict['text'] = text
-        return dict(attr_dict)
+            return None     # Don't convert this item
+        newone = CellPagesXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     @staticmethod
     def marshal_from_sibling(item, index, libvirtxml):
@@ -414,3 +445,41 @@ class CellXML(base.LibvirtXMLBase):
         if tag != 'cpu':
             return None
         return dict(attr_dict)
+
+
+class CellPagesXML(base.LibvirtXMLBase):
+
+    """
+    Handler of pages element under cell element in libvirt capabilities.
+
+    Properties:
+        unit:
+            string, size unit
+        size:
+            string, page size
+        pages:
+            text, number of the pages
+    """
+
+    __slots__ = ('pages', 'unit', 'size')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create new cpus XML instance
+        """
+        accessors.XMLElementText(property_name="pages",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='pages')
+        accessors.XMLAttribute(property_name="unit",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='pages',
+                               attribute='unit')
+        accessors.XMLAttribute(property_name="size",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='pages',
+                               attribute='size')
+        self.xml = u"<pages></pages>"
