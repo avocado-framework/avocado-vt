@@ -42,9 +42,9 @@ LOG = logging.getLogger('avocado.' + __name__)
 
 ARCH = platform.machine()
 
-CPU_TYPES = {"AuthenticAMD": ["EPYC-Milan", "EPYC-Rome", "EPYC", "Opteron_G5",
-                              "Opteron_G4", "Opteron_G3", "Opteron_G2",
-                              "Opteron_G1"],
+CPU_TYPES = {"AuthenticAMD": ["EPYC-Genoa", "EPYC-Milan", "EPYC-Rome", "EPYC",
+                              "Opteron_G5", "Opteron_G4", "Opteron_G3",
+                              "Opteron_G2", "Opteron_G1"],
              "GenuineIntel": ["SapphireRapids", "Snowridge", "Cooperlake",
                               "Icelake-Server", "Icelake-Server-noTSX",
                               "Icelake-Client", "Icelake-Client-noTSX",
@@ -55,7 +55,10 @@ CPU_TYPES = {"AuthenticAMD": ["EPYC-Milan", "EPYC-Rome", "EPYC", "Opteron_G5",
                               "Haswell", "Haswell-noTSX", "IvyBridge",
                               "SandyBridge", "Westmere", "Nehalem",
                               "Penryn", "Conroe"]}
-CPU_TYPES_RE = {"EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
+CPU_TYPES_RE = {"EPYC-Genoa": "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+                "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2,gfni,avx512_vnni,"
+                "avx512_bitalg,avx512_vpopcntdq,avx512_bf16",
+                "EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
                 "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
                 "EPYC": "avx2,adx,bmi2,sha_ni",
                 "Opteron_G5": "f16c,fma4,xop,tbm",
