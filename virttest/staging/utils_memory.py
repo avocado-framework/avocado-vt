@@ -13,28 +13,34 @@ LOG = logging.getLogger('avocado.' + __name__)
 
 
 # Returns total memory in kb
-def read_from_meminfo(key, session=None):
+def read_from_meminfo(key, session=None, node_id=''):
     """
     wrapper to return value from /proc/meminfo using key
 
     :param key: filter based on the key
     :param session: ShellSession Object of remote host / guest
+    :param node_id: str, numa node id
     :return: value mapped to the key of type int
     """
     func = process.getoutput
     if session:
         func = session.cmd_output
-    meminfo = func('grep %s /proc/meminfo' % key)
-    return int(re.search(r'\d+', meminfo).group(0))
+    search_file = '/sys/devices/system/node/node%s/meminfo' % node_id \
+        if node_id else '/proc/meminfo'
+
+    meminfo = func('grep %s %s' % (key, search_file))
+    return int(re.findall(r'%s:\s+(\d+)' % key, meminfo)[0])
 
 
-def memtotal(session=None):
+def memtotal(session=None, node_id=''):
     """
-    Method to get the memtotal from /proc/meminfo
+    Method to get the memtotal from /proc/meminfo or
+    /sys/devices/system/node/nodexx/meminfo
 
     :param session: ShellSession Object of remote host / guest
+    :param node_id: str, numa node id
     """
-    return read_from_meminfo('MemTotal', session=session)
+    return read_from_meminfo('MemTotal', session=session, node_id=node_id)
 
 
 def freememtotal(session=None):
