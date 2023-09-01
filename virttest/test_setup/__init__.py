@@ -515,13 +515,16 @@ class HugePageConfig(object):
         obj = kernel_interface.SysFS(node_page_path)
         return obj.sys_fs_value
 
-    def set_node_num_huge_pages(self, num, node, pagesize):
+    def set_node_num_huge_pages(self, num, node, pagesize, ignore_error=False):
         """
         Set number of pages of certain page size under given numa node.
 
         :param num: string or int, number of pages
         :param node: string or int, node number
         :param pagesize: string or int, page size in kB
+        :param ignore_error: True, not raise exception when failing
+        :return: boolean, False if page number is less than set value,
+                        otherwise, True
         """
         node_page_path = "%s/node%s" % (self.sys_node_path, node)
         node_page_path += "/hugepages/hugepages-%skB/nr_hugepages" % pagesize
@@ -529,8 +532,17 @@ class HugePageConfig(object):
         obj.sys_fs_value = num
         # If node has some used hugepage, result will be larger than expected.
         if obj.sys_fs_value < int(num):
-            raise ValueError("Cannot set %s hugepages on node %s, please check"
-                             " if the node has enough memory" % (num, node))
+            msg = "%s (expecting %s) hugepages is set on node %s, "
+            "please check if the node "
+            "has enough memory" % (obj.sys_fs_value, num, node)
+            if not ignore_error:
+                raise ValueError(msg)
+            else:
+                LOG.warning(msg)
+                return False
+        else:
+            LOG.debug("%s hugepages is set on node %s successfully", num, node)
+        return True
 
     @error_context.context_aware
     def set_hugepages(self):
