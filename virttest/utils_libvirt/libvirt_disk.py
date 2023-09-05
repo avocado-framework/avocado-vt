@@ -588,21 +588,22 @@ def fill_null_in_vm(vm, target, size_value=500):
         raise exceptions.TestError(str(e))
 
 
-def check_virtual_disk_io(vm, partition):
+def check_virtual_disk_io(vm, partition, path="/dev/%s"):
     """
     Check if the disk partition in vm can be normally used.
 
     :param vm: Vm instance
     :param partition: the disk partition in vm to be checked.
+    :param path: the folder path for the partition
     :return: if the disk can be used, return True
     """
     session = None
     try:
         session = vm.wait_for_login()
-        cmd = ("fdisk -l /dev/{0} && mkfs.ext4 -F /dev/{0} && "
-               "mkdir -p test && mount /dev/{0} test && echo"
+        cmd = ("fdisk -l && mkfs.ext4 -F {0} && "
+               "mkdir -p test && mount {0} test && echo"
                " teststring > test/testfile && umount test"
-               .format(partition))
+               .format(path % partition))
         status, output = session.cmd_status_output(cmd)
         LOG.debug("Disk operation in VM:\nexit code:\n%s\noutput:\n%s",
                   status, output)

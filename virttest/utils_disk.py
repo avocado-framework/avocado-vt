@@ -26,6 +26,7 @@ from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
 from virttest import utils_numeric
+from virttest import utils_misc
 from virttest import remote
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
@@ -1083,6 +1084,19 @@ def linux_disk_check(session, did):
         clean_partition_linux(session, did)
 
 
+def get_parts_list_by_path(session=None):
+    """
+    Get all partitions as listed on /dev/disk/by-path
+    """
+    err, out = utils_misc.cmd_status_output("ls /dev/disk/by-path",
+                                            shell=True, session=session)
+    if err:
+        raise exceptions.TestError("Failed to list partitions in /dev/disk/by-path")
+    r = out.split()
+    LOG.debug("Partitions by path: %s", r)
+    return r
+
+
 def get_parts_list(session=None):
     """
     Get all partition lists.
@@ -1113,6 +1127,23 @@ def get_added_parts(session, old_parts):
     :return: list, the newly added partition list
     """
     new_parts = get_parts_list(session)
+    added_parts = list(set(new_parts).difference(set(old_parts)))
+    LOG.info("Added parts:%s", added_parts)
+    return added_parts
+
+
+def get_added_parts_by_path(session, old_parts):
+    """
+    Get newly added partition list comparing to old parts
+    Uses the information below /dev/disk/by-path instead
+    of /proc/partitions
+
+    :param session: the vm session
+    :param old_parts: list, the old partition list as listed
+                      below /dev/disk/by-path
+    :return: list, the newly added partition list
+    """
+    new_parts = get_parts_list_by_path(session)
     added_parts = list(set(new_parts).difference(set(old_parts)))
     LOG.info("Added parts:%s", added_parts)
     return added_parts
