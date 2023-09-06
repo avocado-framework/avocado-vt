@@ -226,6 +226,7 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
+        self._state = ''
 
     def _get_cmdline_format_cfg(self):
         """
@@ -3424,6 +3425,13 @@ class VM(virt_vm.BaseVM):
                         dev.stop_daemon()
                     except DeviceError as err:
                         LOG.error("Failed to stop daemon: %s", err)
+
+    @property
+    def state(self):
+        return self._state
+
+    def _toggle_state(self, state):
+        self._state = state
 
     @error_context.context_aware
     def create(
