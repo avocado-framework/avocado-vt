@@ -1090,6 +1090,8 @@ class VM(virt_vm.BaseVM):
                 name = "machine_mem"
                 backend_options = {}
                 backend_options["size_mem"] = "%sM" % params["mem"]
+                if params.get("vm_mem_prealloc"):
+                    backend_options["prealloc_mem"] = params.get("vm_mem_prealloc")
                 if params.get("vm_mem_backend"):
                     backend_options["backend_mem"] = params.get("vm_mem_backend")
                 if params.get("vm_mem_backend") == "memory-backend-file":
@@ -1100,6 +1102,7 @@ class VM(virt_vm.BaseVM):
                 if params.get("hugepage_path"):
                     backend_options["backend_mem"] = "memory-backend-file"
                     backend_options["mem-path_mem"] = params["hugepage_path"]
+                    backend_options["prealloc_mem"] = params.get("vm_mem_prealloc", "yes")
                 backend_options["share_mem"] = params.get("vm_mem_share")
                 backend_param = Params(backend_options)
                 dev = devices.memory_object_define_by_params(backend_param,
