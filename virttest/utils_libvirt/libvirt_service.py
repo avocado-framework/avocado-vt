@@ -82,18 +82,22 @@ def control_service(params):
             control_service.stop()
 
 
-def ensure_service_started(service_name):
+def ensure_service_status(service_name, expect_active=True):
     """
-    Verify whether service is started, start it if not.
+    Operate the service to expected state
 
-    :param service_name: service to verify
-    :return: True if service was started when checking, False if not
+    :param service_name: str, service name to be operated
+    :param expect_active: bool, True when expected state is active,
+                                False when expected state is inactive
+    :return: True if service was active when checking, False if not
     """
     srvc = service.Factory.create_service(service_name)
     status = srvc.status()
-    LOG.debug(f'Service status of {service_name} is {"ON" if status else "OFF"}')
-    if not status:
+    LOG.debug(f'Current service status of {service_name} is {"active" if status else "inactive"}')
+    if not status and expect_active:
         LOG.debug(f'Starting service {service_name}')
         srvc.start()
-
+    if status and not expect_active:
+        LOG.debug(f'Stopping service {service_name}')
+        srvc.stop()
     return status
