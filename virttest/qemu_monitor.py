@@ -3635,3 +3635,45 @@ class QMPMonitor(Monitor):
         cmd = "query-sgx-capabilities"
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd)
+
+    def query_sev(self):
+        """
+        Query SEV information. (Since 2.12)
+
+        :return: Information about SEV
+        """
+        cmd = "query-sev"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
+
+    def query_sev_capabilities(self):
+        """
+        Query SEV capabilities. (Since 2.12)
+
+        :return: SEV capability objects.
+        """
+        cmd = "query-sev-capabilities"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
+
+    def query_sev_launch_measure(self):
+        """
+        Query the SEV guest launch information. (Since 2.12)
+
+        :return: The SEV launch measure info for the guest.
+        """
+        cmd = "query-sev-launch-measure"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
+
+    def query_sev_attestation_report(self, mnonce):
+        """
+        Query SEV attestation report. (Since 6.1)
+
+        :param mnonce: A random 16 bytes value encoded in base64
+        :type mnonce: str
+        :return: The SEV attestation report objects.
+        """
+        cmd = "query-sev-attestation-report"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, {"mnonce": mnonce})
