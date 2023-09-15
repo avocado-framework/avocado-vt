@@ -530,12 +530,21 @@ class VM(virt_vm.BaseVM):
             return " -name '%s'" % name
 
         def process_sandbox(devices, action):
+            sandbox_option = ""
+            if not devices.has_option("sandbox"):
+                return sandbox_option
             if action == "add":
-                if devices.has_option("sandbox"):
-                    return " -sandbox on "
+                sandbox_option = " -sandbox on"
             elif action == "rem":
-                if devices.has_option("sandbox"):
-                    return " -sandbox off "
+                sandbox_option = " -sandbox off"
+            _params = {"elevateprivileges": params.get("qemu_sandbox_elevateprivileges"),
+                       "obsolete": params.get("qemu_sandbox_obsolete"),
+                       "resourcecontrol": params.get("qemu_sandbox_resourcecontrol"),
+                       "spawn": params.get("qemu_sandbox_spawn")}
+            for opt, val in _params.items():
+                if val is not None:
+                    sandbox_option += f",{opt}={val}"
+            return sandbox_option
 
         def add_human_monitor(devices, monitor_name, filename):
             if not devices.has_option("chardev"):
@@ -1681,7 +1690,7 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('preconfig', cmdline="--preconfig"))
         # Add the VM's name
         devices.insert(StrDev('vmname', cmdline=add_name(name)))
-
+        # Add sandbox option
         qemu_sandbox = params.get("qemu_sandbox")
         if qemu_sandbox == "on":
             devices.insert(
