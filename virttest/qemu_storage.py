@@ -187,6 +187,11 @@ def filename_to_file_opts(filename):
 
                 if matches['user'] is not None:
                     file_opts['username'] = matches['user']
+    # FIXME: vdpa is a customized protocol instead of a standard protocol.
+    elif filename.startswith("vdpa:"):
+        # filename[7:] mean: remove the prefix "vdpa://"
+        file_opts = {'driver': 'virtio-blk-vhost-vdpa',
+                     'path': filename[7:]}
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}
@@ -517,7 +522,12 @@ class QemuImg(storage.QemuImg):
         :param params: Dictionary containing the test parameters.
         :param root_dir: Base directory for relative filenames.
         :param tag: Image tag defined in parameter images
+
+        :raise NotImplementedError: If the image type is not supported.
         """
+        if params.get("storage_type") == "vhost-vdpa":
+            raise NotImplementedError("Vdpa is NOT supported to handle "
+                                      "the image!")
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,

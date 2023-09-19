@@ -2110,6 +2110,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolFTPS
             elif filename.startswith('ftp:'):
                 protocol_cls = qdevices.QBlockdevProtocolFTP
+            elif filename.startswith('vdpa:'):
+                protocol_cls = qdevices.QBlockdevProtocolVirtioBlkVhostVdpa
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -2454,6 +2456,9 @@ class DevContainer(object):
                strict_mode is True
         :param name: Name of the new disk
         :param params: Disk params (params.object_params(name))
+
+        :raise NotImplementedError: if image_filename shows that this is a vdpa
+                                    device
         """
         data_root = data_dir.get_data_dir()
         shared_dir = os.path.join(data_root, "shared")
@@ -2480,6 +2485,9 @@ class DevContainer(object):
         image_base_dir = image_params.get("images_base_dir", data_root)
         image_filename = storage.get_image_filename(image_params, image_base_dir)
         imgfmt = image_params.get("image_format")
+        if image_filename.startswith("vdpa://") and image_params.get(
+                "image_snapshot") == "yes":
+            raise NotImplementedError("vdpa does NOT support the snapshot!")
         if (Flags.BLOCKDEV in self.caps and
                 image_params.get("image_snapshot") == "yes"):
             sn_params = Params()
