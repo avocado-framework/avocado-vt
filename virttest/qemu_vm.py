@@ -736,7 +736,7 @@ class VM(virt_vm.BaseVM):
                     downscript=None, vhost=None, queues=None, vhostfds=None,
                     add_queues=None, helper=None, add_tapfd=None,
                     add_vhostfd=None, vhostforce=None, vhostdev=None):
-            mode = None
+
             if nettype in ['bridge', 'network', 'macvtap']:
                 mode = 'tap'
             elif nettype == 'user':
@@ -748,88 +748,86 @@ class VM(virt_vm.BaseVM):
                 return ''
 
             if devices.has_option("netdev"):
-                cmd = " -netdev %s,id=%s" % (mode, netdev_id)
-                cmd_nd = cmd
+                dev = qdevices.QNetdev(mode, {'id': netdev_id})
                 if vhost:
                     if vhost in ["on", "off"]:
-                        cmd += ",vhost=%s" % vhost
+                        dev.set_param('vhost', vhost)
                     elif vhost == "vhost=on":  # Keeps compatibility with old.
-                        cmd += ",%s" % vhost
-                    cmd_nd = cmd
+                        dev.set_param('vhost', 'on')
                     if vhostfds:
                         if (int(queues) > 1 and
                                 'vhostfds=' in devices.get_help_text()):
-                            cmd += ",vhostfds=%(vhostfds)s"
-                            cmd_nd += ",vhostfds=DYN"
+                            dev.set_param('vhostfds', vhostfds, dynamic=True)
                         else:
                             txt = ""
                             if int(queues) > 1:
                                 txt = "qemu do not support vhost multiqueue,"
                                 txt += " Fall back to single queue."
                             if 'vhostfd=' in devices.get_help_text():
-                                cmd += ",vhostfd=%(vhostfd)s"
-                                cmd_nd += ",vhostfd=DYN"
+                                dev.set_param('vhostfd', vhostfds.split(':')[0], dynamic=True)
                             else:
                                 txt += " qemu do not support vhostfd."
                             if txt:
                                 LOG.warn(txt)
                         # For negative test
                         if add_vhostfd:
-                            cmd += ",vhostfd=%(vhostfd)s"
-                            cmd_nd += ",vhostfd=%(vhostfd)s"
+                            dev.set_param('vhostfd', vhostfds.split(':')[0])
                 if vhostforce in ["on", "off"]:
-                    cmd += ",vhostforce=%s" % vhostforce
-                    cmd_nd = cmd
+                    dev.set_param('vhostforce', vhostforce)
                 if netdev_extra_params:
-                    cmd += "%s" % netdev_extra_params
-                    cmd_nd += "%s" % netdev_extra_params
+                    for netdev_param in netdev_extra_params.strip(',').split(','):
+                        arg_k, arg_v = netdev_param.split('=', 1)
+                        if arg_k in ['dnssearch', 'hostfwd', 'guestfwd']:
+                            if arg_k not in dev.params:
+                                dev.set_param(arg_k, [])
+                            dev.params[arg_k].append(arg_v)
+                        else:
+                            dev.set_param(arg_k, arg_v)
             else:
-                cmd = " -net %s,vlan=%d" % (mode, vlan)
-                cmd_nd = cmd
+                dev = qdevices.QCustomDevice('net',
+                                             {'id': netdev_id,
+                                              'type': mode,
+                                              'vlan': vlan})
             if mode == "tap":
                 if script:
-                    cmd += ",script='%s'" % script
-                    cmd += ",downscript='%s'" % (downscript or "no")
-                    cmd_nd = cmd
+                    dev.set_param('script', script)
+                    dev.set_param('downscript', downscript or "no")
                     if ifname:
-                        cmd += ",ifname='%s'" % ifname
-                        cmd_nd = cmd
+                        dev.set_param('ifname', ifname)
                 elif tapfds:
                     if (int(queues) > 1 and
                             ',fds=' in devices.get_help_text()):
-                        cmd += ",fds=%(tapfds)s"
-                        cmd_nd += ",fds=DYN"
+                        dev.set_param('fds', tapfds, dynamic=True)
                     else:
-                        cmd += ",fd=%(tapfd)s"
-                        cmd_nd += ",fd=DYN"
+                        dev.set_param('fd', tapfds.split(':')[0], dynamic=True)
                     # For negative test
                     if add_tapfd:
-                        cmd += ",fd=%(tapfd)s"
-                        cmd_nd += ",fd=%(tapfd)s"
+                        dev.set_param('fd', tapfds.split(':')[0])
             elif mode == "user":
                 if tftp and "[,tftp=" in devices.get_help_text():
-                    cmd += ",tftp='%s'" % tftp
-                    cmd_nd = cmd
+                    dev.set_param('tftp', tftp)
                 if bootfile and "[,bootfile=" in devices.get_help_text():
-                    cmd += ",bootfile='%s'" % bootfile
-                    cmd_nd = cmd
+                    dev.set_param('bootfile', bootfile)
                 if "[,hostfwd=" in devices.get_help_text():
-                    for i in xrange(len(hostfwd)):
-                        cmd += (",hostfwd=tcp::%%(host_port%d)s"
-                                "-:%%(guest_port%d)s" % (i, i))
-                        cmd_nd += ",hostfwd=tcp::DYN-:%%(guest_port)ds"
+                    fwd_array = [f"tcp::{host_port}-:{guest_port}" for
+                                 host_port, guest_port in hostfwd]
+                    if isinstance(dev, qdevices.QNetdev):
+                        dev.set_param('hostfwd', fwd_array, dynamic=True)
+                    else:
+                        dev.set_param('hostfwd',
+                                      ',hostfwd='.join(fwd_array))
             elif mode == "vhost-vdpa":
-                cmd += ",vhostdev=%s" % vhostdev
+                dev.set_param('vhostdev', vhostdev)
 
             if add_queues and queues:
-                cmd += ",queues=%s" % queues
-                cmd_nd += ",queues=%s" % queues
+                dev.set_param('queues', queues)
 
             if helper:
-                cmd += ",helper=%s" % helper
-                cmd_nd += ",helper=%s" % helper
+                dev.set_param('helper', helper)
 
-            return cmd, cmd_nd
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "nics")
+            devices.insert(dev)
 
         def add_floppy(devices, params):
             # We may want to add {floppy_otps} parameter for -fda, -fdb
@@ -2423,35 +2421,19 @@ class VM(virt_vm.BaseVM):
                         nic_params.get("failover"),
                         romfile)
 
-                # Handle the '-net tap' or '-net user' or '-netdev' part
-                cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
-                                      bootp, redirs, netdev_id, netdev_extra,
-                                      tapfds, script, downscript, vhost,
-                                      queues, vhostfds, add_queues, helper,
-                                      add_tapfd, add_vhostfd, vhostforce,
-                                      vhostdev)
-
                 if vhostfds is None:
                     vhostfds = ""
 
                 if tapfds is None:
                     tapfds = ""
 
-                net_params = {'netdev_id': netdev_id,
-                              'vhostfd': vhostfds.split(":")[0],
-                              'vhostfds': vhostfds,
-                              'tapfd': tapfds.split(":")[0],
-                              'tapfds': tapfds,
-                              'ifname': ifname,
-                              }
-
-                for i, (host_port, guest_port) in enumerate(redirs):
-                    net_params["host_port%d" % i] = host_port
-                    net_params["guest_port%d" % i] = guest_port
-
-                # TODO: Is every NIC a PCI device?
-                devices.insert(StrDev("NET-%s" % nettype, cmdline=cmd,
-                                      params=net_params, cmdline_nd=cmd_nd))
+                # Handle the '-net tap' or '-net user' or '-netdev' part
+                add_net(devices, vlan, nettype, ifname, tftp,
+                        bootp, redirs, netdev_id, netdev_extra,
+                        tapfds, script, downscript, vhost,
+                        queues, vhostfds, add_queues, helper,
+                        add_tapfd, add_vhostfd, vhostforce,
+                        vhostdev)
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
                 failover_pair_id = nic_params.get("failover_pair_id")
@@ -2973,26 +2955,30 @@ class VM(virt_vm.BaseVM):
                 # specify the number of MSI-X vectors that the card should
                 # have this option currently only affects virtio cards
 
-                net_params = {'netdev_id': netdev_id,
-                              'vhostfd': vhostfds.split(":")[0],
+                net_params = {'vhostfd': vhostfds.split(":")[0],
                               'vhostfds': vhostfds,
-                              'tapfd': tapfds.split(":")[0],
-                              'tapfds': tapfds,
+                              'fd': tapfds.split(":")[0],
+                              'fds': tapfds,
                               'ifname': ifname,
                               }
-
-                for i, (host_port, guest_port) in enumerate(redirs):
-                    net_params["host_port%d" % i] = host_port
-                    net_params["guest_port%d" % i] = guest_port
+                fwd_array = [f"tcp::{host_port}-:{guest_port}" for
+                             host_port, guest_port in redirs]
+                net_params['hostfwd'] = fwd_array
 
                 # TODO: Is every NIC a PCI device?
-                devs = devices.get_by_params({'netdev_id': netdev_id})
-                # TODO: Is every NIC a PCI device?
+                devs = devices.get_by_params({'id': netdev_id})
                 if len(devs) > 1:
                     LOG.error("There are %d devices with netdev_id %s."
                               " This shouldn't happens." % (len(devs),
                                                             netdev_id))
-                devs[0].params.update(net_params)
+                dev = devs[0]
+                for k, v in net_params.items():
+                    if k in dev.params:
+                        if k == 'hostfwd' and not isinstance(dev,
+                                                             qdevices.QNetdev):
+                            dev.set_param(k, ',hostfwd='.join(v))
+                        else:
+                            dev.set_param(k, v)
 
     def update_vga_global_default(self, params, migrate=None):
         """
@@ -3288,17 +3274,15 @@ class VM(virt_vm.BaseVM):
                                  % nic.nic_name)
                     # Update the fd and vhostfd for nic devices
                     if self.devices is not None:
-                        for device in self.devices:
-                            cmd = device.cmdline()
-                            if cmd is not None and "fd=" in cmd:
-                                new_cmd = ""
-                                for opt in cmd.split(","):
-                                    if re.match('fd=', opt):
-                                        opt = 'fd=%s' % nic.tapfds
-                                    if re.match('vhostfd=', opt):
-                                        opt = 'vhostfd=%s' % nic.vhostfds
-                                    new_cmd += "%s," % opt
-                                device._cmdline = new_cmd.rstrip(",")
+                        dev = self.devices.get_by_params({'id': nic.netdev_id})[0]
+                        net_params = {'vhostfd': nic.vhostfds.split(":")[0],
+                                      'vhostfds': nic.vhostfds,
+                                      'fd': nic.tapfds.split(":")[0],
+                                      'fds': nic.tapfds,
+                                      }
+                        for k, v in net_params.items():
+                            if k in dev.params:
+                                dev.set_param(k, v)
 
                     self.virtnet.update_db()
 
