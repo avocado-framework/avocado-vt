@@ -758,12 +758,11 @@ class QBlockdevNode(QCustomDevice):
         new_args = dict()
         keep_original_type = ("detect-zeroes", )
         for key, value in six.iteritems(args):
-            if key in keep_original_type:
-                continue
-            if value in ('on', 'yes'):
-                value = True
-            elif value in ('off', 'no'):
-                value = False
+            if key not in keep_original_type:
+                if value in ('on', 'yes'):
+                    value = True
+                elif value in ('off', 'no'):
+                    value = False
 
             parts = key.split(".")
             d = new_args

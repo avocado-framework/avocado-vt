@@ -2324,7 +2324,7 @@ class DevContainer(object):
                 if Flags.BLOCKDEV in self.caps:
                     if key == 'discard':
                         value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
-                    if key == 'cache-size':
+                    if key in ('cache-size', 'detect-zeroes', ):
                         protocol_node.set_param(key, None)
                     else:
                         protocol_node.set_param(key, value)
