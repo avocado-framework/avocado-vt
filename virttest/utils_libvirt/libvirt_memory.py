@@ -41,6 +41,18 @@ def get_qemu_process_memlock_hard_limit():
     return process.run(cmd, shell=True).stdout_text.strip()
 
 
+def get_qemu_process_memlock_limit():
+    """
+    Get qemu process memlock limit
+
+    :return: qemu process soft limit and hard limit value.
+    """
+    cmd = "prlimit -p `pidof qemu-kvm` -l |awk '/MEMLOCK/ {print $6,$7}'"
+    stdout = process.run(cmd, shell=True).stdout_text.strip().split()
+
+    return (stdout[0], stdout[1])
+
+
 def normalize_mem_size(mem_size, mem_unit):
     """
     Normalize the mem size and convert it to bytes.
