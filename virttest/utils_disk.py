@@ -546,6 +546,10 @@ def clean_partition_linux(session, did, timeout=360):
     else:
         partition_numbers = partition_numbers.splitlines()
         for number in partition_numbers:
+            # Sometimes we may get wrong partition number, for example,
+            # "[ 122.778138] vdc: vdc1". So we need to ignore it.
+            if number.startswith('['):
+                continue
             LOG.info("remove partition %s on %s" % (number, did))
             session.cmd(rm_cmd % (did, number))
         session.cmd("partprobe /dev/%s" % did, timeout=timeout)
