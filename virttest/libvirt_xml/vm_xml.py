@@ -3211,11 +3211,15 @@ class VMOSXML(base.LibvirtXMLBase):
         Class of nvram/source xml tag
         """
 
-        __slots__ = ('attrs', 'host', 'auth')
+        __slots__ = ('attrs', 'host', 'auth', 'seclabels')
 
         def __init__(self, virsh_instance=base.virsh):
             accessors.XMLElementDict('attrs', self, parent_xpath='/',
                                      tag_name='source')
+            accessors.XMLElementList('seclabels', self, parent_xpath='/',
+                                     marshal_from=self.marshal_from_seclabels,
+                                     marshal_to=self.marshal_to_seclabels,
+                                     has_subclass=True)
             accessors.XMLElementDict('host', self, parent_xpath='/',
                                      tag_name='host')
             accessors.XMLElementNest('auth', self, parent_xpath='/',
@@ -3226,6 +3230,32 @@ class VMOSXML(base.LibvirtXMLBase):
             super(VMOSXML.NvramSourceXML, self).__init__(
                 virsh_instance=virsh_instance)
             self.xml = '<source/>'
+
+        @staticmethod
+        def marshal_from_seclabels(item, index, libvirtxml):
+            """
+            Convert an xml object to seclabel tag and xml element.
+            """
+            if isinstance(item, librarian.get('seclabel')):
+                return 'seclabel', item
+            elif isinstance(item, dict):
+                seclabel = librarian.get('seclabel')()
+                seclabel.setup_attrs(**item)
+                return 'seclabel', seclabel
+            else:
+                raise xcepts.LibvirtXMLError("Expected a list of Seclabel "
+                                             "instances, not a %s" % str(item))
+
+        @staticmethod
+        def marshal_to_seclabels(tag, new_treefile, index, libvirtxml):
+            """
+            Convert a seclabel tag xml element to an object of Seclabel.
+            """
+            if tag != 'seclabel':
+                return None
+            newone = librarian.get('seclabel')(virsh_instance=libvirtxml.virsh)
+            newone.xmltreefile = new_treefile
+            return newone
 
         class NvramSourceAuthXML(base.LibvirtXMLBase):
             """
