@@ -1495,8 +1495,8 @@ def create_hostdev_xml(pci_id, boot_order=None,
                      'bus': device_bus, 'function': device_function}
             hostdev_xml.source = hostdev_xml.new_source(**attrs)
         if dev_type == "usb":
-            addr_bus = pci_id.split(':')[2]
-            addr_device = pci_id.split(':')[3]
+            addr_bus = hex(int(pci_id.split(':')[2]))
+            addr_device = hex(int(pci_id.split(':')[3]))
             hostdev_xml.source = hostdev_xml.new_source(
                 **(dict(vendor_id=device_domain, product_id=device_bus,
                         address_bus=addr_bus, address_device=addr_device)))
