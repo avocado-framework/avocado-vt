@@ -10,7 +10,7 @@ from virttest.libvirt_xml import accessors
 
 class Filesystem(base.TypedDeviceBase):
 
-    __slots__ = ('accessmode', 'source', 'target', 'driver', 'binary', 'alias')
+    __slots__ = ('accessmode', 'source', 'target', 'driver', 'binary', 'alias', 'boot')
 
     def __init__(self, type_name='mount', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('accessmode', self, parent_xpath='/',
@@ -29,6 +29,8 @@ class Filesystem(base.TypedDeviceBase):
         accessors.XMLElementDict('alias', self,
                                  parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLAttribute('boot', self, parent_xpath='/',
+                               tag_name='boot', attribute='order')
         super(Filesystem, self).__init__(device_tag='filesystem',
                                          type_name=type_name,
                                          virsh_instance=virsh_instance)
