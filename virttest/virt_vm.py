@@ -17,6 +17,7 @@ from avocado.core import exceptions
 import six
 from six.moves import xrange
 
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import utils_net
 from virttest import remote as remote_old
@@ -1108,12 +1109,13 @@ class BaseVM(object):
         log_filename = ("session-%s-%s-%s.log" %
                         (self.name, time.strftime("%m-%d-%H-%M-%S"),
                          utils_misc.generate_random_string(4)))
-        log_filename = utils_misc.get_log_filename(log_filename)
-        log_function = utils_misc.log_line
+        log_filename = utils_logfile.get_log_filename(log_filename)
+        log_function = utils_logfile.log_line
         session = remote.remote_login(client, address, port, username,
                                       password, prompt, linesep,
                                       log_filename, log_function,
                                       timeout, interface=neigh_attach_if)
+        session.close_hooks += [utils_logfile.close_own_log_file]
         session.set_status_test_command(self.params.get("status_test_command",
                                                         ""))
         self.remote_sessions.append(session)
@@ -1276,7 +1278,7 @@ class BaseVM(object):
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
                          utils_misc.generate_random_string(4)))
-        log_function = utils_misc.log_line
+        log_function = utils_logfile.log_line
         remote.copy_files_to(address,
                              client,
                              username,
@@ -1291,7 +1293,7 @@ class BaseVM(object):
                              timeout=timeout,
                              interface=neigh_attach_if,
                              filesize=filesize)
-        utils_misc.close_log_file(log_filename)
+        utils_logfile.close_log_file(log_filename)
 
     @error_context.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
@@ -1323,7 +1325,7 @@ class BaseVM(object):
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
                          utils_misc.generate_random_string(4)))
-        log_function = utils_misc.log_line
+        log_function = utils_logfile.log_line
         remote.copy_files_from(address,
                                client,
                                username,
@@ -1338,7 +1340,7 @@ class BaseVM(object):
                                timeout=timeout,
                                interface=neigh_attach_if,
                                filesize=filesize)
-        utils_misc.close_log_file(log_filename)
+        utils_logfile.close_log_file(log_filename)
 
     def _create_serial_console(self):
         """

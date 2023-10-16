@@ -1,6 +1,9 @@
 """
 Control log file utility functions.
-An easy way to log lines to files when the logging system can't be used
+
+An easy way to log lines to files when the logging system can't be used.
+
+Naive module that keeps tacks of some opened files and somehow manages them.
 
 :copyright: 2020 Red Hat Inc.
 """
@@ -13,7 +16,6 @@ import threading
 from avocado.core import exceptions
 from avocado.utils import aurl
 from avocado.utils import path as utils_path
-from aexpect.utils.genio import _open_log_files
 from avocado.utils.astring import string_safe_encode
 
 from virttest import data_dir
@@ -22,6 +24,9 @@ LOG = logging.getLogger('avocado.' + __name__)
 
 _log_file_dir = data_dir.get_tmp_dir()
 _log_lock = threading.RLock()
+
+# File descriptor dictionary for all open log files
+_open_log_files = {}  # pylint: disable=C0103
 
 
 def _acquire_lock(lock, timeout=10):
@@ -139,7 +144,7 @@ def get_log_filename(filename):
 
 def close_log_file(filename):
     """
-    Close the log file
+    Close all files that use the same base name as filename.
 
     :param filename: Log file name
     :raise: LogLockError if the lock is unavailable
@@ -150,13 +155,18 @@ def close_log_file(filename):
         raise LogLockError("Could not acquire exclusive lock to access"
                            " _open_log_files")
     try:
-        for k in _open_log_files:
-            if os.path.basename(k) == filename:
-                f = _open_log_files[k]
-                f.close()
-                remove.append(k)
+        for log_file, log_fd in _open_log_files.items():
+            if os.path.basename(log_file) == os.path.basename(filename):
+                log_fd.close()
+                remove.append(log_file)
         if remove:
             for key_to_remove in remove:
                 _open_log_files.pop(key_to_remove)
+
     finally:
         _log_lock.release()
+
+
+def close_own_log_file(self):
+    """Closing hook for sessions whose log_file attribute should be passed along."""
+    close_log_file(self.log_file)

@@ -34,6 +34,7 @@ except ImportError:
 # Internal imports
 from virttest import vt_iothread
 from virttest import utils_qemu
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import arch, storage, data_dir, virt_vm
 from virttest import qemu_storage
@@ -3174,7 +3175,7 @@ class DevContainer(object):
 
         def _handle_log(line):
             try:
-                utils_misc.log_line('%s_swtpm_setup.log' % name, line)
+                utils_logfile.log_line('%s_swtpm_setup.log' % name, line)
             except Exception as e:
                 LOG.warn("Can't log %s_swtpm_setup output: %s.", name, e)
 

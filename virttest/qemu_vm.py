@@ -33,6 +33,7 @@ from avocado.utils.astring import to_text
 import six
 from six.moves import xrange
 
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import utils_qemu
 from virttest import cpu
@@ -2929,7 +2930,7 @@ class VM(virt_vm.BaseVM):
         self.serial_console = aexpect.ShellSession(
             "nc -U %s" % file_name,
             auto_close=False,
-            output_func=utils_misc.log_line,
+            output_func=utils_logfile.log_line,
             output_params=(log_name,),
             prompt=self.params.get("shell_prompt", "[\#\$]"),
             status_test_command=self.params.get("status_test_command",
@@ -3526,13 +3527,15 @@ class VM(virt_vm.BaseVM):
             self.create_serial_console()
 
             for key, value in list(self.logs.items()):
-                outfile = "%s-%s.log" % (key, name)
+                outfile = os.path.join(utils_logfile.get_log_file_dir(),
+                                       "%s-%s.log" % (key, name))
                 self.logsessions[key] = aexpect.Tail(
                     "nc -U %s" % value,
                     auto_close=False,
-                    output_func=utils_misc.log_line,
+                    output_func=utils_logfile.log_line,
                     output_params=(outfile,))
                 self.logsessions[key].set_log_file(outfile)
+                self.logsessions[key].close_hooks += [utils_logfile.close_own_log_file]
 
             # Wait for IO channels setting up completely,
             # such as serial console.

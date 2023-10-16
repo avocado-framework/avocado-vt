@@ -41,8 +41,6 @@ try:
 except NameError:
     basestring = (str, bytes)
 
-from aexpect.utils.genio import _open_log_files
-
 from avocado.core import exceptions
 from avocado.utils import distro
 from avocado.utils import git
@@ -53,7 +51,6 @@ from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
-from avocado.utils.astring import string_safe_encode
 from avocado.utils.astring import to_text
 # Symlink avocado implementation of process functions
 from avocado.utils.process import CmdResult
@@ -77,6 +74,7 @@ from virttest import data_dir
 from virttest import error_context
 from virttest import utils_selinux
 from virttest import utils_disk
+from virttest import utils_logfile
 from virttest import logging_manager
 from virttest import kernel_interface
 
@@ -395,24 +393,7 @@ def get_virt_test_open_fds():
     return get_open_fds(os.getpid())
 
 
-# An easy way to log lines to files when the logging system can't be used
-
-_log_file_dir = data_dir.get_tmp_dir()
-_log_lock = threading.RLock()
-
-
-def _acquire_lock(lock, timeout=10):
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        if lock.acquire(False):
-            return True
-        time.sleep(0.05)
-    return False
-
-
-class LogLockError(Exception):
-    pass
-
+# Deprecated log functionality
 
 def log_line(filename, line):
     """
@@ -422,32 +403,9 @@ def log_line(filename, line):
                      the dir set by set_log_file_dir().
     :param line: Line to write.
     """
-    global _open_log_files, _log_file_dir, _log_lock
-
-    if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
-    log_file = get_log_filename(filename)
-    base_file = os.path.basename(log_file)
-    try:
-        if base_file not in _open_log_files:
-            # First, let's close the log files opened in old directories
-            close_log_file(base_file)
-            # Then, let's open the new file
-            try:
-                os.makedirs(os.path.dirname(log_file))
-            except OSError:
-                pass
-            _open_log_files[base_file] = open(log_file, "w")
-        timestr = time.strftime("%Y-%m-%d %H:%M:%S")
-        try:
-            line = string_safe_encode(line)
-        except UnicodeDecodeError:
-            line = line.decode("utf-8", "ignore").encode("utf-8")
-        _open_log_files[base_file].write("%s: %s\n" % (timestr, line))
-        _open_log_files[base_file].flush()
-    finally:
-        _log_lock.release()
+    logging.warning("Calling log functions from `utils_misc` is deprecated, "
+                    "please use `utils_logfile` for the purpose")
+    utils_logfile.log_line(filename, line)
 
 
 def set_log_file_dir(directory):
@@ -456,8 +414,9 @@ def set_log_file_dir(directory):
 
     :param dir: Directory for log files.
     """
-    global _log_file_dir
-    _log_file_dir = directory
+    logging.warning("Calling log functions from `utils_misc` is deprecated, "
+                    "please use `utils_logfile` for the purpose")
+    utils_logfile.set_log_file_dir(directory)
 
 
 def get_log_file_dir():
@@ -465,32 +424,22 @@ def get_log_file_dir():
     get the base directory for log files created by log_line().
 
     """
-    global _log_file_dir
-    return _log_file_dir
+    logging.warning("Calling log functions from `utils_misc` is deprecated, "
+                    "please use `utils_logfile` for the purpose")
+    return utils_logfile.get_log_file_dir()
 
 
 def get_log_filename(filename):
     """return full path of log file name"""
-    return get_path(_log_file_dir, filename)
+    logging.warning("Calling log functions from `utils_misc` is deprecated, "
+                    "please use `utils_logfile` for the purpose")
+    return utils_logfile.get_log_filename(filename)
 
 
 def close_log_file(filename):
-    global _open_log_files, _log_file_dir, _log_lock
-    remove = []
-    if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
-    try:
-        for k in _open_log_files:
-            if os.path.basename(k) == filename:
-                f = _open_log_files[k]
-                f.close()
-                remove.append(k)
-        if remove:
-            for key_to_remove in remove:
-                _open_log_files.pop(key_to_remove)
-    finally:
-        _log_lock.release()
+    logging.warning("Calling log functions from `utils_misc` is deprecated, "
+                    "please use `utils_logfile` for the purpose")
+    return utils_logfile.close_log_file()
 
 
 # The following are miscellaneous utility functions.
@@ -4363,7 +4312,7 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
                 report_name = session.cmd_output(cmd)
             else:
                 report_name = process.getoutput(cmd)
-        path = host_path = get_path(get_log_file_dir(),
+        path = host_path = get_path(utils_logfile.get_log_file_dir(),
                                     "sosreport-%s" % report_name)
     if session:
         func = session.cmd_status_output

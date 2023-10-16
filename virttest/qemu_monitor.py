@@ -18,6 +18,7 @@ import time
 
 import six
 
+from . import utils_logfile
 from . import utils_misc
 from . import cartesian_config
 from . import data_dir
@@ -449,8 +450,7 @@ class Monitor(object):
             raise MonitorLockError("Could not acquire exclusive lock to access"
                                    " %s" % self.open_log_files)
         try:
-            log_file_dir = utils_misc.get_log_file_dir()
-            log = utils_misc.get_path(log_file_dir, self.log_file)
+            log = utils_logfile.get_log_filename(self.log_file)
             timestr = time.strftime("%Y-%m-%d %H:%M:%S")
             try:
                 if log not in self.open_log_files:
