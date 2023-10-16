@@ -2878,6 +2878,15 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
             linux_modules.unload_module("scsi_debug")
         linux_modules.load_module("scsi_debug dev_size_mb=%s %s" %
                                   (scsi_size, scsi_option))
+
+        def _get_scsi_disk():
+            """attempt to get scsi disk multiple times until getting real one"""
+            scsi_disk = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
+                                    shell=True).stdout_text.strip()
+            return 'dev' in scsi_disk
+
+        utils_misc.wait_for(lambda: _get_scsi_disk(),
+                            timeout=10, ignore_errors=True)
         # Get the scsi device name
         result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
                              shell=True)
