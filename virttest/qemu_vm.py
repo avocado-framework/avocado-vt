@@ -1439,7 +1439,10 @@ class VM(virt_vm.BaseVM):
         def add_watchdog(devices, device_type=None, action="reset"):
             watchdog_devs = []
             parent_bus = None
-            if device_type and devices.has_device(device_type):
+            if device_type == "itco":
+                dev = qdevices.QGlobal('ICH9-LPC', 'noreboot', 'off')
+                watchdog_devs.append(dev)
+            elif device_type and devices.has_device(device_type):
                 if devices.is_pci_device(device_type):
                     parent_bus = self._get_pci_bus(self.params, None, False)
                 dev = QDevice(device_type, parent_bus=parent_bus)
