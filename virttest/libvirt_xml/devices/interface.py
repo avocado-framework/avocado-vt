@@ -16,7 +16,8 @@ class Interface(base.TypedDeviceBase):
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
                  'virtualport', 'alias', "ips", "teaming", "vlan", "port",
-                 'acpi', 'portForwards', 'trustGuestRxFilters', 'source_local')
+                 'acpi', 'portForwards', 'trustGuestRxFilters', 'source_local',
+                 'tune')
 
     def __init__(self, type_name='network', virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -161,6 +162,12 @@ class Interface(base.TypedDeviceBase):
                                  marshal_from=self.marshal_from_portForwards,
                                  marshal_to=self.marshal_to_portForwards,
                                  has_subclass=True)
+        accessors.XMLElementNest('tune', self,
+                                 parent_xpath='/',
+                                 tag_name='tune',
+                                 subclass=self.Tune,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
 
     # For convenience
     Address = librarian.get('address')
@@ -427,3 +434,23 @@ class Interface(base.TypedDeviceBase):
             if not tag == 'range':
                 return None
             return dict(attr_dict)
+
+    class Tune(base.base.LibvirtXMLBase):
+        """
+        Interface tune xml class.
+
+        Properties:
+
+        sndbuf:
+            int
+        """
+        __slots__ = ('sndbuf',)
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementInt(property_name='sndbuf',
+                                    libvirtxml=self,
+                                    forbidden=None,
+                                    parent_xpath='/',
+                                    tag_name='sndbuf')
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<tune/>'
