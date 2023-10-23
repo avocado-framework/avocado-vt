@@ -2010,6 +2010,8 @@ class DevContainer(object):
         :param image_auto_readonly: auto-read-only option in BlockdevOptions
         :param image_discard: discard option in BlockdevOptions
         :param image_copy_on_read: if support copy-on-read filter
+        :param image_iothread_vq_mapping: the mapping between iothread
+                                          and virt-queues
         """
 
         def _get_access_tls_creds(image_access):
@@ -2931,6 +2933,7 @@ class DevContainer(object):
             image_params.get("image_auto_readonly"),
             image_params.get("image_discard"),
             image_params.get("image_copy_on_read"),
+            image_params.get("image_iothread_vq_mapping"),
         )
 
     def serials_define_by_variables(
