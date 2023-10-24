@@ -30,12 +30,16 @@ from avocado.utils.software_manager import manager
 from avocado.utils import process
 from avocado.utils import path
 from avocado.core import exceptions
-from virttest import virsh
 from virttest import utils_misc
-from virttest import libvirt_xml
-from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
 from virttest import libvirt_version
 from virttest import data_dir
+
+
+# lazy imports for dependencies that are not needed in all modes of use
+# (as the cpu module is generic to qemu vm use only, libvirt is optional)
+from virttest._wrappers import lazy_import
+virsh = lazy_import("virttest.virsh")
+libvirt_xml = lazy_import("virttest.libvirt_xml")
 
 
 LOG = logging.getLogger('avocado.' + __name__)
@@ -125,7 +129,7 @@ def get_cpu_xmldata(vm, options=""):
     cpu_xmldata['mtype'] = vm_xml.os.machine
     try:
         cpu_xmldata['current_vcpu'] = int(vm_xml.current_vcpu)
-    except LibvirtXMLNotFoundError:
+    except libvirt_xml.xcepts.LibvirtXMLNotFoundError:
         LOG.debug("current vcpu value not present in xml, set as max value")
         cpu_xmldata['current_vcpu'] = int(vm_xml.vcpu)
     cpu_xmldata['vcpu'] = int(vm_xml.vcpu)
@@ -199,7 +203,7 @@ def affinity_from_xml(vm):
     try:
         vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
         xml_affinity_list = vmxml['cputune'].vcpupins
-    except LibvirtXMLNotFoundError:
+    except libvirt_xml.xcepts.LibvirtXMLNotFoundError:
         LOG.debug("No <cputune> element find in domain xml")
         return xml_affinity
     # Store xml_affinity_list to a dict
@@ -631,7 +635,7 @@ def guest_numa_check(vm, exp_vcpu):
     vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
     try:
         node_num_xml = len(vmxml.cpu.numa_cell)
-    except (TypeError, LibvirtXMLNotFoundError):
+    except (TypeError, libvirt_xml.xcepts.LibvirtXMLNotFoundError):
         # handle if no numa cell in guest xml, bydefault node 0
         node_num_xml = 1
     node_num_guest = int(vm_cpu_info["NUMA node(s)"])
@@ -641,15 +645,15 @@ def guest_numa_check(vm, exp_vcpu):
         try:
             node_cpu_xml = vmxml.cpu.numa_cell[node]['cpus']
             node_cpu_xml = cpus_parser(node_cpu_xml)
-        except (TypeError, LibvirtXMLNotFoundError):
+        except (TypeError, libvirt_xml.xcepts.LibvirtXMLNotFoundError):
             try:
                 node_cpu_xml = vmxml.current_vcpu
-            except LibvirtXMLNotFoundError:
+            except libvirt_xml.xcepts.LibvirtXMLNotFoundError:
                 node_cpu_xml = vmxml.vcpu
             node_cpu_xml = list(range(int(node_cpu_xml)))
         try:
             node_mem_xml = vmxml.cpu.numa_cell[node]['memory']
-        except (TypeError, LibvirtXMLNotFoundError):
+        except (TypeError, libvirt_xml.xcepts.LibvirtXMLNotFoundError):
             node_mem_xml = vmxml.memory
         node_mem_guest = int(vm.get_totalmem_sys(node=node))
         node_cpu_xml_copy = node_cpu_xml[:]

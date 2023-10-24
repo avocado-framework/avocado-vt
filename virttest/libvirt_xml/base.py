@@ -2,9 +2,14 @@ import logging
 
 from avocado.utils import process
 
-from .. import propcan, xml_utils, virsh
+from .. import propcan, xml_utils
 from ..libvirt_xml import xcepts
 from .._wrappers import import_module
+
+
+# lazy imports for dependencies that are not needed in all modes of use
+from virttest._wrappers import lazy_import
+virsh = lazy_import("virttest.virsh")
 
 
 class LibvirtXMLBase(propcan.PropCanBase):
