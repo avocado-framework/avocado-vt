@@ -4266,10 +4266,11 @@ def set_netkvm_param_value(vm, param, value):
     """
 
     session = vm.wait_for_serial_login(timeout=360)
+    netkvmco_path = virtio_win.prepare_netkvmco(vm)
     try:
         LOG.info("Set %s to %s" % (param, value))
-        cmd = 'netsh netkvm setparam 0 param=%s value=%s'
-        cmd = cmd % (param, value)
+        exec_src = 'netsh netkvm' if 'netkvmco.dll' in netkvmco_path else netkvmco_path
+        cmd = f'{exec_src} setparam 0 param={param} value={value}'
         status, output = session.cmd_status_output(cmd)
         if status:
             err = "Error occured when set %s to value %s. " % (param, value)
@@ -4296,9 +4297,11 @@ def get_netkvm_param_value(vm, param):
     """
 
     session = vm.wait_for_serial_login(timeout=360)
+    netkvmco_path = virtio_win.prepare_netkvmco(vm)
     try:
         LOG.info("Get the value of %s" % param)
-        cmd = 'netsh netkvm getparam 0 param=%s' % param
+        exec_src = 'netsh netkvm' if 'netkvmco.dll' in netkvmco_path else netkvmco_path
+        cmd = f'{exec_src} getparam 0 param={param}'
         status, output = session.cmd_status_output(cmd)
         if status:
             err = "Error occured when get value of %s. " % param

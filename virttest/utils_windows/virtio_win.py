@@ -112,10 +112,10 @@ def drive_letter_vfd(session):
 
 def _get_netkvmco_path(session):
     """
-    Get the proper netkvmco.dll path from iso.
+    Get the proper netkvmco path from iso.
 
     :param session: a session to send cmd
-    :return: the proper netkvmco.dll path.
+    :return: the proper netkvmco binary path.
     """
 
     viowin_ltr = drive_letter_iso(session)
@@ -132,26 +132,32 @@ def _get_netkvmco_path(session):
         raise exceptions.TestError(err)
 
     middle_path = "%s\\%s" % (guest_name, guest_arch)
-    find_cmd = 'dir /b /s %s\\netkvmco.dll | findstr "\\%s\\\\"'
-    find_cmd %= (viowin_ltr,  middle_path)
-    netkvmco_path = session.cmd(find_cmd).strip()
-    LOG.info("Found netkvmco.dll file at %s" % netkvmco_path)
-    return netkvmco_path
-
+    for file_name in ["netkvmco.dll", "netkvmco.exe"]:
+        find_cmd = 'dir /b /s "%s" | findstr "%s" | findstr "%s"' \
+                               % (viowin_ltr, middle_path, file_name)
+        status, output = session.cmd_status_output(find_cmd)
+        if status != 0:
+            continue
+        netkvmco_path = output.strip().split("\n")[0]
+        LOG.info("Found %s file at %s" % (file_type, netkvmco_path))
+        return netkvmco_path
 
 def prepare_netkvmco(vm):
     """
-    Copy the proper netkvmco.dll to driver c:\\, and register it.
+    Prepare the environment to run netkvmco
 
     param vm: the target vm
     """
-    LOG.info("Prepare the netkvmco.dll")
+    LOG.info("Prepare the environment to run netkvmco")
     session = vm.wait_for_login(timeout=360)
     try:
-        netkvmco_path = _get_netkvmco_path(session)
-        prepare_netkvmco_cmd = "xcopy %s c:\\ /y && "
-        prepare_netkvmco_cmd += "rundll32 netkvmco.dll,"
-        prepare_netkvmco_cmd += "RegisterNetKVMNetShHelper"
-        session.cmd(prepare_netkvmco_cmd % netkvmco_path, timeout=240)
+        get_netkvmco_path = _get_netkvmco_path(session)
+        if 'netkvmco.dll' in get_netkvmco_path:
+            prepare_netkvmco_cmd = "xcopy %s c:\\ /y && "
+            prepare_netkvmco_cmd += "rundll32 netkvmco.dll,"
+            prepare_netkvmco_cmd += "RegisterNetKVMNetShHelper"
+            session.cmd(prepare_netkvmco_cmd \
+                        % get_netkvmco_path, timeout=240)
     finally:
         session.close()
+    return get_netkvmco_path
