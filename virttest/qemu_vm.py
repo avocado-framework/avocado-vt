@@ -1677,6 +1677,36 @@ class VM(virt_vm.BaseVM):
             for k, v in backend_props.get(sectype, {}):
                 machine_dev.set_param(k, v)
 
+        def __iothread_conflict_check(params):
+            """
+            Based on the params, check if it's a conflict.
+
+            :param params: A dict containing VM params
+            :type params: dict
+            """
+            iothread_scheme = params.get("iothread_scheme")
+            image_iothread_vq_mapping = params.get("image_iothread_vq_mapping")
+            iothreads_lst = params.objects("iothreads")
+            # The legacy 'iothread_scheme' does NOT support the
+            # parameter 'iothread_vqs_mapping'. If you're going to use the legacy
+            # 'iothread_scheme', the 'iothread_vqs_mapping' must NOT be set.
+            if (iothread_scheme and image_iothread_vq_mapping) or (
+                iothread_scheme in ("multipeerroundrobin", "full") and iothreads_lst
+            ):
+                raise ValueError(
+                    "There's a conflict in the configuration! Once "
+                    "'iothread_scheme' is set, 'image_iothread_vq_mapping' or"
+                    " 'iothreads' can NOT be set!"
+                )
+            for image_name in params.objects("images"):
+                image_params = params.object_params(image_name)
+                if image_params.get("image_iothread_vq_mapping") and iothread_scheme:
+                    raise ValueError(
+                        "There's a conflict in the configuration! Once "
+                        "'iothread_scheme' is set, "
+                        "'image_iothread_vq_mapping' can NOT be set!"
+                    )
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
@@ -2408,6 +2438,7 @@ class VM(virt_vm.BaseVM):
             devices.insert(dev_usb)
 
         # initialize iothread manager
+        __iothread_conflict_check(params)
         devices.initialize_iothread_manager(
             params, self.cpuinfo, self._get_cmdline_format_cfg()
         )

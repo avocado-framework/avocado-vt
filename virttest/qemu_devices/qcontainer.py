@@ -225,6 +225,14 @@ class DevContainer(object):
         """:return: qemu version, e.g. 5.2.0"""
         return self.__qemu_ver
 
+    @property
+    def iothread_manager(self):
+        """
+        :return: iothread_manager
+        :rtype: an object of classes in vt_iothread.py
+        """
+        return self.__iothread_manager
+
     def initialize_iothread_manager(self, params, guestcpuinfo, cmdline_format_cfg={}):
         """Initialize iothread manager.
         :param params: vt params
@@ -238,6 +246,16 @@ class DevContainer(object):
             iothreads_lst = []
         elif iothread_scheme == "rhv":
             iothreads_lst = iothreads_lst[:1] or ["iothread0"]
+        elif iothread_scheme and iothread_scheme.startswith(
+            ("multipeerroundrobin", "full")
+        ):
+            if len(iothread_scheme.split(":")) == 2:
+                iothread_scheme, num_iothreads = iothread_scheme.split(":")
+            else:
+                num_iothreads = len(params.objects("images"))
+
+            for i in range(int(num_iothreads)):
+                iothreads_lst.append("iothread%s" % i)
 
         iothread_props = {"iothread_poll_max_ns": "poll-max-ns"}
         iothreads = []
@@ -257,6 +275,8 @@ class DevContainer(object):
             "roundrobin": vt_iothread.RoundRobinManager,
             "oto": vt_iothread.OTOManager,
             "rhv": vt_iothread.RoundRobinManager,
+            "multipeerroundrobin": vt_iothread.MultiPeerRoundRobinManager,
+            "full": vt_iothread.FullManager,
         }
         manager = scheme_to_manager.get(iothread_scheme, vt_iothread.PredefinedManager)
 
@@ -1965,6 +1985,7 @@ class DevContainer(object):
         image_auto_readonly=None,
         image_discard=None,
         image_copy_on_read=None,
+        image_iothread_vq_mapping=None,
     ):
         """
         Creates related devices by variables
