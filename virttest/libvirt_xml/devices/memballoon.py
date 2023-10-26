@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices import base
 class Memballoon(base.UntypedDeviceBase):
 
     __slots__ = ('model', 'autodeflate', 'stats_period', 'address', 'alias_name',
-                 'driver')
+                 'driver', 'freepage_reporting')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('model', self, parent_xpath='/',
@@ -26,5 +26,8 @@ class Memballoon(base.UntypedDeviceBase):
                                tag_name='alias', attribute='name')
         accessors.XMLElementDict('driver', self, parent_xpath='/',
                                  tag_name='driver')
+        accessors.XMLAttribute('freepage_reporting', self, parent_xpath='/',
+                               tag_name='memballoon',
+                               attribute='freePageReporting')
         super(Memballoon, self).__init__(device_tag='memballoon',
                                          virsh_instance=virsh_instance)
