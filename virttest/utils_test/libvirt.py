@@ -3892,7 +3892,7 @@ def check_qemu_cmd_line(content,
                         expect_exist=True):
     """
     Check the specified content in the qemu command line
-    :param content: the desired string to search
+    :param content: the desired string to search, string or list type
     :param err_ignore: True to return False when fail
                        False to raise exception when fail
     :param remote_params: The params for remote executing
@@ -3907,19 +3907,23 @@ def check_qemu_cmd_line(content,
     else:
         cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)
         qemu_line = cmd_result.stdout
-    search_result = True if re.search(r'%s' % content, qemu_line) else False
-    if search_result ^ expect_exist:
-        if err_ignore:
-            return False
+    if isinstance(content, str):
+        content = [content]
+    for con in content:
+        search_result = True if re.search(r'%s' % con, qemu_line) else False
+
+        if search_result ^ expect_exist:
+            if err_ignore:
+                return False
+            else:
+                raise exceptions.TestFail("Expecting '%s' does%s "
+                                          "exist in qemu command line, "
+                                          "but %sfound" % (con,
+                                                           '' if expect_exist else ' not',
+                                                           ' not' if expect_exist else ''))
         else:
-            raise exceptions.TestFail("Expecting '%s' does%s "
-                                      "exist in qemu command line, "
-                                      "but %sfound" % (content,
-                                                       '' if expect_exist else ' not',
-                                                       ' not' if expect_exist else ''))
-    else:
-        LOG.info("Qemu command line check for '%s': PASS", content)
-        return True
+            LOG.info("Qemu command line check for '%s': PASS", con)
+    return True
 
 
 def check_cmd_output(cmd, content, err_ignore=False, session=None):

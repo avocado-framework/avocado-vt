@@ -70,14 +70,15 @@ def normalize_mem_size(mem_size, mem_unit):
     return int(mem_size * 1024 ** mem_unit_idx)
 
 
-def consume_vm_freememory(vm_session):
+def consume_vm_freememory(vm_session, consume_value=100000):
     """
     Verify the free memory of the vm can be consumed normally
 
     :param vm_session: vm session
+    :param consume_value: consume value , default 100000
     """
     vm_session.cmd_status('swapoff -a')
     free_mem = utils_memory.freememtotal(vm_session)
-    cmd = 'memhog %dk' % (free_mem - 100000)
+    cmd = 'memhog %dk' % (free_mem - consume_value)
     status, stdout = vm_session.cmd_status_output(cmd, timeout=60)
     return (status, stdout)
