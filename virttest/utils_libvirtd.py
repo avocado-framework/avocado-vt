@@ -103,14 +103,15 @@ class Libvirtd(object):
                 return False
         return utils_misc.wait_for(_check_start, timeout=timeout)
 
-    def start(self, reset_failed=True):
+    def start(self, reset_failed=True, wait_for_start=True):
         result = []
         for daem_item in self.daemons:
             if reset_failed:
                 daem_item.reset_failed()
             if not daem_item.start():
                 return False
-            result.append(self._wait_for_start())
+            if wait_for_start:
+                result.append(self._wait_for_start())
         return all(result)
 
     def stop(self):
@@ -119,14 +120,15 @@ class Libvirtd(object):
             result.append(daem_item.stop())
         return all(result)
 
-    def restart(self, reset_failed=True):
+    def restart(self, reset_failed=True, wait_for_start=True):
         result = []
         for daem_item in self.daemons:
             if reset_failed:
                 daem_item.reset_failed()
             if not daem_item.restart():
                 return False
-            result.append(self._wait_for_start())
+            if wait_for_start:
+                result.append(self._wait_for_start())
         return all(result)
 
     def is_running(self):
