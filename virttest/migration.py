@@ -412,6 +412,7 @@ class MigrationTest(object):
             after_event = one_func.get('after_event')
             before_event = one_func.get('before_event')
             func = one_func.get('func')
+            wait_for_after_event_timeout = one_func.get('wait_for_after_event_timeout', '30')
             if after_event and not virsh_event_session:
                 raise exceptions.TestError("virsh session for collecting domain "
                                            "events is not provided")
@@ -421,7 +422,7 @@ class MigrationTest(object):
                           "%s", virsh_event_session.get_stripped_output())
                 if not utils_misc.wait_for(
                         lambda: re.findall(after_event,
-                                           virsh_event_session.get_stripped_output()), 30):
+                                           virsh_event_session.get_stripped_output()), wait_for_after_event_timeout):
                     raise exceptions.TestError("Unable to find "
                                                "event {}".format(after_event))
                 LOG.debug("Receive the event '{}'".format(after_event))
