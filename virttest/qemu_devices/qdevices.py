@@ -2179,6 +2179,128 @@ class QSwtpmDev(QDaemonDev):
         return False
 
 
+class QNetdev(QCustomDevice):
+    def __init__(self, nettype, params=None):
+        """
+        netdev device
+
+        :param nettype: The type of the netdev device.
+        :type nettype: str
+        :param params: The parameters of the netdev device.
+        :type params: dict
+        """
+        super().__init__('netdev', params)
+        self.set_param('type', nettype)
+
+    def _cmdline_raw(self):
+        """ :return: cmdline command to define this device in raw format"""
+        params = self.params.copy()
+
+        out = f'-{self.type} {params.pop("type")}'
+        for key, value in params.items():
+            if value != "NO_EQUAL_STRING":
+                if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
+                        isinstance(value, list)):
+                    for v in value:
+                        out += ",%s=%s" % (key, v)
+                else:
+                    out += ",%s=%s" % (key, value)
+            else:
+                out += ",%s" % key
+        return out
+
+    def _cmdline_json(self):
+        out = "-%s " % self.type
+        params = self.params.copy()
+        params = self._convert_netdev_args(params)
+        return out + f" '{json.dumps(params)}'"
+
+    @staticmethod
+    def _convert_netdev_args(args):
+        """
+        Convert string type of 'on' and 'off' to boolean, and create new dict
+
+        :param args: Dictionary with the qmp parameters.
+        :type args: dict
+        :return: Converted args.
+        :rtype: dict
+        """
+        new_args = dict()
+        keep_original_type = ("fd", "vhostfd")
+        for key, value in args.items():
+            if key not in keep_original_type:
+                if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
+                        isinstance(value, list)):
+                    value = [{'str': v} for v in value]
+                elif value in ('on', 'yes', 'true'):
+                    value = True
+                elif value in ('off', 'no', 'false'):
+                    value = False
+            new_args[key] = value
+
+        return new_args
+
+    def hotplug_hmp(self):
+        """ :return: the hotplug monitor command """
+        params = self.params.copy()
+        out = "netdev_add %s" % params.pop('type')
+        for key, value in params.items():
+            if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
+                    isinstance(value, list)):
+                for v in value:
+                    out += ",%s=%s" % (key, v)
+            else:
+                out += ",%s=%s" % (key, value)
+        return out
+
+    def hotplug_qmp(self):
+        """ :return: the hotplug monitor command """
+        return "netdev_add", self._convert_netdev_args(self.params)
+
+    def hotplug_hmp_nd(self):
+        """ :return: the hotplug monitor command without dynamic parameters"""
+        params = self.params.copy()
+        out = "netdev_add %s" % params.pop('type')
+        for key in self.dynamic_params:
+            params[key] = "DYN"
+        for key, value in params.items():
+            if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
+                    isinstance(value, list)):
+                for v in value:
+                    out += ",%s=%s" % (key, v)
+            else:
+                out += ",%s=%s" % (key, value)
+        return out
+
+    def hotplug_qmp_nd(self):
+        """ :return: the hotplug monitor command without dynamic parameters"""
+        params = self.params.copy()
+        for key in self.dynamic_params:
+            params[key] = "DYN"
+        return "netdev_add", self._convert_netdev_args(params)
+
+    def unplug_hmp(self):
+        """ :return: the unplug monitor command """
+        if self.get_qid():
+            return "netdev_del %s" % self.get_qid()
+        raise DeviceError("Device has no qemu_id.")
+
+    def unplug_qmp(self):
+        """ :return: the unplug monitor command """
+        if self.get_qid():
+            return "netdev_del", {'id': self.get_qid()}
+        raise DeviceError("Device has no qemu_id.")
+
+    def verify_unplug(self, out, monitor):
+        out = monitor.info("network", debug=False)
+        return self.get_qid() not in out
+
+    # pylint: disable=E0202
+    def verify_hotplug(self, out, monitor):
+        out = monitor.info("network", debug=False)
+        return self.get_qid() in out
+
+
 #
 # Bus representations
 # HDA, I2C, IDE, ISA, PCI, SCSI, System, uhci, ehci, ohci, xhci, ccid,
