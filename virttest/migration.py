@@ -12,7 +12,6 @@ from avocado.core import exceptions
 
 from virttest import libvirt_version
 from virttest import remote
-from virttest import virsh
 from virttest import utils_disk
 from virttest import utils_misc
 from virttest import test_setup
@@ -20,6 +19,11 @@ from virttest import utils_net
 from virttest import utils_iptables
 from virttest import utils_test
 from virttest.utils_test import libvirt
+
+
+# lazy imports for dependencies that are not needed in all modes of use
+from virttest._wrappers import lazy_import
+virsh = lazy_import("virttest.virsh")
 
 
 LOG = logging.getLogger('avocado.' + __name__)

@@ -37,7 +37,6 @@ from virttest import qemu_storage
 from virttest import data_dir
 from virttest import utils_net
 from virttest import nfs
-from virttest import libvirt_vm
 from virttest import utils_test
 from virttest import utils_iptables
 from virttest import utils_package
@@ -57,6 +56,7 @@ from virttest.test_setup.networking import NetworkProxies, BridgeConfig
 from virttest._wrappers import lazy_import
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
 virsh = lazy_import("virttest.virsh")
+libvirt_vm = lazy_import("virttest.libvirt_vm")
 
 
 try:

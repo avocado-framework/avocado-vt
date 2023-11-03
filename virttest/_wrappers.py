@@ -79,6 +79,8 @@ def lazy_import(name):
     :param name: Name of the module that is going to be imported
     :type name: String
     """
+    if name in sys.modules:
+        return sys.modules[name]
     spec = importlib.util.find_spec(name)
     if spec is None:
         raise ImportError(f"Could not import module {name}")

@@ -70,8 +70,12 @@ from virttest._wrappers import import_module
 #
 # pylint: disable=unused-import
 from virttest.utils_test import qemu
-from virttest.utils_test import libvirt
-from virttest.utils_test import libguestfs
+
+# lazy imports for dependencies that are not needed in all modes of use
+from virttest._wrappers import lazy_import
+libvirt = lazy_import("virttest.utils_test.libvirt")
+libguestfs = lazy_import("virttest.utils_test.libguestfs")
+
 
 # This is so that other tests won't break when importing the names
 # 'ping' and 'raw_ping' from this namespace
