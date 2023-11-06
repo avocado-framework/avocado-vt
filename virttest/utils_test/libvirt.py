@@ -2117,7 +2117,7 @@ def create_nwfilter_xml(params):
         for i in range(len(list(rule_dict.keys()))):
             rulexml.rule_action = rule_dict[i].get('rule_action')
             rulexml.rule_direction = rule_dict[i].get('rule_direction')
-            rulexml.rule_priority = rule_dict[i].get('rule_priority')
+            rulexml.rule_priority = rule_dict[i].get('rule_priority', 0)
             rulexml.rule_statematch = rule_dict[i].get('rule_statematch')
             for j in RULE_ATTR:
                 if j in list(rule_dict[i].keys()):
