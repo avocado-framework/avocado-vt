@@ -1097,6 +1097,10 @@ class VM(virt_vm.BaseVM):
                 name = "machine_mem"
                 backend_options = {}
                 backend_options["size_mem"] = "%sM" % params["mem"]
+                if params.get("vm_mem_policy"):
+                    backend_options["policy_mem"] = params.get("vm_mem_policy")
+                if params.get("vm_mem_host_nodes"):
+                    backend_options["host-nodes"] = params.get("vm_mem_host_nodes")
                 if params.get("vm_mem_prealloc"):
                     backend_options["prealloc_mem"] = params.get("vm_mem_prealloc")
                 if params.get("vm_mem_backend"):
