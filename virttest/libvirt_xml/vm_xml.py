@@ -3985,7 +3985,9 @@ class VMSysinfoXML(base.LibvirtXMLBase):
         </sysinfo>
     """
 
-    __slots__ = ('type', 'entry', 'entry_name', 'entry_file', 'bios')
+    __slots__ = ('type', 'entry', 'entry_name', 'entry_file', 'bios_entry',
+                 'system_entry', 'baseBoard_entry', 'chassis_entry',
+                 'oemStrings_entry')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
@@ -3996,36 +3998,74 @@ class VMSysinfoXML(base.LibvirtXMLBase):
                                tag_name='entry', attribute='name')
         accessors.XMLAttribute('entry_file', self, parent_xpath='/',
                                tag_name='entry', attribute='file')
-        accessors.XMLElementNest(property_name='bios',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='bios',
-                                 subclass=SysinfoBiosXML,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementList('bios_entry', self, parent_xpath='/bios',
+                                 marshal_from=self.marshal_from_entries,
+                                 marshal_to=self.marshal_to_entries,
+                                 has_subclass=True)
+        accessors.XMLElementList('system_entry', self, parent_xpath='/system',
+                                 marshal_from=self.marshal_from_entries,
+                                 marshal_to=self.marshal_to_entries,
+                                 has_subclass=True)
+        accessors.XMLElementList('baseBoard_entry', self,
+                                 parent_xpath='/baseBoard',
+                                 marshal_from=self.marshal_from_entries,
+                                 marshal_to=self.marshal_to_entries,
+                                 has_subclass=True)
+        accessors.XMLElementList('chassis_entry', self, parent_xpath='/chassis',
+                                 marshal_from=self.marshal_from_entries,
+                                 marshal_to=self.marshal_to_entries,
+                                 has_subclass=True)
+        accessors.XMLElementList('oemStrings_entry', self,
+                                 parent_xpath='/oemStrings',
+                                 marshal_from=self.marshal_from_entries,
+                                 marshal_to=self.marshal_to_entries,
+                                 has_subclass=True)
         super(VMSysinfoXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<sysinfo/>'
 
+    @staticmethod
+    def marshal_from_entries(item, index, libvirtxml):
+        """
+        Convert an SysinfoEntryXML object to entry tag and xml element.
+        """
+        if isinstance(item, VMSysinfoXML.SysinfoEntryXML):
+            return 'entry', item
+        elif isinstance(item, dict):
+            entry = VMSysinfoXML.SysinfoEntryXML()
+            entry.setup_attrs(**item)
+            return 'entry', entry
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of SysinfoEntryXML "
+                                         "instances, not a %s" % str(item))
 
-class SysinfoBiosXML(base.LibvirtXMLBase):
-    """
-    bios xml of sysinfo tag
+    @staticmethod
+    def marshal_to_entries(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a entry tag xml element to an object of SysinfoEntryXML.
+        """
+        if tag != 'entry':
+            return None     # Don't convert this item
+        newone = VMSysinfoXML.SysinfoEntryXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
-    Example:
-        <bios>
-          <entry name='vendor'>LENOVO</entry>
-        </bios>
-    """
+    class SysinfoEntryXML(base.LibvirtXMLBase):
+        """
+        xml of entry
 
-    __slots__ = ('entry', 'entry_name')
+        Example:
+            <entry name='vendor'>LENOVO</entry>
+        """
+        __slots__ = ('entry', 'entry_name')
 
-    def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('entry', self, parent_xpath='/',
-                                 tag_name='entry')
-        accessors.XMLAttribute('entry_name', self, parent_xpath='/',
-                               tag_name='entry', attribute='name')
-        super(SysinfoBiosXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<bios/>'
+        def __init__(self, virsh_instance=base.virsh):
+            accessors.XMLElementText('entry', self, parent_xpath='/',
+                                     tag_name='entry')
+            accessors.XMLAttribute('entry_name', self, parent_xpath='/',
+                                   tag_name='entry', attribute='name')
+            super(VMSysinfoXML.SysinfoEntryXML, self).__init__(
+                virsh_instance=virsh_instance)
+            self.xml = '<entry/>'
 
 
 class VMIDMapXML(base.LibvirtXMLBase):
