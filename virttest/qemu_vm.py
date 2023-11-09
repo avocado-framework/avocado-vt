@@ -780,12 +780,25 @@ class VM(virt_vm.BaseVM):
             add_vhostfd=None,
             vhostforce=None,
             vhostdev=None,
+            portfwds=None,
         ):
 
             if nettype in ["bridge", "network", "macvtap"]:
                 mode = "tap"
             elif nettype == "user":
                 mode = "user"
+            elif nettype == "user:passt":
+                mode = "stream"
+
+                sock_path = os.path.join(
+                    data_dir.get_tmp_dir(),
+                    "-".join((self.name, netdev_id, "passt.sock")),
+                )
+                passt_bin = self.params.get("passt_binary", "/usr/bin/passt")
+                passt_dev = qdevices.QPasstDev(
+                    f"{netdev_id}-passt", passt_bin, sock_path, portfwds
+                )
+                devices.insert(passt_dev)
             elif nettype == "vdpa":
                 mode = "vhost-vdpa"
             else:
@@ -861,6 +874,10 @@ class VM(virt_vm.BaseVM):
                         dev.set_param("hostfwd", fwd_array, dynamic=True)
                     else:
                         dev.set_param("hostfwd", ",hostfwd=".join(fwd_array))
+            elif mode == "stream":
+                dev.set_param("addr.type", "unix")
+                dev.set_param("addr.path", sock_path)
+                dev.set_param("server", "off")
             elif mode == "vhost-vdpa":
                 dev.set_param("vhostdev", vhostdev)
 
@@ -2534,6 +2551,7 @@ class VM(virt_vm.BaseVM):
                     vhostfds = None
                 ifname = nic.get("ifname")
                 queues = nic.get("queues", 1)
+                portfwds = nic.get("net_port_forwards")
                 # specify the number of MSI-X vectors that the card should have;
                 # this option currently only affects virtio cards
                 if nic_params.get("enable_msix_vectors") == "yes" and int(queues) != 1:
@@ -2620,6 +2638,7 @@ class VM(virt_vm.BaseVM):
                     add_vhostfd,
                     vhostforce,
                     vhostdev,
+                    portfwds,
                 )
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
@@ -4434,6 +4453,8 @@ class VM(virt_vm.BaseVM):
             nic.set_if_none("netdst", params.get("netdst"))
         elif nic.nettype == "user":
             pass  # nothing to do
+        elif nic.nettype == "user:passt":
+            nic.set_if_none("net_port_forwards", params.get("net_port_forwards"))
         else:  # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_name, nic.nettype)
         return nic.netdev_id
@@ -4575,6 +4596,25 @@ class VM(virt_vm.BaseVM):
                 utils_net.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == "user":
             net_backend = "user"
+        elif nic.nettype == "user:passt":
+            sock_path = os.path.join(
+                data_dir.get_tmp_dir(), "-".join((self.name, netdev_id, "passt.sock"))
+            )
+            passt_bin = self.params.get("passt_binary", "/usr/bin/passt")
+            passt_dev = qdevices.QPasstDev(
+                f"{netdev_id}-passt", passt_bin, sock_path, nic.get("net_port_forwards")
+            )
+            # XXX: actually we should replace the activate_netdev with
+            #      the combination of something like define_by_params
+            #      and simple_hotplug to align to the same routine
+            #      that other devices defined
+            #      instead of call simple_hotplug here, but as long as
+            self.devices.simple_hotplug(passt_dev, self.monitor)
+
+            net_backend = "stream"
+            netdev_params["addr.type"] = "unix"
+            netdev_params["addr.path"] = sock_path
+            netdev_params["server"] = "off"
         elif nic.nettype == "vdpa":
             net_backend = "vhost-vdpa"
             netdev_params["vhostdev"] = utils_vdpa.get_vdpa_dev_file_by_name(nic.netdst)
@@ -4710,6 +4750,11 @@ class VM(virt_vm.BaseVM):
             tap.delete()
         elif nic.nettype == "bridge":
             self._del_port_from_bridge(nic)
+        elif nic.nettype == "user:passt":
+            passt_dev = self.devices.get_by_properties(
+                {"aobject": f"{netdev_id}-passt"}
+            )[0]
+            self.devices.simple_unplug(passt_dev, self.monitor)
         self.del_netdev(nic_index_or_name)
 
     @error_context.context_aware
