@@ -86,6 +86,7 @@ class KernelModuleHandler(object):
                                          self._module_name.replace('-', '_'))
         self._module_params_path = os.path.join(self._module_path, 'parameters')
         self._module_holders_path = os.path.join(self._module_path, "holders")
+        self._module_holders = self.module_holders
         self._was_loaded = None
         self._config_backup = None
         self._backup_config()
@@ -97,6 +98,8 @@ class KernelModuleHandler(object):
         If there are some modules using this module, they are unloaded first.
         """
         if os.path.exists(self._module_path):
+            for holder in self._module_holders:
+                holder.unload_module()
             unload_cmd = 'rmmod ' + self._module_name
             LOG.debug("Unloading module: %s", unload_cmd)
             status, output = process.getstatusoutput(unload_cmd)
@@ -134,10 +137,10 @@ class KernelModuleHandler(object):
             do_not_load = False
             if (current_config and
                     all(x in current_config.split() for x in params.split())):
-                LOG.debug("Not reloading module. Current module config"
-                          " uration for %s already contains all reques"
-                          " ted parameters. Requested: '%s'. Current:"
-                          " '%s'. Use force=True to force loading.",
+                LOG.debug("Not reloading module. Current module configuration"
+                          " for %s already contains all requested parameters."
+                          " Requested: '%s'. Current: '%s'. Use force=True to"
+                          " force loading.",
                           self._module_name, params, current_config)
                 do_not_load = True
             elif not self._was_loaded:
@@ -148,16 +151,13 @@ class KernelModuleHandler(object):
                 return
 
         # TODO: Handle cases were module cannot be removed
-        holders = self.module_holders
-        for holder in holders:
-            holder.unload_module()
         self.unload_module()
         reload_cmd = 'modprobe %s %s' % (self._module_name, params)
         LOG.debug("Reloading module: %s", reload_cmd)
         status, output = process.getstatusoutput(reload_cmd.strip())
         if status:
             raise KernelModuleReloadError(self._module_name, output)
-        for holder in holders:
+        for holder in self._module_holders:
             holder.restore()
 
     def restore(self):
@@ -182,9 +182,6 @@ class KernelModuleHandler(object):
 
         if self.current_config != self._config_backup:
             # TODO: Handle cases were module cannot be removed
-            holders = self.module_holders
-            for holder in holders:
-                holder.unload_module()
             self.unload_module()
             if self._was_loaded:
                 restore_cmd = 'modprobe %s %s' % (self._module_name,
@@ -194,7 +191,7 @@ class KernelModuleHandler(object):
                 if status:
                     raise KernelModuleRestoreError(self._module_name,
                                                    output)
-            for holder in holders:
+            for holder in self._module_holders:
                 holder.restore()
 
     def _backup_config(self):
@@ -232,14 +229,18 @@ class KernelModuleHandler(object):
 
     def _get_serialized_config(self):
         """
-        Get current module parameters
+        Get current module parameters if found
 
         :return: String holding module config 'param1=value1 param2=value2 ...', None if
          module not loaded
         """
 
-        if not os.path.exists(self._module_params_path):
-            return None
+        # Module not loaded
+        if not os.path.exists(self._module_path):
+            return
+        # Some modules do not have parameters
+        elif not os.path.exists(self._module_params_path):
+            return ''
 
         mod_params = {}
         params = os.listdir(self._module_params_path)
@@ -247,7 +248,7 @@ class KernelModuleHandler(object):
             with open(os.path.join(self._module_params_path,
                                    param), 'r') as param_file:
                 mod_params[param] = param_file.read().strip()
-        return " ".join("%s=%s" % _ for _ in mod_params.items()) if mod_params else ""
+        return " ".join("%s=%s" % _ for _ in mod_params.items())
 
     @property
     def module_holders(self):
