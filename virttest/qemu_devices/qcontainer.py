@@ -2503,13 +2503,19 @@ class DevContainer(object):
             raise NotImplementedError("vdpa does NOT support the snapshot!")
         if (Flags.BLOCKDEV in self.caps and
                 image_params.get("image_snapshot") == "yes"):
+            # FIXME: Most of attributes for the snapshot should be got from the
+            #        base image's metadata, not from the Cartesian parameter,
+            #        so we need to get the base image object, and then use it
+            #        to create the snapshot.
             sn_params = Params()
             for k, v in image_params.items():
                 sn_params['%s_%s' % (k, name)] = v
             sn = 'vl_%s_%s' % (self.vmname, name)
             sn_params['image_chain'] = "%s %s" % (name, sn)
             sn_params['image_name'] = sn
-            sn_params['image_size'] = image_params['image_size']
+            # Empty the image_size parameter so that qemu-img will align the
+            # size of the snapshot to the base image
+            sn_params['image_size'] = ""
             sn_img = qemu_storage.QemuImg(sn_params, data_dir.get_data_dir(), sn)
             image_filename = sn_img.create(sn_params)[0]
             os.chmod(image_filename, stat.S_IRUSR | stat.S_IWUSR)
