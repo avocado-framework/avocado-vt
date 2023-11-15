@@ -2232,6 +2232,11 @@ class QNetdev(QCustomDevice):
                 if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
                         isinstance(value, list)):
                     value = [{'str': v} for v in value]
+                # https://gitlab.com/qemu-project/qemu/-/blob/master/qapi/net.json#L242
+                elif key in ('sndbuf', ):
+                    value = int(utils_numeric.normalize_data_size(value, 'B'))
+                elif isinstance(value, str) and value.isdigit():
+                    value = int(value)
                 elif value in ('on', 'yes', 'true'):
                     value = True
                 elif value in ('off', 'no', 'false'):
