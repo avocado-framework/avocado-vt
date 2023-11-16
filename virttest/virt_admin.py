@@ -915,3 +915,14 @@ def client_disconnect(server_name, client_id, **dargs):
     """
     cmd = "client-disconnect %s %s" % (server_name, client_id)
     return command(cmd, **dargs)
+
+
+def daemon_log_outputs(**dargs):
+    """
+    Fetch or set the currently defined set of logging outputs on daemon
+
+    :param dargs: standardized virt-admin function API keywords.
+    :return: CmdResult object
+    """
+    cmd = "daemon-log-outputs"
+    return command(cmd, **dargs)
