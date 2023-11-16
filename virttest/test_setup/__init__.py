@@ -532,9 +532,10 @@ class HugePageConfig(object):
         obj.sys_fs_value = num
         # If node has some used hugepage, result will be larger than expected.
         if obj.sys_fs_value < int(num):
-            msg = ("%s (expecting %s) hugepages is set on node %s, "
-                   "please check if the node "
-                   "has enough memory") % (obj.sys_fs_value, num, node)
+            msg = "%s (expecting %s) hugepages is set on the node %s, "\
+                  "please check if the node "\
+                  "has enough memory" % (obj.sys_fs_value, num, node)
+
             if not ignore_error:
                 raise ValueError(msg)
             else:
