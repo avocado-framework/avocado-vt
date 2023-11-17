@@ -3534,8 +3534,7 @@ class VM(virt_vm.BaseVM):
                     auto_close=False,
                     output_func=utils_logfile.log_line,
                     output_params=(outfile,))
-                self.logsessions[key].set_log_file(outfile)
-                self.logsessions[key].close_hooks += [utils_logfile.close_own_log_file]
+                self.logsessions[key].close_hooks += [utils_logfile.close_own_log_file(outfile)]
 
             # Wait for IO channels setting up completely,
             # such as serial console.

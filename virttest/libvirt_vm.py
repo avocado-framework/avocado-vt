@@ -1472,8 +1472,7 @@ class VM(virt_vm.BaseVM):
             self.serial_console_log = os.path.join(utils_logfile.get_log_file_dir(),
                                                    output_filename)
             # Cause serial_console.close() to close open log file
-            self.serial_console.set_log_file(self.serial_console_log)
-            self.serial_console.close_hooks += [utils_logfile.close_own_log_file]
+            self.serial_console.close_hooks += [utils_logfile.close_own_log_file(self.serial_console_log)]
 
     def set_root_serial_console(self, device, remove=False):
         """

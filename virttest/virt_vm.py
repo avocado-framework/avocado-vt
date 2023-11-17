@@ -1114,8 +1114,8 @@ class BaseVM(object):
         session = remote.remote_login(client, address, port, username,
                                       password, prompt, linesep,
                                       log_filename, log_function,
-                                      timeout, interface=neigh_attach_if)
-        session.close_hooks += [utils_logfile.close_own_log_file]
+                                      timeout, neigh_attach_if)
+        session.close_hooks += [utils_logfile.close_own_log_file(log_filename)]
         session.set_status_test_command(self.params.get("status_test_command",
                                                         ""))
         self.remote_sessions.append(session)

@@ -439,7 +439,7 @@ def get_log_filename(filename):
 def close_log_file(filename):
     logging.warning("Calling log functions from `utils_misc` is deprecated, "
                     "please use `utils_logfile` for the purpose")
-    return utils_logfile.close_log_file()
+    return utils_logfile.close_log_file(filename)
 
 
 # The following are miscellaneous utility functions.

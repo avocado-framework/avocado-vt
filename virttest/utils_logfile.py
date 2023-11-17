@@ -167,6 +167,10 @@ def close_log_file(filename):
         _log_lock.release()
 
 
-def close_own_log_file(self):
-    """Closing hook for sessions whose log_file attribute should be passed along."""
-    close_log_file(self.log_file)
+def close_own_log_file(log_file):
+    """Closing hook for sessions with log_file managed locally."""
+
+    def hook(self):
+        close_log_file(log_file)
+
+    return hook
