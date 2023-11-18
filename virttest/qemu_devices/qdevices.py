@@ -1497,7 +1497,9 @@ class QIOThread(QObject):
         super(QIOThread, self).__init__(**kwargs)
         self.set_aid(iothread_id)
         self.iothread_bus = QIOThreadBus(iothread_id)
+        self.iothread_vq_bus = QIOThreadVQBus(iothread_id + "_vq")
         self.add_child_bus(self.iothread_bus)
+        self.add_child_bus(self.iothread_vq_bus)
 
     @staticmethod
     def _query(monitor):
@@ -3725,6 +3727,54 @@ class QIOThreadBus(QSparseBus):
     def _set_device_props(self, device, addr):
         """Set device iothread param."""
         device.set_param(self.bus_item, self.get_device().get_qid())
+
+    def _update_device_props(self, device, addr):
+        """Always set device iothread param."""
+        self._set_device_props(device, addr)
+
+
+class QIOThreadVQBus(QSparseBus):
+    """IOThread, supporting vq, virtual bus."""
+
+    def __init__(self, iothread_id):
+        """
+        iothread bus constructor.
+
+        :param iothread_id: related QIOThread object id
+        """
+        super(QIOThreadVQBus, self).__init__(
+            "iothread-vq-mapping",
+            [[], []],
+            "iothread_vq_bus_%s" % iothread_id,
+            "IOTHREAD",
+            iothread_id,
+        )
+
+    def _check_bus(self, device):
+        """
+        Check if the device is pluggable.
+        Return true since iothread-vq-mapping can own more than one
+        iothread devices.
+        """
+        return True
+
+    def _dev2addr(self, device):
+        """Return the device id as address."""
+        return [device.get_qid()]
+
+    def get_free_slot(self, addr_pattern):
+        """Return the device id as unoccupied address."""
+        return addr_pattern
+
+    def _set_device_props(self, device, addr):
+        """Set device iothread param."""
+        bus_item_vals = device.get_param(self.bus_item, [])
+        iothread = []
+        for item in bus_item_vals:
+            iothread.append(item["iothread"])
+        if self.get_device().get_qid() not in iothread:
+            bus_item_vals.append({"iothread": self.get_device().get_qid()})
+            device.set_param(self.bus_item, bus_item_vals)
 
     def _update_device_props(self, device, addr):
         """Always set device iothread param."""
