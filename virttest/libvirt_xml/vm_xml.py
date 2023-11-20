@@ -3756,31 +3756,72 @@ class VMIothreadidsXML(base.LibvirtXMLBase):
     __slots__ = ('iothread',)
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementList('iothread', self, parent_xpath='/',
+        accessors.XMLElementList('iothread',
+                                 self,
+                                 forbidden=[],
+                                 parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreads,
-                                 marshal_to=self.marshal_to_iothreads)
+                                 marshal_to=self.marshal_to_iothreads,
+                                 has_subclass=True)
         super(VMIothreadidsXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<iothreadids/>'
+
+    class VMIothreadXML(base.LibvirtXMLBase):
+        """
+        Class of vm iothread tag
+        """
+
+        __slots__ = ('id', 'thread_pool_min', 'thread_pool_max', 'poll')
+
+        def __init__(self, virsh_instance=base.virsh):
+            accessors.XMLAttribute(property_name="id",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/',
+                                   tag_name='iothread',
+                                   attribute='id')
+            accessors.XMLAttribute(property_name="thread_pool_min",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/',
+                                   tag_name='iothread',
+                                   attribute='thread_pool_min')
+            accessors.XMLAttribute(property_name="thread_pool_max",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/',
+                                   tag_name='iothread',
+                                   attribute='thread_pool_max')
+            accessors.XMLElementDict('poll', self, parent_xpath='/',
+                                     tag_name='poll')
+            super(VMIothreadidsXML.VMIothreadXML, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<iothread/>'
 
     @staticmethod
     def marshal_from_iothreads(item, index, libvirtxml):
         """
-        Convert a string to iothread tag and attributes.
+        Convert an xml object to iothread tag and xml element.
         """
-        if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of iothread "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('iothread', dict(item))
+        if isinstance(item, VMIothreadidsXML.VMIothreadXML):
+            return 'iothread', item
+        elif isinstance(item, dict):
+            iothread = VMIothreadidsXML.VMIothreadXML()
+            iothread.setup_attrs(**item)
+            return 'iothread', iothread
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of iothread "
+                                         "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_iothreads(tag, attr_dict, index, libvirtxml):
+    def marshal_to_iothreads(tag, new_treefile, index, libvirtxml):
         """
-        Convert a iothread tag and attributes to a string.
+        Convert an iothread tag xml element to an object of VMIothreadXML.
         """
         if tag != 'iothread':
-            return None
-        return dict(attr_dict)
+            return None     # Don't convert this item
+        newone = VMIothreadidsXML.VMIothreadXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
 
 class VMFeaturesHypervXML(base.LibvirtXMLBase):
