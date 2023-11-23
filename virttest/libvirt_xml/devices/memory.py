@@ -65,7 +65,8 @@ class Memory(base.UntypedDeviceBase):
         __slots__ = ('size', 'size_unit', 'node', 'label',
                      'requested_size', 'requested_unit',
                      'current_size', 'current_unit',
-                     'block_size', 'block_unit', 'readonly')
+                     'block_size', 'block_unit', 'readonly',
+                     'address')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('size',
@@ -113,6 +114,11 @@ class Memory(base.UntypedDeviceBase):
                                          'virsh_instance': virsh_instance})
             accessors.XMLElementBool('readonly', self, parent_xpath='/',
                                      tag_name='readonly')
+            accessors.XMLElementNest('address', self, parent_xpath='/',
+                                     tag_name='address', subclass=Memory.Address,
+                                     subclass_dargs={
+                                         'type_name': 'pci',
+                                         'virsh_instance': virsh_instance})
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<target/>'
 
