@@ -21,15 +21,32 @@ import traceback
 import signal
 import time
 import platform
-try:
-    import six
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "six"])
-from six.moves import xrange
-from six.moves import input
 from distutils.version import LooseVersion  # pylint: disable=W0611,E0611
 
+# For Python 2 and 3 compatibility
+# xrange
+try:
+    range = xrange
+except NameError:
+    pass
+# raw_input
+try:
+    input = raw_input
+except NameError:
+    pass
+# iteritems, itervalues
+if sys.version_info[0] == 3:
+    def itervalues(d, **kw):
+        return iter(d.values(**kw))
+
+    def iteritems(d, **kw):
+        return iter(d.items(**kw))
+else:
+    def itervalues(d, **kw):
+        return d.itervalues(**kw)
+
+    def iteritems(d, **kw):
+        return d.iteritems(**kw)
 
 if os.name == "posix":  # Linux
     os_linux = True
@@ -276,7 +293,7 @@ class VirtioGuestPosix(VirtioGuest):
                     line_list.append(line)
                 try:
                     for line in line_list:
-                        m = re.match("(\S+): (\S+)", line)
+                        m = re.match(r"(\S+): (\S+)", line)
                         port[m.group(1)] = m.group(2)
 
                     if port['is_console'] == "yes":
@@ -428,7 +445,7 @@ class VirtioGuestPosix(VirtioGuest):
             #       when bz796048 is resolved.
             while not self.exit_thread.isSet():
                 data = b""
-                for i in xrange(len(self.in_files)):
+                for i in range(len(self.in_files)):
                     if self.exit_thread.isSet():
                         break
                     desc = self.in_files[i]
@@ -447,11 +464,11 @@ class VirtioGuestPosix(VirtioGuest):
                             sys.stdout.write("Missing device, readerr %s\n"
                                              % inst)
                             _desc = desc
-                            for item in six.iteritems(virt.files):
+                            for item in iteritems(virt.files):
                                 if item[1] == desc:
                                     path = item[0]
                                     break
-                            for item in six.iteritems(virt.ports):
+                            for item in iteritems(virt.ports):
                                 if item[1]['path'] == path:
                                     name = item[0]
                                     break
@@ -466,7 +483,7 @@ class VirtioGuestPosix(VirtioGuest):
                                     pass
                             self.in_files[self.in_files.index(_desc)] = desc
                 if data != b"":
-                    for i in xrange(len(self.out_files)):
+                    for i in range(len(self.out_files)):
                         if self.exit_thread.isSet():
                             break
                         desc = self.out_files[i]
@@ -492,11 +509,11 @@ class VirtioGuestPosix(VirtioGuest):
                                     sys.stdout.write("Missing device, writeerr"
                                                      " %s\n" % inst)
                                     _desc = desc
-                                    for item in six.iteritems(virt.files):
+                                    for item in iteritems(virt.files):
                                         if item[1] == desc:
                                             path = item[0]
                                             break
-                                    for item in six.iteritems(virt.ports):
+                                    for item in iteritems(virt.ports):
                                         if item[1]['path'] == path:
                                             name = item[0]
                                             break
@@ -796,7 +813,7 @@ class VirtioGuestPosix(VirtioGuest):
         :return: Array of descriptors.
         """
         opened = False
-        for i in xrange(attempts):
+        for i in range(attempts):
             try:
                 name = self.ports[in_file]["path"]
                 self.files[name] = os.open(name, os.O_RDWR)
@@ -848,7 +865,7 @@ class VirtioGuestPosix(VirtioGuest):
         self.exit_thread.clear()
 
         del self.threads[:]
-        for desc in six.itervalues(self.files):
+        for desc in itervalues(self.files):
             os.close(desc)
         self.files.clear()
         print("PASS: All threads finished")
@@ -986,7 +1003,7 @@ class VirtioGuestNt(VirtioGuest):
 
         # Check if all ports really exists
         remove = []
-        for item in six.iteritems(self.ports):
+        for item in iteritems(self.ports):
             port = item[1]
             try:
                 hFile = win32file.CreateFile(port['path'], 0, 0, None,
@@ -1095,7 +1112,7 @@ class VirtioGuestNt(VirtioGuest):
         self.exit_thread.clear()
 
         del self.threads[:]
-        for desc in six.itervalues(self.files):
+        for desc in itervalues(self.files):
             win32file.CloseHandle(desc)
         self.files.clear()
         print("PASS: All threads finished")
