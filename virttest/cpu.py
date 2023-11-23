@@ -73,7 +73,7 @@ CPU_TYPES_RE = {"EPYC-Genoa": "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
                 "Opteron_G1": "",
                 "SapphireRapids": ("serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
                                    "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
-                                   "avx512_fp16"),
+                                   "avx512_fp16,hle,rtm,taa-no"),
                 "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote",
                 "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
                 "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
