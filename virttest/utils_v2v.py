@@ -1200,6 +1200,16 @@ class WindowsVMCheck(VMCheck):
         LOG.debug("Command output:\n%s", output)
         return output
 
+    def get_cpu_status(self):
+        """
+        Get windows cpu status.
+        """
+        cmd = "wmic cpu get status"
+        output = self.session.cmd_output(cmd)
+        if not output:
+            LOG.error('Fail to get cpu status')
+        return output
+
     def get_windows_event_info(self):
         """
         Get windows event log info about WSH.
