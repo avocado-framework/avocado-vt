@@ -46,6 +46,7 @@ from virttest import (
     utils_vdpa,
     utils_vsock,
     virt_vm,
+    vt_iothread,
 )
 from virttest.qemu_capabilities import Flags
 from virttest.qemu_devices import qcontainer, qdevices
@@ -2450,6 +2451,7 @@ class VM(virt_vm.BaseVM):
             set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "images")
             devices.insert(dev)
 
+        image_devs = []
         # Add images (harddrives)
         for image_name in params.objects("images"):
             # FIXME: Use qemu_devices for handling indexes
@@ -2497,6 +2499,28 @@ class VM(virt_vm.BaseVM):
             for _ in devs:
                 set_cmdline_format_by_cfg(_, self._get_cmdline_format_cfg(), "images")
                 devices.insert(_)
+            image_devs.extend(devs)
+        # FIXME: Here's a workaround solution about allocating the iothreads.
+        #  Due to adapting the multipeerroundrobin iothread scheme,
+        #  allocating the iothreads has to be executed after all the related
+        #  image devices are created completely.
+        iothread_lst = []
+        img_pci_mapping = []
+        for dev in devices:
+            if isinstance(dev, qdevices.QIOThread):
+                iothread_lst.append(dev)
+        for dev in image_devs:
+            if dev and devices.is_dev_iothread_vq_supported(dev):
+                img_pci_mapping.append(dev)
+
+        if len(img_pci_mapping) > 0:
+            if isinstance(
+                devices.iothread_manager, vt_iothread.MultiPeerRoundRobinManager
+            ):
+                for i in range(max(len(iothread_lst), len(img_pci_mapping))):
+                    dev = img_pci_mapping[i % len(img_pci_mapping)]
+                    iothread_assigned = devices.allocate_iothread_vq("auto", dev)
+                    iothread_assigned.iothread_vq_bus.insert(dev)
 
         # Add filesystems
         for fs_name in params.objects("filesystems"):
