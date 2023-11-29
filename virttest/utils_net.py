@@ -3916,16 +3916,15 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
     else:
         cmd = "%s | awk '/default/ { print $3 }'" % ip_cmd
     try:
+        _, output = utils_misc.cmd_status_output(cmd, shell=True)
         if session:
-            output = session.cmd_output(cmd).strip()
             LOG.debug("Guest default gateway is %s", output)
         else:
-            output = process.run(cmd, shell=True).stdout_text.rstrip()
             LOG.debug("Host default gateway is %s", output)
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         LOG.error("Failed to get the default GateWay")
         return None
-    return output
+    return output.strip()
 
 
 def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
