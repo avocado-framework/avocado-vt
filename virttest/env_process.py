@@ -45,6 +45,7 @@ from virttest import utils_qemu
 from virttest import migration
 from virttest import utils_kernel_module
 from virttest import arch
+from virttest import utils_logfile
 from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
 from virttest.staging import service
@@ -629,6 +630,8 @@ def postprocess_vm(test, params, env, name):
             vm.remote_sessions.remove(s)
         except Exception:
             pass
+
+    utils_logfile.close_log_file()
 
     if params.get("vm_extra_dump_paths") is not None:
         vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps")

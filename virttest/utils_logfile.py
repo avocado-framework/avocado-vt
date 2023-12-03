@@ -142,9 +142,9 @@ def get_log_filename(filename):
             os.path.abspath(utils_path.get_path(_log_file_dir, filename)))
 
 
-def close_log_file(filename):
+def close_log_file(filename="*"):
     """
-    Close all files that use the same base name as filename.
+    Close log files with the same base name as filename or all by default.
 
     :param filename: Log file name
     :raise: LogLockError if the lock is unavailable
@@ -156,7 +156,8 @@ def close_log_file(filename):
                            " _open_log_files")
     try:
         for log_file, log_fd in _open_log_files.items():
-            if os.path.basename(log_file) == os.path.basename(filename):
+            if (filename == '*' or
+                    os.path.basename(log_file) == os.path.basename(filename)):
                 log_fd.close()
                 remove.append(log_file)
         if remove:
