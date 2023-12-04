@@ -1255,6 +1255,27 @@ def preprocess(test, params, env):
         version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
         LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
 
+    # Checking required virtio-win version, if not satisfied, cancel test
+    if params.get("required_virtio_win") or params.get("required_virtio_win_prewhql"):
+        if params.get("cdrom_virtio"):
+            cdrom_virtio = params["cdrom_virtio"]
+            cdrom_virtio_path = os.path.basename(utils_misc.get_path(data_dir.get_data_dir(), cdrom_virtio))
+            virtio_win_range = params.get("required_virtio_win_prewhql") if re.search(
+                'prewhql', cdrom_virtio_path) else params.get("required_virtio_win")
+            if virtio_win_range:
+                LOG.info("Checking required virtio-win version: %s" % virtio_win_range)
+                match = re.search("virtio-win-(?:prewhql-)?(\d+\.\d+(?:\.\d+)?-\d+)", cdrom_virtio_path)
+                if match.group(1) is None:
+                    test.error("Can not get virtio-win version from \"cdrom_virtio\": %s" % cdrom_virtio)
+                cdrom_virtio_version = re.sub('-', '.', match.group(1))
+                if cdrom_virtio_version not in VersionInterval(virtio_win_range):
+                    test.cancel("Got virtio-win version:%s, which is not in %s" %
+                                (cdrom_virtio_version, virtio_win_range))
+            else:
+                test.error("The limitation for virtio-win is not suitable for the cdrom_virtio")
+        else:
+            LOG.warning("required_virtio_win(prewhql) can not take effect without cdrom_virtio")
+
     # Get the Libvirt version
     if vm_type == "libvirt":
         libvirt_ver_cmd = params.get("libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'")
