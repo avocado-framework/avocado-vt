@@ -781,6 +781,7 @@ class VM(virt_vm.BaseVM):
             vhostforce=None,
             vhostdev=None,
             portfwds=None,
+            mtu=None,
         ):
 
             if nettype in ["bridge", "network", "macvtap"]:
@@ -796,7 +797,7 @@ class VM(virt_vm.BaseVM):
                 )
                 passt_bin = self.params.get("passt_binary", "/usr/bin/passt")
                 passt_dev = qdevices.QPasstDev(
-                    f"{netdev_id}-passt", passt_bin, sock_path, portfwds
+                    f"{netdev_id}-passt", passt_bin, sock_path, portfwds, mtu
                 )
                 devices.insert(passt_dev)
             elif nettype == "vdpa":
@@ -2552,6 +2553,7 @@ class VM(virt_vm.BaseVM):
                 ifname = nic.get("ifname")
                 queues = nic.get("queues", 1)
                 portfwds = nic.get("net_port_forwards")
+                net_mtu = nic.get("net_mtu")
                 # specify the number of MSI-X vectors that the card should have;
                 # this option currently only affects virtio cards
                 if nic_params.get("enable_msix_vectors") == "yes" and int(queues) != 1:
@@ -2639,6 +2641,7 @@ class VM(virt_vm.BaseVM):
                     vhostforce,
                     vhostdev,
                     portfwds,
+                    net_mtu,
                 )
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
@@ -4455,6 +4458,7 @@ class VM(virt_vm.BaseVM):
             pass  # nothing to do
         elif nic.nettype == "user:passt":
             nic.set_if_none("net_port_forwards", params.get("net_port_forwards"))
+            nic.set_if_none("net_mtu", params.get("net_mtu"))
         else:  # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_name, nic.nettype)
         return nic.netdev_id
@@ -4602,7 +4606,11 @@ class VM(virt_vm.BaseVM):
             )
             passt_bin = self.params.get("passt_binary", "/usr/bin/passt")
             passt_dev = qdevices.QPasstDev(
-                f"{netdev_id}-passt", passt_bin, sock_path, nic.get("net_port_forwards")
+                f"{netdev_id}-passt",
+                passt_bin,
+                sock_path,
+                nic.get("net_port_forwards"),
+                nic.get("net_mtu"),
             )
             # XXX: actually we should replace the activate_netdev with
             #      the combination of something like define_by_params

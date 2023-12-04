@@ -2774,6 +2774,7 @@ class QemuIface(VirtIface):
         "vhostfds",
         "vectors",
         "net_port_forwards",
+        "net_mtu",
     ]
 
 

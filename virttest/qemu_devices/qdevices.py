@@ -2361,7 +2361,7 @@ class QPasstDev(QDaemonDev):
     Passt pseudo device.
     """
 
-    def __init__(self, aobject, binary, sock_path, rules):
+    def __init__(self, aobject, binary, sock_path, rules, mtu=None):
         """
         :param aobject: `aobject` of the daemon.
         :type aobject: str
@@ -2371,6 +2371,8 @@ class QPasstDev(QDaemonDev):
         :type sock_path: str
         :param rules: Port forwarding rules.
         :type rules: str
+        :param mtu: MTU size.
+        :type mtu: str
         """
         super().__init__(
             "passt",
@@ -2380,6 +2382,7 @@ class QPasstDev(QDaemonDev):
         self.set_param("binary", binary)
         self.set_param("sock_path", sock_path)
         self.set_param("rules", rules)
+        self.set_param("mtu", mtu)
 
         uuid = uuid4()
         # let's place the pid file within the same dir
@@ -2442,6 +2445,9 @@ class QPasstDev(QDaemonDev):
             self.get_param("sock_path"),
         )
         cmd += f" --pid {self._pid_file} --log-file {self._tmp_log_file}"
+        mtu = self.get_param("mtu")
+        if mtu:
+            cmd += f" --mtu {mtu}"
         cmd += self._render_rules()
         self.set_param("cmd", cmd)
         self.set_param("run_bg_kwargs", {"auto_close": False})
