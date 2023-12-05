@@ -2539,7 +2539,18 @@ class QNetdev(QCustomDevice):
                     value = True
                 elif value in ("off", "no", "false"):
                     value = False
-            new_args[key] = value
+
+            subs = key.split(".")
+            curr = new_args
+            for subk in subs[:-1]:
+                try:
+                    int(subk)
+                    subv = list()
+                except ValueError:
+                    subv = dict()
+                curr.setdefault(subk, subv)
+                curr = curr[subk]
+            curr[subs[-1]] = value
 
         return new_args
 
