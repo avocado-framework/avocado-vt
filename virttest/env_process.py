@@ -1156,6 +1156,7 @@ def preprocess(test, params, env):
     # leave them untouched if they have to be disregarded only for this test
     requested_vms = params.objects("vms")
     keep_unrequested_vms = params.get_boolean("keep_unrequested_vms", False)
+    kill_unrequested_vms_gracefully = params.get_boolean("kill_unrequested_vms_gracefully", True)
     for key in list(env.keys()):
         vm = env[key]
         if not isinstance(vm, virt_vm.BaseVM):
@@ -1165,7 +1166,7 @@ def preprocess(test, params, env):
                 LOG.debug("The vm %s is registered in the env and disregarded "
                           "in the current test", vm.name)
             else:
-                vm.destroy()
+                vm.destroy(gracefully=kill_unrequested_vms_gracefully)
                 del env[key]
 
     global KVM_MODULE_HANDLERS
