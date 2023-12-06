@@ -614,3 +614,28 @@ def check_virtual_disk_io(vm, partition, path="/dev/%s"):
     finally:
         if session:
             session.close()
+
+
+def check_item_by_blockjob(params):
+    """
+    Check item by blockjob, for example, bandwidth, progress.
+
+    :param params: dictionary with the test parameter
+    """
+    vm_name = params.get("main_vm")
+    check_item = params.get("check_item")
+    check_item_value = params.get("check_item_value")
+    target_disk = params.get("target_disk", "vda")
+    wait_for_timeout = params.get("wait_for_timeout", "10")
+
+    if check_item == "none":
+        if not utils_misc.wait_for(
+                lambda: libvirt.check_blockjob(vm_name, target_disk),
+                wait_for_timeout):
+            raise exceptions.TestFail("Check failed.")
+    else:
+        if not utils_misc.wait_for(
+                lambda: libvirt.check_blockjob(vm_name,
+                                               target_disk, check_item, check_item_value),
+                wait_for_timeout):
+            raise exceptions.TestFail("Check '%s' failed." % check_item)
