@@ -342,3 +342,14 @@ def change_tcp_config(expected_dict):
             tcp_retries2, tcp_fin_timeout))
     LOG.debug("Change TCP config: %s", cmd)
     process.run(cmd, shell=True, ignore_status=False)
+
+
+def check_listen_address(params):
+    """
+    Check listen address by ss command
+
+    :param params: dictionary with the test parameter, get listen address
+    """
+    listen_address = params.get("listen_address")
+
+    process.run(f"ss -tnap|grep qemu-kvm| grep '{listen_address}'", shell=True, ignore_status=False)
