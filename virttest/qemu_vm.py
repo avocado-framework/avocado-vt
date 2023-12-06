@@ -936,6 +936,9 @@ class VM(virt_vm.BaseVM):
                           pci_bus='pci.0'):
             if devices.has_device(device_driver):
                 dev = QDevice(device_driver, parent_bus=pci_bus)
+                set_cmdline_format_by_cfg(dev,
+                                          self._get_cmdline_format_cfg(),
+                                          'nics')
             else:
                 dev = qdevices.QCustomDevice('pcidevice', parent_bus=pci_bus)
             help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
