@@ -24,6 +24,31 @@ from virttest.libvirt_xml.devices.disk import Disk
 LOG = logging.getLogger('avocado.' + __name__)
 
 
+def get_disk_by_serial(session, serial):
+    """
+    Gets the disk by its serial value
+
+    :param session: VM session
+    :param serial: The expected serial value
+    :return path: absolute path of disk
+                  e.g. /dev/sda
+    :raises TestError: If the disk cannot be found.
+    """
+    cmd = "lsblk -n -p -l -o NAME,SERIAL"
+    s, o = utils_misc.cmd_status_output(cmd,
+                                        ignore_status=False,
+                                        shell=True,
+                                        verbose=True,
+                                        session=session)
+    if s:
+        raise exceptions.TestError("Couldn't list block devices: '%s'" % o)
+    for line in o.split("\n"):
+        match = re.match(r'(/dev/[a-z]+)[\s\t]+%s' % serial, line)
+        if match:
+            return match.groups()[0]
+    raise exceptions.TestError("Couldn't find new disk in:\n%s" % o)
+
+
 def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
                 session=None):
     """
