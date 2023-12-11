@@ -18,6 +18,7 @@ from pathlib import Path
 import aexpect
 
 from virttest import qemu_monitor, utils_numeric
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_devices.utils import none_or_int
@@ -2082,7 +2083,7 @@ class QVirtioFSDev(QDaemonDev):
         """Handle the log of virtiofs daemon."""
         name = self.get_param('name')
         try:
-            utils_misc.log_line('%s-%s.log' % (self.get_qid(), name), line)
+            utils_logfile.log_line('%s-%s.log' % (self.get_qid(), name), line)
         except Exception as e:
             LOG.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
 
@@ -2155,7 +2156,7 @@ class QSwtpmDev(QDaemonDev):
         if self.get_param('version') in ('2.0', ):
             tpm_cmd += ' --tpm2'
 
-        log_dir = utils_misc.get_log_file_dir()
+        log_dir = utils_logfile.get_log_file_dir()
         log_file = os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
         Path(log_file).touch(mode=0o644, exist_ok=True)
         tpm_cmd += ' --log file=%s' % log_file

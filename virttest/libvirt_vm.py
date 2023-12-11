@@ -23,6 +23,7 @@ from avocado.utils import crypto
 from avocado.core import exceptions
 
 from virttest import error_context
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import cpu
 from virttest import virt_vm
@@ -1455,9 +1456,10 @@ class VM(virt_vm.BaseVM):
                 cmd += (" console %s %s" % (self.name, self.serial_ports[0]))
             except IndexError:
                 raise virt_vm.VMConfigMissingError(self.name, "serial")
-            output_func = utils_misc.log_line  # Because qemu-kvm uses this
+            output_func = utils_logfile.log_line  # Because qemu-kvm uses this
+            port = self.serial_ports[0]
             # Because qemu-kvm hard-codes this
-            output_filename = self.get_serial_console_filename(self.serial_ports[0])
+            output_filename = self.get_serial_console_filename(port)
             output_params = (output_filename,)
             prompt = self.params.get("shell_prompt", "[\#\$]")
             LOG.debug("Command used to create serial console: %s", cmd)
@@ -1467,10 +1469,10 @@ class VM(virt_vm.BaseVM):
                                                        prompt=prompt)
             if not self.serial_console.is_alive():
                 LOG.error("Failed to create serial_console")
-            # Cause serial_console.close() to close open log file
-            self.serial_console.set_log_file(output_filename)
-            self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
+            self.serial_console_log = os.path.join(utils_logfile.get_log_file_dir(),
                                                    output_filename)
+            # Cause serial_console.close() to close open log file
+            self.serial_console.close_hooks += [utils_logfile.close_own_log_file(self.serial_console_log)]
 
     def set_root_serial_console(self, device, remove=False):
         """

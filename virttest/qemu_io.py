@@ -3,6 +3,7 @@ import re
 import aexpect
 from avocado.utils import process
 
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import error_context
 
@@ -27,7 +28,7 @@ class QemuIO(object):
         self.type = ""
         if log_filename:
             log_filename += "-" + utils_misc.generate_random_string(4)
-            self.output_func = utils_misc.log_line
+            self.output_func = utils_logfile.log_line
             self.output_params = (log_filename,)
         else:
             self.output_func = None

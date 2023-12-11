@@ -86,7 +86,7 @@ def remote_commander(client, host, port, username, password, prompt,
         log_file = utils_logfile.get_log_filename(log_filename)
         session.set_output_func(utils_logfile.log_line)
         session.set_output_params((log_file,))
-        session.set_log_file(os.path.basename(log_file))
+        session.close_hooks += [utils_logfile.close_own_log_file(log_file)]
 
     session.send_ctrl("raw")
     # Wrap io interfaces.

@@ -27,6 +27,7 @@ from avocado.core import exceptions
 from virttest import data_dir
 from virttest import error_context
 from virttest import cpu
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import versionable_class
 from virttest import openvswitch
@@ -1647,7 +1648,7 @@ class PciAssignable(object):
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
             LOG.info("Log dmesg after loading '%s' to '%s'.", self.driver,
                      file_name)
-            utils_misc.log_line(file_name, dmesg)
+            utils_logfile.log_line(file_name, dmesg)
             self.setup = None
             return True
 

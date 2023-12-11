@@ -31,6 +31,7 @@ from virttest import env_process
 from virttest import funcatexit
 from virttest import utils_env
 from virttest import utils_params
+from virttest import utils_logfile
 from virttest import utils_misc
 from virttest import version
 from virttest._wrappers import load_source
@@ -111,7 +112,7 @@ class VirtTest(test.Test, utils.TestUtils):
         self.__vt_params = vt_params
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
-        utils_misc.set_log_file_dir(self.logdir)
+        utils_logfile.set_log_file_dir(self.logdir)
         self.__status = None
         self.__exc_info = None
 

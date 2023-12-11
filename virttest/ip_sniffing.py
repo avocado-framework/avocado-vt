@@ -18,7 +18,7 @@ from avocado.utils import process
 
 import six
 
-from virttest.utils_misc import log_line
+from virttest.utils_logfile import log_line
 from virttest.utils_version import VersionInterval
 
 LOG = logging.getLogger('avocado.' + __name__)
