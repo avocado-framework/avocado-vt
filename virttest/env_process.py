@@ -1244,6 +1244,17 @@ def preprocess(test, params, env):
             test.cancel("Got host qemu version:%s, which is not in %s" %
                         (host_qemu, required_qemu))
 
+    # Get the version of bootloader
+    vm_bootloader_ver_cmd = params.get("vm_bootloader_ver_cmd", "")
+    if vm_bootloader_ver_cmd:
+        try:
+            vm_bootloader_ver = a_process.run(
+                vm_bootloader_ver_cmd, shell=True).stdout_text.strip()
+        except a_process.CmdError:
+            vm_bootloader_ver = "Unkown"
+        version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
+        LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
+
     # Get the Libvirt version
     if vm_type == "libvirt":
         libvirt_ver_cmd = params.get("libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'")
