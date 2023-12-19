@@ -2299,12 +2299,12 @@ class QNetdev(QCustomDevice):
 
     def verify_unplug(self, out, monitor):
         out = monitor.info("network", debug=False)
-        return self.get_qid() not in out
+        return f"{self.get_qid()}:" not in out
 
     # pylint: disable=E0202
     def verify_hotplug(self, out, monitor):
         out = monitor.info("network", debug=False)
-        return self.get_qid() in out
+        return f"{self.get_qid()}:" in out
 
 
 #
