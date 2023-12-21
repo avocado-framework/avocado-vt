@@ -3916,7 +3916,7 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
     else:
         cmd = "%s | awk '/default/ { print $3 }'" % ip_cmd
     try:
-        _, output = utils_misc.cmd_status_output(cmd, shell=True)
+        _, output = utils_misc.cmd_status_output(cmd, shell=True, session=session)
         if session:
             LOG.debug("Guest default gateway is %s", output)
         else:
