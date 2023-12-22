@@ -3893,7 +3893,7 @@ def get_host_iface():
 
 
 def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
-                        force_dhcp=False):
+                        force_dhcp=False, target_iface=None):
     """
     Get the Default Gateway or Interface of host or guest.
 
@@ -3901,6 +3901,7 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
                         (False) is returned, defaults to False
     :param session: shell/console session if any, defaults to None
     :param ip_ver: ip version, defaults to 'ipv4'
+    :param target_iface: if given, get default gateway only for this device
     :return: default gateway of target iface
     """
     if ip_ver == 'ipv4':
@@ -3911,10 +3912,14 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
         raise ValueError(f'Unrecognized IP version {ip_ver}')
     if force_dhcp:
         ip_cmd = ip_cmd + '|grep dhcp'
-    if iface_name:
-        cmd = "%s | awk '/default/ { print $5 }'" % ip_cmd
+    if target_iface:
+        regex = "default.*%s" % target_iface
     else:
-        cmd = "%s | awk '/default/ { print $3 }'" % ip_cmd
+        regex = "default"
+    if iface_name:
+        cmd = "%s | awk '/%s/ { print $5 }'" % (ip_cmd, regex)
+    else:
+        cmd = "%s | awk '/%s/ { print $3 }'" % (ip_cmd, regex)
     try:
         _, output = utils_misc.cmd_status_output(cmd, shell=True, session=session)
         if session:
