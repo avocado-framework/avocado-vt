@@ -24,6 +24,84 @@ from virttest.libvirt_xml.devices.disk import Disk
 LOG = logging.getLogger('avocado.' + __name__)
 
 
+def get_non_root_disk_name(session):
+    """
+    Returns the first disk name under /dev whose device doesn't have any
+    partitions or volumes or itself mounting "/".
+    Assuming that the system is installed on a single disk, this
+    can be used to identify an added disk.
+    It also includes read-only devices as such, e.g. sr0.
+
+    It iterates over output with the following structure in mind:
+    vda
+    ├─vda1        /boot
+    └─vda2
+      ├─rhel-root /
+      └─rhel-swap [SWAP]
+    But also considers corner cases where everything is for example on vda and
+    no swap.
+
+    :param session: If given the command will be executed in this VM or
+                    remote session.
+    :return (name, mount_point): A tuple containing the device name and the mount
+                    point. If the information doesn't exist it's returned as empty
+                    string.
+    :raises TestError: If there's no additional disk or no mount on "/" or when
+                       the disk information cannot be retrieved.
+    """
+    cmd = "lsblk -n -o NAME,MOUNTPOINT"
+    s, o = utils_misc.cmd_status_output(cmd,
+                                        ignore_status=False,
+                                        shell=True,
+                                        verbose=True,
+                                        session=session)
+    if s:
+        raise exceptions.TestError("Couldn't list block devices: '%s'" % o)
+    LOG.debug("lsblk output:\n%s", o)
+    lines = o.split("\n").copy()
+    root_disk = None
+    root_mounted = False
+    disk_pattern = re.compile(r'^([a-z]+|sr\d)[\s\t$]')
+    entry_pattern = re.compile(r'(.*)[\s\t]+(.*)')
+    idx = 0
+    while -1 < idx < len(lines) + 1:
+        line = lines[idx]
+        entry = entry_pattern.match(line)
+        if not entry:
+            idx = idx + 1
+            continue
+        name, mpoint = entry.groups()
+        is_disk = disk_pattern.match(name)
+        if root_mounted:
+            if is_disk:
+                root_disk = line
+                break
+            else:
+                idx = idx - 1
+                continue
+        if mpoint == "/":
+            root_mounted = True
+            if is_disk:
+                root_disk = line
+                break
+            else:
+                # we have found "/" but it's not a disk
+                # go back to find the disk
+                idx = idx - 1
+                continue
+        idx = idx + 1
+    if not root_disk:
+        raise exceptions.TestError("'/' not mounted in\n%s" % o)
+    non_root_disks = [x for x in lines
+                      if x != root_disk and disk_pattern.match(x)]
+    if not non_root_disks:
+        raise exceptions.TestError("No non root disks found in\n%s" % o)
+    else:
+        LOG.debug("Identified non_root_disks %s in\n%s", non_root_disks, o)
+        name, mpoint = entry_pattern.match(non_root_disks[0]).groups()
+        return name.strip(), mpoint.strip()
+
+
 def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
                 session=None):
     """
