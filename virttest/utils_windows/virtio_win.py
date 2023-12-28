@@ -139,8 +139,9 @@ def _get_netkvmco_path(session):
         if status != 0:
             continue
         netkvmco_path = output.strip().split("\n")[0]
-        LOG.info("Found %s file at %s" % (file_type, netkvmco_path))
+        LOG.info("Found %s file at %s" % (file_name, netkvmco_path))
         return netkvmco_path
+
 
 def prepare_netkvmco(vm):
     """
@@ -156,8 +157,7 @@ def prepare_netkvmco(vm):
             prepare_netkvmco_cmd = "xcopy %s c:\\ /y && "
             prepare_netkvmco_cmd += "rundll32 netkvmco.dll,"
             prepare_netkvmco_cmd += "RegisterNetKVMNetShHelper"
-            session.cmd(prepare_netkvmco_cmd \
-                        % get_netkvmco_path, timeout=240)
+            session.cmd(prepare_netkvmco_cmd % get_netkvmco_path, timeout=240)
     finally:
         session.close()
     return get_netkvmco_path
