@@ -1197,7 +1197,7 @@ def __init_openvswitch():
             if (not __ovs.check()):
                 raise Exception("Check of OpenVSwitch failed.")
         except Exception as e:
-            LOG.error("Host does not support OpenVSwitch: %s", e)
+            LOG.debug("Host does not support OpenVSwitch: %s", e)
             __ovs = None
     return __ovs
 
