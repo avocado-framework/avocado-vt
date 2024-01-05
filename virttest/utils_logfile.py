@@ -76,7 +76,7 @@ def log_line(filename, line):
                 os.makedirs(os.path.dirname(log_file))
             except OSError:
                 pass
-            _open_log_files[base_file] = open(log_file, "w")
+            _open_log_files[base_file] = open(log_file, "a")
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
         try:
             line = string_safe_encode(line)
