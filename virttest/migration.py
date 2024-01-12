@@ -448,7 +448,10 @@ class MigrationTest(object):
                 #one_param_dict = args['multi_func_params'][func]
                 LOG.debug("Run function {} with "
                           "parameters '{}'".format(func, func_param))
-                self.func_ret.update({func: func(func_param)})
+                if isinstance(func_param, dict):
+                    self.func_ret.update({func: func(**func_param)})
+                else:
+                    self.func_ret.update({func: func(func_param)})
             else:
                 LOG.debug("Run function {}".format(func))
                 self.func_ret.update({func: func()})
