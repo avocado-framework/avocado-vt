@@ -4247,6 +4247,10 @@ class VM(virt_vm.BaseVM):
         :raise: IOError if TAP device node cannot be opened
         :raise: VMAddNetDevError: if operation failed
         """
+        def _get_tapfds(fds, dev):
+            return [fd for fd in fds if os.readlink(os.path.join(qemu_fds,
+                                                                 fd)) == dev]
+
         nic = self.virtnet[nic_index_or_name]
         netdev_id = nic.netdev_id
         error_context.context("Activating netdev for %s based on %s" %
@@ -4256,10 +4260,13 @@ class VM(virt_vm.BaseVM):
         netdev_params = {"id": netdev_id}
         if nic.nettype in ['bridge', 'macvtap']:
             net_backend = "tap"
+            qemu_fds = "/proc/%s/fd" % self.get_pid()
+            openfd_list = os.listdir(qemu_fds)
             error_context.context("Opening tap device node for %s " % nic.ifname,
                                   LOG.debug)
             if nic.nettype == "bridge":
                 tun_tap_dev = "/dev/net/tun"
+                open_tapfd_list = _get_tapfds(openfd_list, tun_tap_dev)
                 python_tapfds = utils_net.open_tap(tun_tap_dev, nic.ifname,
                                                    queues=nic.queues,
                                                    vnet_hdr=True)
@@ -4268,10 +4275,9 @@ class VM(virt_vm.BaseVM):
                 o_macvtap = utils_net.create_macvtap(nic.ifname, macvtap_mode,
                                                      nic.netdst, nic.mac)
                 tun_tap_dev = o_macvtap.get_device()
+                open_tapfd_list = _get_tapfds(openfd_list, tun_tap_dev)
                 python_tapfds = utils_net.open_macvtap(o_macvtap, nic.queues)
 
-            qemu_fds = "/proc/%s/fd" % self.get_pid()
-            openfd_list = os.listdir(qemu_fds)
             for i in range(int(nic.queues)):
                 fd = int(python_tapfds.split(':')[i])
                 fd_id = nic.tapfd_ids[i]
@@ -4285,17 +4291,13 @@ class VM(virt_vm.BaseVM):
                 except OSError:
                     pass
             n_openfd_list = os.listdir(qemu_fds)
-            new_fds = list(set(n_openfd_list) - set(openfd_list))
+            n_open_tapfd_list = _get_tapfds(n_openfd_list, tun_tap_dev)
+            new_tapfds = list(set(n_open_tapfd_list) - set(open_tapfd_list))
 
-            if not new_fds:
-                err_msg = "Can't get the fd that qemu process opened!"
+            if not new_tapfds or len(new_tapfds) != int(nic.queues):
+                err_msg = "Can't get tap fd(s) in qemu process!"
                 raise virt_vm.VMAddNetDevError(err_msg)
-            qemu_tapfds = [fd for fd in new_fds if os.readlink(
-                           os.path.join(qemu_fds, fd)) == tun_tap_dev]
-            if not qemu_tapfds or len(qemu_tapfds) != int(nic.queues):
-                err_msg = "Can't get the tap fd in qemu process!"
-                raise virt_vm.VMAddNetDevError(err_msg)
-            nic.set_if_none("tapfds", ":".join(qemu_tapfds))
+            nic.set_if_none("tapfds", ":".join(new_tapfds))
 
             if not self.devices:
                 err_msg = "Can't add nic for VM which is not running."
