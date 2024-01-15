@@ -27,17 +27,15 @@ from virttest import error_context
 from virttest import vt_console
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VMError(Exception):
-
     def __init__(self, *args):
         Exception.__init__(self, *args)
 
 
 class VMUnexpectedExitError(VMError):
-
     def __init__(self, vm, exit_status=None):
         super(VMUnexpectedExitError, self).__init__(vm, exit_status)
         self.vm = vm
@@ -55,7 +53,6 @@ class VMUnexpectedExitError(VMError):
 
 
 class VMCreateError(VMError):
-
     def __init__(self, cmd, status, output):
         VMError.__init__(self, cmd, status, output)
         self.cmd = cmd
@@ -63,12 +60,14 @@ class VMCreateError(VMError):
         self.output = output
 
     def __str__(self):
-        return ("VM creation command failed:    %r    (status: %s,    "
-                "output: %r)" % (self.cmd, self.status, self.output))
+        return "VM creation command failed:    %r    (status: %s,    " "output: %r)" % (
+            self.cmd,
+            self.status,
+            self.output,
+        )
 
 
 class VMStartError(VMError):
-
     def __init__(self, name, reason=None, status=None):
         VMError.__init__(self, name, reason, status)
         self.name = name
@@ -85,7 +84,6 @@ class VMStartError(VMError):
 
 
 class VMConfigMissingError(VMError):
-
     def __init__(self, name, config):
         VMError.__init__(self, name, config)
         self.name = name
@@ -96,19 +94,19 @@ class VMConfigMissingError(VMError):
 
 
 class VMHashMismatchError(VMError):
-
     def __init__(self, actual, expected):
         VMError.__init__(self, actual, expected)
         self.actual_hash = actual
         self.expected_hash = expected
 
     def __str__(self):
-        return ("CD image hash (%s) differs from expected one (%s)" %
-                (self.actual_hash, self.expected_hash))
+        return "CD image hash (%s) differs from expected one (%s)" % (
+            self.actual_hash,
+            self.expected_hash,
+        )
 
 
 class VMImageMissingError(VMError):
-
     def __init__(self, filename):
         VMError.__init__(self, filename)
         self.filename = filename
@@ -118,7 +116,6 @@ class VMImageMissingError(VMError):
 
 
 class VMImageCheckError(VMError):
-
     def __init__(self, filename):
         VMError.__init__(self, filename)
         self.filename = filename
@@ -128,7 +125,6 @@ class VMImageCheckError(VMError):
 
 
 class VMBadPATypeError(VMError):
-
     def __init__(self, pa_type):
         VMError.__init__(self, pa_type)
         self.pa_type = pa_type
@@ -138,18 +134,18 @@ class VMBadPATypeError(VMError):
 
 
 class VMPAError(VMError):
-
     def __init__(self, pa_type):
         VMError.__init__(self, pa_type)
         self.pa_type = pa_type
 
     def __str__(self):
-        return ("No PCI assignable devices could be assigned "
-                "(pci_assignable=%r)" % self.pa_type)
+        return (
+            "No PCI assignable devices could be assigned "
+            "(pci_assignable=%r)" % self.pa_type
+        )
 
 
 class VMPostCreateError(VMError):
-
     def __init__(self, cmd, output):
         VMError.__init__(self, cmd, output)
         self.cmd = cmd
@@ -157,22 +153,23 @@ class VMPostCreateError(VMError):
 
 
 class VMHugePageError(VMPostCreateError):
-
     def __str__(self):
-        return ("Cannot allocate hugepage memory    (command: %r,    "
-                "output: %r)" % (self.cmd, self.output))
+        return "Cannot allocate hugepage memory    (command: %r,    " "output: %r)" % (
+            self.cmd,
+            self.output,
+        )
 
 
 class VMKVMInitError(VMPostCreateError):
-
     def __str__(self):
-        return ("Cannot initialize KVM    (command: %r,    output: %r)" %
-                (self.cmd, self.output))
+        return "Cannot initialize KVM    (command: %r,    output: %r)" % (
+            self.cmd,
+            self.output,
+        )
 
 
 class VMDeadError(VMError):
-
-    def __init__(self, reason='', detail=''):
+    def __init__(self, reason="", detail=""):
         VMError.__init__(self)
         self.reason = reason
         self.detail = detail
@@ -183,22 +180,19 @@ class VMDeadError(VMError):
             msg += "    reason: %s" % self.reason
         if self.detail:
             msg += "    detail: %r" % self.detail
-        return (msg)
+        return msg
 
 
 class VMDeadKernelCrashError(VMError):
-
     def __init__(self, kernel_crash):
         VMError.__init__(self, kernel_crash)
         LOG.debug(kernel_crash)
 
     def __str__(self):
-        return ("VM is dead due to a kernel crash, "
-                "see debug/serial log for details")
+        return "VM is dead due to a kernel crash, " "see debug/serial log for details"
 
 
 class VMInvalidInstructionCode(VMError):
-
     def __init__(self, invalid_code):
         VMError.__init__(self, invalid_code)
         self.invalid_code = invalid_code
@@ -207,7 +201,7 @@ class VMInvalidInstructionCode(VMError):
         error = ""
         for invalid_code in self.invalid_code:
             error += "%s" % (invalid_code)
-        return ("Invalid instruction was executed on VM:\n%s" % error)
+        return "Invalid instruction was executed on VM:\n%s" % error
 
 
 class VMAddressError(VMError):
@@ -219,7 +213,6 @@ class VMInterfaceIndexError(VMError):
 
 
 class VMPortNotRedirectedError(VMAddressError):
-
     def __init__(self, port, virtnet_nic=None):
         VMAddressError.__init__(self, port)
         self.port = port
@@ -231,26 +224,25 @@ class VMPortNotRedirectedError(VMAddressError):
             return msg
         else:
             nic = self.virtnet_nic
-            msg += (" with networking type '%s', to destination '%s', for nic "
-                    "'%s' with mac '%s' and ip '%s'." % (nic.nettype, nic.netdst,
-                                                         nic.nic_name, nic.mac, nic.ip))
+            msg += (
+                " with networking type '%s', to destination '%s', for nic "
+                "'%s' with mac '%s' and ip '%s'."
+                % (nic.nettype, nic.netdst, nic.nic_name, nic.mac, nic.ip)
+            )
             return msg
 
 
 class VMAddressVerificationError(VMAddressError):
-
     def __init__(self, mac, ip):
         VMAddressError.__init__(self, mac, ip)
         self.mac = mac
         self.ip = ip
 
     def __str__(self):
-        return ("Could not verify DHCP lease: "
-                "%s --> %s" % (self.mac, self.ip))
+        return "Could not verify DHCP lease: " "%s --> %s" % (self.mac, self.ip)
 
 
 class VMMACAddressMissingError(VMAddressError):
-
     def __init__(self, nic_index):
         VMAddressError.__init__(self, nic_index)
         self.nic_index = nic_index
@@ -260,7 +252,6 @@ class VMMACAddressMissingError(VMAddressError):
 
 
 class VMIPAddressMissingError(VMAddressError):
-
     def __init__(self, mac, ip_version="ipv4"):
         VMAddressError.__init__(self, mac)
         self.mac = mac
@@ -271,7 +262,6 @@ class VMIPAddressMissingError(VMAddressError):
 
 
 class VMUnknownNetTypeError(VMError):
-
     def __init__(self, vmname, nicname, nettype):
         super(VMUnknownNetTypeError, self).__init__()
         self.vmname = vmname
@@ -280,7 +270,10 @@ class VMUnknownNetTypeError(VMError):
 
     def __str__(self):
         return "Unknown nettype '%s' requested for NIC %s on VM %s" % (
-            self.nettype, self.nicname, self.vmname)
+            self.nettype,
+            self.nicname,
+            self.vmname,
+        )
 
 
 class VMAddNetDevError(VMError):
@@ -316,23 +309,22 @@ class VMMigrateFailedError(VMMigrateError):
 
 
 class VMMigrateProtoUnknownError(exceptions.TestSkipError):
-
     def __init__(self, protocol):
         self.protocol = protocol
 
     def __str__(self):
-        return ("Virt Test doesn't know migration protocol '%s'. "
-                "You would have to add it to the list of known protocols" %
-                self.protocol)
+        return (
+            "Virt Test doesn't know migration protocol '%s'. "
+            "You would have to add it to the list of known protocols" % self.protocol
+        )
 
 
 class VMMigrateStateMismatchError(VMMigrateError):
-
     def __init__(self):
         VMMigrateError.__init__(self)
 
     def __str__(self):
-        return ("Mismatch of VM state before and after migration")
+        return "Mismatch of VM state before and after migration"
 
 
 class VMRebootError(VMError):
@@ -352,15 +344,16 @@ class VMDeviceError(VMError):
 
 
 class VMDeviceNotSupportedError(VMDeviceError):
-
     def __init__(self, name, device):
         VMDeviceError.__init__(self, name, device)
         self.name = name
         self.device = device
 
     def __str__(self):
-        return ("Device '%s' is not supported for vm '%s' on this Host." %
-                (self.device, self.name))
+        return "Device '%s' is not supported for vm '%s' on this Host." % (
+            self.device,
+            self.name,
+        )
 
 
 class VMDeviceCheckError(VMDeviceError):
@@ -380,27 +373,29 @@ class VMPCIDeviceError(VMDeviceError):
 
 
 class VMPCISlotInUseError(VMPCIDeviceError):
-
     def __init__(self, name, slot):
         VMPCIDeviceError.__init__(self, name, slot)
         self.name = name
         self.slot = slot
 
     def __str__(self):
-        return ("PCI slot '0x%s' is already in use on vm '%s'. Please assign"
-                " another slot in config file." % (self.slot, self.name))
+        return (
+            "PCI slot '0x%s' is already in use on vm '%s'. Please assign"
+            " another slot in config file." % (self.slot, self.name)
+        )
 
 
 class VMPCIOutOfRangeError(VMPCIDeviceError):
-
     def __init__(self, name, max_dev_num):
         VMPCIDeviceError.__init__(self, name, max_dev_num)
         self.name = name
         self.max_dev_num = max_dev_num
 
     def __str__(self):
-        return ("Too many PCI devices added on vm '%s', max supported '%s'" %
-                (self.name, str(self.max_dev_num)))
+        return "Too many PCI devices added on vm '%s', max supported '%s'" % (
+            self.name,
+            str(self.max_dev_num),
+        )
 
 
 class VMUSBError(VMError):
@@ -412,19 +407,19 @@ class VMUSBControllerError(VMUSBError):
 
 
 class VMUSBControllerMissingError(VMUSBControllerError):
-
     def __init__(self, name, controller_type):
         VMUSBControllerError.__init__(self, name, controller_type)
         self.name = name
         self.controller_type = controller_type
 
     def __str__(self):
-        return ("Could not find '%s' USB Controller on vm '%s'. Please "
-                "check config files." % (self.controller_type, self.name))
+        return (
+            "Could not find '%s' USB Controller on vm '%s'. Please "
+            "check config files." % (self.controller_type, self.name)
+        )
 
 
 class VMUSBControllerPortFullError(VMUSBControllerError):
-
     def __init__(self, name, usb_dev_dict):
         VMUSBControllerError.__init__(self, name, usb_dev_dict)
         self.name = name
@@ -438,12 +433,13 @@ class VMUSBControllerPortFullError(VMUSBControllerError):
         except Exception:
             pass
 
-        return ("No available USB port left on VM %s.\n"
-                "USB devices map is: \n%s" % (self.name, output))
+        return "No available USB port left on VM %s.\n" "USB devices map is: \n%s" % (
+            self.name,
+            output,
+        )
 
 
 class VMUSBPortInUseError(VMUSBError):
-
     def __init__(self, vm_name, controller, port):
         VMUSBError.__init__(self, vm_name, controller, port)
         self.vm_name = vm_name
@@ -451,21 +447,25 @@ class VMUSBPortInUseError(VMUSBError):
         self.port = port
 
     def __str__(self):
-        return ("USB port '%d' of controller '%s' is already in use on vm"
-                " '%s'. Please assign another port in config file." %
-                (self.port, self.controller, self.vm_name))
+        return (
+            "USB port '%d' of controller '%s' is already in use on vm"
+            " '%s'. Please assign another port in config file."
+            % (self.port, self.controller, self.vm_name)
+        )
 
 
 class VMScreenInactiveError(VMError):
-
     def __init__(self, vm, inactive_time):
         VMError.__init__(self)
         self.vm = vm
         self.inactive_time = inactive_time
 
     def __str__(self):
-        msg = ("%s screen is inactive for %d s (%d min)" %
-               (self.vm.name, self.inactive_time, self.inactive_time // 60))
+        msg = "%s screen is inactive for %d s (%d min)" % (
+            self.vm.name,
+            self.inactive_time,
+            self.inactive_time // 60,
+        )
         return msg
 
 
@@ -483,9 +483,21 @@ class CpuInfo(object):
     A class for VM's cpu information.
     """
 
-    def __init__(self, model=None, vendor=None, flags=None, family=None,
-                 qemu_type=None, smp=0, maxcpus=0, cores=0, threads=0,
-                 dies=0, clusters=0, sockets=0):
+    def __init__(
+        self,
+        model=None,
+        vendor=None,
+        flags=None,
+        family=None,
+        qemu_type=None,
+        smp=0,
+        maxcpus=0,
+        cores=0,
+        threads=0,
+        dies=0,
+        clusters=0,
+        sockets=0,
+    ):
         """
         :param model: CPU Model of VM (use 'qemu -cpu ?' for list)
         :param vendor: CPU Vendor of VM
@@ -519,11 +531,12 @@ def session_handler(func):
     """
     decorator method to handle uri and session for libvirt
     """
+
     @functools.wraps(func)
     def manage_session(vm, *args, **kwargs):
         connect_uri = None
         uri = kwargs.get("connect_uri")
-        libvirt = vm.params.get("vm_type") == 'libvirt'
+        libvirt = vm.params.get("vm_type") == "libvirt"
         try:
             if uri and libvirt:
                 connect_uri = vm.connect_uri
@@ -537,6 +550,7 @@ def session_handler(func):
                 vm.session.close()
             if connect_uri:
                 vm.connect_uri = connect_uri
+
     return manage_session
 
 
@@ -578,7 +592,9 @@ class BaseVM(object):
     # Assuming that all low-level hypervisor have at least migration via tcp
     # (true for xen & kvm). Also true for libvirt (using xen and kvm drivers)
     #
-    MIGRATION_PROTOS = ['tcp', ]
+    MIGRATION_PROTOS = [
+        "tcp",
+    ]
 
     #
     # Timeout definition. This is being kept inside the base class so that
@@ -596,24 +612,20 @@ class BaseVM(object):
         self.serial_console = None
         self.session = None
         # Create instance if not already set
-        if not hasattr(self, 'instance'):
+        if not hasattr(self, "instance"):
             self._generate_unique_id()
         # Don't overwrite existing state, update from params
-        if hasattr(self, 'virtnet'):
+        if hasattr(self, "virtnet"):
             # Direct reference to self.virtnet makes pylint complain
             # note: virtnet.__init__() supports being called anytime
-            getattr(self, 'virtnet').__init__(self.params,
-                                              self.name,
-                                              self.instance)
+            getattr(self, "virtnet").__init__(self.params, self.name, self.instance)
         else:  # Create new
-            self.virtnet = utils_net.VirtNet(self.params,
-                                             self.name,
-                                             self.instance)
+            self.virtnet = utils_net.VirtNet(self.params, self.name, self.instance)
         self.ip_version = params.get("ip_version", "ipv4").lower()
 
-        if not hasattr(self, 'cpuinfo'):
+        if not hasattr(self, "cpuinfo"):
             self.cpuinfo = CpuInfo()
-        if not hasattr(self, 'console_manager'):
+        if not hasattr(self, "console_manager"):
             self.console_manager = vt_console.ConsoleManager()
 
     def _generate_unique_id(self):
@@ -621,10 +633,12 @@ class BaseVM(object):
         Generate a unique identifier for this VM
         """
         while True:
-            self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
-                             utils_misc.generate_random_string(8))
-            if not glob.glob(os.path.join(data_dir.get_tmp_dir(),
-                                          "*%s" % self.instance)):
+            self.instance = time.strftime(
+                "%Y%m%d-%H%M%S-"
+            ) + utils_misc.generate_random_string(8)
+            if not glob.glob(
+                os.path.join(data_dir.get_tmp_dir(), "*%s" % self.instance)
+            ):
                 break
 
     def update_vm_id(self):
@@ -636,18 +650,22 @@ class BaseVM(object):
 
     @staticmethod
     def lookup_vm_class(vm_type, target):
-        if vm_type == 'qemu':
+        if vm_type == "qemu":
             from virttest import qemu_vm
+
             return qemu_vm.VM
-        if vm_type == 'libvirt':
+        if vm_type == "libvirt":
             from virttest import libvirt_vm
+
             return libvirt_vm.VM
-        if vm_type == 'v2v':
-            if target == 'libvirt' or target is None:
+        if vm_type == "v2v":
+            if target == "libvirt" or target is None:
                 from virttest import libvirt_vm
+
                 return libvirt_vm.VM
-            if target == 'ovirt':
+            if target == "ovirt":
                 from virttest import ovirt
+
                 return ovirt.VMManager
 
     #
@@ -662,29 +680,27 @@ class BaseVM(object):
             return True
 
         try:
-            need_restart = (self.make_create_command() !=
-                            self.make_create_command(name, params, basedir))
+            need_restart = self.make_create_command() != self.make_create_command(
+                name, params, basedir
+            )
         except Exception:
             LOG.error(traceback.format_exc())
             need_restart = True
         if need_restart:
-            LOG.debug(
-                "VM params in env don't match requested, restarting.")
+            LOG.debug("VM params in env don't match requested, restarting.")
             return True
         else:
             # Command-line encoded state doesn't include all params
             # TODO: Check more than just networking
             other_virtnet = utils_net.VirtNet(params, name, self.instance)
             if self.virtnet != other_virtnet:
-                LOG.debug("VM params in env match, but network differs, "
-                          "restarting")
+                LOG.debug("VM params in env match, but network differs, " "restarting")
                 LOG.debug("\t" + str(self.virtnet))
                 LOG.debug("\t!=")
                 LOG.debug("\t" + str(other_virtnet))
                 return True
             else:
-                LOG.debug(
-                    "VM params in env do match requested, continuing.")
+                LOG.debug("VM params in env do match requested, continuing.")
                 return False
 
     def verify_alive(self):
@@ -739,12 +755,14 @@ class BaseVM(object):
             guest_ip = self.get_address(session=self.session)
             guest_user = self.params["username"]
             guest_pwd = self.params["password"]
-            log_path = utils_misc.get_sosreport(session=self.session,
-                                                remote_ip=guest_ip,
-                                                remote_pwd=guest_pwd,
-                                                remote_user=guest_user,
-                                                sosreport_name=self.name,
-                                                sosreport_pkg=pkg)
+            log_path = utils_misc.get_sosreport(
+                session=self.session,
+                remote_ip=guest_ip,
+                remote_pwd=guest_pwd,
+                remote_user=guest_user,
+                sosreport_name=self.name,
+                sosreport_pkg=pkg,
+            )
         finally:
             return log_path
 
@@ -765,8 +783,7 @@ class BaseVM(object):
             raise VMMACAddressMissingError(nic_index)
         return mac
 
-    def get_address(self, index=0, ip_version="ipv4", session=None,
-                    timeout=60.0):
+    def get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
         """
         Wrapper for self._get_address. if 'flexible_nic_index' is 'yes',
         will traverses from first nic to first element toward the end
@@ -780,20 +797,23 @@ class BaseVM(object):
         nr_nics = len(self.virtnet.mac_list())
         nics_index = [index]
         flexible = self.params.get("flexible_nic_index") == "yes"
-        if (flexible and nr_nics > 1):
+        if flexible and nr_nics > 1:
             nics_index += [i for i in xrange(nr_nics) if i != index]
 
         for nic in nics_index:
             try:
-                return self._get_address(nic, ip_version, session=session,
-                                         timeout=timeout)
-            except (VMMACAddressMissingError, VMIPAddressMissingError,
-                    VMAddressVerificationError):
+                return self._get_address(
+                    nic, ip_version, session=session, timeout=timeout
+                )
+            except (
+                VMMACAddressMissingError,
+                VMIPAddressMissingError,
+                VMAddressVerificationError,
+            ):
                 if nic == nics_index[-1]:
                     raise
 
-    def _get_address(self, index=0, ip_version="ipv4", session=None,
-                     timeout=60.0):
+    def _get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
         """
         Return the IP address of a NIC or guest (in host space).
 
@@ -814,15 +834,14 @@ class BaseVM(object):
         nic = self.virtnet[index]
 
         # TODO: Determine port redirection in use w/o checking nettype
-        if nic.nettype not in ['bridge', 'macvtap', 'vdpa']:
+        if nic.nettype not in ["bridge", "macvtap", "vdpa"]:
             hostname = socket.gethostname()
             if session:
                 hostname = session.cmd_output("hostname -f", timeout=timeout)
             return socket.gethostbyname(hostname)
 
         mac = self.get_mac_address(index).lower()
-        if (self.params.get('using_linklocal') == "yes" and
-                ip_version == "ipv6"):
+        if self.params.get("using_linklocal") == "yes" and ip_version == "ipv6":
             return utils_net.ipv6_from_mac_addr(mac)
 
         # TODO: Redesign address_cache and declare it in this class
@@ -831,11 +850,10 @@ class BaseVM(object):
         if not ip_addr:
             raise VMIPAddressMissingError(mac, ip_version)
 
-        devs = set([nic.netdst]) if 'netdst' in nic else set()
-        if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
-                                                     devs=devs,
-                                                     session=session,
-                                                     timeout=timeout):
+        devs = set([nic.netdst]) if "netdst" in nic else set()
+        if not utils_net.verify_ip_address_ownership(
+            ip_addr, [mac], devs=devs, session=session, timeout=timeout
+        ):
             nic_params = self.params.object_params(nic.nic_name)
             pci_assignable = nic_params.get("pci_assignable") != "no"
 
@@ -872,8 +890,7 @@ class BaseVM(object):
         for virtnet in self.virtnet:
             for iface_name, iface in six.iteritems(addrs):
                 if virtnet.mac in iface["mac"]:
-                    virtnet.ip = {"ipv4": iface["ipv4"],
-                                  "ipv6": iface["ipv6"]}
+                    virtnet.ip = {"ipv4": iface["ipv4"], "ipv6": iface["ipv6"]}
                     virtnet.g_nic_name = iface_name
 
     def get_port(self, port, nic_index=0):
@@ -905,8 +922,9 @@ class BaseVM(object):
         self.virtnet.free_mac_address(nic_index_or_name)
 
     @error_context.context_aware
-    def wait_for_get_address(self, nic_index, timeout=30,
-                             interval=0.5, ip_version='ipv4'):
+    def wait_for_get_address(
+        self, nic_index, timeout=30, interval=0.5, ip_version="ipv4"
+    ):
         """
         Wait for a nic to acquire an IP address, then return it.
         """
@@ -923,9 +941,7 @@ class BaseVM(object):
             # cache to avoid get out-dated address.
             utils_net.update_mac_ip_address(self, timeout)
             ipaddr = self.get_address(nic_index, ip_version)
-        msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr,
-                                                         self.name,
-                                                         nic_index)
+        msg = "Found/Verified IP %s for VM %s NIC %s" % (ipaddr, self.name, nic_index)
         LOG.debug(msg)
         return ipaddr
 
@@ -939,19 +955,19 @@ class BaseVM(object):
         :param params: Dict with additional NIC parameters to set.
         :return: Dict with new NIC's info.
         """
-        if 'nic_name' not in params:
-            params['nic_name'] = utils_misc.generate_random_id()
-        nic_name = params['nic_name']
+        if "nic_name" not in params:
+            params["nic_name"] = utils_misc.generate_random_id()
+        nic_name = params["nic_name"]
         if nic_name in self.virtnet.nic_name_list():
             self.virtnet[nic_name].update(**params)
         else:
             self.virtnet.append(params)
         nic = self.virtnet[nic_name]
-        if 'mac' not in nic:  # generate random mac
+        if "mac" not in nic:  # generate random mac
             LOG.debug("Generating random mac address for nic")
             self.virtnet.generate_mac_address(nic_name)
         # mac of '' or invalid format results in not setting a mac
-        if 'ip' in nic and 'mac' in nic:
+        if "ip" in nic and "mac" in nic:
             self.address_cache[nic.mac] = nic.ip
         return nic
 
@@ -978,7 +994,7 @@ class BaseVM(object):
         :return: nic index number
         """
         for index, nic in enumerate(self.virtnet):
-            if 'mac' not in nic:
+            if "mac" not in nic:
                 continue
             elif nic.mac == mac:
                 return index
@@ -1019,30 +1035,36 @@ class BaseVM(object):
         serial_login = self.params.get("serial_login", "no") == "yes"
         if serial_login:
             self.session = self.wait_for_serial_login()
-        elif (len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
-              not connect_uri):
+        elif (
+            len(self.virtnet) > 0
+            and self.virtnet[0].nettype != "macvtap"
+            and not connect_uri
+        ):
             self.session = self.wait_for_login()
         expected_guest_dmesg = self.params.get("expected_guest_dmesg", "")
-        return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
-                                       ignore_result=ignore_result,
-                                       level_check=level,
-                                       session=self.session,
-                                       expected_dmesg=expected_guest_dmesg)
+        return utils_misc.verify_dmesg(
+            dmesg_log_file=dmesg_log_file,
+            ignore_result=ignore_result,
+            level_check=level,
+            session=self.session,
+            expected_dmesg=expected_guest_dmesg,
+        )
 
     def verify_bsod(self, scrdump_file):
         # For windows guest
-        if (os.path.exists(scrdump_file) and
-                self.params.get("check_guest_bsod", "no") == 'yes' and
-                ppm_utils.Image is not None):
+        if (
+            os.path.exists(scrdump_file)
+            and self.params.get("check_guest_bsod", "no") == "yes"
+            and ppm_utils.Image is not None
+        ):
             ref_img_path = self.params.get("bsod_reference_img", "")
-            bsod_base_dir = os.path.join(data_dir.get_root_dir(),
-                                         "shared", "deps",
-                                         "bsod_img")
+            bsod_base_dir = os.path.join(
+                data_dir.get_root_dir(), "shared", "deps", "bsod_img"
+            )
             ref_img = utils_misc.get_path(bsod_base_dir, ref_img_path)
             if ppm_utils.have_similar_img(scrdump_file, ref_img):
                 err_msg = "Windows Guest appears to have suffered a BSOD,"
-                err_msg += " please check %s against %s." % (
-                    scrdump_file, ref_img)
+                err_msg += " please check %s against %s." % (scrdump_file, ref_img)
                 raise VMDeadKernelCrashError(err_msg)
 
     def verify_illegal_instruction(self):
@@ -1056,8 +1078,7 @@ class BaseVM(object):
             if data is None:
                 LOG.warn("Unable to read serial console")
                 return
-            match = re.findall(r".*trap invalid opcode.*\n", data,
-                               re.MULTILINE)
+            match = re.findall(r".*trap invalid opcode.*\n", data, re.MULTILINE)
 
             if match:
                 raise VMInvalidInstructionCode(match)
@@ -1073,12 +1094,10 @@ class BaseVM(object):
         """
         Return the testlog filename.
         """
-        return os.path.join(data_dir.get_tmp_dir(),
-                            "testlog-%s" % self.instance)
+        return os.path.join(data_dir.get_tmp_dir(), "testlog-%s" % self.instance)
 
     @error_context.context_aware
-    def login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-              username=None, password=None):
+    def login(self, nic_index=0, timeout=LOGIN_TIMEOUT, username=None, password=None):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -1106,24 +1125,40 @@ class BaseVM(object):
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
-        log_filename = ("session-%s-%s-%s.log" %
-                        (self.name, time.strftime("%m-%d-%H-%M-%S"),
-                         utils_misc.generate_random_string(4)))
+        log_filename = "session-%s-%s-%s.log" % (
+            self.name,
+            time.strftime("%m-%d-%H-%M-%S"),
+            utils_misc.generate_random_string(4),
+        )
         log_filename = utils_logfile.get_log_filename(log_filename)
         log_function = utils_logfile.log_line
-        session = remote.remote_login(client, address, port, username,
-                                      password, prompt, linesep,
-                                      log_filename, log_function,
-                                      timeout, neigh_attach_if)
+        session = remote.remote_login(
+            client,
+            address,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            log_filename,
+            log_function,
+            timeout,
+            neigh_attach_if,
+        )
         session.close_hooks += [utils_logfile.close_own_log_file(log_filename)]
-        session.set_status_test_command(self.params.get("status_test_command",
-                                                        ""))
+        session.set_status_test_command(self.params.get("status_test_command", ""))
         self.remote_sessions.append(session)
         return session
 
     @error_context.context_aware
-    def commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                  username=None, password=None, commander_path=None):
+    def commander(
+        self,
+        nic_index=0,
+        timeout=LOGIN_TIMEOUT,
+        username=None,
+        password=None,
+        commander_path=None,
+    ):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -1150,22 +1185,41 @@ class BaseVM(object):
         log_filename = None
 
         from virttest import remote_commander as rc
+
         path = os.path.dirname(rc.__file__)
-        f_path = [os.path.join(path, _) for _ in
-                  ("remote_runner.py", "remote_interface.py", "messenger.py")]
+        f_path = [
+            os.path.join(path, _)
+            for _ in ("remote_runner.py", "remote_interface.py", "messenger.py")
+        ]
         self.copy_files_to(f_path, commander_path)
 
         # start remote commander
-        cmd = remote_old.remote_commander(client, address, port, username,
-                                          password, prompt, linesep, log_filename,
-                                          timeout, commander_path)
+        cmd = remote_old.remote_commander(
+            client,
+            address,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            log_filename,
+            timeout,
+            commander_path,
+        )
         self.remote_sessions.append(cmd)
         return cmd
 
-    def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
-                       internal_timeout=LOGIN_TIMEOUT,
-                       serial=False, restart_network=False,
-                       username=None, password=None, status_check=True):
+    def wait_for_login(
+        self,
+        nic_index=0,
+        timeout=LOGIN_WAIT_TIMEOUT,
+        internal_timeout=LOGIN_TIMEOUT,
+        serial=False,
+        restart_network=False,
+        username=None,
+        password=None,
+        status_check=True,
+    ):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
@@ -1181,34 +1235,34 @@ class BaseVM(object):
             eg. during reboot or pause)
         :return: A ShellSession object.
         """
+
         def print_guest_network_info():
             """
             Print guest network information into debug log file
             """
             session = None
             try:
-                session = self.serial_login(internal_timeout, username,
-                                            password)
+                session = self.serial_login(internal_timeout, username, password)
                 out = session.cmd_output("ipconfig || ifconfig", timeout=60)
                 txt = ["Guest network status:\n %s" % out]
                 out = session.cmd_output("ip route || route print", timeout=60)
                 txt += ["Guest route table:\n %s" % out]
                 LOG.error("\n".join(txt))
             except Exception as e:
-                LOG.error("Can't get guest network status "
-                          "information, reason: %s", e)
+                LOG.error(
+                    "Can't get guest network status " "information, reason: %s", e
+                )
             finally:
                 if session:
                     session.close()
 
         error = None
-        LOG.debug("Attempting to log into '%s' (timeout %ds)",
-                  self.name, timeout)
+        LOG.debug("Attempting to log into '%s' (timeout %ds)", self.name, timeout)
         start_time = time.time()
         try:
-            self.wait_for_get_address(nic_index,
-                                      timeout=timeout,
-                                      ip_version=self.ip_version)
+            self.wait_for_get_address(
+                nic_index, timeout=timeout, ip_version=self.ip_version
+            )
         except Exception as err:
             error = err
             if status_check:
@@ -1216,9 +1270,9 @@ class BaseVM(object):
             print_guest_network_info()
             if not (serial or restart_network):
                 raise
-            session = self.wait_for_serial_login(timeout, internal_timeout,
-                                                 restart_network, username,
-                                                 password, False)
+            session = self.wait_for_serial_login(
+                timeout, internal_timeout, restart_network, username, password, False
+            )
             if serial:
                 return session
             session.close()
@@ -1228,10 +1282,8 @@ class BaseVM(object):
         end_time = start_time + timeout
         while time.time() < end_time or not_tried:
             try:
-                return self.login(nic_index, internal_timeout,
-                                  username, password)
-            except (remote.LoginAuthenticationError,
-                    remote.LoginBadClientError):
+                return self.login(nic_index, internal_timeout, username, password)
+            except (remote.LoginAuthenticationError, remote.LoginBadClientError):
                 if serial:
                     break
                 raise
@@ -1242,16 +1294,27 @@ class BaseVM(object):
 
         print_guest_network_info()
         if serial:
-            return self.wait_for_serial_login(timeout, internal_timeout,
-                                              False, username, password)
+            return self.wait_for_serial_login(
+                timeout, internal_timeout, False, username, password
+            )
 
-        raise remote.LoginTimeoutError("exceeded %s s timeout, last "
-                                       "failure: %s" % (timeout, error))
+        raise remote.LoginTimeoutError(
+            "exceeded %s s timeout, last " "failure: %s" % (timeout, error)
+        )
 
     @error_context.context_aware
-    def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
-                      verbose=False, timeout=COPY_FILES_TIMEOUT,
-                      username=None, password=None, filesize=None):
+    def copy_files_to(
+        self,
+        host_path,
+        guest_path,
+        nic_index=0,
+        limit="",
+        verbose=False,
+        timeout=COPY_FILES_TIMEOUT,
+        username=None,
+        password=None,
+        filesize=None,
+    ):
         """
         Transfer files to the remote host(guest).
 
@@ -1275,30 +1338,43 @@ class BaseVM(object):
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-        log_filename = ("transfer-%s-to-%s-%s.log" %
-                        (self.name, address,
-                         utils_misc.generate_random_string(4)))
+        log_filename = "transfer-%s-to-%s-%s.log" % (
+            self.name,
+            address,
+            utils_misc.generate_random_string(4),
+        )
         log_function = utils_logfile.log_line
-        remote.copy_files_to(address,
-                             client,
-                             username,
-                             password,
-                             port,
-                             host_path,
-                             guest_path,
-                             limit=limit,
-                             log_filename=log_filename,
-                             log_function=log_function,
-                             verbose=verbose,
-                             timeout=timeout,
-                             interface=neigh_attach_if,
-                             filesize=filesize)
+        remote.copy_files_to(
+            address,
+            client,
+            username,
+            password,
+            port,
+            host_path,
+            guest_path,
+            limit=limit,
+            log_filename=log_filename,
+            log_function=log_function,
+            verbose=verbose,
+            timeout=timeout,
+            interface=neigh_attach_if,
+            filesize=filesize,
+        )
         utils_logfile.close_log_file(log_filename)
 
     @error_context.context_aware
-    def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
-                        verbose=False, timeout=COPY_FILES_TIMEOUT,
-                        username=None, password=None, filesize=None):
+    def copy_files_from(
+        self,
+        guest_path,
+        host_path,
+        nic_index=0,
+        limit="",
+        verbose=False,
+        timeout=COPY_FILES_TIMEOUT,
+        username=None,
+        password=None,
+        filesize=None,
+    ):
         """
         Transfer files from the guest.
 
@@ -1322,24 +1398,28 @@ class BaseVM(object):
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-        log_filename = ("transfer-%s-from-%s-%s.log" %
-                        (self.name, address,
-                         utils_misc.generate_random_string(4)))
+        log_filename = "transfer-%s-from-%s-%s.log" % (
+            self.name,
+            address,
+            utils_misc.generate_random_string(4),
+        )
         log_function = utils_logfile.log_line
-        remote.copy_files_from(address,
-                               client,
-                               username,
-                               password,
-                               port,
-                               guest_path,
-                               host_path,
-                               limit=limit,
-                               log_filename=log_filename,
-                               log_function=log_function,
-                               verbose=verbose,
-                               timeout=timeout,
-                               interface=neigh_attach_if,
-                               filesize=filesize)
+        remote.copy_files_from(
+            address,
+            client,
+            username,
+            password,
+            port,
+            guest_path,
+            host_path,
+            limit=limit,
+            log_filename=log_filename,
+            log_function=log_function,
+            verbose=verbose,
+            timeout=timeout,
+            interface=neigh_attach_if,
+            filesize=filesize,
+        )
         utils_logfile.close_log_file(log_filename)
 
     def _create_serial_console(self):
@@ -1369,8 +1449,9 @@ class BaseVM(object):
         raise NotImplementedError
 
     @error_context.context_aware
-    def serial_login(self, timeout=LOGIN_TIMEOUT,
-                     username=None, password=None, virtio=False):
+    def serial_login(
+        self, timeout=LOGIN_TIMEOUT, username=None, password=None, virtio=False
+    ):
         """
         Log into the guest via the serial console.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -1380,8 +1461,7 @@ class BaseVM(object):
         :param virtio: is a console virtio console (deprecated).
         :return: ConsoleSession instance.
         """
-        error_context.context("Logging into '%s' via serial console." %
-                              self.name)
+        error_context.context("Logging into '%s' via serial console." % self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
@@ -1391,18 +1471,20 @@ class BaseVM(object):
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         status_test_command = self.params.get("status_test_command", "")
 
-        return self.console_manager.create_session(linesep,
-                                                   status_test_command,
-                                                   prompt,
-                                                   username,
-                                                   password,
-                                                   timeout)
+        return self.console_manager.create_session(
+            linesep, status_test_command, prompt, username, password, timeout
+        )
 
-    def wait_for_serial_login(self, timeout=LOGIN_WAIT_TIMEOUT,
-                              internal_timeout=LOGIN_TIMEOUT,
-                              restart_network=False,
-                              username=None, password=None, virtio=False,
-                              status_check=True):
+    def wait_for_serial_login(
+        self,
+        timeout=LOGIN_WAIT_TIMEOUT,
+        internal_timeout=LOGIN_TIMEOUT,
+        restart_network=False,
+        username=None,
+        password=None,
+        virtio=False,
+        status_check=True,
+    ):
         """
         Make multiple attempts to log into the guest via serial console.
 
@@ -1415,15 +1497,17 @@ class BaseVM(object):
             eg. during reboot or pause)
         :return: ConsoleSession instance.
         """
-        LOG.debug("Attempting to log into '%s' via serial console "
-                  "(timeout %ds)", self.name, timeout)
+        LOG.debug(
+            "Attempting to log into '%s' via serial console " "(timeout %ds)",
+            self.name,
+            timeout,
+        )
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
-                session = self.serial_login(internal_timeout,
-                                            username,
-                                            password,
-                                            virtio=virtio)
+                session = self.serial_login(
+                    internal_timeout, username, password, virtio=virtio
+                )
                 break
             except remote.LoginError:
                 if status_check:
@@ -1434,12 +1518,11 @@ class BaseVM(object):
                 LOG.error(str(why))
                 time.sleep(1)
         else:
-            raise remote.LoginTimeoutError('exceeded %s s timeout' %
-                                           timeout)
+            raise remote.LoginTimeoutError("exceeded %s s timeout" % timeout)
         if restart_network:
             try:
                 LOG.debug("Attempting to restart guest network")
-                os_type = self.params.get('os_type')
+                os_type = self.params.get("os_type")
                 utils_net.restart_guest_network(session, os_type=os_type)
             except (ShellError, ExpectError):
                 session.close()
@@ -1471,7 +1554,7 @@ class BaseVM(object):
                 self.send_key(char)
 
     @session_handler
-    def get_cpu_count(self, check_cmd='cpu_chk_cmd', connect_uri=None):
+    def get_cpu_count(self, check_cmd="cpu_chk_cmd", connect_uri=None):
         """
         Get the cpu count of the VM.
         """
@@ -1491,7 +1574,7 @@ class BaseVM(object):
             cmd = self.params["mem_chk_cmd"]
         session = self.wait_for_login()
         try:
-            output = session.cmd_output(cmd, timeout=timeout).replace(',', '')
+            output = session.cmd_output(cmd, timeout=timeout).replace(",", "")
             mem_size = re.findall(r"\d+\s*[BbKkMmGgTt]?", output, re.M)
             num_mem_size = map(utils_misc.normalize_data_size, mem_size)
             return int(sum(map(float, num_mem_size)))
@@ -1505,7 +1588,7 @@ class BaseVM(object):
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)
 
-    def get_totalmem_sys(self, online='yes', node=''):
+    def get_totalmem_sys(self, online="yes", node=""):
         """
         To get the total guest memory(ram) as detected by system
         MemTotal in /proc/meminfo would display
@@ -1517,13 +1600,13 @@ class BaseVM(object):
         """
         session = self.wait_for_login()
         try:
-            if node != '':
+            if node != "":
                 cmd = "count=0;[ -d /sys/devices/system/node/node%s/ ] && " % node
                 cmd += "cd /sys/devices/system/node/node%s/;" % node
                 cmd += "for i in `ls -d memory*`;"
             else:
                 cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls -d memory*`;"
-            if online == 'yes':
+            if online == "yes":
                 cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
             else:
                 cmd += "do [ -f $i/online ] && a=1 && "
@@ -1536,7 +1619,7 @@ class BaseVM(object):
                 no_memblocks = int(output[1])
             cmd = "cat /sys/devices/system/memory/block_size_bytes"
             block_size = int(session.cmd_output(cmd), 16)
-            return (no_memblocks * block_size)/1024.0
+            return (no_memblocks * block_size) / 1024.0
         finally:
             session.close()
 
@@ -1607,11 +1690,18 @@ class BaseVM(object):
         """
         raise NotImplementedError
 
-    def migrate(self, timeout=MIGRATE_TIMEOUT, protocol="tcp",
-                cancel_delay=None, offline=False, stable_check=False,
-                clean=True, save_path=data_dir.get_tmp_dir(),
-                dest_host="localhost",
-                remote_port=None):
+    def migrate(
+        self,
+        timeout=MIGRATE_TIMEOUT,
+        protocol="tcp",
+        cancel_delay=None,
+        offline=False,
+        stable_check=False,
+        clean=True,
+        save_path=data_dir.get_tmp_dir(),
+        dest_host="localhost",
+        remote_port=None,
+    ):
         """
         Migrate the VM.
 
@@ -1637,8 +1727,14 @@ class BaseVM(object):
         """
         raise NotImplementedError
 
-    def reboot(self, session=None, method="shell", nic_index=0,
-               timeout=REBOOT_TIMEOUT, serial=False):
+    def reboot(
+        self,
+        session=None,
+        method="shell",
+        nic_index=0,
+        timeout=REBOOT_TIMEOUT,
+        serial=False,
+    ):
         """
         Reboot the VM and wait for it to come back up by trying to log in until
         timeout expires.

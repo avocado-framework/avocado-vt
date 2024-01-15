@@ -17,16 +17,20 @@ class Udp_ipv6(base.TypedDeviceBase):
         attrs: libvirt_xml.nwfilter_protocols.Udp_ipv6.Attr instance
     """
 
-    __slots__ = ('attrs',)
+    __slots__ = ("attrs",)
 
-    def __init__(self, type_name='file', virsh_instance=base.base.virsh):
-        accessors.XMLElementNest('attrs', self, parent_xpath='/',
-                                 tag_name='udp_ipv6', subclass=self.Attr,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        super(Udp_ipv6, self).__init__(protocol_tag='udp-ipv6',
-                                       type_name=type_name,
-                                       virsh_instance=virsh_instance)
+    def __init__(self, type_name="file", virsh_instance=base.base.virsh):
+        accessors.XMLElementNest(
+            "attrs",
+            self,
+            parent_xpath="/",
+            tag_name="udp_ipv6",
+            subclass=self.Attr,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        super(Udp_ipv6, self).__init__(
+            protocol_tag="udp-ipv6", type_name=type_name, virsh_instance=virsh_instance
+        )
 
     def new_attr(self, **dargs):
         """
@@ -47,7 +51,7 @@ class Udp_ipv6(base.TypedDeviceBase):
         :return: None if no udp-ipv6 in xml, dict of udp-ipv6's attributes.
         """
         try:
-            udp_node = self.xmltreefile.reroot('/udp-ipv6')
+            udp_node = self.xmltreefile.reroot("/udp-ipv6")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udp_node.getroot()
@@ -81,51 +85,142 @@ class Udp_ipv6(base.TypedDeviceBase):
         ipsetflags: flags for the IPSet; requires ipset attribute
         """
 
-        __slots__ = ('srcmacaddr', 'srcipaddr', 'srcipmask', 'dstipaddr',
-                     'dstipmask', 'srcipfrom', 'srcipto', 'dstipfrom',
-                     'dstipto', 'srcportstart', 'srcportend', 'dstportstart',
-                     'dstportend', 'dscp', 'comment', 'state', 'ipset',
-                     'ipsetflags')
+        __slots__ = (
+            "srcmacaddr",
+            "srcipaddr",
+            "srcipmask",
+            "dstipaddr",
+            "dstipmask",
+            "srcipfrom",
+            "srcipto",
+            "dstipfrom",
+            "dstipto",
+            "srcportstart",
+            "srcportend",
+            "dstportstart",
+            "dstportend",
+            "dscp",
+            "comment",
+            "state",
+            "ipset",
+            "ipsetflags",
+        )
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLAttribute('srcmacaddr', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcmacaddr')
-            accessors.XMLAttribute('srcipaddr', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcipaddr')
-            accessors.XMLAttribute('srcipmask', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcipmask')
-            accessors.XMLAttribute('dstipaddr', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dstipaddr')
-            accessors.XMLAttribute('dstipmask', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dstipmask')
-            accessors.XMLAttribute('srcipfrom', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcipfrom')
-            accessors.XMLAttribute('srcipto', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcipto')
-            accessors.XMLAttribute('dstipfrom', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dstipfrom')
-            accessors.XMLAttribute('dstipto', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dstipto')
-            accessors.XMLAttribute('srcportstart', self, parent_xpath='/',
-                                   tag_name='udp-ipv6',
-                                   attribute='srcportstart')
-            accessors.XMLAttribute('srcportend', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='srcportend')
-            accessors.XMLAttribute('dstportstart', self, parent_xpath='/',
-                                   tag_name='udp-ipv6',
-                                   attribute='dstportstart')
-            accessors.XMLAttribute('dstportend', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dstportend')
-            accessors.XMLAttribute('dscp', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='dscp')
-            accessors.XMLAttribute('comment', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='comment')
-            accessors.XMLAttribute('state', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='state')
-            accessors.XMLAttribute('ipset', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='ipset')
-            accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
-                                   tag_name='udp-ipv6', attribute='ipsetflags')
+            accessors.XMLAttribute(
+                "srcmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcmacaddr",
+            )
+            accessors.XMLAttribute(
+                "srcipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcipaddr",
+            )
+            accessors.XMLAttribute(
+                "srcipmask",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcipmask",
+            )
+            accessors.XMLAttribute(
+                "dstipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstipaddr",
+            )
+            accessors.XMLAttribute(
+                "dstipmask",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstipmask",
+            )
+            accessors.XMLAttribute(
+                "srcipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcipfrom",
+            )
+            accessors.XMLAttribute(
+                "srcipto",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcipto",
+            )
+            accessors.XMLAttribute(
+                "dstipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstipfrom",
+            )
+            accessors.XMLAttribute(
+                "dstipto",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstipto",
+            )
+            accessors.XMLAttribute(
+                "srcportstart",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcportstart",
+            )
+            accessors.XMLAttribute(
+                "srcportend",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="srcportend",
+            )
+            accessors.XMLAttribute(
+                "dstportstart",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstportstart",
+            )
+            accessors.XMLAttribute(
+                "dstportend",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="dstportend",
+            )
+            accessors.XMLAttribute(
+                "dscp", self, parent_xpath="/", tag_name="udp-ipv6", attribute="dscp"
+            )
+            accessors.XMLAttribute(
+                "comment",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="comment",
+            )
+            accessors.XMLAttribute(
+                "state", self, parent_xpath="/", tag_name="udp-ipv6", attribute="state"
+            )
+            accessors.XMLAttribute(
+                "ipset", self, parent_xpath="/", tag_name="udp-ipv6", attribute="ipset"
+            )
+            accessors.XMLAttribute(
+                "ipsetflags",
+                self,
+                parent_xpath="/",
+                tag_name="udp-ipv6",
+                attribute="ipsetflags",
+            )
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<udp-ipv6/>'
+            self.xml = "<udp-ipv6/>"

@@ -1,4 +1,3 @@
-
 """
 Virsh domjobinfo command related utility functions
 """
@@ -11,7 +10,7 @@ from avocado.core import exceptions
 
 from virttest import virsh
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 # pylint: disable=E1121
@@ -25,6 +24,7 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
     :param remote_virsh_dargs: the parameters for remote host
     :raise: exceptions.TestFail if the value of given item is unexpected
     """
+
     def _search_jobinfo(jobinfo, ignore_status=False):
         """
         Find value of given item in domjobinfo
@@ -35,14 +35,16 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
         """
         for item in jobinfo.stdout.splitlines():
             if item.count(jobinfo_item):
-                groups = re.findall(r'[0-9.]+', item.strip())
+                groups = re.findall(r"[0-9.]+", item.strip())
                 LOG.debug("In '%s' search '%s'\n", item, groups[0])
-                if (math.fabs(float(groups[0]) - float(compare_to_value)) //
-                        float(compare_to_value) > diff_rate):
-                    err_msg = ("{} {} has too much difference from "
-                               "{}".format(jobinfo_item,
-                                           groups[0],
-                                           compare_to_value))
+                if (
+                    math.fabs(float(groups[0]) - float(compare_to_value))
+                    // float(compare_to_value)
+                    > diff_rate
+                ):
+                    err_msg = "{} {} has too much difference from " "{}".format(
+                        jobinfo_item, groups[0], compare_to_value
+                    )
                     if ignore_status:
                         LOG.error(err_msg)
                     else:

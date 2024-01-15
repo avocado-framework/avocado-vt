@@ -16,7 +16,7 @@ def _auto_value():
 
 
 class Flags(object):
-    """ Enumerate the flags of VM capabilities. """
+    """Enumerate the flags of VM capabilities."""
 
     BLOCKDEV = _auto_value()
     SMP_DIES = _auto_value()
@@ -31,13 +31,14 @@ class Flags(object):
 
 class MigrationParams(object):
     """Enumerate migration parameters."""
+
     DOWNTIME_LIMIT = _auto_value()
     MAX_BANDWIDTH = _auto_value()
     XBZRLE_CACHE_SIZE = _auto_value()
 
 
 class Capabilities(object):
-    """ Representation of VM capabilities. """
+    """Representation of VM capabilities."""
 
     def __init__(self):
         self._flags = set()

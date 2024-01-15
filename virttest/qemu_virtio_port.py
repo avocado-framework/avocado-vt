@@ -25,18 +25,20 @@ from virttest import data_dir
 
 SOCKET_SIZE = 2048
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtioPortException(Exception):
 
-    """ General virtio_port exception """
+    """General virtio_port exception"""
+
     pass
 
 
 class VirtioPortFatalException(VirtioPortException):
 
-    """ Fatal virtio_port exception """
+    """Fatal virtio_port exception"""
+
     pass
 
 
@@ -63,8 +65,13 @@ class _VirtioPort(object):
         """
         Convert to text.
         """
-        return ("%s,%s,%s,%s,%s" % ("Socket", self.name, self.is_console,
-                                    self.hostfile, self.is_open()))
+        return "%s,%s,%s,%s,%s" % (
+            "Socket",
+            self.name,
+            self.is_console,
+            self.hostfile,
+            self.is_open(),
+        )
 
     def __getstate__(self):
         """
@@ -73,13 +80,15 @@ class _VirtioPort(object):
         """
         # TODO: add port cleanup into qemu_vm.py
         if self.is_open():
-            LOG.warn("Force closing virtio_port socket, FIX the code to "
-                     " close the socket prior this to avoid possible err.")
+            LOG.warn(
+                "Force closing virtio_port socket, FIX the code to "
+                " close the socket prior this to avoid possible err."
+            )
             self.close()
         return self.__dict__.copy()
 
     def is_open(self):
-        """ :return: host port status (open/closed) """
+        """:return: host port status (open/closed)"""
         if self.sock:
             return True
         else:
@@ -91,7 +100,7 @@ class _VirtioPort(object):
         """
         return [self.name, self.is_console]
 
-    def open(self):     # @ReservedAssignment
+    def open(self):  # @ReservedAssignment
         """
         Open port on host side.
         """
@@ -100,13 +109,13 @@ class _VirtioPort(object):
         attempt = 11
         while attempt > 0:
             try:
-                if self.port_type == 'unix_socket':
+                if self.port_type == "unix_socket":
                     sock_flag = socket.AF_UNIX
-                elif self.port_type in ('tcp_socket', 'udp'):
+                elif self.port_type in ("tcp_socket", "udp"):
                     sock_flag = socket.AF_INET
-                if self.port_type == 'udp':
+                if self.port_type == "udp":
                     sock_type = socket.SOCK_DGRAM
-                elif self.port_type in ('tcp_socket', 'unix_socket'):
+                elif self.port_type in ("tcp_socket", "unix_socket"):
                     sock_type = socket.SOCK_STREAM
                 self.sock = socket.socket(sock_flag, sock_type)
                 self.sock.settimeout(1)
@@ -118,8 +127,9 @@ class _VirtioPort(object):
             except Exception:
                 attempt -= 1
                 time.sleep(1)
-        raise exceptions.TestFail("Can't open the %s sock (%s)" % (self.name,
-                                                                   self.hostfile))
+        raise exceptions.TestFail(
+            "Can't open the %s sock (%s)" % (self.name, self.hostfile)
+        )
 
     def clean_port(self):
         """
@@ -157,7 +167,7 @@ class _VirtioPort(object):
 
 class VirtioSerial(_VirtioPort):
 
-    """ Class for handling virtio-serialport """
+    """Class for handling virtio-serialport"""
 
     def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
         """
@@ -170,7 +180,7 @@ class VirtioSerial(_VirtioPort):
 
 class VirtioConsole(_VirtioPort):
 
-    """ Class for handling virtio-console """
+    """Class for handling virtio-console"""
 
     def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
         """
@@ -188,7 +198,7 @@ class GuestWorker(object):
     """
 
     def __init__(self, vm):
-        """ Initialize worker for use (including port init on guest) """
+        """Initialize worker for use (including port init on guest)"""
         self.vm = vm
         self.session = self.vm.wait_for_login()
         self.__cmd_execute_worker = None
@@ -199,47 +209,50 @@ class GuestWorker(object):
         if "on" in out:
             self.os_linux = True
             guest_script_path = os.path.join("/tmp", guest_script_py)
-            cmd_guest_size = ("du -b %s | cut -f1"
-                              % guest_script_path)
+            cmd_guest_size = "du -b %s | cut -f1" % guest_script_path
             cmd_already_compiled_chck = "ls %so" % guest_script_path
-            cmd_compile = ("`command -v python python3 | head -1` -OO %s -c "
-                           "&& echo -n 'PASS: Compile virtio_guest finished' "
-                           "|| echo -n 'FAIL: Compile virtio_guest failed'"
-                           % guest_script_path)
-            self.__cmd_execute_worker = ("`command -v python python3 | head -1` %so"
-                                         "&& echo -n 'PASS: virtio_guest finished' "
-                                         "|| echo -n 'FAIL: virtio_guest failed'"
-                                         % guest_script_path)
+            cmd_compile = (
+                "`command -v python python3 | head -1` -OO %s -c "
+                "&& echo -n 'PASS: Compile virtio_guest finished' "
+                "|| echo -n 'FAIL: Compile virtio_guest failed'" % guest_script_path
+            )
+            self.__cmd_execute_worker = (
+                "`command -v python python3 | head -1` %so"
+                "&& echo -n 'PASS: virtio_guest finished' "
+                "|| echo -n 'FAIL: virtio_guest failed'" % guest_script_path
+            )
         else:
             self.os_linux = False
             guest_script_path = "C:\\%s" % guest_script_py
-            cmd_guest_size = ("for %%I in (%s) do @echo %%~zI"
-                              % guest_script_path)
+            cmd_guest_size = "for %%I in (%s) do @echo %%~zI" % guest_script_path
             cmd_already_compiled_chck = "dir %so" % guest_script_path
-            cmd_compile = ("%s -c "
-                           "&& echo PASS: Compile virtio_guest finished "
-                           "|| echo FAIL: Compile virtio_guest failed"
-                           % guest_script_path)
-            self.__cmd_execute_worker = ("%so "
-                                         "&& echo PASS: virtio_guest finished "
-                                         "|| echo FAIL: virtio_guest failed"
-                                         % guest_script_path)
+            cmd_compile = (
+                "%s -c "
+                "&& echo PASS: Compile virtio_guest finished "
+                "|| echo FAIL: Compile virtio_guest failed" % guest_script_path
+            )
+            self.__cmd_execute_worker = (
+                "%so "
+                "&& echo PASS: virtio_guest finished "
+                "|| echo FAIL: virtio_guest failed" % guest_script_path
+            )
 
         # Copy, compile and run the worker
         timeout = 120
-        guest_script_src = os.path.join(data_dir.get_shared_dir(), 'scripts',
-                                        'virtio_console_guest.py')
-        script_size = process.run("du -b %s | cut -f1" % guest_script_src,
-                                  shell=True).stdout_text.strip()
+        guest_script_src = os.path.join(
+            data_dir.get_shared_dir(), "scripts", "virtio_console_guest.py"
+        )
+        script_size = process.run(
+            "du -b %s | cut -f1" % guest_script_src, shell=True
+        ).stdout_text.strip()
         script_size_guest = self.session.cmd_output(cmd_guest_size).strip()
-        if (script_size != script_size_guest or
-                self.session.cmd_status(cmd_already_compiled_chck)):
+        if script_size != script_size_guest or self.session.cmd_status(
+            cmd_already_compiled_chck
+        ):
             if self.os_linux:
                 # Disable serial-getty@hvc0.service on systemd-like hosts
-                self.session.cmd_status('systemctl mask '
-                                        'serial-getty@hvc0.service')
-                self.session.cmd_status('systemctl stop '
-                                        'serial-getty@hvc0.service')
+                self.session.cmd_status("systemctl mask " "serial-getty@hvc0.service")
+                self.session.cmd_status("systemctl stop " "serial-getty@hvc0.service")
             # Copy virtio_console_guest.py into guests
             self.vm.copy_files_to(guest_script_src, guest_script_path)
 
@@ -251,35 +264,38 @@ class GuestWorker(object):
                 self.cmd(cmd_compile, timeout)
             except VirtioPortException:
                 if not self.os_linux:
-                    LOG.error("Script execution failed, do you have python"
-                              " and pywin32 installed? Currently this "
-                              "needs to be done manually!")
+                    LOG.error(
+                        "Script execution failed, do you have python"
+                        " and pywin32 installed? Currently this "
+                        "needs to be done manually!"
+                    )
                 raise
             self.session.sendline()
 
         # set echo off (self.cmd() mustn't contain C:)
         self.session.sendline("echo off")
-        LOG.debug("Starting %so on guest %s", guest_script_py,
-                  self.vm.name)
+        LOG.debug("Starting %so on guest %s", guest_script_py, self.vm.name)
         self._execute_worker(timeout)
         self._init_guest(timeout)
 
     def _execute_worker(self, timeout=10):
-        """ Execute worker on guest """
+        """Execute worker on guest"""
         try:
             self.cmd(self.__cmd_execute_worker, timeout)
         except VirtioPortException:
             if not self.os_linux:
-                LOG.error("Script execution failed, do you have python"
-                          " and pywin32 installed? Currently this "
-                          "needs to be done manually!")
+                LOG.error(
+                    "Script execution failed, do you have python"
+                    " and pywin32 installed? Currently this "
+                    "needs to be done manually!"
+                )
             raise
         # Let the system rest
         # FIXME: Is this always necessarily?
         time.sleep(2)
 
     def _init_guest(self, timeout=10):
-        """ Initialize worker on guest """
+        """Initialize worker on guest"""
         ports = []
         for port in self.vm.virtio_ports:
             ports.append(port.for_guest())
@@ -305,10 +321,11 @@ class GuestWorker(object):
         """
         match, data = self._cmd(cmd, timeout, patterns)
         if match == 1 or match is None:
-            raise VirtioPortException("Failed to execute '%s' on"
-                                      " virtio_console_guest.py, "
-                                      "vm: %s, output:\n%s" %
-                                      (cmd, self.vm.name, data))
+            raise VirtioPortException(
+                "Failed to execute '%s' on"
+                " virtio_console_guest.py, "
+                "vm: %s, output:\n%s" % (cmd, self.vm.name, data)
+            )
         return (match, data)
 
     def _cmd(self, cmd, timeout=10, patterns=None):
@@ -321,19 +338,26 @@ class GuestWorker(object):
         """
         if not patterns:
             patterns = ("^PASS:", "^FAIL:")
-        LOG.debug("Executing '%s' on virtio_console_guest.py,"
-                  " vm: %s, timeout: %s", cmd, self.vm.name, timeout)
+        LOG.debug(
+            "Executing '%s' on virtio_console_guest.py," " vm: %s, timeout: %s",
+            cmd,
+            self.vm.name,
+            timeout,
+        )
         self.session.sendline(cmd)
         try:
-            (match, data) = self.session.read_until_any_line_matches(patterns,
-                                                                     timeout=timeout)
-            if patterns[match].startswith('^PASS:'):
+            (match, data) = self.session.read_until_any_line_matches(
+                patterns, timeout=timeout
+            )
+            if patterns[match].startswith("^PASS:"):
                 match = 0
-            elif patterns[match].startswith('^FAIL:'):
+            elif patterns[match].startswith("^FAIL:"):
                 match = 1
             else:
-                data = ("Incorrect pattern %s. Data in console:\n%s"
-                        % (patterns[match], data))
+                data = "Incorrect pattern %s. Data in console:\n%s" % (
+                    patterns[match],
+                    data,
+                )
                 match = None
         except aexpect.ExpectError as inst:
             match = None
@@ -378,8 +402,9 @@ class GuestWorker(object):
             return
         # in LOOP_NONE mode it might stuck in read/write
         # This command can't fail, can only freze so wait for the correct msg
-        match, tmp = self._cmd("virt.exit_threads()", 3, ("^PASS: All threads"
-                                                          " finished",))
+        match, tmp = self._cmd(
+            "virt.exit_threads()", 3, ("^PASS: All threads" " finished",)
+        )
         if match is None:
             LOG.warn("Workaround the stuck thread on guest")
             # Thread is stuck in read/write
@@ -390,12 +415,13 @@ class GuestWorker(object):
                     send_pt.sock.settimeout(1)
                     send_pt.sock.send(b".")
                 except socket.timeout:
-                    pass    # If still stuck VM gets destroyed below
+                    pass  # If still stuck VM gets destroyed below
                 send_pt.sock.settimeout(timeout)
         elif match != 0:
             # Something else
-            raise VirtioPortException("Unexpected fail\nMatch: %s\nData:\n%s"
-                                      % (match, tmp))
+            raise VirtioPortException(
+                "Unexpected fail\nMatch: %s\nData:\n%s" % (match, tmp)
+            )
 
         # Read-out all remaining data
         for recv_pt in recv_pts:
@@ -403,23 +429,29 @@ class GuestWorker(object):
                 recv_pt.sock.recv(1024)
 
         # This will cause fail in case anything went wrong.
-        match, tmp = self._cmd("print('PASS: nothing')", 10, ('^PASS: nothing',
-                                                              '^FAIL:'))
+        match, tmp = self._cmd(
+            "print('PASS: nothing')", 10, ("^PASS: nothing", "^FAIL:")
+        )
         if match != 0:
             LOG.error("Python is stuck/FAILed after read-out:\n%s", tmp)
             try:
                 self.session.close()
                 self.session = self.vm.wait_for_login()
-                if self.os_linux:   # On windows it dies with the connection
-                    self.cmd("killall -9 `command -v python python3 | head -1` "
-                             "&& echo -n PASS: python killed"
-                             "|| echo -n PASS: python was already dead", 10)
+                if self.os_linux:  # On windows it dies with the connection
+                    self.cmd(
+                        "killall -9 `command -v python python3 | head -1` "
+                        "&& echo -n PASS: python killed"
+                        "|| echo -n PASS: python was already dead",
+                        10,
+                    )
                 self._execute_worker()
                 self._init_guest()
             except Exception as inst:
                 LOG.error(inst)
-                raise VirtioPortFatalException("virtio-console driver is "
-                                               "irreparably blocked, further tests might FAIL.")
+                raise VirtioPortFatalException(
+                    "virtio-console driver is "
+                    "irreparably blocked, further tests might FAIL."
+                )
 
     def cleanup_ports(self):
         """
@@ -435,16 +467,20 @@ class GuestWorker(object):
             try:
                 self.vm.verify_kernel_crash()
 
-                match, tmp = self._cmd("guest_exit()", 10, ('^FAIL:',
-                                                            '^PASS: virtio_guest finished'))
+                match, tmp = self._cmd(
+                    "guest_exit()", 10, ("^FAIL:", "^PASS: virtio_guest finished")
+                )
                 self.session.close()
                 self.session = self.vm.wait_for_login()
                 # On windows it dies with the connection
                 if match != 0 and self.os_linux:
                     LOG.debug(tmp)
-                    self.cmd("killall -9 `command -v python python3 | head -1` "
-                             "&& echo -n PASS: python killed"
-                             "|| echo -n PASS: python was already dead", 10)
+                    self.cmd(
+                        "killall -9 `command -v python python3 | head -1` "
+                        "&& echo -n PASS: python killed"
+                        "|| echo -n PASS: python was already dead",
+                        10,
+                    )
 
                 self._execute_worker()
                 self._init_guest()
@@ -452,11 +488,13 @@ class GuestWorker(object):
 
             except Exception as inst:
                 LOG.error(inst)
-                raise VirtioPortFatalException("virtio-console driver is "
-                                               "irreparably blocked, further tests might FAIL.")
+                raise VirtioPortFatalException(
+                    "virtio-console driver is "
+                    "irreparably blocked, further tests might FAIL."
+                )
 
     def cleanup(self):
-        """ Cleanup ports and quit the worker """
+        """Cleanup ports and quit the worker"""
         # Verify that guest works
         if self.session and self.vm and self.vm.is_alive():
             self.cleanup_ports()
@@ -468,12 +506,17 @@ class GuestWorker(object):
             self.session.close()
             # On windows it dies with the connection
             if match != 0 and self.os_linux:
-                LOG.warn('guest_worker stuck during cleanup:\n%s\n,'
-                         ' killing python...', tmp)
+                LOG.warn(
+                    "guest_worker stuck during cleanup:\n%s\n," " killing python...",
+                    tmp,
+                )
                 self.session = self.vm.wait_for_login()
-                self.cmd("killall -9 `command -v python python3 | head -1` "
-                         "&& echo -n PASS: python killed"
-                         "|| echo -n PASS: python was already dead", 10)
+                self.cmd(
+                    "killall -9 `command -v python python3 | head -1` "
+                    "&& echo -n PASS: python killed"
+                    "|| echo -n PASS: python was already dead",
+                    10,
+                )
                 self.session.close()
         self.session = None
         self.vm = None
@@ -502,7 +545,7 @@ class ThSend(Thread):
         self.exitevent = exit_event
         self.idx = 0
         self.quiet = quiet
-        self.ret_code = 1    # sets to 0 when finish properly
+        self.ret_code = 1  # sets to 0 when finish properly
 
     def run(self):
         LOG.debug("ThSend %s: run", self.name)
@@ -523,8 +566,15 @@ class ThSendCheck(Thread):
     Random data sender thread.
     """
 
-    def __init__(self, port, exit_event, queues, blocklen=1024,
-                 migrate_event=None, reduced_set=False):
+    def __init__(
+        self,
+        port,
+        exit_event,
+        queues,
+        blocklen=1024,
+        migrate_event=None,
+        reduced_set=False,
+    ):
         """
         :param port: Destination port
         :param exit_event: Exit event
@@ -544,17 +594,21 @@ class ThSendCheck(Thread):
         self.exitevent = exit_event
         self.migrate_event = migrate_event
         self.idx = 0
-        self.ret_code = 1    # sets to 0 when finish properly
+        self.ret_code = 1  # sets to 0 when finish properly
         self.reduced_set = reduced_set
 
     def run(self):
         LOG.debug("ThSendCheck %s: run", self.name)
-        _err_msg_exception = ('ThSendCheck ' + str(self.name) + ': Got '
-                              'exception %s, continuing')
-        _err_msg_disconnect = ('ThSendCheck ' + str(self.name) + ': Port '
-                               'disconnected, waiting for new port.')
-        _err_msg_reconnect = ('ThSendCheck ' + str(self.name) + ': Port '
-                              'reconnected, continuing.')
+        _err_msg_exception = (
+            "ThSendCheck " + str(self.name) + ": Got " "exception %s, continuing"
+        )
+        _err_msg_disconnect = (
+            "ThSendCheck " + str(self.name) + ": Port "
+            "disconnected, waiting for new port."
+        )
+        _err_msg_reconnect = (
+            "ThSendCheck " + str(self.name) + ": Port " "reconnected, continuing."
+        )
         too_much_data = False
         if self.reduced_set:
             rand_a = 65
@@ -574,9 +628,11 @@ class ThSendCheck(Thread):
             except Exception as inst:
                 # self.port is not yet set while reconnecting
                 if self.migrate_event is None:
-                    raise exceptions.TestFail("ThSendCheck %s: Broken pipe. If this"
-                                              " is expected behavior set migrate_event "
-                                              "to support reconnection." % self.name)
+                    raise exceptions.TestFail(
+                        "ThSendCheck %s: Broken pipe. If this"
+                        " is expected behavior set migrate_event "
+                        "to support reconnection." % self.name
+                    )
                 if self.port.sock is None:
                     LOG.debug(_err_msg_disconnect)
                     while self.port.sock is None:
@@ -604,27 +660,33 @@ class ThSendCheck(Thread):
                         continue
                     except Exception as inst:
                         # Broken pipe
-                        if not hasattr(inst, 'errno') or inst.errno != 32:
+                        if not hasattr(inst, "errno") or inst.errno != 32:
                             continue
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise exceptions.TestFail("ThSendCheck %s: Broken "
-                                                      "pipe. If this is expected behavior "
-                                                      "set migrate_event to support "
-                                                      "reconnection." % self.name)
-                        LOG.debug("ThSendCheck %s: Broken pipe "
-                                  ", reconnecting. ", self.name)
+                            raise exceptions.TestFail(
+                                "ThSendCheck %s: Broken "
+                                "pipe. If this is expected behavior "
+                                "set migrate_event to support "
+                                "reconnection." % self.name
+                            )
+                        LOG.debug(
+                            "ThSendCheck %s: Broken pipe " ", reconnecting. ", self.name
+                        )
                         attempt = 10
-                        while (attempt > 1 and
-                               not self.exitevent.is_set()):
+                        while attempt > 1 and not self.exitevent.is_set():
                             # Wait until main thread sets the new self.port
-                            while not (self.exitevent.is_set() or
-                                       self.migrate_event.wait(1)):
+                            while not (
+                                self.exitevent.is_set() or self.migrate_event.wait(1)
+                            ):
                                 pass
                             if self.exitevent.is_set():
                                 break
-                            LOG.debug("ThSendCheck %s: Broken pipe resumed"
-                                      ", reconnecting...", self.name)
+                            LOG.debug(
+                                "ThSendCheck %s: Broken pipe resumed"
+                                ", reconnecting...",
+                                self.name,
+                            )
                             self.port.sock = False
                             self.port.open()
                             try:
@@ -663,7 +725,7 @@ class ThRecv(Thread):
         self.blocklen = blocklen
         self.idx = 0
         self.quiet = quiet
-        self.ret_code = 1    # sets to 0 when finish properly
+        self.ret_code = 1  # sets to 0 when finish properly
 
     def run(self):
         LOG.debug("ThRecv %s: run", self.name)
@@ -689,8 +751,16 @@ class ThRecvCheck(Thread):
     Random data receiver/checker thread.
     """
 
-    def __init__(self, port, buff, exit_event, blocklen=1024, sendlen=0,
-                 migrate_event=None, debug=None):
+    def __init__(
+        self,
+        port,
+        buff,
+        exit_event,
+        blocklen=1024,
+        sendlen=0,
+        migrate_event=None,
+        debug=None,
+    ):
         """
         :param port: Source port.
         :param buff: Control data buffer (FIFO).
@@ -708,8 +778,8 @@ class ThRecvCheck(Thread):
         self.blocklen = blocklen
         self.idx = 0
         self.sendlen = sendlen + 1  # >=
-        self.ret_code = 1    # sets to 0 when finish properly
-        self.debug = debug      # see the self.run_* docstrings for details
+        self.ret_code = 1  # sets to 0 when finish properly
+        self.debug = debug  # see the self.run_* docstrings for details
         # self.sendidx is the maximal number of skipped/duplicated values
         # 1) autoreload when the host socket is reconnected. In this case
         #    it waits <30s for migrate_event and reloads sendidx to sendlen
@@ -726,19 +796,24 @@ class ThRecvCheck(Thread):
         """
         if self.sendidx >= 0:
             self.minsendidx = min(self.minsendidx, self.sendidx)
-            LOG.debug("ThRecvCheck %s: Previous data loss was %d.",
-                      self.name, (self.sendlen - self.sendidx))
+            LOG.debug(
+                "ThRecvCheck %s: Previous data loss was %d.",
+                self.name,
+                (self.sendlen - self.sendidx),
+            )
         self.sendidx = self.sendlen
 
     def run(self):
-        """ Pick the right mode and execute it """
-        if self.debug == 'debug':
+        """Pick the right mode and execute it"""
+        if self.debug == "debug":
             self.run_debug()
-        elif self.debug == 'normal' or not self.debug:
+        elif self.debug == "normal" or not self.debug:
             self.run_normal()
         else:
-            LOG.error('ThRecvCheck %s: Unsupported debug mode, using '
-                      'normal mode.', self.name)
+            LOG.error(
+                "ThRecvCheck %s: Unsupported debug mode, using " "normal mode.",
+                self.name,
+            )
             self.run_normal()
 
     def run_normal(self):
@@ -749,15 +824,21 @@ class ThRecvCheck(Thread):
         other thread.
         """
         LOG.debug("ThRecvCheck %s: run", self.name)
-        _err_msg_missing_migrate_ev = ("ThRecvCheck %s: Broken pipe. If "
-                                       "this is expected behavior set migrate_event to "
-                                       "support reconnection." % self.name)
-        _err_msg_exception = ('ThRecvCheck ' + str(self.name) + ': Got '
-                              'exception %s, continuing')
-        _err_msg_disconnect = ('ThRecvCheck ' + str(self.name) + ': Port '
-                               'disconnected, waiting for new port.')
-        _err_msg_reconnect = ('ThRecvCheck ' + str(self.name) + ': Port '
-                              'reconnected, continuing.')
+        _err_msg_missing_migrate_ev = (
+            "ThRecvCheck %s: Broken pipe. If "
+            "this is expected behavior set migrate_event to "
+            "support reconnection." % self.name
+        )
+        _err_msg_exception = (
+            "ThRecvCheck " + str(self.name) + ": Got " "exception %s, continuing"
+        )
+        _err_msg_disconnect = (
+            "ThRecvCheck " + str(self.name) + ": Port "
+            "disconnected, waiting for new port."
+        )
+        _err_msg_reconnect = (
+            "ThRecvCheck " + str(self.name) + ": Port " "reconnected, continuing."
+        )
         attempt = 10
         while not self.exitevent.is_set():
             try:
@@ -792,7 +873,7 @@ class ThRecvCheck(Thread):
                 if buf:
                     # Compare the received data with the control data
                     for char in bytearray(buf):
-                        char = struct.pack('B', char)
+                        char = struct.pack("B", char)
                         _char = self.buff.popleft()
                         if char == _char:
                             self.idx += 1
@@ -805,63 +886,79 @@ class ThRecvCheck(Thread):
                                     _char = self.buff.popleft()
                                 else:
                                     self.exitevent.set()
-                                    LOG.error("ThRecvCheck %s: "
-                                              "Failed to recv %dth "
-                                              "character",
-                                              self.name, self.idx)
-                                    LOG.error("ThRecvCheck %s: "
-                                              "%s != %s",
-                                              self.name,
-                                              repr(char), repr(_char))
-                                    LOG.error("ThRecvCheck %s: "
-                                              "Recv = %s",
-                                              self.name, repr(buf))
+                                    LOG.error(
+                                        "ThRecvCheck %s: "
+                                        "Failed to recv %dth "
+                                        "character",
+                                        self.name,
+                                        self.idx,
+                                    )
+                                    LOG.error(
+                                        "ThRecvCheck %s: " "%s != %s",
+                                        self.name,
+                                        repr(char),
+                                        repr(_char),
+                                    )
+                                    LOG.error(
+                                        "ThRecvCheck %s: " "Recv = %s",
+                                        self.name,
+                                        repr(buf),
+                                    )
                                     # sender might change the buff :-(
                                     time.sleep(1)
                                     _char = b""
                                     for buf in self.buff:
                                         _char += buf
-                                        _char += b' '
-                                    LOG.error("ThRecvCheck %s: "
-                                              "Queue = %s",
-                                              self.name, repr(_char))
-                                    LOG.info("ThRecvCheck %s: "
-                                             "MaxSendIDX = %d",
-                                             self.name,
-                                             (self.sendlen - self.sendidx))
-                                    raise exceptions.TestFail("ThRecvCheck %s: "
-                                                              "incorrect data" %
-                                                              self.name)
+                                        _char += b" "
+                                    LOG.error(
+                                        "ThRecvCheck %s: " "Queue = %s",
+                                        self.name,
+                                        repr(_char),
+                                    )
+                                    LOG.info(
+                                        "ThRecvCheck %s: " "MaxSendIDX = %d",
+                                        self.name,
+                                        (self.sendlen - self.sendidx),
+                                    )
+                                    raise exceptions.TestFail(
+                                        "ThRecvCheck %s: " "incorrect data" % self.name
+                                    )
                     attempt = 10
-                else:   # ! buf
+                else:  # ! buf
                     # Broken socket
                     if attempt > 0:
                         attempt -= 1
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise exceptions.TestFail(
-                                _err_msg_missing_migrate_ev)
-                        LOG.debug("ThRecvCheck %s: Broken pipe "
-                                  ", reconnecting. ", self.name)
+                            raise exceptions.TestFail(_err_msg_missing_migrate_ev)
+                        LOG.debug(
+                            "ThRecvCheck %s: Broken pipe " ", reconnecting. ", self.name
+                        )
                         self.reload_loss_idx()
                         # Wait until main thread sets the new self.port
-                        while not (self.exitevent.is_set() or
-                                   self.migrate_event.wait(1)):
+                        while not (
+                            self.exitevent.is_set() or self.migrate_event.wait(1)
+                        ):
                             pass
                         if self.exitevent.is_set():
                             break
-                        LOG.debug("ThRecvCheck %s: Broken pipe resumed, "
-                                  "reconnecting...", self.name)
+                        LOG.debug(
+                            "ThRecvCheck %s: Broken pipe resumed, " "reconnecting...",
+                            self.name,
+                        )
 
                         self.port.sock = False
                         self.port.open()
         if self.sendidx >= 0:
             self.minsendidx = min(self.minsendidx, self.sendidx)
-        if (self.sendlen - self.minsendidx):
-            LOG.error("ThRecvCheck %s: Data loss occurred during socket"
-                      "reconnection. Maximal loss was %d per one "
-                      "migration.", self.name,
-                      (self.sendlen - self.minsendidx))
+        if self.sendlen - self.minsendidx:
+            LOG.error(
+                "ThRecvCheck %s: Data loss occurred during socket"
+                "reconnection. Maximal loss was %d per one "
+                "migration.",
+                self.name,
+                (self.sendlen - self.minsendidx),
+            )
         LOG.debug("ThRecvCheck %s: exit(%d)", self.name, self.idx)
         self.ret_code = 0
 
@@ -888,15 +985,17 @@ class ThRecvCheck(Thread):
                     # Compare the received data with the control data
                     for idx_char in xrange(len(buf)):
                         _char = self.buff.popleft()
-                        char = struct.pack('B', (bytearray(buf)[idx_char]))
+                        char = struct.pack("B", (bytearray(buf)[idx_char]))
                         if char == _char:
                             self.idx += 1
                             verif_buf.append(_char)
                         else:
                             # Detect the duplicated/lost characters.
-                            LOG.debug("ThRecvCheck %s: fail to receive "
-                                      "%dth character.", self.name,
-                                      self.idx)
+                            LOG.debug(
+                                "ThRecvCheck %s: fail to receive " "%dth character.",
+                                self.name,
+                                self.idx,
+                            )
                             buf = buf[idx_char:]
                             for i in xrange(100):
                                 if len(self.buff) < self.sendidx:
@@ -905,10 +1004,14 @@ class ThRecvCheck(Thread):
                                     break
                             sendidx = min(self.sendidx, len(self.buff))
                             if sendidx < self.sendidx:
-                                LOG.debug("ThRecvCheck %s: sendidx was "
-                                          "lowered as there is not enough "
-                                          "data after 1s. Using sendidx="
-                                          "%s.", self.name, sendidx)
+                                LOG.debug(
+                                    "ThRecvCheck %s: sendidx was "
+                                    "lowered as there is not enough "
+                                    "data after 1s. Using sendidx="
+                                    "%s.",
+                                    self.name,
+                                    sendidx,
+                                )
                             for _ in xrange(sendidx // self.blocklen):
                                 if self.exitevent.is_set():
                                     break
@@ -934,10 +1037,13 @@ class ThRecvCheck(Thread):
                                 self.sendidx -= offset_a
                                 max_loss = max(max_loss, offset_a)
                                 sum_loss += offset_a
-                                LOG.debug("ThRecvCheck %s: DUP %s (out of "
-                                          "%s)", self.name, offset_a,
-                                          sendidx)
-                                buf = buf[offset_a + 1:]
+                                LOG.debug(
+                                    "ThRecvCheck %s: DUP %s (out of " "%s)",
+                                    self.name,
+                                    offset_a,
+                                    sendidx,
+                                )
+                                buf = buf[offset_a + 1 :]
                                 for _ in xrange(len(buf)):
                                     self.buff.popleft()
                                 verif_buf.extend(buf)
@@ -945,9 +1051,12 @@ class ThRecvCheck(Thread):
                             elif offset_b:  # Data loss
                                 max_loss = max(max_loss, offset_b)
                                 sum_loss += offset_b
-                                LOG.debug("ThRecvCheck %s: LOST %s (out of"
-                                          " %s)", self.name, offset_b,
-                                          sendidx)
+                                LOG.debug(
+                                    "ThRecvCheck %s: LOST %s (out of" " %s)",
+                                    self.name,
+                                    offset_b,
+                                    sendidx,
+                                )
                                 # Pop-out the lost characters from verif_queue
                                 # (first one is already out)
                                 self.sendidx -= offset_b
@@ -957,56 +1066,73 @@ class ThRecvCheck(Thread):
                                     self.buff.popleft()
                                 self.idx += len(buf)
                                 verif_buf.extend(buf)
-                            else:   # Too big data loss or duplication
+                            else:  # Too big data loss or duplication
                                 verif = ""
-                                for _ in xrange(-min(sendidx, len(verif_buf)),
-                                                0):
+                                for _ in xrange(-min(sendidx, len(verif_buf)), 0):
                                     verif += verif_buf[_]
-                                LOG.error("ThRecvCheck %s: mismatched data"
-                                          ":\nverified: ..%s\nreceived:   "
-                                          "%s\nsent:       %s",
-                                          self.name, repr(verif),
-                                          repr(buf), repr(queue))
-                                raise exceptions.TestFail("Recv and sendqueue "
-                                                          "don't match with any offset.")
+                                LOG.error(
+                                    "ThRecvCheck %s: mismatched data"
+                                    ":\nverified: ..%s\nreceived:   "
+                                    "%s\nsent:       %s",
+                                    self.name,
+                                    repr(verif),
+                                    repr(buf),
+                                    repr(queue),
+                                )
+                                raise exceptions.TestFail(
+                                    "Recv and sendqueue " "don't match with any offset."
+                                )
                             # buf was changed, break from this loop
                             attempt = 10
                             break
                     attempt = 10
-                else:   # ! buf
+                else:  # ! buf
                     # Broken socket
                     if attempt > 0:
                         attempt -= 1
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise exceptions.TestFail("ThRecvCheck %s: Broken pipe."
-                                                      " If this is expected behavior set migrate"
-                                                      "_event to support reconnection." %
-                                                      self.name)
-                        LOG.debug("ThRecvCheck %s: Broken pipe "
-                                  ", reconnecting. ", self.name)
+                            raise exceptions.TestFail(
+                                "ThRecvCheck %s: Broken pipe."
+                                " If this is expected behavior set migrate"
+                                "_event to support reconnection." % self.name
+                            )
+                        LOG.debug(
+                            "ThRecvCheck %s: Broken pipe " ", reconnecting. ", self.name
+                        )
                         self.reload_loss_idx()
                         # Wait until main thread sets the new self.port
-                        while not (self.exitevent.is_set() or
-                                   self.migrate_event.wait(1)):
+                        while not (
+                            self.exitevent.is_set() or self.migrate_event.wait(1)
+                        ):
                             pass
                         if self.exitevent.is_set():
                             break
-                        LOG.debug("ThRecvCheck %s: Broken pipe resumed, "
-                                  "reconnecting...", self.name)
+                        LOG.debug(
+                            "ThRecvCheck %s: Broken pipe resumed, " "reconnecting...",
+                            self.name,
+                        )
 
                         self.port.sock = False
                         self.port.open()
         if self.sendidx >= 0:
             self.minsendidx = min(self.minsendidx, self.sendidx)
-        if (self.sendlen - self.minsendidx):
-            LOG.debug("ThRecvCheck %s: Data loss occurred during socket"
-                      "reconnection. Maximal loss was %d per one "
-                      "migration.", self.name,
-                      (self.sendlen - self.minsendidx))
+        if self.sendlen - self.minsendidx:
+            LOG.debug(
+                "ThRecvCheck %s: Data loss occurred during socket"
+                "reconnection. Maximal loss was %d per one "
+                "migration.",
+                self.name,
+                (self.sendlen - self.minsendidx),
+            )
         if sum_loss > 0:
-            LOG.debug("ThRecvCheck %s: Data offset detected, cumulative "
-                      "err: %d, max err: %d(%d)", self.name, sum_loss,
-                      max_loss, float(max_loss) / self.blocklen)
+            LOG.debug(
+                "ThRecvCheck %s: Data offset detected, cumulative "
+                "err: %d, max err: %d(%d)",
+                self.name,
+                sum_loss,
+                max_loss,
+                float(max_loss) / self.blocklen,
+            )
         LOG.debug("ThRecvCheck %s: exit(%d)", self.name, self.idx)
         self.ret_code = 0

@@ -4,7 +4,7 @@
 import logging
 
 
-LOG = logging.getLogger('avocado.test')
+LOG = logging.getLogger("avocado.test")
 
 
 def run(test, params, env):

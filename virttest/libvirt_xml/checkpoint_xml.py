@@ -21,22 +21,26 @@ class CheckpointXML(base.LibvirtXMLBase):
             bitmap: name of the bitmap to be created
     """
 
-    __slots__ = ('name', 'description', 'disks')
+    __slots__ = ("name", "description", "disks")
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
     __schema_name__ = "domaincheckpoint"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('name', self, parent_xpath='/',
-                                 tag_name='name')
-        accessors.XMLElementText('description', self, parent_xpath='/',
-                                 tag_name='description')
-        accessors.XMLElementList('disks', self, parent_xpath='/disks',
-                                 marshal_from=self.marshal_from_disks,
-                                 marshal_to=self.marshal_to_disks)
+        accessors.XMLElementText("name", self, parent_xpath="/", tag_name="name")
+        accessors.XMLElementText(
+            "description", self, parent_xpath="/", tag_name="description"
+        )
+        accessors.XMLElementList(
+            "disks",
+            self,
+            parent_xpath="/disks",
+            marshal_from=self.marshal_from_disks,
+            marshal_to=self.marshal_to_disks,
+        )
         super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<domaincheckpoint><disks/></domaincheckpoint>'
+        self.xml = "<domaincheckpoint><disks/></domaincheckpoint>"
 
     @staticmethod
     def marshal_from_disks(item, index, libvirtxml):
@@ -45,7 +49,7 @@ class CheckpointXML(base.LibvirtXMLBase):
         """
         del index
         del libvirtxml
-        return ('disk', dict(item))
+        return ("disk", dict(item))
 
     @staticmethod
     def marshal_to_disks(tag, attr_dict, index, libvirtxml):
@@ -54,13 +58,14 @@ class CheckpointXML(base.LibvirtXMLBase):
         """
         del index
         del libvirtxml
-        if tag != 'disk':
+        if tag != "disk":
             return None
         return dict(attr_dict)
 
     @staticmethod
-    def new_from_checkpoint_dumpxml(name, checkpoint_name, options="",
-                                    virsh_instance=base.virsh):
+    def new_from_checkpoint_dumpxml(
+        name, checkpoint_name, options="", virsh_instance=base.virsh
+    ):
         """
         Return new CheckpointXML instance from virsh checkpoint-dumpxml cmd
 
@@ -72,5 +77,5 @@ class CheckpointXML(base.LibvirtXMLBase):
         """
         checkpoint_xml = CheckpointXML(virsh_instance=virsh_instance)
         result = virsh_instance.checkpoint_dumpxml(name, checkpoint_name, options)
-        checkpoint_xml['xml'] = result.stdout_text.strip()
+        checkpoint_xml["xml"] = result.stdout_text.strip()
         return checkpoint_xml

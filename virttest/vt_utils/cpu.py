@@ -30,8 +30,12 @@ def get_cpu_info():
         processors = fd.read().strip().split("\n\n")
     for processor in processors:
         if processor != "":
-            info = dict(map(lambda x: [i.strip() for i in x.split(":", 1)],
-                            processor.split("\n")))
+            info = dict(
+                map(
+                    lambda x: [i.strip() for i in x.split(":", 1)],
+                    processor.split("\n"),
+                )
+            )
             cpu_info.append(info)
 
     return cpu_info

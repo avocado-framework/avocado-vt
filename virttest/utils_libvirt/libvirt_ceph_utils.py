@@ -22,7 +22,7 @@ from virttest.utils_libvirt import libvirt_disk
 
 from virttest.libvirt_xml import vm_xml
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def _create_secret(auth_sec_usage_type, ceph_auth_key):
@@ -33,17 +33,23 @@ def _create_secret(auth_sec_usage_type, ceph_auth_key):
     :param ceph_auth_key: ceph auth key
     :return: auth secret uuid
     """
-    auth_sec_dict = {"sec_usage": auth_sec_usage_type,
-                     "sec_name": "ceph_auth_secret"}
+    auth_sec_dict = {"sec_usage": auth_sec_usage_type, "sec_name": "ceph_auth_secret"}
     auth_sec_uuid = libvirt.create_secret(auth_sec_dict)
-    virsh.secret_set_value(auth_sec_uuid, ceph_auth_key,
-                           debug=True)
+    virsh.secret_set_value(auth_sec_uuid, ceph_auth_key, debug=True)
     return auth_sec_uuid
 
 
-def _create_image(device_format, img_file, vm_name, storage_size,
-                  ceph_disk_name, ceph_mon_ip, key_opt,
-                  ceph_auth_user, ceph_auth_key):
+def _create_image(
+    device_format,
+    img_file,
+    vm_name,
+    storage_size,
+    ceph_disk_name,
+    ceph_mon_ip,
+    key_opt,
+    ceph_auth_user,
+    ceph_auth_key,
+):
     """
     Creates image on ceph
     :param device_format: device format
@@ -56,23 +62,28 @@ def _create_image(device_format, img_file, vm_name, storage_size,
     :param ceph_auth_user: ceph auth user
     :param ceph_auth_key: ceph auth key
     """
-    #Create necessary image file if not exists
+    # Create necessary image file if not exists
     if img_file is None:
-        img_file = os.path.join(data_dir.get_data_dir(),
-                                "%s_test.img" % vm_name)
+        img_file = os.path.join(data_dir.get_data_dir(), "%s_test.img" % vm_name)
         # Create an local image and make FS on it.
-        disk_cmd = ("qemu-img create -f %s %s %s" %
-                    (device_format, img_file, storage_size))
+        disk_cmd = "qemu-img create -f %s %s %s" % (
+            device_format,
+            img_file,
+            storage_size,
+        )
         process.run(disk_cmd, ignore_status=False, shell=True)
     # Convert the image to remote ceph storage
-    disk_path = ("rbd:%s:mon_host=%s" %
-                 (ceph_disk_name, ceph_mon_ip))
+    disk_path = "rbd:%s:mon_host=%s" % (ceph_disk_name, ceph_mon_ip)
     if ceph_auth_user and ceph_auth_key:
-        disk_path += (":id=%s:key=%s" %
-                      (ceph_auth_user, ceph_auth_key))
-    rbd_cmd = ("rbd -m %s %s info %s 2> /dev/null|| qemu-img convert -O"
-               " %s %s %s" % (ceph_mon_ip, key_opt, ceph_disk_name,
-                              device_format, img_file, disk_path))
+        disk_path += ":id=%s:key=%s" % (ceph_auth_user, ceph_auth_key)
+    rbd_cmd = "rbd -m %s %s info %s 2> /dev/null|| qemu-img convert -O" " %s %s %s" % (
+        ceph_mon_ip,
+        key_opt,
+        ceph_disk_name,
+        device_format,
+        img_file,
+        disk_path,
+    )
     process.run(rbd_cmd, ignore_status=False, shell=True, verbose=True)
 
 
@@ -116,7 +127,7 @@ def create_or_cleanup_ceph_backend_vm_disk(vm, params, is_setup=True):
     ceph_cfg = ""
     disk_auth_dict = None
     auth_sec_uuid = None
-    names = ceph_disk_name.split('/')
+    names = ceph_disk_name.split("/")
     pool_name = names[0]
     image_name = names[1]
     if not utils_package.package_install(["ceph-common"]):
@@ -126,46 +137,65 @@ def create_or_cleanup_ceph_backend_vm_disk(vm, params, is_setup=True):
     ceph_cfg = ceph.create_config_file(ceph_mon_ip)
     # If enable auth, prepare a local file to save key
     if ceph_client_name and ceph_client_key:
-        with open(key_file, 'w') as f:
-            f.write("[%s]\n\tkey = %s\n" %
-                    (ceph_client_name, ceph_client_key))
+        with open(key_file, "w") as f:
+            f.write("[%s]\n\tkey = %s\n" % (ceph_client_name, ceph_client_key))
         key_opt = "--keyring %s" % key_file
         rbd_key_file = key_file
     if is_setup:
         # If enable auth, prepare disk auth
         if ceph_client_name and ceph_client_key:
             auth_sec_uuid = _create_secret(auth_sec_usage_type, ceph_auth_key)
-            disk_auth_dict = {"auth_user": ceph_auth_user,
-                              "secret_type": auth_sec_usage_type,
-                              "secret_uuid": auth_sec_uuid}
+            disk_auth_dict = {
+                "auth_user": ceph_auth_user,
+                "secret_type": auth_sec_usage_type,
+                "secret_uuid": auth_sec_uuid,
+            }
         # clean up image file if exists
-        ceph.rbd_image_rm(ceph_mon_ip, pool_name,
-                          image_name, keyfile=rbd_key_file)
+        ceph.rbd_image_rm(ceph_mon_ip, pool_name, image_name, keyfile=rbd_key_file)
 
-        #Create necessary image file if not exists
-        _create_image(device_format, img_file, vm.name, storage_size,
-                      ceph_disk_name, ceph_mon_ip, key_opt,
-                      ceph_auth_user, ceph_auth_key)
+        # Create necessary image file if not exists
+        _create_image(
+            device_format,
+            img_file,
+            vm.name,
+            storage_size,
+            ceph_disk_name,
+            ceph_mon_ip,
+            key_opt,
+            ceph_auth_user,
+            ceph_auth_key,
+        )
 
         # Disk related config
-        disk_src_dict = {"attrs": {"protocol": "rbd",
-                                   "name": ceph_disk_name},
-                         "hosts":  [{"name": ceph_mon_ip,
-                                     "port": ceph_host_port}]}
+        disk_src_dict = {
+            "attrs": {"protocol": "rbd", "name": ceph_disk_name},
+            "hosts": [{"name": ceph_mon_ip, "port": ceph_host_port}],
+        }
         # Create network disk
-        disk_xml = libvirt_disk.create_primitive_disk_xml("network", device, device_target, device_bus,
-                                                          device_format, disk_src_dict, disk_auth_dict)
+        disk_xml = libvirt_disk.create_primitive_disk_xml(
+            "network",
+            device,
+            device_target,
+            device_bus,
+            device_format,
+            disk_src_dict,
+            disk_auth_dict,
+        )
         if not keep_raw_image_as:
             if hotplug:
-                virsh.attach_device(vm.name, disk_xml.xml,
-                                    flagstr=attach_option, ignore_status=False, debug=True)
+                virsh.attach_device(
+                    vm.name,
+                    disk_xml.xml,
+                    flagstr=attach_option,
+                    ignore_status=False,
+                    debug=True,
+                )
             else:
                 vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
                 vmxml.add_device(disk_xml)
                 vmxml.sync()
     else:
-        ceph.rbd_image_rm(ceph_mon_ip, pool_name,
-                          image_name, keyfile=rbd_key_file)
+        ceph.rbd_image_rm(ceph_mon_ip, pool_name, image_name, keyfile=rbd_key_file)
         # Remove ceph config and key file if created.
         for file_path in [ceph_cfg, key_file]:
             if os.path.exists(file_path):

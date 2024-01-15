@@ -9,7 +9,7 @@ from avocado.utils import script
 from virttest import data_dir
 
 
-BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 BASE_DIR = os.path.abspath(BASE_DIR)
 
 TEST_STATUSES_PY = """from avocado.core import exceptions
@@ -74,42 +74,66 @@ verify_host_dmesg = no
 
 
 class BasicTests(unittest.TestCase):
-
     def setUp(self):
-        self.tmpdir = tempfile.mkdtemp(prefix='avocado_' + __name__)
+        self.tmpdir = tempfile.mkdtemp(prefix="avocado_" + __name__)
         self.rm_files = []
 
     def test_statuses(self):
         os.chdir(BASE_DIR)
-        test_path = os.path.join(data_dir.get_test_providers_dir(),
-                                 "downloads", "io-github-autotest-qemu",
-                                 "generic", "tests", "test_statuses.py")
-        self.assertTrue(os.path.exists(os.path.dirname(test_path)),
-                        "The qemu providers dir does not exists, Avocado-vt "
-                        "is probably not configured properly.")
+        test_path = os.path.join(
+            data_dir.get_test_providers_dir(),
+            "downloads",
+            "io-github-autotest-qemu",
+            "generic",
+            "tests",
+            "test_statuses.py",
+        )
+        self.assertTrue(
+            os.path.exists(os.path.dirname(test_path)),
+            "The qemu providers dir does not exists, Avocado-vt "
+            "is probably not configured properly.",
+        )
         self.rm_files.append(test_path)
         script.make_script(test_path, TEST_STATUSES_PY)
-        cfg = script.make_script(os.path.join(self.tmpdir,
-                                              "test_statuses.cfg"),
-                                 TEST_STATUSES_CFG)
-        result = process.run("avocado --show all run --vt-config %s "
-                             "--job-results-dir %s"
-                             % (cfg, self.tmpdir), ignore_status=True)
-        self.assertEqual(result.exit_status, 1, "Exit status is not 1:\n%s"
-                         % result)
-        status = json.load(open(os.path.join(self.tmpdir, "latest",
-                                             "results.json")))
+        cfg = script.make_script(
+            os.path.join(self.tmpdir, "test_statuses.cfg"), TEST_STATUSES_CFG
+        )
+        result = process.run(
+            "avocado --show all run --vt-config %s "
+            "--job-results-dir %s" % (cfg, self.tmpdir),
+            ignore_status=True,
+        )
+        self.assertEqual(result.exit_status, 1, "Exit status is not 1:\n%s" % result)
+        status = json.load(open(os.path.join(self.tmpdir, "latest", "results.json")))
         act_statuses = [_["status"] for _ in status["tests"]]
-        statuses_master = ["SKIP", "PASS", "FAIL", "ERROR", "CANCEL", "PASS",
-                           "FAIL", "ERROR", "ERROR"]
-        statuses_36lts = ["SKIP", "PASS", "FAIL", "ERROR", "SKIP", "PASS",
-                          "FAIL", "ERROR", "ERROR"]
-        if not (act_statuses == statuses_master or
-                act_statuses == statuses_36lts):
-            self.fail("Test statuses does not match any of expected results:"
-                      "\nmaster: %s\n36lts: %s\nactual: %s\n\noutput:\n%s"
-                      % (statuses_master, statuses_36lts, act_statuses,
-                         result))
+        statuses_master = [
+            "SKIP",
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "CANCEL",
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "ERROR",
+        ]
+        statuses_36lts = [
+            "SKIP",
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "SKIP",
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "ERROR",
+        ]
+        if not (act_statuses == statuses_master or act_statuses == statuses_36lts):
+            self.fail(
+                "Test statuses does not match any of expected results:"
+                "\nmaster: %s\n36lts: %s\nactual: %s\n\noutput:\n%s"
+                % (statuses_master, statuses_36lts, act_statuses, result)
+            )
 
     def tearDown(self):
         for path in self.rm_files:
@@ -120,5 +144,5 @@ class BasicTests(unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

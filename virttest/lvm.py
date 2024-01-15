@@ -35,7 +35,7 @@ from avocado.utils import process
 from virttest import utils_misc
 from virttest import data_dir
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
@@ -62,7 +62,6 @@ def cmd_output(cmd, res="[\w/]+"):
 
 
 class Volume(object):
-
     def __init__(self, name, size):
         self.name = name
         self.path = name
@@ -103,7 +102,6 @@ class Volume(object):
 
 
 class PhysicalVolume(Volume):
-
     def __init__(self, name, size):
         super(PhysicalVolume, self).__init__(name, size)
         self.vg = None
@@ -143,10 +141,12 @@ class PhysicalVolume(Volume):
         :param extra_args: extra arguments for pvresize command;
         """
         size = int(math.ceil(normalize_data_size(size)))
-        cmd = "lvm pvresize %s --setphysicalvolumesize=%s%s %s" % (extra_args,
-                                                                   size,
-                                                                   UNIT,
-                                                                   self.name)
+        cmd = "lvm pvresize %s --setphysicalvolumesize=%s%s %s" % (
+            extra_args,
+            size,
+            UNIT,
+            self.name,
+        )
         process.system(cmd)
         self.size = size
         LOG.info("resize volume %s to %s B" % (self.name, self.size))
@@ -181,7 +181,6 @@ class PhysicalVolume(Volume):
 
 
 class VolumeGroup(object):
-
     def __init__(self, name, size, pvs):
         self.name = name
         self.size = normalize_data_size(size)
@@ -277,7 +276,6 @@ class VolumeGroup(object):
 
 
 class LogicalVolume(Volume):
-
     def __init__(self, name, size, vg, lv_extra_options=None):
         super(LogicalVolume, self).__init__(name, size)
         self.vg = vg
@@ -291,10 +289,7 @@ class LogicalVolume(Volume):
         :return: path of logical volume;
         """
         vg_name = self.vg.name
-        cmd = "lvm lvcreate -L %s%s -n %s %s" % (self.size,
-                                                 UNIT,
-                                                 self.name,
-                                                 vg_name)
+        cmd = "lvm lvcreate -L %s%s -n %s %s" % (self.size, UNIT, self.name, vg_name)
         if self.lv_extra_options:
             cmd += " %s" % self.lv_extra_options
         process.system(cmd)
@@ -311,8 +306,7 @@ class LogicalVolume(Volume):
         end_time = time.time() + timeout
         while time.time() < end_time:
             self.umount()
-            cmd = "lvm lvremove %s %s/%s" % (extra_args,
-                                             self.vg.name, self.name)
+            cmd = "lvm lvremove %s %s/%s" % (extra_args, self.vg.name, self.name)
             status = process.system(cmd, ignore_status=True)
             if status == 0:
                 LOG.info("logical volume(%s) removed", self.name)
@@ -365,7 +359,6 @@ class LogicalVolume(Volume):
 
 
 class LVM(object):
-
     def __init__(self, params):
         path.find_command("lvm")
         self.params = self.__format_params(params)
@@ -533,8 +526,7 @@ class LVM(object):
                 pv.set_vg(vg)
             self.vgs.append(vg)
         else:
-            LOG.info("VolumeGroup(%s) really exists" % vg_name +
-                     "skip to create it")
+            LOG.info("VolumeGroup(%s) really exists" % vg_name + "skip to create it")
             pv_name = self.params["pv_name"].split()[0]
             pv = self.get_vol(pv_name, "pvs")
             if pv and pv.vg is vg:
@@ -569,12 +561,10 @@ class LVM(object):
             self.register(lv)
             self.lvs.append(lv)
         else:
-            LOG.info("LogicalVolume(%s) really exists " % lv_name +
-                     "skip to create it")
+            LOG.info("LogicalVolume(%s) really exists " % lv_name + "skip to create it")
         if lv.size != lv_size:
             lv.display()
-            LOG.warn("lv size(%s) mismath," % lv.size +
-                     "required size %s;" % lv_size)
+            LOG.warn("lv size(%s) mismath," % lv.size + "required size %s;" % lv_size)
             lv.resize(lv_size)
         return lv
 
@@ -621,7 +611,6 @@ class LVM(object):
 
 
 class EmulatedLVM(LVM):
-
     def __init__(self, params, root_dir=data_dir.get_tmp_dir()):
         path.find_command("losetup")
         path.find_command("dd")
@@ -682,8 +671,7 @@ class EmulatedLVM(LVM):
             self.register(pv)
             self.pvs.append(pv)
         else:
-            LOG.warn("PhysicalVolume(%s) really exists" % pv_name +
-                     "skip to create it")
+            LOG.warn("PhysicalVolume(%s) really exists" % pv_name + "skip to create it")
         pv.set_vg(vg)
         pvs.append(pv)
         return pvs
@@ -698,8 +686,9 @@ class EmulatedLVM(LVM):
         lv = self.setup_lv()
         if "/dev/loop" not in lv.get_attr("devices"):
             lv.display()
-            raise exceptions.TestError("logical volume exists but is not a " +
-                                       "emulated logical device")
+            raise exceptions.TestError(
+                "logical volume exists but is not a " + "emulated logical device"
+            )
         return lv.get_attr("lv_path")
 
     def cleanup(self):

@@ -22,11 +22,25 @@ from avocado.utils import path
 
 from . import utils_misc
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
-_LABELS = ['file_size', 'record_size', 'write', 'rewrite', 'read', 'reread',
-           'randread', 'randwrite', 'bkwdread', 'recordrewrite', 'strideread',
-           'fwrite', 'frewrite', 'fread', 'freread']
+_LABELS = [
+    "file_size",
+    "record_size",
+    "write",
+    "rewrite",
+    "read",
+    "reread",
+    "randread",
+    "randwrite",
+    "bkwdread",
+    "recordrewrite",
+    "strideread",
+    "fwrite",
+    "frewrite",
+    "fread",
+    "freread",
+]
 
 
 def geometric_mean(values):
@@ -187,34 +201,43 @@ class IOzoneAnalyzer(object):
 
         logging.info("")
         logging.info(
-            "TABLE:  SUMMARY of ALL FILE and RECORD SIZES                        Results in MB/sec")
+            "TABLE:  SUMMARY of ALL FILE and RECORD SIZES                        Results in MB/sec"
+        )
         logging.info("")
         logging.info(
-            "FILE & RECORD  INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE")
+            "FILE & RECORD  INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE"
+        )
         logging.info(
-            "SIZES (KB)     WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ")
+            "SIZES (KB)     WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ"
+        )
         logging.info(
-            "-------------------------------------------------------------------------------------------------------------------")
+            "-------------------------------------------------------------------------------------------------------------------"
+        )
         for result_line in overall_results:
             logging.info(
-                "ALL            %-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s" %
-                tuple(result_line))
+                "ALL            %-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s"
+                % tuple(result_line)
+            )
         logging.info("")
 
         logging.info("DRILLED DATA:")
 
         logging.info("")
         logging.info(
-            "TABLE:  RECORD Size against all FILE Sizes                          Results in MB/sec")
+            "TABLE:  RECORD Size against all FILE Sizes                          Results in MB/sec"
+        )
         logging.info("")
         logging.info(
-            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE ")
+            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE "
+        )
         logging.info(
-            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ")
+            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ"
+        )
         logging.info(
-            "--------------------------------------------------------------------------------------------------------------")
+            "--------------------------------------------------------------------------------------------------------------"
+        )
 
-        foutput_path = os.path.join(self.output_dir, '2d-datasource-file')
+        foutput_path = os.path.join(self.output_dir, "2d-datasource-file")
         if os.path.isfile(foutput_path):
             os.unlink(foutput_path)
         foutput = logging.FileHandler(foutput_path)
@@ -222,24 +245,29 @@ class IOzoneAnalyzer(object):
         logger.addHandler(foutput)
         for result_line in record_size_results:
             logging.info(
-                "%-10s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s" %
-                tuple(result_line))
+                "%-10s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s"
+                % tuple(result_line)
+            )
         logger.removeHandler(foutput)
 
         logging.info("")
 
         logging.info("")
         logging.info(
-            "TABLE:  FILE Size against all RECORD Sizes                          Results in MB/sec")
+            "TABLE:  FILE Size against all RECORD Sizes                          Results in MB/sec"
+        )
         logging.info("")
         logging.info(
-            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE ")
+            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE "
+        )
         logging.info(
-            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ")
+            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ"
+        )
         logging.info(
-            "--------------------------------------------------------------------------------------------------------------")
+            "--------------------------------------------------------------------------------------------------------------"
+        )
 
-        routput_path = os.path.join(self.output_dir, '2d-datasource-record')
+        routput_path = os.path.join(self.output_dir, "2d-datasource-record")
         if os.path.isfile(routput_path):
             os.unlink(routput_path)
         routput = logging.FileHandler(routput_path)
@@ -247,8 +275,9 @@ class IOzoneAnalyzer(object):
         logger.addHandler(routput)
         for result_line in file_size_results:
             logging.info(
-                "%-10s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s" %
-                tuple(result_line))
+                "%-10s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s%-8s"
+                % tuple(result_line)
+            )
         logger.removeHandler(routput)
 
         logging.info("")
@@ -264,52 +293,64 @@ class IOzoneAnalyzer(object):
         :param record: Tuple with 4 elements containing results for record size.
         :param file_size_results: Tuple with 4 elements containing results for file size.
         """
-        (record_size, record_improvements, record_regressions,
-         record_total) = record
-        (file_size, file_improvements, file_regressions,
-         file_total) = file_size_results
+        (record_size, record_improvements, record_regressions, record_total) = record
+        (file_size, file_improvements, file_regressions, file_total) = file_size_results
         logging.info("ANALYSIS of DRILLED DATA:")
 
         logging.info("")
         logging.info(
-            "TABLE:  RECsize Difference between runs                            Results are % DIFF")
+            "TABLE:  RECsize Difference between runs                            Results are % DIFF"
+        )
         logging.info("")
         logging.info(
-            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE ")
+            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE "
+        )
         logging.info(
-            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ")
+            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ"
+        )
         logging.info(
-            "--------------------------------------------------------------------------------------------------------------")
+            "--------------------------------------------------------------------------------------------------------------"
+        )
         for result_line in record_size:
             logging.info(
-                "%-10s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s" %
-                tuple(result_line))
-        logging.info("REGRESSIONS: %d (%.2f%%)    Improvements: %d (%.2f%%)",
-                     record_regressions,
-                     (100 * record_regressions / float(record_total)),
-                     record_improvements,
-                     (100 * record_improvements / float(record_total)))
+                "%-10s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s"
+                % tuple(result_line)
+            )
+        logging.info(
+            "REGRESSIONS: %d (%.2f%%)    Improvements: %d (%.2f%%)",
+            record_regressions,
+            (100 * record_regressions / float(record_total)),
+            record_improvements,
+            (100 * record_improvements / float(record_total)),
+        )
         logging.info("")
 
         logging.info("")
         logging.info(
-            "TABLE:  FILEsize Difference between runs                           Results are % DIFF")
+            "TABLE:  FILEsize Difference between runs                           Results are % DIFF"
+        )
         logging.info("")
         logging.info(
-            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE ")
+            "RECORD    INIT    RE              RE    RANDOM  RANDOM  BACKWD   RECRE  STRIDE    F       FRE     F       FRE "
+        )
         logging.info(
-            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ")
+            "SIZE (KB) WRITE   WRITE   READ    READ    READ   WRITE    READ   WRITE    READ    WRITE   WRITE   READ    READ"
+        )
         logging.info(
-            "--------------------------------------------------------------------------------------------------------------")
+            "--------------------------------------------------------------------------------------------------------------"
+        )
         for result_line in file_size:
             logging.info(
-                "%-10s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s" %
-                tuple(result_line))
-        logging.info("REGRESSIONS: %d (%.2f%%)    Improvements: %d (%.2f%%)",
-                     file_regressions,
-                     (100 * file_regressions / float(file_total)),
-                     file_improvements,
-                     (100 * file_improvements / float(file_total)))
+                "%-10s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s%-8.6s"
+                % tuple(result_line)
+            )
+        logging.info(
+            "REGRESSIONS: %d (%.2f%%)    Improvements: %d (%.2f%%)",
+            file_regressions,
+            (100 * file_regressions / float(file_total)),
+            file_improvements,
+            (100 * file_improvements / float(file_total)),
+        )
         logging.info("")
 
     def analyze(self):
@@ -320,16 +361,15 @@ class IOzoneAnalyzer(object):
         record_size = []
         file_size = []
         for file_path in self.list_files:
-            fileobj = open(file_path, 'r')
-            LOG.info('FILE: %s', file_path)
+            fileobj = open(file_path, "r")
+            LOG.info("FILE: %s", file_path)
 
             results = self.parse_file(fileobj)
 
             overall_results = self.process_results(results)
-            record_size_results = self.process_results(results, 'record_size')
-            file_size_results = self.process_results(results, 'file_size')
-            self.report(
-                overall_results, record_size_results, file_size_results)
+            record_size_results = self.process_results(results, "record_size")
+            file_size_results = self.process_results(results, "file_size")
+            self.report(overall_results, record_size_results, file_size_results)
 
             if len(self.list_files) == 2:
                 overall.append(overall_results)
@@ -364,8 +404,9 @@ class IOzonePlotter(object):
         self.output_dir = output_dir
 
         if not os.path.isfile(results_file):
-            LOG.error("Invalid file %s provided, disabling graph generation",
-                      results_file)
+            LOG.error(
+                "Invalid file %s provided, disabling graph generation", results_file
+            )
             self.active = False
             self.results_file = None
         else:
@@ -376,9 +417,9 @@ class IOzonePlotter(object):
         """
         Creates data file without headers for gnuplot consumption.
         """
-        results_file = open(self.results_file, 'r')
-        self.datasource = os.path.join(self.output_dir, '3d-datasource')
-        datasource = open(self.datasource, 'w')
+        results_file = open(self.results_file, "r")
+        self.datasource = os.path.join(self.output_dir, "3d-datasource")
+        datasource = open(self.datasource, "w")
         for line in results_file.readlines():
             fields = line.split()
             if len(fields) != 15:
@@ -397,27 +438,30 @@ class IOzonePlotter(object):
         commands that will create a parametric surface with file size vs.
         record size vs. throughput.
         """
-        datasource_2d = os.path.join(self.output_dir, '2d-datasource-file')
+        datasource_2d = os.path.join(self.output_dir, "2d-datasource-file")
         for index, label in list(zip(list(range(2, 15)), _LABELS[2:])):
-            commands_path = os.path.join(self.output_dir, '2d-%s.do' % label)
+            commands_path = os.path.join(self.output_dir, "2d-%s.do" % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label
             commands += "set logscale x\n"
             commands += "set xlabel 'File size (KB)'\n"
             commands += "set ylabel 'Througput (MB/s)'\n"
             commands += "set terminal png small size 450 350\n"
-            commands += "set output '%s'\n" % os.path.join(self.output_dir,
-                                                           '2d-%s.png' % label)
-            commands += ("plot '%s' using 1:%s title '%s' with lines \n" %
-                         (datasource_2d, index, label))
-            commands_file = open(commands_path, 'w')
+            commands += "set output '%s'\n" % os.path.join(
+                self.output_dir, "2d-%s.png" % label
+            )
+            commands += "plot '%s' using 1:%s title '%s' with lines \n" % (
+                datasource_2d,
+                index,
+                label,
+            )
+            commands_file = open(commands_path, "w")
             commands_file.write(commands)
             commands_file.close()
             try:
                 process.system("%s %s" % (self.gnuplot, commands_path))
             except process.CmdError:
-                LOG.error("Problem plotting from commands file %s",
-                          commands_path)
+                LOG.error("Problem plotting from commands file %s", commands_path)
 
     def plot_3d_graphs(self):
         """
@@ -426,7 +470,7 @@ class IOzonePlotter(object):
         record size vs. throughput.
         """
         for index, label in list(zip(list(range(1, 14)), _LABELS[2:])):
-            commands_path = os.path.join(self.output_dir, '%s.do' % label)
+            commands_path = os.path.join(self.output_dir, "%s.do" % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label
             commands += "set grid lt 2 lw 1\n"
@@ -444,18 +488,21 @@ class IOzonePlotter(object):
             commands += "set style data lines\n"
             commands += "set dgrid3d 80,80, 3\n"
             commands += "set terminal png small size 900 700\n"
-            commands += "set output '%s'\n" % os.path.join(self.output_dir,
-                                                           '%s.png' % label)
-            commands += ("splot '%s' using 1:2:%s title '%s'\n" %
-                         (self.datasource, index, label))
-            commands_file = open(commands_path, 'w')
+            commands += "set output '%s'\n" % os.path.join(
+                self.output_dir, "%s.png" % label
+            )
+            commands += "splot '%s' using 1:2:%s title '%s'\n" % (
+                self.datasource,
+                index,
+                label,
+            )
+            commands_file = open(commands_path, "w")
             commands_file.write(commands)
             commands_file.close()
             try:
                 process.system("%s %s" % (self.gnuplot, commands_path))
             except process.CmdError:
-                LOG.error("Problem plotting from commands file %s",
-                          commands_path)
+                LOG.error("Problem plotting from commands file %s", commands_path)
 
     def plot_all(self):
         """
@@ -481,8 +528,9 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    o = os.path.join(os.getcwd(),
-                     "iozone-graphs-%s" % time.strftime('%Y-%m-%d-%H.%M.%S'))
+    o = os.path.join(
+        os.getcwd(), "iozone-graphs-%s" % time.strftime("%Y-%m-%d-%H.%M.%S")
+    )
     if not os.path.isdir(o):
         os.makedirs(o)
 

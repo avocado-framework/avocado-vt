@@ -10,14 +10,15 @@ from github_issues import GithubIssues
 from six.moves import input
 
 
-gh = Github(login_or_token=input("Enter github username: "),
-            password=getpass.getpass('Enter github password: '),
-            user_agent='PyGithub/Python')
+gh = Github(
+    login_or_token=input("Enter github username: "),
+    password=getpass.getpass("Enter github password: "),
+    user_agent="PyGithub/Python",
+)
 
-print("Enter location (<user>/<repo>)", end=' ')
-repo_full_name = 'avocado-framework/avocado-vt'
-repo_full_name = input("or blank for '%s': "
-                       % repo_full_name).strip() or repo_full_name
+print("Enter location (<user>/<repo>)", end=" ")
+repo_full_name = "avocado-framework/avocado-vt"
+repo_full_name = input("or blank for '%s': " % repo_full_name).strip() or repo_full_name
 
 print()
 
@@ -39,25 +40,25 @@ while True:
         break
 print()
 
-criteria = {'state': 'open', 'labels': labels,
-            'sort': 'updated', 'direction': 'asc'}
+criteria = {"state": "open", "labels": labels, "sort": "updated", "direction": "asc"}
 
-heading = ("Oldest updates for Open %s pull requests from %s, past 1 day old:"
-           % (",".join(labels), repo_full_name))
+heading = "Oldest updates for Open %s pull requests from %s, past 1 day old:" % (
+    ",".join(labels),
+    repo_full_name,
+)
 print(heading)
 print("-" * len(heading))
 print()
 
 for number in issues.search(criteria):
-    if issues[number]['commits'] and issues[number]['commits'] > 0:
-        age = datetime.datetime.now() - issues[number]['modified']
+    if issues[number]["commits"] and issues[number]["commits"] > 0:
+        age = datetime.datetime.now() - issues[number]["modified"]
         hours = age.seconds // (60 * 60)
         days = age.days
-        url = issues[number]['url']
-        summary = issues[number]['summary']
+        url = issues[number]["url"]
+        summary = issues[number]["summary"]
         if days > 0:
-            print("%s -  %d days %d hours old - %s" % (
-                  url, days, hours, summary[0:30]))
+            print("%s -  %d days %d hours old - %s" % (url, days, hours, summary[0:30]))
         else:
             # Results sorted by decreasing update age
             # don't care about issues updated today

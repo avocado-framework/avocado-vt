@@ -19,34 +19,37 @@ class Redirfilter(base.base.LibvirtXMLBase):
     usbdev:
     list. usbdev element dict list
     """
-    __slots__ = ("usbdevs", )
+
+    __slots__ = ("usbdevs",)
 
     def __init__(self, virsh_instance=base.base.virsh):
-        accessors.XMLElementList(property_name='usbdevs',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 marshal_from=self.marshal_from_usbdev,
-                                 marshal_to=self.marshal_to_usbdev)
+        accessors.XMLElementList(
+            property_name="usbdevs",
+            libvirtxml=self,
+            parent_xpath="/",
+            marshal_from=self.marshal_from_usbdev,
+            marshal_to=self.marshal_to_usbdev,
+        )
         super(Redirfilter, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<redirfilter/>'
+        self.xml = "<redirfilter/>"
 
     @staticmethod
     def marshal_from_usbdev(item, index, libvirtxml):
         """Convert a dictionary into a tag + attributes"""
-        del index           # not used
-        del libvirtxml      # not used
+        del index  # not used
+        del libvirtxml  # not used
         if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of parameter "
-                                         "attributes, not a %s"
-                                         % str(item))
+            raise xcepts.LibvirtXMLError(
+                "Expected a dictionary of parameter " "attributes, not a %s" % str(item)
+            )
             # return copy of dict, not reference
-        return ('usbdev', dict(item))
+        return ("usbdev", dict(item))
 
     @staticmethod
     def marshal_to_usbdev(tag, attr_dict, index, libvirtxml):
         """Convert a tag + attributes into a dictionary"""
-        del index                    # not used
-        del libvirtxml               # not used
-        if tag != 'usbdev':
-            return None              # skip this one
-        return dict(attr_dict)       # return copy of dict, not reference@
+        del index  # not used
+        del libvirtxml  # not used
+        if tag != "usbdev":
+            return None  # skip this one
+        return dict(attr_dict)  # return copy of dict, not reference@

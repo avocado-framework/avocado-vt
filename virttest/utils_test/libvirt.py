@@ -84,7 +84,7 @@ from virttest.libvirt_xml.devices import rng
 
 ping = utils_net.ping
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class LibvirtNetwork(object):
@@ -98,40 +98,40 @@ class LibvirtNetwork(object):
         Create XML for a network xml with dhcp.
         """
         net_xml = NetworkXML()
-        net_xml.name = self.kwargs.get('net_name')
-        ip_version = self.kwargs.get('ip_version')
-        dhcp_start = self.kwargs.get('dhcp_start')
-        dhcp_end = self.kwargs.get('dhcp_end')
-        address = self.kwargs.get('address')
+        net_xml.name = self.kwargs.get("net_name")
+        ip_version = self.kwargs.get("ip_version")
+        dhcp_start = self.kwargs.get("dhcp_start")
+        dhcp_end = self.kwargs.get("dhcp_end")
+        address = self.kwargs.get("address")
         ip = None
-        if ip_version == 'ipv6':
+        if ip_version == "ipv6":
             ip = IPXML(address=address, ipv6=ip_version)
-            ip.prefix = '64'
+            ip.prefix = "64"
         else:
             ip = IPXML(address=address)
         ip.family = ip_version
         ran = network_xml.RangeXML()
-        ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
+        ran.attrs = {"start": dhcp_start, "end": dhcp_end}
         ip.dhcp_ranges = ran
         net_xml.ips = [ip]
-        net_xml.bridge = {'name': self.kwargs.get('br_name'), 'stp': 'on', 'delay': '0'}
+        net_xml.bridge = {"name": self.kwargs.get("br_name"), "stp": "on", "delay": "0"}
         return net_xml
 
     def create_vnet_xml(self):
         """
         Create XML for a virtual network.
         """
-        address = self.kwargs.get('address')
+        address = self.kwargs.get("address")
         if not address:
-            raise exceptions.TestError('Create vnet need address be set')
+            raise exceptions.TestError("Create vnet need address be set")
         net_xml = NetworkXML()
         net_xml.name = self.name
         ip = IPXML(address=address)
-        dhcp_start = self.kwargs.get('dhcp_start')
-        dhcp_end = self.kwargs.get('dhcp_end')
+        dhcp_start = self.kwargs.get("dhcp_start")
+        dhcp_end = self.kwargs.get("dhcp_end")
         if all([dhcp_start, dhcp_end]):
             ran = network_xml.RangeXML()
-            ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
+            ran.attrs = {"start": dhcp_start, "end": dhcp_end}
             ip.dhcp_ranges = ran
         net_xml.ips = [ip]
         return address, net_xml
@@ -140,13 +140,13 @@ class LibvirtNetwork(object):
         """
         Create XML for a macvtap network.
         """
-        iface = self.kwargs.get('iface')
+        iface = self.kwargs.get("iface")
         if not iface:
-            raise exceptions.TestError('Create macvtap need iface be set')
+            raise exceptions.TestError("Create macvtap need iface be set")
         net_xml = NetworkXML()
-        net_xml.name = self.kwargs.get('net_name')
-        net_xml.forward = {'mode': 'bridge', 'dev': iface}
-        ip_version = self.kwargs.get('ip_version')
+        net_xml.name = self.kwargs.get("net_name")
+        net_xml.forward = {"mode": "bridge", "dev": iface}
+        ip_version = self.kwargs.get("ip_version")
         ip = utils_net.get_ip_address_by_interface(iface, ip_ver=ip_version)
         return ip, net_xml
 
@@ -154,14 +154,14 @@ class LibvirtNetwork(object):
         """
         Create XML for a bridged network.
         """
-        iface = self.kwargs.get('iface')
-        os_bridge = self.kwargs.get('os_bridge')
+        iface = self.kwargs.get("iface")
+        os_bridge = self.kwargs.get("os_bridge")
         if not iface or not os_bridge:
-            raise exceptions.TestError('Create bridge need iface and OS bridge be set')
+            raise exceptions.TestError("Create bridge need iface and OS bridge be set")
         net_xml = NetworkXML()
         net_xml.name = self.name
-        net_xml.forward = {'mode': 'bridge'}
-        net_xml.bridge = {'name': os_bridge}
+        net_xml.forward = {"mode": "bridge"}
+        net_xml.bridge = {"name": os_bridge}
         ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
@@ -169,46 +169,49 @@ class LibvirtNetwork(object):
         """
         Create XML for a nat network.
         """
-        address = self.kwargs.get('address')
+        address = self.kwargs.get("address")
         if not address:
-            raise exceptions.TestError("'address' is required to create nat network xml.")
+            raise exceptions.TestError(
+                "'address' is required to create nat network xml."
+            )
         net_xml = self.create_network_xml_with_dhcp()
-        net_xml.forward = {'mode': 'nat'}
+        net_xml.forward = {"mode": "nat"}
         return address, net_xml
 
     def create_route_xml(self):
         """
         Create XML for a route network.
         """
-        address = self.kwargs.get('address')
+        address = self.kwargs.get("address")
         if not address:
-            raise exceptions.TestError("'address' is required to create route network xml.")
+            raise exceptions.TestError(
+                "'address' is required to create route network xml."
+            )
         net_xml = self.create_network_xml_with_dhcp()
-        net_xml.forward = {'mode': 'route'}
+        net_xml.forward = {"mode": "route"}
         return address, net_xml
 
     def __init__(self, net_type, **kwargs):
         self.kwargs = kwargs
-        net_name = kwargs.get('net_name')
+        net_name = kwargs.get("net_name")
         if net_name is None:
-            self.name = 'avocado-vt-%s' % net_type
+            self.name = "avocado-vt-%s" % net_type
         else:
             self.name = net_name
-        self.persistent = kwargs.get('persistent', False)
+        self.persistent = kwargs.get("persistent", False)
 
-        if net_type == 'vnet':
+        if net_type == "vnet":
             self.ip, net_xml = self.create_vnet_xml()
-        elif net_type == 'macvtap':
+        elif net_type == "macvtap":
             self.ip, net_xml = self.create_macvtap_xml()
-        elif net_type == 'bridge':
+        elif net_type == "bridge":
             self.ip, net_xml = self.create_bridge_xml()
-        elif net_type == 'nat':
+        elif net_type == "nat":
             self.ip, net_xml = self.create_nat_xml()
-        elif net_type == 'route':
+        elif net_type == "route":
             self.ip, net_xml = self.create_route_xml()
         else:
-            raise exceptions.TestError(
-                'Unknown libvirt network type %s' % net_type)
+            raise exceptions.TestError("Unknown libvirt network type %s" % net_type)
         if self.persistent:
             net_xml.define()
             net_xml.start()
@@ -234,13 +237,13 @@ def create_macvtap_vmxml(iface, params):
 
     :return: macvtap xml object
     """
-    mode = params.get('macvtap_mode', 'passthrough')
-    model = params.get('macvtap_model', 'virtio')
-    macvtap_type = params.get('macvtap_type', 'direct')
+    mode = params.get("macvtap_mode", "passthrough")
+    model = params.get("macvtap_model", "virtio")
+    macvtap_type = params.get("macvtap_type", "direct")
     macvtap = interface.Interface(macvtap_type)
     macvtap.mac_address = utils_net.generate_mac_address_simple()
     macvtap.model = model
-    macvtap.source = {'dev': iface, 'mode': mode}
+    macvtap.source = {"dev": iface, "mode": mode}
     return macvtap
 
 
@@ -258,20 +261,23 @@ def get_machine_types(arch, virt_type, virsh_instance=base.virsh, ignore_status=
     machine_types = []
     try:
         capability = CapabilityXML(virsh_instance=virsh_instance)
-        machine_types = capability.guest_capabilities[virt_type][arch]['machine']
+        machine_types = capability.guest_capabilities[virt_type][arch]["machine"]
         return machine_types
     except KeyError as detail:
         if ignore_status:
             return machine_types
         else:
             if detail.args[0] == virt_type:
-                raise KeyError("No libvirt support for %s virtualization, "
-                               "does system hardware + software support it?"
-                               % virt_type)
+                raise KeyError(
+                    "No libvirt support for %s virtualization, "
+                    "does system hardware + software support it?" % virt_type
+                )
             elif detail.args[0] == arch:
-                raise KeyError("No libvirt support for %s virtualization of "
-                               "%s, does system hardware + software support "
-                               "it?" % (virt_type, arch))
+                raise KeyError(
+                    "No libvirt support for %s virtualization of "
+                    "%s, does system hardware + software support "
+                    "it?" % (virt_type, arch)
+                )
             raise exceptions.TestError(detail)
 
 
@@ -293,9 +299,9 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
             result = virsh.snapshot_dumpxml(vm_name, snap_name)
             snap_xml = result.stdout_text.strip()
             xtf_xml = xml_utils.XMLTreeFile(snap_xml)
-            disks_path = xtf_xml.findall('disks/disk/source')
+            disks_path = xtf_xml.findall("disks/disk/source")
             for disk in disks_path:
-                os.system('rm -f %s' % disk.get('file'))
+                os.system("rm -f %s" % disk.get("file"))
             # Delete snapshots of vm
             virsh.snapshot_delete(vm_name, snap_name)
 
@@ -311,9 +317,9 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
             # the image name from dumpxml command, it will return a
             # snapshot image name
             if domxml:
-                disks_path = domxml.xmltreefile.findall('devices/disk/source')
+                disks_path = domxml.xmltreefile.findall("devices/disk/source")
                 for disk in disks_path:
-                    img_name = disk.get('file')
+                    img_name = disk.get("file")
                     snaps = utils_misc.get_image_snapshot(img_name)
                     cmd = "qemu-img snapshot %s" % img_name
                     for snap in snaps:
@@ -322,10 +328,10 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
         # Get snapshot disk path from domain xml because
         # there is no snapshot info with the name
         dom_xml = vm_xml.VMXML.new_from_dumpxml(vm_name).xmltreefile
-        disk_path = dom_xml.find('devices/disk/source').get('file')
+        disk_path = dom_xml.find("devices/disk/source").get("file")
         for name in snapshot_list:
             snap_disk_path = disk_path.split(".")[0] + "." + name
-            os.system('rm -f %s' % snap_disk_path)
+            os.system("rm -f %s" % snap_disk_path)
 
 
 def get_all_cells():
@@ -383,7 +389,8 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
         return False
     try:
         cmd_result = virsh.blockjob(
-            vm_name, target, "--info", debug=True, ignore_status=True)
+            vm_name, target, "--info", debug=True, ignore_status=True
+        )
         output = cmd_result.stdout_text.strip()
         err = cmd_result.stderr_text.strip()
         status = cmd_result.exit_status
@@ -394,7 +401,7 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
         LOG.error("Run blockjob command fail")
         return False
     # libvirt print block job progress to stderr
-    if check_point == 'none':
+    if check_point == "none":
         if len(err):
             LOG.error("Expect no job but find block job:\n%s", err)
             return False
@@ -413,12 +420,12 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
     # and universalize the unit before comparing
     if check_point == "bandwidth":
         try:
-            bandwidth, unit = re.findall(r'(\d+) (\w+)/s', output)[0]
+            bandwidth, unit = re.findall(r"(\d+) (\w+)/s", output)[0]
             # unit could be 'bytes' or 'Mib'
-            if unit == 'bytes':
-                unit = 'B'
+            if unit == "bytes":
+                unit = "B"
             else:
-                unit = 'M'
+                unit = "M"
             u_value = utils_misc.normalize_data_size(value, unit)
             if float(u_value) == float(bandwidth):
                 LOG.debug("Bandwidth is equal to %s", bandwidth)
@@ -430,13 +437,17 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
             return False
 
 
-def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
-                         export_options="rw,no_root_squash",
-                         mount_options="rw",
-                         export_dir="nfs-export",
-                         restore_selinux="",
-                         rm_export_dir=True,
-                         set_selinux_permissive=False):
+def setup_or_cleanup_nfs(
+    is_setup,
+    mount_dir="nfs-mount",
+    is_mount=False,
+    export_options="rw,no_root_squash",
+    mount_options="rw",
+    export_dir="nfs-export",
+    restore_selinux="",
+    rm_export_dir=True,
+    set_selinux_permissive=False,
+):
     """
     Set SElinux to "permissive" and Set up nfs service on localhost.
     Or clean up nfs service on localhost and restore SElinux.
@@ -475,7 +486,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
              selinux_status_bak: SELinux status before set
     """
     result = {}
-    ubuntu = distro.detect().name == 'Ubuntu'
+    ubuntu = distro.detect().name == "Ubuntu"
 
     base_dir = data_dir.get_data_dir()
     if not os.path.isabs(export_dir):
@@ -488,26 +499,36 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     if not ubuntu:
         result["selinux_status_bak"] = utils_selinux.get_status()
 
-    nfs_params = {"nfs_mount_dir": mount_dir, "nfs_mount_options": mount_options,
-                  "nfs_mount_src": export_dir, "setup_local_nfs": "yes",
-                  "export_options": export_options}
+    nfs_params = {
+        "nfs_mount_dir": mount_dir,
+        "nfs_mount_options": mount_options,
+        "nfs_mount_src": export_dir,
+        "setup_local_nfs": "yes",
+        "export_options": export_options,
+    }
     _nfs = nfs.Nfs(nfs_params)
 
     if is_setup:
         if not ubuntu and utils_selinux.is_enforcing():
             if set_selinux_permissive:
                 utils_selinux.set_status("permissive")
-                LOG.debug("selinux set to permissive mode, "
-                          "this is not recommended, potential access "
-                          "control error could be missed.")
+                LOG.debug(
+                    "selinux set to permissive mode, "
+                    "this is not recommended, potential access "
+                    "control error could be missed."
+                )
             else:
-                LOG.debug("selinux is in enforcing mode, libvirt needs "
-                          "\"setsebool virt_use_nfs on\" to get "
-                          "nfs access right.")
+                LOG.debug(
+                    "selinux is in enforcing mode, libvirt needs "
+                    '"setsebool virt_use_nfs on" to get '
+                    "nfs access right."
+                )
         _nfs.setup()
-        nfs_mount_info = process.run('nfsstat -m', shell=True).stdout_text.strip().split(",")
+        nfs_mount_info = (
+            process.run("nfsstat -m", shell=True).stdout_text.strip().split(",")
+        )
         for i in nfs_mount_info:
-            if 'vers' in i:
+            if "vers" in i:
                 source_protocol_ver = i[5]
                 result["source_protocol_ver"] = source_protocol_ver
                 break
@@ -524,10 +545,17 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     return result
 
 
-def setup_or_cleanup_iscsi(is_setup, is_login=True,
-                           emulated_image="emulated-iscsi", image_size="1G",
-                           chap_user="", chap_passwd="", restart_tgtd="no",
-                           portal_ip="127.0.0.1", enable_authentication=False):
+def setup_or_cleanup_iscsi(
+    is_setup,
+    is_login=True,
+    emulated_image="emulated-iscsi",
+    image_size="1G",
+    chap_user="",
+    chap_passwd="",
+    restart_tgtd="no",
+    portal_ip="127.0.0.1",
+    enable_authentication=False,
+):
     """
     Set up(and login iscsi target) or clean up iscsi service on localhost.
 
@@ -541,21 +569,30 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     """
     tmpdir = data_dir.get_data_dir()
     emulated_path = os.path.join(tmpdir, emulated_image)
-    emulated_target = ("iqn.%s.com.virttest:%s.target" %
-                       (time.strftime("%Y-%m"), emulated_image))
-    iscsi_params = {"emulated_image": emulated_path, "target": emulated_target,
-                    "image_size": image_size, "iscsi_thread_id": "virt",
-                    "chap_user": chap_user, "chap_passwd": chap_passwd,
-                    "restart_tgtd": restart_tgtd, "portal_ip": portal_ip,
-                    "enable_authentication": enable_authentication}
+    emulated_target = "iqn.%s.com.virttest:%s.target" % (
+        time.strftime("%Y-%m"),
+        emulated_image,
+    )
+    iscsi_params = {
+        "emulated_image": emulated_path,
+        "target": emulated_target,
+        "image_size": image_size,
+        "iscsi_thread_id": "virt",
+        "chap_user": chap_user,
+        "chap_passwd": chap_passwd,
+        "restart_tgtd": restart_tgtd,
+        "portal_ip": portal_ip,
+        "enable_authentication": enable_authentication,
+    }
     _iscsi = iscsi.Iscsi.create_iSCSI(iscsi_params)
     if is_setup:
         if is_login:
             _iscsi.login()
             # The device doesn't necessarily appear instantaneously, so give
             # about 5 seconds for it to appear before giving up
-            iscsi_device = utils_misc.wait_for(_iscsi.get_device_name, 5, 0, 1,
-                                               "Searching iscsi device name.")
+            iscsi_device = utils_misc.wait_for(
+                _iscsi.get_device_name, 5, 0, 1, "Searching iscsi device name."
+            )
             if iscsi_device:
                 LOG.debug("iscsi device: %s", iscsi_device)
                 return iscsi_device
@@ -610,8 +647,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         nfs_path = res["export_dir"]
         selinux_bak = res["selinux_status_bak"]
         cleanup_nfs = True
-        extra = "--source-host %s --source-path %s" % ('127.0.0.1',
-                                                       nfs_path)
+        extra = "--source-host %s --source-path %s" % ("127.0.0.1", nfs_path)
     elif pool_type == "logical":
         # Create vg by using iscsi device
         lv_utils.vg_create(vg_name, setup_or_cleanup_iscsi(True))
@@ -622,8 +658,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         # Set up iscsi target without login
         iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
-        extra = "--source-host %s  --source-dev %s" % ('127.0.0.1',
-                                                       iscsi_target)
+        extra = "--source-host %s  --source-dev %s" % ("127.0.0.1", iscsi_target)
     elif pool_type == "disk":
         # Set up iscsi target and login
         device_name = setup_or_cleanup_iscsi(True)
@@ -637,35 +672,40 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         device_name = setup_or_cleanup_iscsi(True)
         cleanup_iscsi = True
         # Format disk to make sure fs pool can start
-        source_format = kwargs.get('source_format', 'ext4')
+        source_format = kwargs.get("source_format", "ext4")
         mkfs(device_name, source_format)
         extra = "--source-dev %s --source-format %s" % (device_name, source_format)
     elif pool_type == "gluster":
-        gluster_source_path = kwargs.get('gluster_source_path')
-        gluster_source_name = kwargs.get('gluster_source_name')
-        gluster_file_name = kwargs.get('gluster_file_name')
-        gluster_file_type = kwargs.get('gluster_file_type')
-        gluster_file_size = kwargs.get('gluster_file_size')
-        gluster_vol_number = kwargs.get('gluster_vol_number')
+        gluster_source_path = kwargs.get("gluster_source_path")
+        gluster_source_name = kwargs.get("gluster_source_name")
+        gluster_file_name = kwargs.get("gluster_file_name")
+        gluster_file_type = kwargs.get("gluster_file_type")
+        gluster_file_size = kwargs.get("gluster_file_size")
+        gluster_vol_number = kwargs.get("gluster_vol_number")
 
         # Prepare gluster service and create volume
-        hostip = gluster.setup_or_cleanup_gluster(True, gluster_source_name,
-                                                  pool_name=pool_name, **kwargs)
+        hostip = gluster.setup_or_cleanup_gluster(
+            True, gluster_source_name, pool_name=pool_name, **kwargs
+        )
         LOG.debug("hostip is %s", hostip)
         # create image in gluster volume
         file_path = "gluster://%s/%s" % (hostip, gluster_source_name)
         for i in range(gluster_vol_number):
             file_name = "%s_%d" % (gluster_file_name, i)
-            process.run("qemu-img create -f %s %s/%s %s" %
-                        (gluster_file_type, file_path, file_name,
-                         gluster_file_size))
+            process.run(
+                "qemu-img create -f %s %s/%s %s"
+                % (gluster_file_type, file_path, file_name, gluster_file_size)
+            )
         cleanup_gluster = True
-        extra = "--source-host %s --source-path %s --source-name %s" % \
-                (hostip, gluster_source_path, gluster_source_name)
+        extra = "--source-host %s --source-path %s --source-name %s" % (
+            hostip,
+            gluster_source_path,
+            gluster_source_name,
+        )
     elif pool_type in ["scsi", "mpath", "rbd", "sheepdog"]:
         raise exceptions.TestSkipError(
-            "Pool type '%s' has not yet been supported in the test." %
-            pool_type)
+            "Pool type '%s' has not yet been supported in the test." % pool_type
+        )
     else:
         raise exceptions.TestFail("Invalid pool type: '%s'." % pool_type)
     # Mark the clean up flags
@@ -675,8 +715,9 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
     cleanup_flag[3] = selinux_bak
     cleanup_flag[4] = cleanup_gluster
     try:
-        result = virsh.pool_define_as(pool_name, pool_type, pool_target, extra,
-                                      ignore_status=True)
+        result = virsh.pool_define_as(
+            pool_name, pool_type, pool_target, extra, ignore_status=True
+        )
     except process.CmdError:
         LOG.error("Define '%s' type pool fail.", pool_type)
     return result
@@ -693,8 +734,7 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
         status, output = session.cmd_status_output(console_cmd)
         LOG.info("output of command:\n%s", output)
         session.close()
-    except (aexpect.ShellError,
-            aexpect.ExpectError) as detail:
+    except (aexpect.ShellError, aexpect.ExpectError) as detail:
         log = session.get_output()
         LOG.error("Verify virsh console failed:\n%s\n%s", detail, log)
         session.close()
@@ -719,9 +759,10 @@ def virsh_console_login(session, user, passwd, timeout=10, debug=False):
     """
     while True:
         match, text = session.read_until_last_line_matches(
-            [r"[E|e]scape character is", r"login:",
-             r"[P|p]assword:", session.prompt],
-            timeout, internal_timeout=1)
+            [r"[E|e]scape character is", r"login:", r"[P|p]assword:", session.prompt],
+            timeout,
+            internal_timeout=1,
+        )
 
         if match == 0:
             if debug:
@@ -758,16 +799,16 @@ def pci_info_from_address(address_dict, radix=10, type="label"):
         return = pci_0000_08_10_0 or 0000:08:10.0
     """
     try:
-        domain = int(address_dict['domain'], radix)
-        bus = int(address_dict['bus'], radix)
-        slot = int(address_dict['slot'], radix)
-        function = int(address_dict['function'], radix)
+        domain = int(address_dict["domain"], radix)
+        bus = int(address_dict["bus"], radix)
+        slot = int(address_dict["slot"], radix)
+        function = int(address_dict["function"], radix)
     except (TypeError, KeyError) as detail:
         raise exceptions.TestError(detail)
     if type == "label":
-        result = ("pci_%04x_%02x_%02x_%01x" % (domain, bus, slot, function))
+        result = "pci_%04x_%02x_%02x_%01x" % (domain, bus, slot, function)
     elif type == "id":
-        result = ("%04x:%02x:%02x.%01x" % (domain, bus, slot, function))
+        result = "%04x:%02x:%02x.%01x" % (domain, bus, slot, function)
     else:
         # TODO: for other type
         result = None
@@ -785,16 +826,16 @@ def mk_label(disk, label="msdos", session=None):
         process.run(mklabel_cmd)
 
 
-def mk_part(disk, size="100M", fs_type='ext4', session=None):
+def mk_part(disk, size="100M", fs_type="ext4", session=None):
     """
     Create a partition for disk
     """
     # TODO: This is just a temporary function to create partition for
     # testing usage, should be replaced by a more robust one.
-    support_lable = ['unknown', 'gpt', 'msdos']
-    disk_label = 'msdos'
-    part_type = 'primary'
-    part_start = '0'
+    support_lable = ["unknown", "gpt", "msdos"]
+    disk_label = "msdos"
+    part_type = "primary"
+    part_start = "0"
 
     run_cmd = process.system_output
     if session:
@@ -802,34 +843,33 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
 
     print_cmd = "parted -s %s print" % disk
     output = to_text(run_cmd(print_cmd))
-    current_label = re.search(r'Partition Table: (\w+)', output).group(1)
+    current_label = re.search(r"Partition Table: (\w+)", output).group(1)
     if current_label not in support_lable:
-        LOG.error('Not support create partition on %s disk', current_label)
+        LOG.error("Not support create partition on %s disk", current_label)
         return
 
     disk_size = re.search(r"Disk %s: (\w+)" % disk, output).group(1)
-    pat = r'(?P<num>\d+)\s+(?P<start>\S+)\s+(?P<end>\S+)\s+(?P<size>\S+)\s+'
+    pat = r"(?P<num>\d+)\s+(?P<start>\S+)\s+(?P<end>\S+)\s+(?P<size>\S+)\s+"
     current_parts = [m.groupdict() for m in re.finditer(pat, output)]
 
     mkpart_cmd = "parted -s -a optimal %s" % disk
-    if current_label == 'unknown':
+    if current_label == "unknown":
         mkpart_cmd += " mklabel %s" % disk_label
     if len(current_parts) > 0:
-        part_start = current_parts[-1]['end']
-    part_end = (float(utils_misc.normalize_data_size(part_start,
-                                                     factor='1000')) +
-                float(utils_misc.normalize_data_size(size, factor='1000')))
+        part_start = current_parts[-1]["end"]
+    part_end = float(utils_misc.normalize_data_size(part_start, factor="1000")) + float(
+        utils_misc.normalize_data_size(size, factor="1000")
+    )
 
     # Deal with msdos disk
-    if current_label == 'msdos':
+    if current_label == "msdos":
         if len(current_parts) == 3:
             extended_cmd = " mkpart extended %s %s" % (part_start, disk_size)
             to_text(run_cmd(mkpart_cmd + extended_cmd))
         if len(current_parts) > 2:
-            part_type = 'logical'
+            part_type = "logical"
 
-    mkpart_cmd += ' mkpart %s %s %s %s' % (part_type, fs_type, part_start,
-                                           part_end)
+    mkpart_cmd += " mkpart %s %s %s %s" % (part_type, fs_type, part_start, part_end)
     to_text(run_cmd(mkpart_cmd))
 
 
@@ -837,13 +877,13 @@ def mkfs(partition, fs_type, options="", session=None):
     """
     Force to make a file system on the partition
     """
-    force_option = ''
-    if fs_type in ['ext2', 'ext3', 'ext4', 'ntfs']:
-        force_option = '-F'
-    elif fs_type in ['fat', 'vfat', 'msdos']:
-        force_option = '-I'
-    elif fs_type in ['xfs', 'btrfs']:
-        force_option = '-f'
+    force_option = ""
+    if fs_type in ["ext2", "ext3", "ext4", "ntfs"]:
+        force_option = "-F"
+    elif fs_type in ["fat", "vfat", "msdos"]:
+        force_option = "-I"
+    elif fs_type in ["xfs", "btrfs"]:
+        force_option = "-f"
     mkfs_cmd = "mkfs.%s %s %s %s" % (fs_type, force_option, partition, options)
     if session:
         session.cmd(mkfs_cmd)
@@ -862,11 +902,9 @@ def yum_install(pkg_list, session=None):
         if session:
             status = session.cmd_status(yum_cmd.format(pkg))
         else:
-            status = process.run(yum_cmd.format(pkg),
-                                 shell=True).exit_status
+            status = process.run(yum_cmd.format(pkg), shell=True).exit_status
         if status:
-            raise exceptions.TestFail("Failed to install package: %s"
-                                      % pkg)
+            raise exceptions.TestFail("Failed to install package: %s" % pkg)
 
 
 def check_actived_pool(pool_name):
@@ -882,7 +920,7 @@ def check_actived_pool(pool_name):
     return True
 
 
-def check_vm_state(vm_name, state='paused', reason=None, uri=None):
+def check_vm_state(vm_name, state="paused", reason=None, uri=None):
     """
     checks whether state of the vm is as expected
 
@@ -910,19 +948,20 @@ class PoolVolumeTest(object):
     """Test class for storage pool or volume"""
 
     def __init__(self, test, params):
-        self.tmpdir = params.get('customize_pool_target_path') or data_dir.get_data_dir()
+        self.tmpdir = (
+            params.get("customize_pool_target_path") or data_dir.get_data_dir()
+        )
         self.params = params
         self.selinux_bak = ""
 
-    def cleanup_pool(self, pool_name, pool_type, pool_target, emulated_image,
-                     **kwargs):
+    def cleanup_pool(self, pool_name, pool_type, pool_target, emulated_image, **kwargs):
         """
         Delete vols, destroy the created pool and restore the env
         """
         sp = libvirt_storage.StoragePool()
-        source_format = kwargs.get('source_format')
-        source_name = kwargs.get('source_name')
-        device_name = kwargs.get('device_name', "/DEV/EXAMPLE")
+        source_format = kwargs.get("source_format")
+        source_name = kwargs.get("source_name")
+        device_name = kwargs.get("device_name", "/DEV/EXAMPLE")
         try:
             if sp.pool_exists(pool_name):
                 pv = libvirt_storage.PoolVolume(pool_name)
@@ -933,14 +972,16 @@ class PoolVolumeTest(object):
                             # Ignore failed deletion here for deleting pool
                             pv.delete_volume(repr(vol))
                 if not sp.delete_pool(pool_name):
-                    raise exceptions.TestFail(
-                        "Delete pool %s failed" % pool_name)
+                    raise exceptions.TestFail("Delete pool %s failed" % pool_name)
         finally:
-            if pool_type == "netfs" and source_format != 'glusterfs':
+            if pool_type == "netfs" and source_format != "glusterfs":
                 nfs_server_dir = self.params.get("nfs_server_dir", "nfs-server")
                 nfs_path = os.path.join(self.tmpdir, nfs_server_dir)
-                setup_or_cleanup_nfs(is_setup=False, export_dir=nfs_path,
-                                     restore_selinux=self.selinux_bak)
+                setup_or_cleanup_nfs(
+                    is_setup=False,
+                    export_dir=nfs_path,
+                    restore_selinux=self.selinux_bak,
+                )
                 if os.path.exists(nfs_path):
                     shutil.rmtree(nfs_path)
             if pool_type == "logical":
@@ -951,14 +992,11 @@ class PoolVolumeTest(object):
                 process.run("pvremove %s" % pv, ignore_status=True)
             # These types used iscsi device
             # If we did not provide block device
-            if (pool_type in ["logical", "fs", "disk"] and
-                    device_name.count("EXAMPLE")):
-                setup_or_cleanup_iscsi(is_setup=False,
-                                       emulated_image=emulated_image)
+            if pool_type in ["logical", "fs", "disk"] and device_name.count("EXAMPLE"):
+                setup_or_cleanup_iscsi(is_setup=False, emulated_image=emulated_image)
             # Used iscsi device anyway
             if pool_type in ["iscsi", "iscsi-direct", "scsi"]:
-                setup_or_cleanup_iscsi(is_setup=False,
-                                       emulated_image=emulated_image)
+                setup_or_cleanup_iscsi(is_setup=False, emulated_image=emulated_image)
                 if pool_type == "scsi":
                     scsi_xml_file = self.params.get("scsi_xml_file", "")
                     if os.path.exists(scsi_xml_file):
@@ -967,12 +1005,12 @@ class PoolVolumeTest(object):
                 pool_target = os.path.join(self.tmpdir, pool_target)
                 if os.path.exists(pool_target):
                     shutil.rmtree(pool_target)
-            if pool_type == "gluster" or source_format == 'glusterfs':
-                gluster.setup_or_cleanup_gluster(False, source_name,
-                                                 pool_name=pool_name, **kwargs)
+            if pool_type == "gluster" or source_format == "glusterfs":
+                gluster.setup_or_cleanup_gluster(
+                    False, source_name, pool_name=pool_name, **kwargs
+                )
 
-    def pre_pool(self, pool_name, pool_type, pool_target, emulated_image,
-                 **kwargs):
+    def pre_pool(self, pool_name, pool_type, pool_target, emulated_image, **kwargs):
         """
         Prepare(define or create) the specific type pool
 
@@ -984,22 +1022,21 @@ class PoolVolumeTest(object):
         :param kwargs: key words for specific pool
         """
         extra = ""
-        image_size = kwargs.get('image_size', "100M")
-        source_format = kwargs.get('source_format')
-        source_name = kwargs.get('source_name', None)
-        persistent = kwargs.get('persistent', False)
-        device_name = kwargs.get('device_name', "/DEV/EXAMPLE")
-        adapter_type = kwargs.get('pool_adapter_type', 'scsi_host')
-        pool_wwnn = kwargs.get('pool_wwnn', None)
-        pool_wwpn = kwargs.get('pool_wwpn', None)
-        source_protocol_ver = kwargs.get('source_protocol_ver', "no")
+        image_size = kwargs.get("image_size", "100M")
+        source_format = kwargs.get("source_format")
+        source_name = kwargs.get("source_name", None)
+        persistent = kwargs.get("persistent", False)
+        device_name = kwargs.get("device_name", "/DEV/EXAMPLE")
+        adapter_type = kwargs.get("pool_adapter_type", "scsi_host")
+        pool_wwnn = kwargs.get("pool_wwnn", None)
+        pool_wwpn = kwargs.get("pool_wwpn", None)
+        source_protocol_ver = kwargs.get("source_protocol_ver", "no")
 
         # If tester does not provide block device, creating one
-        if (device_name.count("EXAMPLE") and
-                pool_type in ["disk", "fs", "logical"]):
-            device_name = setup_or_cleanup_iscsi(is_setup=True,
-                                                 emulated_image=emulated_image,
-                                                 image_size=image_size)
+        if device_name.count("EXAMPLE") and pool_type in ["disk", "fs", "logical"]:
+            device_name = setup_or_cleanup_iscsi(
+                is_setup=True, emulated_image=emulated_image, image_size=image_size
+            )
 
         if pool_type == "dir":
             if not os.path.isdir(pool_target):
@@ -1011,18 +1048,18 @@ class PoolVolumeTest(object):
             # msdos is libvirt default pool source format, but libvirt use
             # notion 'dos' here
             if not source_format:
-                source_format = 'dos'
+                source_format = "dos"
             extra += " --source-format %s" % source_format
             disk_label = source_format
-            if disk_label == 'dos':
-                disk_label = 'msdos'
+            if disk_label == "dos":
+                disk_label = "msdos"
             mk_label(device_name, disk_label)
             # Disk pool does not allow to create volume by virsh command,
             # so introduce parameter 'pre_disk_vol' to create partition(s)
             # by 'parted' command, the parameter is a list of partition size,
             # and the max number of partitions depends on the disk label.
             # If pre_disk_vol is None, disk pool will have no volume
-            pre_disk_vol = kwargs.get('pre_disk_vol', None)
+            pre_disk_vol = kwargs.get("pre_disk_vol", None)
             if isinstance(pre_disk_vol, list) and len(pre_disk_vol):
                 for vol in pre_disk_vol:
                     mk_part(device_name, vol)
@@ -1031,10 +1068,9 @@ class PoolVolumeTest(object):
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
             if not source_format:
-                source_format = 'ext4'
+                source_format = "ext4"
             mkfs(device_name, source_format)
-            extra = " --source-dev %s --source-format %s" % (device_name,
-                                                             source_format)
+            extra = " --source-dev %s --source-format %s" % (device_name, source_format)
         elif pool_type == "logical":
             logical_device = device_name
             vg_name = "vg_%s" % pool_type
@@ -1042,60 +1078,59 @@ class PoolVolumeTest(object):
             extra = "--source-name %s" % vg_name
             # Create a small volume for verification
             # And VG path will not exist if no any volume in.(bug?)
-            lv_utils.lv_create(vg_name, 'default_lv', '1M')
+            lv_utils.lv_create(vg_name, "default_lv", "1M")
         elif pool_type == "netfs":
-            export_options = kwargs.get('export_options',
-                                        "rw,async,no_root_squash")
+            export_options = kwargs.get("export_options", "rw,async,no_root_squash")
             pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
-            if source_format == 'glusterfs':
-                hostip = gluster.setup_or_cleanup_gluster(True, source_name,
-                                                          pool_name=pool_name,
-                                                          **kwargs)
+            if source_format == "glusterfs":
+                hostip = gluster.setup_or_cleanup_gluster(
+                    True, source_name, pool_name=pool_name, **kwargs
+                )
                 LOG.debug("hostip is %s", hostip)
-                extra = "--source-host %s --source-path %s" % (hostip,
-                                                               source_name)
+                extra = "--source-host %s --source-path %s" % (hostip, source_name)
                 extra += " --source-format %s" % source_format
                 process.system("setsebool virt_use_fusefs on")
             else:
-                nfs_server_dir = self.params.get(
-                    "nfs_server_dir", "nfs-server")
+                nfs_server_dir = self.params.get("nfs_server_dir", "nfs-server")
                 nfs_path = os.path.join(self.tmpdir, nfs_server_dir)
                 if not os.path.exists(nfs_path):
                     os.mkdir(nfs_path)
-                res = setup_or_cleanup_nfs(is_setup=True,
-                                           export_options=export_options,
-                                           export_dir=nfs_path)
+                res = setup_or_cleanup_nfs(
+                    is_setup=True, export_options=export_options, export_dir=nfs_path
+                )
                 self.selinux_bak = res["selinux_status_bak"]
                 source_host = self.params.get("source_host", "localhost")
-                extra = "--source-host %s --source-path %s" % (source_host,
-                                                               nfs_path)
+                extra = "--source-host %s --source-path %s" % (source_host, nfs_path)
                 if source_protocol_ver == "yes":
                     extra += "  --source-protocol-ver %s" % res["source_protocol_ver"]
         elif pool_type in ["iscsi", "iscsi-direct"]:
-            ip_protocal = kwargs.get('ip_protocal', "ipv4")
-            iscsi_chap_user = kwargs.get('iscsi_chap_user', None)
-            iscsi_chap_password = kwargs.get('iscsi_chap_password', None)
-            iscsi_secret_usage = kwargs.get('iscsi_secret_usage', None)
-            iscsi_initiator = kwargs.get('iscsi_initiator', None)
+            ip_protocal = kwargs.get("ip_protocal", "ipv4")
+            iscsi_chap_user = kwargs.get("iscsi_chap_user", None)
+            iscsi_chap_password = kwargs.get("iscsi_chap_password", None)
+            iscsi_secret_usage = kwargs.get("iscsi_secret_usage", None)
+            iscsi_initiator = kwargs.get("iscsi_initiator", None)
             if ip_protocal == "ipv6":
                 ip_addr = "::1"
             else:
                 ip_addr = "127.0.0.1"
             if iscsi_chap_user and iscsi_chap_password and iscsi_secret_usage:
                 LOG.debug("setup %s pool with chap authentication", pool_type)
-                extra = (" --auth-type chap --auth-username %s "
-                         "--secret-usage %s" %
-                         (iscsi_chap_user, iscsi_secret_usage))
+                extra = " --auth-type chap --auth-username %s " "--secret-usage %s" % (
+                    iscsi_chap_user,
+                    iscsi_secret_usage,
+                )
             else:
                 LOG.debug("setup %s pool without authentication", pool_type)
-            setup_or_cleanup_iscsi(is_setup=True,
-                                   emulated_image=emulated_image,
-                                   image_size=image_size,
-                                   chap_user=iscsi_chap_user,
-                                   chap_passwd=iscsi_chap_password,
-                                   portal_ip=ip_addr)
+            setup_or_cleanup_iscsi(
+                is_setup=True,
+                emulated_image=emulated_image,
+                image_size=image_size,
+                chap_user=iscsi_chap_user,
+                chap_passwd=iscsi_chap_password,
+                portal_ip=ip_addr,
+            )
             iscsi_sessions = iscsi.iscsi_get_sessions()
             iscsi_target = None
             for iscsi_node in iscsi_sessions:
@@ -1103,8 +1138,7 @@ class PoolVolumeTest(object):
                     iscsi_target = iscsi_node[1]
                     break
             iscsi.iscsi_logout(iscsi_target)
-            extra += " --source-host %s  --source-dev %s" % (ip_addr,
-                                                             iscsi_target)
+            extra += " --source-host %s  --source-dev %s" % (ip_addr, iscsi_target)
             if pool_type == "iscsi-direct":
                 extra += " --source-initiator %s" % iscsi_initiator
 
@@ -1112,11 +1146,12 @@ class PoolVolumeTest(object):
             scsi_xml_file = self.params.get("scsi_xml_file", "")
             if not os.path.exists(scsi_xml_file):
                 logical_device = setup_or_cleanup_iscsi(
-                    is_setup=True,
-                    emulated_image=emulated_image,
-                    image_size=image_size)
-                cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
-                       "'{print $3}'" % logical_device.split('/')[2])
+                    is_setup=True, emulated_image=emulated_image, image_size=image_size
+                )
+                cmd = (
+                    "iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
+                    "'{print $3}'" % logical_device.split("/")[2]
+                )
                 scsi_host = process.run(cmd, shell=True).stdout_text.strip()
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
@@ -1131,19 +1166,23 @@ class PoolVolumeTest(object):
                     scsi_pool_source_xml.adp_wwnn = pool_wwnn
 
                 scsi_pool_xml.set_source(scsi_pool_source_xml)
-                LOG.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml,
-                          str(scsi_pool_xml))
+                LOG.debug(
+                    "SCSI pool XML %s:\n%s", scsi_pool_xml.xml, str(scsi_pool_xml)
+                )
                 scsi_xml_file = scsi_pool_xml.xml
-                self.params['scsi_xml_file'] = scsi_xml_file
+                self.params["scsi_xml_file"] = scsi_xml_file
         elif pool_type == "gluster":
-            source_path = kwargs.get('source_path')
+            source_path = kwargs.get("source_path")
             LOG.info("source path is %s" % source_path)
-            hostip = gluster.setup_or_cleanup_gluster(True, source_name,
-                                                      pool_name=pool_name,
-                                                      **kwargs)
+            hostip = gluster.setup_or_cleanup_gluster(
+                True, source_name, pool_name=pool_name, **kwargs
+            )
             LOG.debug("Gluster host ip address: %s", hostip)
-            extra = "--source-host %s --source-path %s --source-name %s" % \
-                    (hostip, source_path, source_name)
+            extra = "--source-host %s --source-path %s --source-name %s" % (
+                hostip,
+                source_path,
+                source_name,
+            )
         elif pool_type == "mpath":
             mpath_xml_file = self.params.get("mpath_xml_file", "")
             if not os.path.exists(mpath_xml_file):
@@ -1151,10 +1190,11 @@ class PoolVolumeTest(object):
                 mpath_pool_xml.name = pool_name
                 mpath_pool_xml.pool_type = "mpath"
                 mpath_pool_xml.target_path = pool_target
-                LOG.debug("mpath pool XML %s:\n%s",
-                          mpath_pool_xml.xml, str(mpath_pool_xml))
+                LOG.debug(
+                    "mpath pool XML %s:\n%s", mpath_pool_xml.xml, str(mpath_pool_xml)
+                )
                 mpath_xml_file = mpath_pool_xml.xml
-                self.params['mpath_xml_file'] = mpath_xml_file
+                self.params["mpath_xml_file"] = mpath_xml_file
 
         func = virsh.pool_create_as
         if pool_type == "scsi" or pool_type == "mpath":
@@ -1180,8 +1220,9 @@ class PoolVolumeTest(object):
         else:
             re_v = result.exit_status == 0
         if not re_v:
-            self.cleanup_pool(pool_name, pool_type, pool_target,
-                              emulated_image, **kwargs)
+            self.cleanup_pool(
+                pool_name, pool_type, pool_target, emulated_image, **kwargs
+            )
             raise exceptions.TestFail("Prepare pool failed")
         xml_str = virsh.pool_dumpxml(pool_name)
         LOG.debug("New prepared pool XML: %s", xml_str)
@@ -1210,11 +1251,14 @@ class PoolVolumeTest(object):
         check_exit_status(ret, False)
 
 
-def check_status_output(status, output='',
-                        expected_fails=None,
-                        skip_if=None,
-                        any_error=False,
-                        expected_match=None):
+def check_status_output(
+    status,
+    output="",
+    expected_fails=None,
+    skip_if=None,
+    any_error=False,
+    expected_match=None,
+):
     """
     Proxy function to call check_result for commands run in vm session.
     :param status: Exit status (used as CmdResult.exit_status)
@@ -1229,18 +1273,18 @@ def check_status_output(status, output='',
                            The check will pass if any of these patterns matches.
     """
 
-    result = process.CmdResult(stderr=output,
-                               stdout=output,
-                               exit_status=status)
+    result = process.CmdResult(stderr=output, stdout=output, exit_status=status)
     check_result(result, expected_fails, skip_if, any_error, expected_match)
 
 
-def check_result(result,
-                 expected_fails=None,
-                 skip_if=None,
-                 any_error=False,
-                 expected_match=None,
-                 check_both_on_error=False):
+def check_result(
+    result,
+    expected_fails=None,
+    skip_if=None,
+    any_error=False,
+    expected_match=None,
+    check_both_on_error=False,
+):
     """
     Check the result of a command and check command error message against
     expectation.
@@ -1259,7 +1303,7 @@ def check_result(result,
     """
     stderr = result.stderr_text
     stdout = result.stdout_text
-    all_msg = '\n'.join([stdout, stderr])
+    all_msg = "\n".join([stdout, stderr])
     LOG.debug("Command result: %s", all_msg)
 
     try:
@@ -1272,49 +1316,49 @@ def check_result(result,
             skip_if = [skip_if]
         for patt in skip_if:
             if re.search(patt, stderr):
-                raise exceptions.TestSkipError("Test skipped: found '%s' in test "
-                                               "result: %s" %
-                                               (patt, all_msg))
+                raise exceptions.TestSkipError(
+                    "Test skipped: found '%s' in test " "result: %s" % (patt, all_msg)
+                )
     if any_error:
         if result.exit_status:
             return
         else:
-            raise exceptions.TestFail(
-                "Expect should fail but got: %s" % all_msg)
+            raise exceptions.TestFail("Expect should fail but got: %s" % all_msg)
 
     if result.exit_status:
         if expected_fails:
             if isinstance(expected_fails, (str, unicode)):
                 expected_fails = [expected_fails]
             msg_to_search = all_msg if check_both_on_error else stderr
-            if not any(re.search(patt, msg_to_search)
-                       for patt in expected_fails):
-                raise exceptions.TestFail("Expect should fail with one of %s, "
-                                          "but failed with:\n%s" %
-                                          (expected_fails, all_msg))
+            if not any(re.search(patt, msg_to_search) for patt in expected_fails):
+                raise exceptions.TestFail(
+                    "Expect should fail with one of %s, "
+                    "but failed with:\n%s" % (expected_fails, all_msg)
+                )
             else:
                 LOG.info("Get expect error msg:%s" % msg_to_search)
         else:
-            raise exceptions.TestFail(
-                "Expect should succeed, but got: %s" % all_msg)
+            raise exceptions.TestFail("Expect should succeed, but got: %s" % all_msg)
     else:
         if expected_fails:
-            raise exceptions.TestFail("Expect should fail with one of %s, "
-                                      "but succeeded: %s" %
-                                      (expected_fails, all_msg))
+            raise exceptions.TestFail(
+                "Expect should fail with one of %s, "
+                "but succeeded: %s" % (expected_fails, all_msg)
+            )
         elif expected_match:
             if isinstance(expected_match, (str, unicode)):
                 expected_match = [expected_match]
-            search_result = [re.search(patt, stdout)
-                             for patt in expected_match]
+            search_result = [re.search(patt, stdout) for patt in expected_match]
             if not any(search_result):
-                raise exceptions.TestFail("Expect should match with one of %s,"
-                                          "but failed with: %s" %
-                                          (expected_match, all_msg))
+                raise exceptions.TestFail(
+                    "Expect should match with one of %s,"
+                    "but failed with: %s" % (expected_match, all_msg)
+                )
             else:
-                LOG.debug('Found expected content:\n%s',
-                          [r.group(0) for r in search_result
-                           if r is not None])
+                LOG.debug(
+                    "Found expected content:\n%s",
+                    [r.group(0) for r in search_result if r is not None],
+                )
 
 
 def check_exit_status(result, expect_error=False):
@@ -1328,11 +1372,11 @@ def check_exit_status(result, expect_error=False):
         if result.exit_status != 0:
             raise exceptions.TestFail(result.stderr_text)
         else:
-            LOG.debug("Command output:\n%s",
-                      result.stdout_text.strip())
+            LOG.debug("Command output:\n%s", result.stdout_text.strip())
     elif expect_error and result.exit_status == 0:
-        raise exceptions.TestFail("Run '%s' expect fail, but run "
-                                  "successfully." % result.command)
+        raise exceptions.TestFail(
+            "Run '%s' expect fail, but run " "successfully." % result.command
+        )
 
 
 def get_interface_details(vm_name):
@@ -1345,20 +1389,19 @@ def get_interface_details(vm_name):
     domiflist_out = virsh.domiflist(vm_name).stdout_text
     # Regular expression for the below output
     #   vnet0    bridge    virbr0   virtio  52:54:00:b2:b3:b4
-    rg = re.compile(r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+"
-                    "(([a-fA-F0-9]{2}:?){6})")
+    rg = re.compile(r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+" "(([a-fA-F0-9]{2}:?){6})")
 
     iface_cmd = {}
     ifaces_cmd = []
-    for line in domiflist_out.split('\n'):
+    for line in domiflist_out.split("\n"):
         match_obj = rg.search(line.strip())
         # Due to the extra space in the list
         if match_obj is not None:
-            iface_cmd['interface'] = match_obj.group(1)
-            iface_cmd['type'] = match_obj.group(2)
-            iface_cmd['source'] = match_obj.group(3)
-            iface_cmd['model'] = match_obj.group(4)
-            iface_cmd['mac'] = match_obj.group(5)
+            iface_cmd["interface"] = match_obj.group(1)
+            iface_cmd["type"] = match_obj.group(2)
+            iface_cmd["source"] = match_obj.group(3)
+            iface_cmd["model"] = match_obj.group(4)
+            iface_cmd["mac"] = match_obj.group(5)
             ifaces_cmd.append(iface_cmd)
             iface_cmd = {}
     return ifaces_cmd
@@ -1399,12 +1442,10 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             # Check virsh list output
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
-            output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                result.stdout_text)
+            output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]", result.stdout_text)
             if list(filter(lambda x: x[0] == iface_name, output[1:])):
                 list_find = True
-            LOG.debug("Find '%s' in virsh iface-list output: %s",
-                      iface_name, list_find)
+            LOG.debug("Find '%s' in virsh iface-list output: %s", iface_name, list_find)
             # Check network script independent of distro
             iface_script = utils_net.get_network_cfg_file(iface_name)
             ifcfg_find = os.path.exists(iface_script)
@@ -1424,8 +1465,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             # check iface State
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
-            output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                result.stdout_text)
+            output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]", result.stdout_text)
             iface_state = filter(lambda x: x[0] == iface_name, output[1:])
             iface_state = list(iface_state)[0][1]
             # active corresponds True, otherwise return False
@@ -1434,8 +1474,12 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             # extra is the ping destination
             count = dargs.get("count", 3)
             timeout = dargs.get("timeout", 5)
-            ping_s, _ = ping(dest=extra, count=count, interface=iface_name,
-                             timeout=timeout,)
+            ping_s, _ = ping(
+                dest=extra,
+                count=count,
+                interface=iface_name,
+                timeout=timeout,
+            )
             check_pass = ping_s == 0
         else:
             LOG.debug("Support check points are: %s", support_check)
@@ -1445,9 +1489,9 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
     return check_pass
 
 
-def create_hostdev_xml(pci_id, boot_order=None,
-                       dev_type="pci", managed="yes", alias=None,
-                       teaming=None):
+def create_hostdev_xml(
+    pci_id, boot_order=None, dev_type="pci", managed="yes", alias=None, teaming=None
+):
     """
     Create a hostdev configuration file; supported hostdev types:
     a. pci
@@ -1481,30 +1525,48 @@ def create_hostdev_xml(pci_id, boot_order=None,
     LOG.info("pci_id/device id is %s" % pci_id)
 
     if dev_type in ["pci", "usb"]:
-        device_domain = pci_id.split(':')[0]
+        device_domain = pci_id.split(":")[0]
         device_domain = "0x%s" % device_domain
-        device_bus = pci_id.split(':')[1]
+        device_bus = pci_id.split(":")[1]
         device_bus = "0x%s" % device_bus
-        device_slot = pci_id.split(':')[-1].split('.')[0]
+        device_slot = pci_id.split(":")[-1].split(".")[0]
         device_slot = "0x%s" % device_slot
-        device_function = pci_id.split('.')[-1]
+        device_function = pci_id.split(".")[-1]
         device_function = "0x%s" % device_function
 
         if dev_type == "pci":
-            attrs = {'domain': device_domain, 'slot': device_slot,
-                     'bus': device_bus, 'function': device_function}
+            attrs = {
+                "domain": device_domain,
+                "slot": device_slot,
+                "bus": device_bus,
+                "function": device_function,
+            }
             hostdev_xml.source = hostdev_xml.new_source(**attrs)
         if dev_type == "usb":
-            addr_bus = pci_id.split(':')[2]
-            addr_device = pci_id.split(':')[3]
+            addr_bus = pci_id.split(":")[2]
+            addr_device = pci_id.split(":")[3]
             hostdev_xml.source = hostdev_xml.new_source(
-                **(dict(vendor_id=device_domain, product_id=device_bus,
-                        address_bus=addr_bus, address_device=addr_device)))
+                **(
+                    dict(
+                        vendor_id=device_domain,
+                        product_id=device_bus,
+                        address_bus=addr_bus,
+                        address_device=addr_device,
+                    )
+                )
+            )
     if dev_type == "scsi":
-        id_parts = pci_id.split(':')
+        id_parts = pci_id.split(":")
         hostdev_xml.source = hostdev_xml.new_source(
-            **(dict(adapter_name="scsi_host%s" % id_parts[0], bus=id_parts[1],
-                    target=id_parts[2], unit=id_parts[3])))
+            **(
+                dict(
+                    adapter_name="scsi_host%s" % id_parts[0],
+                    bus=id_parts[1],
+                    target=id_parts[2],
+                    unit=id_parts[3],
+                )
+            )
+        )
 
     LOG.debug("Hostdev XML:\n%s", str(hostdev_xml))
 
@@ -1527,7 +1589,7 @@ def add_controller(vm_name, contr):
     for one_contr in updated_controllers:
         if one_contr not in org_controllers:
             new_added_ctr = one_contr
-    if 'new_added_ctr' not in locals():
+    if "new_added_ctr" not in locals():
         raise exceptions.TestFail("Fail to get new added controller.")
 
 
@@ -1538,7 +1600,7 @@ def create_controller_xml(contr_dict):
     :param contr_dict: The dict params includs controller configurations
     :return: new controller created
     """
-    contr_type = contr_dict.get("controller_type", 'scsi')
+    contr_type = contr_dict.get("controller_type", "scsi")
     contr_model = contr_dict.get("controller_model", "virtio-scsi")
     contr_index = contr_dict.get("controller_index")
     contr_alias = contr_dict.get("contr_alias")
@@ -1561,8 +1623,9 @@ def create_controller_xml(contr_dict):
     return contr
 
 
-def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
-                        redir_alias=None, redir_params={}):
+def create_redirdev_xml(
+    redir_type="spicevmc", redir_bus="usb", redir_alias=None, redir_params={}
+):
     """
     Create redirdev xml
 
@@ -1604,18 +1667,22 @@ def alter_boot_order(vm_name, pci_id, boot_order=0):
     vmxml.remove_all_boots()
     # prepare PCI-device XML with boot order
     try:
-        device_domain = pci_id.split(':')[0]
+        device_domain = pci_id.split(":")[0]
         device_domain = "0x%s" % device_domain
-        device_bus = pci_id.split(':')[1]
+        device_bus = pci_id.split(":")[1]
         device_bus = "0x%s" % device_bus
-        device_slot = pci_id.split(':')[-1].split('.')[0]
+        device_slot = pci_id.split(":")[-1].split(".")[0]
         device_slot = "0x%s" % device_slot
-        device_function = pci_id.split('.')[-1]
+        device_function = pci_id.split(".")[-1]
         device_function = "0x%s" % device_function
     except IndexError:
         raise exceptions.TestError("Invalid PCI Info: %s" % pci_id)
-    attrs = {'domain': device_domain, 'slot': device_slot,
-             'bus': device_bus, 'function': device_function}
+    attrs = {
+        "domain": device_domain,
+        "slot": device_slot,
+        "bus": device_bus,
+        "function": device_function,
+    }
     vmxml.add_hostdev(attrs, boot_order=boot_order)
     # synchronize XML
     vmxml.sync()
@@ -1631,9 +1698,11 @@ def wait_for_file_over(patt, xml_file, timeout=10):
     """
 
     def file_write_over():
-        if not process.run("grep %s %s" % (patt, xml_file),
-                           ignore_status=True).exit_status:
+        if not process.run(
+            "grep %s %s" % (patt, xml_file), ignore_status=True
+        ).exit_status:
             return True
+
     utils_misc.wait_for(file_write_over, timeout)
 
 
@@ -1649,11 +1718,11 @@ def create_disk_xml(params):
     target_tray = params.get("tray")
     diskxml = disk.Disk(type_name)
     diskxml.device = params.get("device_type", "disk")
-    snapshot_attr = params.get('disk_snapshot_attr')
-    slice_in_source = params.get('disk_slice')
+    snapshot_attr = params.get("disk_snapshot_attr")
+    slice_in_source = params.get("disk_slice")
     # After libvirt 3.9.0, auth element can be placed in source part.
     # Use auth_in_source to diff whether it is placed in source or disk itself.
-    auth_in_source = params.get('auth_in_source')
+    auth_in_source = params.get("auth_in_source")
     input_source_file = params.get("input_source_file")
     source_encryption_dict = params.get("source_encryption_dict")
     if snapshot_attr:
@@ -1666,23 +1735,23 @@ def create_disk_xml(params):
     try:
         if type_name == "file":
             source_file = params.get("source_file", "")
-            source_attrs = {'file': source_file}
+            source_attrs = {"file": source_file}
             if slice_in_source:
-                source_attrs = {'file': input_source_file}
+                source_attrs = {"file": input_source_file}
         elif type_name == "vhostuser":
             source_file = params.get("source_file", "")
-            source_attrs = {'type': 'unix', 'path': source_file}
+            source_attrs = {"type": "unix", "path": source_file}
         elif type_name == "block":
             source_file = params.get("source_file", "")
-            source_attrs = {'dev': source_file}
+            source_attrs = {"dev": source_file}
         elif type_name == "dir":
             source_dir = params.get("source_dir", "")
-            source_attrs = {'dir': source_dir}
+            source_attrs = {"dir": source_dir}
         elif type_name == "volume":
             source_pool = params.get("source_pool")
             source_volume = params.get("source_volume")
             source_mode = params.get("source_mode", "")
-            source_attrs = {'pool': source_pool, 'volume': source_volume}
+            source_attrs = {"pool": source_pool, "volume": source_volume}
             if source_mode:
                 source_attrs.update({"mode": source_mode})
         elif type_name == "network":
@@ -1691,19 +1760,17 @@ def create_disk_xml(params):
             source_host_name = params.get("source_host_name").split()
             source_host_port = params.get("source_host_port").split()
             transport = params.get("transport")
-            source_attrs = {'protocol': source_protocol, 'name': source_name}
+            source_attrs = {"protocol": source_protocol, "name": source_name}
             source_host = []
-            for host_name, host_port in list(
-                    zip(source_host_name, source_host_port)):
-                source_host.append({'name': host_name,
-                                    'port': host_port})
+            for host_name, host_port in list(zip(source_host_name, source_host_port)):
+                source_host.append({"name": host_name, "port": host_port})
             if transport:
-                source_host[0].update({'transport': transport})
+                source_host[0].update({"transport": transport})
         else:
             exceptions.TestSkipError("Unsupport disk type %s" % type_name)
         source_startupPolicy = params.get("source_startupPolicy")
         if source_startupPolicy:
-            source_attrs['startupPolicy'] = source_startupPolicy
+            source_attrs["startupPolicy"] = source_startupPolicy
 
         sec_model = params.get("sec_model")
         relabel = params.get("relabel")
@@ -1712,24 +1779,27 @@ def create_disk_xml(params):
             sec_dict = {}
             sec_xml = seclabel.Seclabel()
             if sec_model:
-                sec_dict.update({'model': sec_model})
+                sec_dict.update({"model": sec_model})
             if relabel:
-                sec_dict.update({'relabel': relabel})
+                sec_dict.update({"relabel": relabel})
             if label:
-                sec_dict.update({'label': label})
+                sec_dict.update({"label": label})
             sec_xml.update(sec_dict)
             LOG.debug("The sec xml is %s", sec_xml.xmltreefile)
             source_seclabel.append(sec_xml)
 
-        source_params = {"attrs": source_attrs, "seclabels": source_seclabel,
-                         "hosts": source_host}
+        source_params = {
+            "attrs": source_attrs,
+            "seclabels": source_seclabel,
+            "hosts": source_host,
+        }
         src_config_file = params.get("source_config_file")
         if src_config_file:
             source_params.update({"config_file": src_config_file})
             # If we use config file, "hosts" isn't needed
             if "hosts" in source_params:
                 source_params.pop("hosts")
-        snapshot_name = params.get('source_snap_name')
+        snapshot_name = params.get("source_snap_name")
         if snapshot_name:
             source_params.update({"snapshot_name": snapshot_name})
         disk_source = diskxml.new_disk_source(**source_params)
@@ -1738,27 +1808,34 @@ def create_disk_xml(params):
         secret_uuid = params.get("secret_uuid")
         secret_usage = params.get("secret_usage")
         if auth_user:
-            auth_attrs['auth_user'] = auth_user
+            auth_attrs["auth_user"] = auth_user
         if secret_type:
-            auth_attrs['secret_type'] = secret_type
+            auth_attrs["secret_type"] = secret_type
         if secret_uuid:
-            auth_attrs['secret_uuid'] = secret_uuid
+            auth_attrs["secret_uuid"] = secret_uuid
         elif secret_usage:
-            auth_attrs['secret_usage'] = secret_usage
+            auth_attrs["secret_usage"] = secret_usage
         if auth_attrs:
             if auth_in_source:
                 disk_source.auth = diskxml.new_auth(**auth_attrs)
             else:
                 diskxml.auth = diskxml.new_auth(**auth_attrs)
         if slice_in_source:
-            if slice_in_source.get('slice_size', None):
+            if slice_in_source.get("slice_size", None):
                 disk_source.slices = diskxml.new_slices(**slice_in_source)
             else:
-                slice_size_param = process.run("du -b %s" % input_source_file).stdout_text.strip()
-                slice_size = re.findall(r'^[0-9]+', slice_size_param)
-                slice_size = ''.join(slice_size)
-                disk_source.slices = diskxml.new_slices(**{"slice_type": "storage", "slice_offset": "0",
-                                                           "slice_size": slice_size})
+                slice_size_param = process.run(
+                    "du -b %s" % input_source_file
+                ).stdout_text.strip()
+                slice_size = re.findall(r"^[0-9]+", slice_size_param)
+                slice_size = "".join(slice_size)
+                disk_source.slices = diskxml.new_slices(
+                    **{
+                        "slice_type": "storage",
+                        "slice_offset": "0",
+                        "slice_size": slice_size,
+                    }
+                )
         if source_encryption_dict:
             disk_source.encryption = diskxml.new_encryption(**source_encryption_dict)
         diskxml.source = disk_source
@@ -1770,35 +1847,35 @@ def create_disk_xml(params):
         driver_packed = params.get("driver_packed", "")
         driver_copy_on_read = params.get("copy_on_read")
         if driver_name:
-            driver_attrs['name'] = driver_name
+            driver_attrs["name"] = driver_name
         if driver_type:
-            driver_attrs['type'] = driver_type
+            driver_attrs["type"] = driver_type
         if driver_cache:
-            driver_attrs['cache'] = driver_cache
+            driver_attrs["cache"] = driver_cache
         if driver_discard:
-            driver_attrs['discard'] = driver_discard
+            driver_attrs["discard"] = driver_discard
         if driver_packed:
-            driver_attrs['packed'] = driver_packed
+            driver_attrs["packed"] = driver_packed
         if driver_copy_on_read:
-            driver_attrs['copy_on_read'] = driver_copy_on_read
+            driver_attrs["copy_on_read"] = driver_copy_on_read
         if driver_attrs:
             diskxml.driver = driver_attrs
         if driver_model:
             diskxml.model = driver_model
         diskxml.readonly = "yes" == params.get("readonly", "no")
         diskxml.share = "yes" == params.get("shareable", "no")
-        diskxml.target = {'dev': target_dev, 'bus': target_bus}
+        diskxml.target = {"dev": target_dev, "bus": target_bus}
         if target_rotation:
-            diskxml.target = dict(diskxml.target, **{'rotation_rate': target_rotation})
+            diskxml.target = dict(diskxml.target, **{"rotation_rate": target_rotation})
         if target_tray:
-            diskxml.target = dict(diskxml.target, **{'tray': target_tray})
-        alias = params.get('alias')
+            diskxml.target = dict(diskxml.target, **{"tray": target_tray})
+        alias = params.get("alias")
         if alias:
-            diskxml.alias = {'name': alias}
-        sgio = params.get('sgio')
+            diskxml.alias = {"name": alias}
+        sgio = params.get("sgio")
         if sgio:
             diskxml.sgio = sgio
-        rawio = params.get('rawio')
+        rawio = params.get("rawio")
         if rawio:
             diskxml.rawio = rawio
         diskxml.xmltreefile.write()
@@ -1808,13 +1885,13 @@ def create_disk_xml(params):
 
     # Wait for file completed
     def file_exists():
-        if not process.run("ls %s" % diskxml.xml,
-                           ignore_status=True).exit_status:
+        if not process.run("ls %s" % diskxml.xml, ignore_status=True).exit_status:
             return True
+
     utils_misc.wait_for(file_exists, 5)
 
     # Wait for file write over with '</disk>' keyword at the file end
-    wait_for_file_over('</disk>', diskxml.xml)
+    wait_for_file_over("</disk>", diskxml.xml)
     return diskxml.xml
 
 
@@ -1840,8 +1917,7 @@ def set_disk_attr(vmxml, target, tag, attr):
             LOG.debug("tag '%s' is not supported now", tag)
             return False
     except AttributeError:
-        LOG.error("Fail to set attribute '%s' with value "
-                  "'%s'.", key, attr[key])
+        LOG.error("Fail to set attribute '%s' with value " "'%s'.", key, attr[key])
         return False
 
     return True
@@ -1852,12 +1928,12 @@ def create_net_xml(net_name, params):
     Create a new network or update an existed network xml
     """
     dns_dict = {}
-    disable_dns = 'yes' == params.get("disable_dns", "no")
-    disable_dhcp = 'yes' == params.get("disable_dhcp", "no")
+    disable_dns = "yes" == params.get("disable_dns", "no")
+    disable_dhcp = "yes" == params.get("disable_dhcp", "no")
     host_dict = {}
-    net_bridge = params.get("net_bridge", '{}')
-    net_forward = params.get("net_forward", '{}')
-    net_forward_pf = params.get("net_forward_pf", '{}')
+    net_bridge = params.get("net_bridge", "{}")
+    net_forward = params.get("net_forward", "{}")
+    net_forward_pf = params.get("net_forward_pf", "{}")
     forward_iface = params.get("forward_iface")
     net_dns_forward = params.get("net_dns_forward")
     net_dns_txt = params.get("net_dns_txt")
@@ -1874,7 +1950,7 @@ def create_net_xml(net_name, params):
     net_ip_netmask = params.get("net_ip_netmask", "255.255.255.0")
     net_ipv6_address = params.get("net_ipv6_address")
     net_ipv6_prefix = params.get("net_ipv6_prefix", "64")
-    nat_attrs = params.get('nat_attrs', '{}')
+    nat_attrs = params.get("nat_attrs", "{}")
     nat_port = params.get("nat_port")
     guest_name = params.get("guest_name")
     guest_ipv4 = params.get("guest_ipv4")
@@ -1888,8 +1964,8 @@ def create_net_xml(net_name, params):
     bootp_file = params.get("bootp_file")
     routes = params.get("routes", "").split()
     pg_name = params.get("portgroup_name", "").split()
-    net_port = params.get('net_port')
-    vf_list_attrs = params.get('vf_list_attrs', '[]')
+    net_port = params.get("net_port")
+    vf_list_attrs = params.get("vf_list_attrs", "[]")
     try:
         if not virsh.net_info(net_name, ignore_status=True).exit_status:
             # Edit an existed network
@@ -1898,7 +1974,7 @@ def create_net_xml(net_name, params):
         else:
             netxml = network_xml.NetworkXML(net_name)
         if disable_dns:
-            dns_dict['enable'] = "no"
+            dns_dict["enable"] = "no"
         if net_dns_forward:
             dns_dict["dns_forward"] = net_dns_forward
         if net_dns_txt:
@@ -1906,8 +1982,7 @@ def create_net_xml(net_name, params):
         if net_dns_srv:
             dns_dict["srv"] = ast.literal_eval(net_dns_srv)
         if net_dns_forwarders:
-            dns_dict["forwarders"] = [ast.literal_eval(x) for x in
-                                      net_dns_forwarders]
+            dns_dict["forwarders"] = [ast.literal_eval(x) for x in net_dns_forwarders]
         if net_dns_hostip:
             host_dict["host_ip"] = net_dns_hostip
         if net_dns_hostnames:
@@ -1928,8 +2003,7 @@ def create_net_xml(net_name, params):
         if forward_pf:
             netxml.pf = forward_pf
         if forward_iface:
-            interface = [
-                {'dev': x} for x in forward_iface.split()]
+            interface = [{"dev": x} for x in forward_iface.split()]
             netxml.forward_interface = interface
         nat_attrs = ast.literal_eval(nat_attrs)
         if nat_attrs:
@@ -1957,23 +2031,19 @@ def create_net_xml(net_name, params):
                 ipxml.address = net_ipv6_address
             if dhcp_start_ipv6 and dhcp_end_ipv6:
                 range_6 = network_xml.RangeXML()
-                range_6.attrs = {"start": dhcp_start_ipv6,
-                                 "end": dhcp_end_ipv6}
+                range_6.attrs = {"start": dhcp_start_ipv6, "end": dhcp_end_ipv6}
                 ipxml.dhcp_ranges = range_6
             if guest_name and guest_ipv6 and guest_mac:
                 host_xml_6 = network_xml.DhcpHostXML()
-                host_xml_6.attrs = {"name": guest_name,
-                                    "ip": guest_ipv6}
+                host_xml_6.attrs = {"name": guest_name, "ip": guest_ipv6}
                 ipxml.hosts = [host_xml_6]
             netxml.add_ip(ipxml)
         if net_ip_address:
-            ipxml = network_xml.IPXML(net_ip_address,
-                                      net_ip_netmask)
+            ipxml = network_xml.IPXML(net_ip_address, net_ip_netmask)
             if not disable_dhcp:
                 if dhcp_start_ipv4 and dhcp_end_ipv4:
                     range_4 = network_xml.RangeXML()
-                    range_4.attrs = {"start": dhcp_start_ipv4,
-                                     "end": dhcp_end_ipv4}
+                    range_4.attrs = {"start": dhcp_start_ipv4, "end": dhcp_end_ipv4}
                 ipxml.dhcp_ranges = range_4
             if tftp_root:
                 ipxml.tftp_root = tftp_root
@@ -1981,22 +2051,22 @@ def create_net_xml(net_name, params):
                 ipxml.dhcp_bootp = bootp_file
             if guest_name and guest_ipv4 and guest_mac:
                 host_xml_4 = network_xml.DhcpHostXML()
-                host_xml_4.attrs = {"name": guest_name,
-                                    "ip": guest_ipv4,
-                                    "mac": guest_mac}
+                host_xml_4.attrs = {
+                    "name": guest_name,
+                    "ip": guest_ipv4,
+                    "mac": guest_mac,
+                }
                 ipxml.hosts = [host_xml_4]
             netxml.add_ip(ipxml)
         if routes:
             netxml.routes = [ast.literal_eval(x) for x in routes]
         if pg_name:
-            pg_default = params.get("portgroup_default",
-                                    "").split()
-            pg_virtualport = params.get(
-                "portgroup_virtualport", "").split()
-            pg_bandwidth_inbound = params.get(
-                "portgroup_bandwidth_inbound", "").split()
+            pg_default = params.get("portgroup_default", "").split()
+            pg_virtualport = params.get("portgroup_virtualport", "").split()
+            pg_bandwidth_inbound = params.get("portgroup_bandwidth_inbound", "").split()
             pg_bandwidth_outbound = params.get(
-                "portgroup_bandwidth_outbound", "").split()
+                "portgroup_bandwidth_outbound", ""
+            ).split()
             pg_vlan = params.get("portgroup_vlan", "").split()
             pgs = []
             for i in range(len(pg_name)):
@@ -2007,11 +2077,11 @@ def create_net_xml(net_name, params):
                 if len(pg_virtualport) > i:
                     pgxml.virtualport_type = pg_virtualport[i]
                 if len(pg_bandwidth_inbound) > i:
-                    pgxml.bandwidth_inbound = ast.literal_eval(
-                        pg_bandwidth_inbound[i])
+                    pgxml.bandwidth_inbound = ast.literal_eval(pg_bandwidth_inbound[i])
                 if len(pg_bandwidth_outbound) > i:
                     pgxml.bandwidth_outbound = ast.literal_eval(
-                        pg_bandwidth_outbound[i])
+                        pg_bandwidth_outbound[i]
+                    )
                 if len(pg_vlan) > i:
                     pgxml.vlan_tag = ast.literal_eval(pg_vlan[i])
                 pgs.append(pgxml)
@@ -2019,8 +2089,8 @@ def create_net_xml(net_name, params):
 
         vf_list = ast.literal_eval(vf_list_attrs)
         if vf_list:
-            vfs = [{'attrs': attr} for attr in vf_list]
-            netxml.setup_attrs(**{'vf_list': vfs})
+            vfs = [{"attrs": attr} for attr in vf_list]
+            netxml.setup_attrs(**{"vf_list": vfs})
         LOG.debug("New network xml file: %s", netxml)
         netxml.xmltreefile.write()
         return netxml
@@ -2043,57 +2113,78 @@ def create_nwfilter_xml(params):
     filterrefs_list = []
     filterrefs_key = []
     for i in list(params.keys()):
-        if 'filterref_name_' in i:
+        if "filterref_name_" in i:
             filterrefs_key.append(i)
     filterrefs_key.sort()
     for i in filterrefs_key:
         filterrefs_dict = {}
-        filterrefs_dict['filter'] = params[i]
+        filterrefs_dict["filter"] = params[i]
         filterrefs_list.append(filterrefs_dict)
 
     # prepare rule and protocol attributes
     protocol = {}
     rule_dict = {}
     rule_dict_tmp = {}
-    RULE_ATTR = ('rule_action', 'rule_direction', 'rule_priority',
-                 'rule_statematch')
-    PROTOCOL_TYPES = ['mac', 'vlan', 'stp', 'arp', 'rarp', 'ip', 'ipv6',
-                      'tcp', 'udp', 'sctp', 'icmp', 'igmp', 'esp', 'ah',
-                      'udplite', 'all', 'tcp-ipv6', 'udp-ipv6', 'sctp-ipv6',
-                      'icmpv6', 'esp-ipv6', 'ah-ipv6', 'udplite-ipv6',
-                      'all-ipv6']
+    RULE_ATTR = ("rule_action", "rule_direction", "rule_priority", "rule_statematch")
+    PROTOCOL_TYPES = [
+        "mac",
+        "vlan",
+        "stp",
+        "arp",
+        "rarp",
+        "ip",
+        "ipv6",
+        "tcp",
+        "udp",
+        "sctp",
+        "icmp",
+        "igmp",
+        "esp",
+        "ah",
+        "udplite",
+        "all",
+        "tcp-ipv6",
+        "udp-ipv6",
+        "sctp-ipv6",
+        "icmpv6",
+        "esp-ipv6",
+        "ah-ipv6",
+        "udplite-ipv6",
+        "all-ipv6",
+    ]
     # rule should end with 'EOL' as separator, multiple rules are supported
     rule = params.get("rule")
     if rule:
-        rule_list = rule.split('EOL')
+        rule_list = rule.split("EOL")
         for i in range(len(rule_list)):
             if rule_list[i]:
                 attr = rule_list[i].split()
                 for j in range(len(attr)):
-                    attr_list = attr[j].split('=')
+                    attr_list = attr[j].split("=")
                     rule_dict_tmp[attr_list[0]] = attr_list[1]
                 rule_dict[i] = rule_dict_tmp
                 rule_dict_tmp = {}
 
         # process protocol parameter
         for i in list(rule_dict.keys()):
-            if 'protocol' not in rule_dict[i]:
+            if "protocol" not in rule_dict[i]:
                 # Set protocol as string 'None' as parse from cfg is
                 # string 'None'
-                protocol[i] = 'None'
+                protocol[i] = "None"
             else:
-                protocol[i] = rule_dict[i]['protocol']
-                rule_dict[i].pop('protocol')
+                protocol[i] = rule_dict[i]["protocol"]
+                rule_dict[i].pop("protocol")
 
                 if protocol[i] in PROTOCOL_TYPES:
                     # replace '-' with '_' in ipv6 types as '-' is not
                     # supposed to be in class name
-                    if '-' in protocol[i]:
-                        protocol[i] = protocol[i].replace('-', '_')
+                    if "-" in protocol[i]:
+                        protocol[i] = protocol[i].replace("-", "_")
                 else:
-                    raise exceptions.TestFail("Given protocol type %s"
-                                              " is not in supported list %s"
-                                              % (protocol[i], PROTOCOL_TYPES))
+                    raise exceptions.TestFail(
+                        "Given protocol type %s"
+                        " is not in supported list %s" % (protocol[i], PROTOCOL_TYPES)
+                    )
 
     try:
         new_filter = nwfilter_xml.NwfilterXML()
@@ -2115,16 +2206,16 @@ def create_nwfilter_xml(params):
         for i in index_total:
             filterxml.del_rule()
         for i in range(len(list(rule_dict.keys()))):
-            rulexml.rule_action = rule_dict[i].get('rule_action')
-            rulexml.rule_direction = rule_dict[i].get('rule_direction')
-            rulexml.rule_priority = rule_dict[i].get('rule_priority', 0)
-            rulexml.rule_statematch = rule_dict[i].get('rule_statematch')
+            rulexml.rule_action = rule_dict[i].get("rule_action")
+            rulexml.rule_direction = rule_dict[i].get("rule_direction")
+            rulexml.rule_priority = rule_dict[i].get("rule_priority", 0)
+            rulexml.rule_statematch = rule_dict[i].get("rule_statematch")
             for j in RULE_ATTR:
                 if j in list(rule_dict[i].keys()):
                     rule_dict[i].pop(j)
 
             # set protocol attribute
-            if protocol[i] != 'None':
+            if protocol[i] != "None":
                 protocolxml = rulexml.get_protocol(protocol[i])
                 new_one = protocolxml.new_attr(**rule_dict[i])
                 protocolxml.attrs = new_one
@@ -2139,7 +2230,7 @@ def create_nwfilter_xml(params):
 
         filterxml.xmltreefile.write()
         LOG.info("The network filter xml is:\n%s" % filterxml)
-        wait_for_file_over('</filter>', filterxml.xml)
+        wait_for_file_over("</filter>", filterxml.xml)
         return filterxml
 
     except Exception as detail:
@@ -2172,28 +2263,28 @@ def create_channel_xml(params, alias=False, address=False):
         raise exceptions.TestFail("channel_type_name not specified.")
     # if these params are None, it won't be used.
     if source_mode:
-        channel_source['mode'] = source_mode
+        channel_source["mode"] = source_mode
     if source_path:
-        channel_source['path'] = source_path
+        channel_source["path"] = source_path
     if target_type:
-        channel_target['type'] = target_type
+        channel_target["type"] = target_type
     if target_name:
-        channel_target['name'] = target_name
+        channel_target["name"] = target_name
 
-    channel_params = {'type_name': channel_type_name,
-                      'sources': [{'attrs': channel_source}],
-                      'target': channel_target}
+    channel_params = {
+        "type_name": channel_type_name,
+        "sources": [{"attrs": channel_source}],
+        "target": channel_target,
+    }
     if alias:
         if isinstance(alias, str):
             channel_alias = alias
         else:
             channel_alias = target_name
-        channel_params['alias'] = {'name': channel_alias}
+        channel_params["alias"] = {"name": channel_alias}
     if address:
-        channel_address = {'type': 'virtio-serial',
-                           'controller': '0',
-                           'bus': '0'}
-        channel_params['address'] = channel_address
+        channel_address = {"type": "virtio-serial", "controller": "0", "bus": "0"}
+        channel_params["address"] = channel_address
     channelxml = channel.Channel.new_from_dict(channel_params)
     LOG.debug("Channel XML:\n%s", channelxml)
     return channelxml
@@ -2211,7 +2302,7 @@ def update_on_crash(vm_name, on_crash):
     vmxml.sync()
 
 
-def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505'):
+def add_panic_device(vm_name, model="isa", addr_type="isa", addr_iobase="0x505"):
     """
     Create panic device xml
 
@@ -2222,7 +2313,7 @@ def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505')
     :return: If dev exist, return False, else return True
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
-    panic_dev = vmxml.xmltreefile.find('devices/panic')
+    panic_dev = vmxml.xmltreefile.find("devices/panic")
     if panic_dev is not None:
         LOG.info("Panic device already exists")
         return False
@@ -2263,13 +2354,15 @@ def set_domain_state(vm, vm_state):
         # Execute "pm-suspend-hybrid" command directly will get Timeout error,
         # so here execute it in background, and wait for 3s manually
         if session.cmd_status("which pm-suspend-hybrid"):
-            raise exceptions.TestSkipError("Cannot execute this test for domain"
-                                           " doesn't have pm-suspend-hybrid command!")
+            raise exceptions.TestSkipError(
+                "Cannot execute this test for domain"
+                " doesn't have pm-suspend-hybrid command!"
+            )
         session.cmd("pm-suspend-hybrid &")
         time.sleep(3)
 
 
-def create_vsock_xml(model, auto_cid='yes', invalid_cid=False):
+def create_vsock_xml(model, auto_cid="yes", invalid_cid=False):
     """
     Create vsock xml
 
@@ -2286,10 +2379,10 @@ def create_vsock_xml(model, auto_cid='yes', invalid_cid=False):
         cid = "-1"
     else:
         cid = random.randint(3, 10)
-    vsock_dev.cid = {'auto': auto_cid, 'address': cid}
-    chars = string.ascii_letters + string.digits + '-_'
-    alias_name = 'ua-' + ''.join(random.choice(chars) for _ in list(range(64)))
-    vsock_dev.alias = {'name': alias_name}
+    vsock_dev.cid = {"auto": auto_cid, "address": cid}
+    chars = string.ascii_letters + string.digits + "-_"
+    alias_name = "ua-" + "".join(random.choice(chars) for _ in list(range(64)))
+    vsock_dev.alias = {"name": alias_name}
     LOG.debug(vsock_dev)
     return vsock_dev
 
@@ -2305,8 +2398,7 @@ def create_rng_xml(dparams):
     backend_model = dparams.get("backend_model", "random")
     backend_type = dparams.get("backend_type")
     backend_dev = dparams.get("backend_dev", "/dev/urandom")
-    backend_source_list = dparams.get("backend_source",
-                                      "").split()
+    backend_source_list = dparams.get("backend_source", "").split()
     backend_protocol = dparams.get("backend_protocol")
     rng_alias = dparams.get("rng_alias")
 
@@ -2321,8 +2413,7 @@ def create_rng_xml(dparams):
     if backend_dev:
         backend.backend_dev = backend_dev
     if backend_source_list:
-        source_list = [ast.literal_eval(source) for source in
-                       backend_source_list]
+        source_list = [ast.literal_eval(source) for source in backend_source_list]
         backend.source = source_list
     if backend_protocol:
         backend.backend_protocol = backend_protocol
@@ -2344,8 +2435,8 @@ def update_memballoon_xml(vmxml, membal_dict):
     membal_model = membal_dict.get("membal_model")
     membal_stats_period = membal_dict.get("membal_stats_period")
     membal_alias_name = membal_dict.get("membal_alias_name")
-    vmxml.del_device('memballoon', by_tag=True)
-    memballoon_xml = vmxml.get_device_class('memballoon')()
+    vmxml.del_device("memballoon", by_tag=True)
+    memballoon_xml = vmxml.get_device_class("memballoon")()
     if membal_model:
         memballoon_xml.model = membal_model
     if membal_stats_period:
@@ -2364,7 +2455,7 @@ def create_tpm_dev(params):
     :param params: tpm parameter dict
     :return: tpm device
     """
-    tpm_model = params.get("tpm_model", 'tpm-crb')
+    tpm_model = params.get("tpm_model", "tpm-crb")
     backend_type = params.get("backend_type")
     backend_version = params.get("backend_version")
     persistent_state = params.get("persistent_state")
@@ -2422,8 +2513,10 @@ def set_guest_agent(vm):
 
     :param vm: the vm object
     """
-    LOG.warning("This function is going to be deprecated. "
-                "Please use vm.prepare_guest_agent() instead.")
+    LOG.warning(
+        "This function is going to be deprecated. "
+        "Please use vm.prepare_guest_agent() instead."
+    )
     # reset domain state
     if vm.is_alive():
         vm.destroy(gracefully=False)
@@ -2437,8 +2530,10 @@ def set_guest_agent(vm):
     cmd = "rpm -q qemu-guest-agent || yum install -y qemu-guest-agent"
     stat_install = session.cmd_status(cmd, 300)
     if stat_install != 0:
-        raise exceptions.TestFail("Fail to install qemu-guest-agent, make "
-                                  "sure that you have usable repo in guest")
+        raise exceptions.TestFail(
+            "Fail to install qemu-guest-agent, make "
+            "sure that you have usable repo in guest"
+        )
 
     # Check if qemu-ga already started
     stat_ps = session.cmd_status("ps aux |grep [q]emu-ga")
@@ -2497,7 +2592,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     disk_device = params.get("disk_device", "disk")
     disk_snapshot_attr = params.get("disk_snapshot_attr")
     disk_type = params.get("disk_type", "file")
-    disk_target = params.get("disk_target", 'vda')
+    disk_target = params.get("disk_target", "vda")
     disk_target_bus = params.get("disk_target_bus", "virtio")
     disk_target_rotation = params.get("target_rotation")
     disk_model = params.get("disk_model")
@@ -2516,16 +2611,16 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     exp_dir = params.get("export_dir", "nfs-export")
     first_disk = vm.get_first_disk_devices()
     LOG.debug("first disk is %s", first_disk)
-    blk_source = first_disk['source']
+    blk_source = first_disk["source"]
     blk_source = params.get("blk_source_name", blk_source)
-    disk_xml = vmxml.devices.by_device_tag('disk')[0]
-    src_disk_format = disk_xml.xmltreefile.find('driver').get('type')
-    sec_model = params.get('sec_model')
-    relabel = params.get('relabel')
-    sec_label = params.get('sec_label')
-    image_owner_group = params.get('image_owner_group')
+    disk_xml = vmxml.devices.by_device_tag("disk")[0]
+    src_disk_format = disk_xml.xmltreefile.find("driver").get("type")
+    sec_model = params.get("sec_model")
+    relabel = params.get("relabel")
+    sec_label = params.get("sec_label")
+    image_owner_group = params.get("image_owner_group")
     pool_name = params.get("pool_name", "set-vm-disk-pool")
-    disk_src_mode = params.get('disk_src_mode', 'host')
+    disk_src_mode = params.get("disk_src_mode", "host")
     auth_user = params.get("auth_user")
     secret_type = params.get("secret_type")
     secret_usage = params.get("secret_usage")
@@ -2533,26 +2628,28 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     enable_cache = "yes" == params.get("enable_cache", "yes")
     driver_cache = params.get("driver_cache", "none")
     create_controller = "yes" == params.get("create_controller")
-    del_disks = "yes" == params.get("cleanup_disks", 'no')
-    disk_params = {'device_type': disk_device,
-                   'disk_snapshot_attr': disk_snapshot_attr,
-                   'type_name': disk_type,
-                   'target_dev': disk_target,
-                   'target_bus': disk_target_bus,
-                   'driver_type': disk_format,
-                   'driver_iothread': driver_iothread,
-                   'sec_model': sec_model,
-                   'relabel': relabel,
-                   'sec_label': sec_label,
-                   'auth_user': auth_user,
-                   'secret_type': secret_type,
-                   'secret_uuid': secret_uuid,
-                   'secret_usage': secret_usage}
+    del_disks = "yes" == params.get("cleanup_disks", "no")
+    disk_params = {
+        "device_type": disk_device,
+        "disk_snapshot_attr": disk_snapshot_attr,
+        "type_name": disk_type,
+        "target_dev": disk_target,
+        "target_bus": disk_target_bus,
+        "driver_type": disk_format,
+        "driver_iothread": driver_iothread,
+        "sec_model": sec_model,
+        "relabel": relabel,
+        "sec_label": sec_label,
+        "auth_user": auth_user,
+        "secret_type": secret_type,
+        "secret_uuid": secret_uuid,
+        "secret_usage": secret_usage,
+    }
 
     if enable_cache:
-        disk_params['driver_cache'] = driver_cache
+        disk_params["driver_cache"] = driver_cache
     if disk_model:
-        disk_params['model'] = disk_model
+        disk_params["model"] = disk_model
     if not tmp_dir:
         tmp_dir = data_dir.get_data_dir()
 
@@ -2560,26 +2657,32 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     vol_name = params.get("vol_name")
     transport = params.get("transport", "")
     brick_path = os.path.join(tmp_dir, pool_name)
-    image_convert = "yes" == params.get("image_convert", 'yes')
+    image_convert = "yes" == params.get("image_convert", "yes")
 
     if vm.is_alive():
         vm.destroy(gracefully=False)
     # Replace domain disk with iscsi, gluster, block or netfs disk
-    if disk_src_protocol == 'iscsi':
-        if disk_type == 'block':
+    if disk_src_protocol == "iscsi":
+        if disk_type == "block":
             is_login = True
-        elif disk_type == 'network' or disk_type == 'volume':
+        elif disk_type == "network" or disk_type == "volume":
             is_login = False
         else:
-            raise exceptions.TestFail("Disk type '%s' not expected, only disk "
-                                      "type 'block', 'network' or 'volume' work "
-                                      "with 'iscsi'" % disk_type)
+            raise exceptions.TestFail(
+                "Disk type '%s' not expected, only disk "
+                "type 'block', 'network' or 'volume' work "
+                "with 'iscsi'" % disk_type
+            )
 
-        if disk_type == 'volume':
+        if disk_type == "volume":
             pvt = PoolVolumeTest(test, params)
-            pvt.pre_pool(pool_name, 'iscsi', "/dev/disk/by-path",
-                         emulated_image=emu_image,
-                         image_size=image_size)
+            pvt.pre_pool(
+                pool_name,
+                "iscsi",
+                "/dev/disk/by-path",
+                emulated_image=emu_image,
+                image_size=image_size,
+            )
             # Get volume name
             vols = get_vol_list(pool_name)
             vol_name = list(vols.keys())[0]
@@ -2588,66 +2691,90 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
             # Setup iscsi target
             if is_login:
                 iscsi_target = setup_or_cleanup_iscsi(
-                    is_setup=True, is_login=is_login,
-                    image_size=image_size, emulated_image=emu_image)
+                    is_setup=True,
+                    is_login=is_login,
+                    image_size=image_size,
+                    emulated_image=emu_image,
+                )
             else:
                 iscsi_target, lun_num = setup_or_cleanup_iscsi(
-                    is_setup=True, is_login=is_login,
-                    image_size=image_size, emulated_image=emu_image)
+                    is_setup=True,
+                    is_login=is_login,
+                    image_size=image_size,
+                    emulated_image=emu_image,
+                )
             emulated_path = os.path.join(tmp_dir, emu_image)
 
         # Copy first disk to emulated backing store path
-        cmd = "qemu-img convert -f %s -O %s %s %s" % (src_disk_format,
-                                                      disk_format,
-                                                      blk_source,
-                                                      emulated_path)
+        cmd = "qemu-img convert -f %s -O %s %s %s" % (
+            src_disk_format,
+            disk_format,
+            blk_source,
+            emulated_path,
+        )
         process.run(cmd, ignore_status=False)
 
-        if disk_type == 'block':
-            disk_params_src = {'source_file': iscsi_target}
+        if disk_type == "block":
+            disk_params_src = {"source_file": iscsi_target}
         elif disk_type == "volume":
-            disk_params_src = {'source_pool': pool_name,
-                               'source_volume': vol_name,
-                               'source_mode': disk_src_mode}
+            disk_params_src = {
+                "source_pool": pool_name,
+                "source_volume": vol_name,
+                "source_mode": disk_src_mode,
+            }
         else:
-            disk_params_src = {'source_protocol': disk_src_protocol,
-                               'source_name': iscsi_target + "/" + str(lun_num),
-                               'source_host_name': disk_src_host,
-                               'source_host_port': disk_src_port}
-    elif disk_src_protocol == 'gluster':
+            disk_params_src = {
+                "source_protocol": disk_src_protocol,
+                "source_name": iscsi_target + "/" + str(lun_num),
+                "source_host_name": disk_src_host,
+                "source_host_port": disk_src_port,
+            }
+    elif disk_src_protocol == "gluster":
         # Setup gluster.
-        host_ip = gluster.setup_or_cleanup_gluster(True, brick_path=brick_path,
-                                                   **params)
+        host_ip = gluster.setup_or_cleanup_gluster(
+            True, brick_path=brick_path, **params
+        )
         LOG.debug("host ip: %s " % host_ip)
         dist_img = "gluster.%s" % disk_format
 
         if image_convert:
             # Convert first disk to gluster disk path
-            disk_cmd = ("qemu-img convert -f %s -O %s %s /mnt/%s" %
-                        (src_disk_format, disk_format, blk_source, dist_img))
+            disk_cmd = "qemu-img convert -f %s -O %s %s /mnt/%s" % (
+                src_disk_format,
+                disk_format,
+                blk_source,
+                dist_img,
+            )
         else:
             # create another disk without convert
-            disk_cmd = "qemu-img create -f %s /mnt/%s 10M" % (src_disk_format,
-                                                              dist_img)
+            disk_cmd = "qemu-img create -f %s /mnt/%s 10M" % (src_disk_format, dist_img)
         # Mount the gluster disk and create the image.
-        process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
-                    % (host_ip, vol_name, disk_cmd), shell=True)
+        process.run(
+            "mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
+            % (host_ip, vol_name, disk_cmd),
+            shell=True,
+        )
 
-        disk_params_src = {'source_protocol': disk_src_protocol,
-                           'source_name': "%s/%s" % (vol_name, dist_img),
-                           'source_host_name': host_ip,
-                           'source_host_port': "24007"}
+        disk_params_src = {
+            "source_protocol": disk_src_protocol,
+            "source_name": "%s/%s" % (vol_name, dist_img),
+            "source_host_name": host_ip,
+            "source_host_port": "24007",
+        }
         if transport:
             disk_params_src.update({"transport": transport})
-    elif disk_src_protocol == 'netfs':
+    elif disk_src_protocol == "netfs":
         # For testing multiple VMs in a test this param can used
         # to setup/cleanup configurations
         src_file_list = params.get("source_file_list", [])
         # Setup nfs
-        res = setup_or_cleanup_nfs(True, mnt_path_name,
-                                   is_mount=True,
-                                   export_options=exp_opt,
-                                   export_dir=exp_dir)
+        res = setup_or_cleanup_nfs(
+            True,
+            mnt_path_name,
+            is_mount=True,
+            export_options=exp_opt,
+            export_dir=exp_dir,
+        )
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
@@ -2656,47 +2783,66 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
             dist_img = params.get("source_dist_img", "nfs-img")
 
             # Convert first disk to nfs disk path
-            disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
-                        (src_disk_format, disk_format,
-                         blk_source, exp_path, dist_img))
+            disk_cmd = "qemu-img convert -f %s -O %s %s %s/%s" % (
+                src_disk_format,
+                disk_format,
+                blk_source,
+                exp_path,
+                dist_img,
+            )
             process.run(disk_cmd, ignore_status=False)
 
         # Change image ownership
         if image_owner_group:
-            update_owner_cmd = ("chown %s %s/%s" %
-                                (image_owner_group, exp_path, dist_img))
+            update_owner_cmd = "chown %s %s/%s" % (
+                image_owner_group,
+                exp_path,
+                dist_img,
+            )
             process.run(update_owner_cmd, ignore_status=False)
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         if params.get("change_file_uid") and params.get("change_file_gid"):
-            LOG.debug("Changing the ownership of {} to {}.{}."
-                      .format(src_file_path, params["change_file_uid"],
-                              params["change_file_gid"]))
-            os.chown(src_file_path, params["change_file_uid"],
-                     params["change_file_gid"])
+            LOG.debug(
+                "Changing the ownership of {} to {}.{}.".format(
+                    src_file_path, params["change_file_uid"], params["change_file_gid"]
+                )
+            )
+            os.chown(
+                src_file_path, params["change_file_uid"], params["change_file_gid"]
+            )
             res = os.stat(src_file_path)
-            LOG.debug("The ownership of {} is updated, uid: {}, gid: {}."
-                      .format(src_file_path, res.st_uid, res.st_gid))
-        disk_params_src = {'source_file': src_file_path}
+            LOG.debug(
+                "The ownership of {} is updated, uid: {}, gid: {}.".format(
+                    src_file_path, res.st_uid, res.st_gid
+                )
+            )
+        disk_params_src = {"source_file": src_file_path}
         params["source_file"] = src_file_path
         src_file_list.append(src_file_path)
         if image_convert:
             params["source_file_list"] = src_file_list
-    elif disk_src_protocol == 'rbd':
+    elif disk_src_protocol == "rbd":
         mon_host = params.get("mon_host")
         if image_convert:
-            disk_cmd = ("qemu-img convert -f %s -O %s %s rbd:%s:mon_host=%s"
-                        % (src_disk_format, disk_format, blk_source,
-                           disk_src_name, mon_host))
+            disk_cmd = "qemu-img convert -f %s -O %s %s rbd:%s:mon_host=%s" % (
+                src_disk_format,
+                disk_format,
+                blk_source,
+                disk_src_name,
+                mon_host,
+            )
             process.run(disk_cmd, ignore_status=False)
-        disk_params_src = {'source_protocol': disk_src_protocol,
-                           'source_name': disk_src_name,
-                           'source_host_name': disk_src_host,
-                           'source_host_port': disk_src_port,
-                           'source_config_file': disk_src_config}
+        disk_params_src = {
+            "source_protocol": disk_src_protocol,
+            "source_name": disk_src_name,
+            "source_host_name": disk_src_host,
+            "source_host_port": disk_src_port,
+            "source_config_file": disk_src_config,
+        }
         if disk_snap_name:
-            disk_params_src.update({'source_snap_name': disk_snap_name})
-            disk_params.update({'readonly': params.get("read_only", "no")})
+            disk_params_src.update({"source_snap_name": disk_snap_name})
+            disk_params.update({"readonly": params.get("read_only", "no")})
     else:
         """
         If disk_src_name is given, replace current source file
@@ -2704,13 +2850,13 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         """
         if disk_src_name:
             blk_source = disk_src_name
-        disk_params_src = {'source_file': blk_source}
+        disk_params_src = {"source_file": blk_source}
 
     # Delete disk elements
     disk_deleted = False
     disks = vmxml.get_devices(device_type="disk")
     for disk_ in disks:
-        if disk_.target['dev'] == disk_target:
+        if disk_.target["dev"] == disk_target:
             vmxml.del_device(disk_)
             disk_deleted = True
             continue
@@ -2721,24 +2867,26 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         vmxml.sync()
         vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
 
-    #Create controller
+    # Create controller
     if create_controller:
-        contr_type = params.get("controller_type", 'scsi')
+        contr_type = params.get("controller_type", "scsi")
         contr_model = params.get("controller_model", "virtio-scsi")
         contr_index = params.get("controller_index", "0")
-        contr_dict = {'controller_type': contr_type,
-                      'controller_model': contr_model,
-                      'controller_index': contr_index}
+        contr_dict = {
+            "controller_type": contr_type,
+            "controller_model": contr_model,
+            "controller_index": contr_index,
+        }
         new_added = create_controller_xml(contr_dict)
         add_controller(vm.name, new_added)
         vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
 
     # New disk xml
     new_disk = disk.Disk(type_name=disk_type)
-    new_disk.new_disk_source(attrs={'file': blk_source})
+    new_disk.new_disk_source(attrs={"file": blk_source})
     disk_params.update(disk_params_src)
     if disk_target_rotation:
-        disk_params.update({'target_rotation': disk_target_rotation})
+        disk_params.update({"target_rotation": disk_target_rotation})
     disk_xml = create_disk_xml(disk_params)
     new_disk.xml = disk_xml
     # Add new disk xml and redefine vm
@@ -2748,18 +2896,19 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     if create_controller:
         vmxml.sync()
         vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
-        contr_type_from_address = vmxml.get_disk_attr(vm.name, disk_target,
-                                                      "address", "type")
-        if contr_type_from_address == 'pci':
-            address_params = {'bus': "%0#4x" % int(contr_index)}
-        elif contr_type_from_address == 'drive':
-            address_params = {'controller': contr_index}
-        elif contr_type_from_address == 'usb':
-            address_params = {'bus': contr_index}
+        contr_type_from_address = vmxml.get_disk_attr(
+            vm.name, disk_target, "address", "type"
+        )
+        if contr_type_from_address == "pci":
+            address_params = {"bus": "%0#4x" % int(contr_index)}
+        elif contr_type_from_address == "drive":
+            address_params = {"controller": contr_index}
+        elif contr_type_from_address == "usb":
+            address_params = {"bus": contr_index}
         else:
             # TODO: Other controller types
             pass
-        if not set_disk_attr(vmxml, disk_target, 'address', address_params):
+        if not set_disk_attr(vmxml, disk_target, "address", address_params):
             raise exceptions.TestFail("Fail to update disk address.")
 
     # Set domain options
@@ -2783,8 +2932,8 @@ def attach_additional_device(vm_name, targetdev, disk_path, params, config=True)
     LOG.info("Attaching disk...")
 
     # Update params for source file
-    params['source_file'] = disk_path
-    params['target_dev'] = targetdev
+    params["source_file"] = disk_path
+    params["target_dev"] = targetdev
 
     # Create a file of device
     xmlfile = os.path.join(data_dir.get_tmp_dir(), "xml_file")
@@ -2798,8 +2947,9 @@ def attach_additional_device(vm_name, targetdev, disk_path, params, config=True)
         extra = ""
     virsh.detach_disk(vm_name, targetdev, extra=extra)
 
-    return virsh.attach_device(domain_opt=vm_name, file_opt=xmlfile,
-                               flagstr=extra, debug=True)
+    return virsh.attach_device(
+        domain_opt=vm_name, file_opt=xmlfile, flagstr=extra, debug=True
+    )
 
 
 def device_exists(vm, target_dev):
@@ -2812,9 +2962,15 @@ def device_exists(vm, target_dev):
     return False
 
 
-def create_local_disk(disk_type, path=None,
-                      size="10", disk_format="raw",
-                      vgname=None, lvname=None, extra=''):
+def create_local_disk(
+    disk_type,
+    path=None,
+    size="10",
+    disk_format="raw",
+    vgname=None,
+    lvname=None,
+    extra="",
+):
     if disk_type != "lvm" and path is None:
         raise exceptions.TestError("Path is needed for creating local disk")
     if path:
@@ -2842,12 +2998,10 @@ def create_local_disk(disk_type, path=None,
     return path
 
 
-def delete_local_disk(disk_type, path=None,
-                      vgname=None, lvname=None):
+def delete_local_disk(disk_type, path=None, vgname=None, lvname=None):
     if disk_type in ["file", "floppy", "iso"]:
         if path is None:
-            raise exceptions.TestError(
-                "Path is needed for deleting local disk")
+            raise exceptions.TestError("Path is needed for deleting local disk")
         else:
             cmd = "rm -f %s" % path
             process.run(cmd, ignore_status=True)
@@ -2876,20 +3030,20 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
         # Unload it first if it's already loaded.
         if linux_modules.module_is_loaded("scsi_debug"):
             linux_modules.unload_module("scsi_debug")
-        linux_modules.load_module("scsi_debug dev_size_mb=%s %s" %
-                                  (scsi_size, scsi_option))
+        linux_modules.load_module(
+            "scsi_debug dev_size_mb=%s %s" % (scsi_size, scsi_option)
+        )
 
         def _get_scsi_disk():
             """attempt to get scsi disk multiple times until getting real one"""
-            scsi_disk = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
-                                    shell=True).stdout_text.strip()
-            return 'dev' in scsi_disk
+            scsi_disk = process.run(
+                "lsscsi|grep scsi_debug|awk '{print $6}'", shell=True
+            ).stdout_text.strip()
+            return "dev" in scsi_disk
 
-        utils_misc.wait_for(lambda: _get_scsi_disk(),
-                            timeout=10, ignore_errors=True)
+        utils_misc.wait_for(lambda: _get_scsi_disk(), timeout=10, ignore_errors=True)
         # Get the scsi device name
-        result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
-                             shell=True)
+        result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'", shell=True)
         scsi_disk = result.stdout_text.strip()
         LOG.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
@@ -2904,16 +3058,18 @@ def delete_scsi_disk():
     """
     scsi_dbg_check = process.run("lsscsi|grep scsi_debug", shell=True)
     if scsi_dbg_check.exit_status == 0:
-        scsi_addr_pattern = '[0-9]+:[0-9]+:[0-9]+:[0-9]+'
+        scsi_addr_pattern = "[0-9]+:[0-9]+:[0-9]+:[0-9]+"
         for addr in re.findall(scsi_addr_pattern, scsi_dbg_check.stdout_text):
-            process.run("echo 1>/sys/class/scsi_device/{}/device/delete".format(addr),
-                        shell=True)
+            process.run(
+                "echo 1>/sys/class/scsi_device/{}/device/delete".format(addr),
+                shell=True,
+            )
 
     if linux_modules.module_is_loaded("scsi_debug"):
         linux_modules.unload_module("scsi_debug")
 
 
-def set_controller_multifunction(vm_name, controller_type='scsi'):
+def set_controller_multifunction(vm_name, controller_type="scsi"):
     """
     Set multifunction on for controller device and expand to all function.
     """
@@ -2929,20 +3085,21 @@ def set_controller_multifunction(vm_name, controller_type='scsi'):
             continue
         # Set multifunction on
         address_attrs = e_controller.address.attrs
-        address_attrs['multifunction'] = "on"
-        domain = address_attrs['domain']
-        bus = address_attrs['bus']
-        slot = address_attrs['slot']
+        address_attrs["multifunction"] = "on"
+        domain = address_attrs["domain"]
+        bus = address_attrs["bus"]
+        slot = address_attrs["slot"]
         all_funcs = ["0x0", "0x1", "0x2", "0x3", "0x4", "0x5", "0x6"]
         for func in all_funcs:
             key = "%s:%s:%s:%s" % (domain, bus, slot, func)
-            address_attrs['function'] = func
+            address_attrs["function"] = func
             # Create a new controller instance
             new_controller = controller.Controller(controller_type)
             new_controller.xml = str(xml_utils.XMLTreeFile(e_controller.xml))
             new_controller.index = index
             new_controller.address = new_controller.new_controller_address(
-                attrs=address_attrs)
+                attrs=address_attrs
+            )
             # Expand controller to all functions with multifunction
             if key not in list(expanded_controllers.keys()):
                 expanded_controllers[key] = new_controller
@@ -2987,18 +3144,18 @@ def attach_disks(vm, path, vgname, params):
                 # ['z'] -> ['a', 'a'], ['z', 'z'] -> ['a', 'a', 'a']
                 prefix_index = len(prefix_list)
                 if prefix_index == 0:
-                    prefix_list.append('a')
+                    prefix_list.append("a")
                 # Append a new prefix to list, then update pre-'z' in list
                 # to 'a' to keep the progression 1
                 while prefix_index > 0:
                     prefix_index -= 1
                     prefix_cur = prefix_list[prefix_index]
-                    if prefix_cur == 'z':
-                        prefix_list[prefix_index] = 'a'
+                    if prefix_cur == "z":
+                        prefix_list[prefix_index] = "a"
                         # All prefix in prefix_list are 'z',
                         # it's time to expand it.
                         if prefix_index == 0:
-                            prefix_list.append('a')
+                            prefix_list.append("a")
                     else:
                         # For whole prefix_list, progression is 1
                         prefix_list[prefix_index] = chr(ord(prefix_cur) + 1)
@@ -3007,7 +3164,7 @@ def attach_disks(vm, path, vgname, params):
                 index = 0
             prefix = "".join(prefix_list)
             suffix_index = index % 26
-            suffix = chr(ord('a') + suffix_index)
+            suffix = chr(ord("a") + suffix_index)
             index += 1
             count -= 1
 
@@ -3036,21 +3193,21 @@ def attach_disks(vm, path, vgname, params):
             set_controller_multifunction(vm.name, disk_target)
 
         disk_params = {}
-        disk_params['type_name'] = disk_type if not disk_type == 'lvm' else 'block'
-        disk_params['target_dev'] = target_dev
-        disk_params['target_bus'] = disk_target
-        disk_params['device_type'] = params.get("device_type", "disk")
+        disk_params["type_name"] = disk_type if not disk_type == "lvm" else "block"
+        disk_params["target_dev"] = target_dev
+        disk_params["target_bus"] = disk_target
+        disk_params["device_type"] = params.get("device_type", "disk")
         device_name = "%s_%s" % (target_dev, vm.name)
         disk_path = os.path.join(os.path.dirname(path), device_name)
-        disk_path = create_local_disk(disk_type, disk_path,
-                                      disk_size, disk_format,
-                                      vgname, device_name)
+        disk_path = create_local_disk(
+            disk_type, disk_path, disk_size, disk_format, vgname, device_name
+        )
         added_disks[disk_path] = disk_size
-        result = attach_additional_device(vm.name, target_dev, disk_path,
-                                          disk_params, attach_config)
+        result = attach_additional_device(
+            vm.name, target_dev, disk_path, disk_params, attach_config
+        )
         if result.exit_status:
-            raise exceptions.TestFail("Attach device %s failed."
-                                      % target_dev)
+            raise exceptions.TestFail("Attach device %s failed." % target_dev)
     LOG.debug("New VM XML:\n%s", vm.get_xml())
     return added_disks
 
@@ -3070,16 +3227,17 @@ def define_new_vm(vm_name, new_name):
         return False
 
 
-def remotely_control_libvirtd(server_ip, server_user, server_pwd,
-                              action='restart', status_error='no'):
+def remotely_control_libvirtd(
+    server_ip, server_user, server_pwd, action="restart", status_error="no"
+):
     """
     Remotely restart libvirt service
     """
     session = None
     try:
-        session = remote.wait_for_login('ssh', server_ip, '22',
-                                        server_user, server_pwd,
-                                        r"[\#\$]\s*$")
+        session = remote.wait_for_login(
+            "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+        )
         LOG.info("%s libvirt daemon\n", action)
         service_libvirtd_control(action, session)
         session.close()
@@ -3087,17 +3245,27 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
         if session:
             session.close()
         if status_error == "no":
-            raise exceptions.TestFail("Failed to %s libvirtd service on "
-                                      "server: %s\n", action, detail)
+            raise exceptions.TestFail(
+                "Failed to %s libvirtd service on " "server: %s\n", action, detail
+            )
         else:
             LOG.info("It is an expect %s", detail)
 
 
-def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
-                     auth_pwd=None, vm_name="", status_error="no",
-                     extra="", log_level='LIBVIRT_DEBUG=3', su_user="",
-                     patterns_virsh_cmd=r".*Id\s*Name\s*State\s*.*",
-                     patterns_extra_dict=None):
+def connect_libvirtd(
+    uri,
+    read_only="",
+    virsh_cmd="list",
+    auth_user=None,
+    auth_pwd=None,
+    vm_name="",
+    status_error="no",
+    extra="",
+    log_level="LIBVIRT_DEBUG=3",
+    su_user="",
+    patterns_virsh_cmd=r".*Id\s*Name\s*State\s*.*",
+    patterns_extra_dict=None,
+):
     """
     Connect to libvirt daemon
 
@@ -3121,8 +3289,14 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
     patterns_auth_name_xen = r".*name.*root.*:.*"
     patterns_auth_pwd = r".*[Pp]assword.*"
 
-    command = "%s %s virsh %s -c %s %s %s" % (extra, log_level, read_only,
-                                              uri, virsh_cmd, vm_name)
+    command = "%s %s virsh %s -c %s %s %s" % (
+        extra,
+        log_level,
+        read_only,
+        uri,
+        virsh_cmd,
+        vm_name,
+    )
     # allow specific user to run virsh command
     if su_user != "":
         command = "su %s -P -c '%s'" % (su_user, command)
@@ -3133,9 +3307,13 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
 
     try:
         # requires access authentication
-        match_list = [patterns_yes_no, patterns_auth_name_comm,
-                      patterns_auth_name_xen, patterns_auth_pwd,
-                      patterns_virsh_cmd]
+        match_list = [
+            patterns_yes_no,
+            patterns_auth_name_comm,
+            patterns_auth_name_xen,
+            patterns_auth_pwd,
+            patterns_virsh_cmd,
+        ]
         second_pass = None
         if patterns_extra_dict:
             match_list = match_list + list(patterns_extra_dict.keys())
@@ -3147,9 +3325,9 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
         patterns_list_len = len(match_list)
         match_dict_item = False
         while True:
-            match, text = session.read_until_any_line_matches(match_list,
-                                                              timeout=30,
-                                                              internal_timeout=1)
+            match, text = session.read_until_any_line_matches(
+                match_list, timeout=30, internal_timeout=1
+            )
             if match == -patterns_list_len:
                 LOG.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
@@ -3161,9 +3339,11 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
             elif match == -patterns_list_len + 3:
                 LOG.info("Matched 'password', details: <%s>", text)
                 if match_dict_item and second_pass:
-                    LOG.info('Prompt for a password when there is a '
-                             'password in extra dict, trying that '
-                             'one:{}.'.format(second_pass))
+                    LOG.info(
+                        "Prompt for a password when there is a "
+                        "password in extra dict, trying that "
+                        "one:{}.".format(second_pass)
+                    )
                     session.sendline(second_pass)
                 else:
                     session.sendline(auth_pwd)
@@ -3201,9 +3381,8 @@ def get_all_vol_paths():
     vol_path = []
     sp = libvirt_storage.StoragePool()
     for pool_name in list(sp.list_pools().keys()):
-        if sp.list_pools()[pool_name]['State'] != "active":
-            LOG.warning(
-                "Inactive pool '%s' cannot be processed" % pool_name)
+        if sp.list_pools()[pool_name]["State"] != "active":
+            LOG.warning("Inactive pool '%s' cannot be processed" % pool_name)
             continue
         pv = libvirt_storage.PoolVolume(pool_name)
         for path in list(pv.list_volumes().values()):
@@ -3211,9 +3390,18 @@ def get_all_vol_paths():
     return set(vol_path)
 
 
-def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
-                 options="--verbose", virsh_patterns=r".*100\s%.*",
-                 su_user="", timeout=30, extra_opt=""):
+def do_migration(
+    vm_name,
+    uri,
+    extra,
+    auth_pwd,
+    auth_user="root",
+    options="--verbose",
+    virsh_patterns=r".*100\s%.*",
+    su_user="",
+    timeout=30,
+    extra_opt="",
+):
     """
     Migrate VM to target host.
     """
@@ -3221,8 +3409,7 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
     patterns_auth_name = r".*name:.*"
     patterns_auth_pwd = r".*[Pp]assword.*"
 
-    command = "%s virsh %s migrate %s %s %s" % (extra, extra_opt,
-                                                vm_name, options, uri)
+    command = "%s virsh %s migrate %s %s %s" % (extra, extra_opt, vm_name, options, uri)
     # allow specific user to run virsh command
     if su_user != "":
         command = "su %s -c '%s'" % (su_user, command)
@@ -3233,12 +3420,16 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
 
     try:
         # requires access authentication
-        match_list = [patterns_yes_no, patterns_auth_name,
-                      patterns_auth_pwd, virsh_patterns]
+        match_list = [
+            patterns_yes_no,
+            patterns_auth_name,
+            patterns_auth_pwd,
+            virsh_patterns,
+        ]
         while True:
-            match, text = session.read_until_any_line_matches(match_list,
-                                                              timeout=timeout,
-                                                              internal_timeout=1)
+            match, text = session.read_until_any_line_matches(
+                match_list, timeout=timeout, internal_timeout=1
+            )
             if match == -4:
                 LOG.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
@@ -3278,14 +3469,14 @@ def update_vm_disk_driver_cache(vm_name, driver_cache="none", disk_index=0):
     try:
         # Get the disk to be updated
         devices = vmxml.devices
-        device_index = devices.index(devices.by_device_tag('disk')[disk_index])
+        device_index = devices.index(devices.by_device_tag("disk")[disk_index])
         disk = devices[device_index]
 
         # Update disk driver cache mode
         driver_dict = disk.driver
-        driver_dict['cache'] = driver_cache
+        driver_dict["cache"] = driver_cache
         disk.driver = driver_dict
-        LOG.debug("The new vm disk driver cache is %s", disk.driver['cache'])
+        LOG.debug("The new vm disk driver cache is %s", disk.driver["cache"])
 
         vmxml.devices = devices
 
@@ -3298,9 +3489,9 @@ def update_vm_disk_driver_cache(vm_name, driver_cache="none", disk_index=0):
         return False
 
 
-def update_vm_disk_source(vm_name, disk_source_path,
-                          disk_image_name="",
-                          source_type="file"):
+def update_vm_disk_source(
+    vm_name, disk_source_path, disk_image_name="", source_type="file"
+):
     """
     Update disk source path of the VM
 
@@ -3313,7 +3504,7 @@ def update_vm_disk_source(vm_name, disk_source_path,
     # Prepare to update VM first disk source file
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
     devices = vmxml.devices
-    disk_index = devices.index(devices.by_device_tag('disk')[0])
+    disk_index = devices.index(devices.by_device_tag("disk")[0])
     disks = devices[disk_index]
     # Generate a disk image name if it doesn't exist
     if not disk_image_name:
@@ -3326,8 +3517,9 @@ def update_vm_disk_source(vm_name, disk_source_path,
 
     # Update VM disk source file
     try:
-        disks.source = disks.new_disk_source(**{'attrs': {'%s' % source_type:
-                                                          "%s" % new_disk_source}})
+        disks.source = disks.new_disk_source(
+            **{"attrs": {"%s" % source_type: "%s" % new_disk_source}}
+        )
         # SYNC VM XML change
         vmxml.devices = devices
         LOG.debug("The new VM XML:\n%s", vmxml.xmltreefile)
@@ -3352,8 +3544,8 @@ def exec_virsh_edit(source, edit_cmd, connect_uri="qemu:///system"):
         session.sendline("virsh -c %s edit %s" % (connect_uri, source))
         for cmd in edit_cmd:
             session.sendline(cmd)
-        session.send('\x1b')
-        session.send('ZZ')
+        session.send("\x1b")
+        session.send("ZZ")
         remote.handle_prompts(session, None, None, r"[\#\$]\s*$", debug=True)
         session.close()
         return True
@@ -3377,8 +3569,11 @@ def new_disk_vol_name(pool_name):
         LOG.error("This is not a disk pool")
         return None
     disk = poolxml.source.device_path[5:]
-    part_num = len(list(filter(lambda s: s.startswith(disk),
-                               utils_misc.utils_disk.get_parts_list())))
+    part_num = len(
+        list(
+            filter(lambda s: s.startswith(disk), utils_misc.utils_disk.get_parts_list())
+        )
+    )
     return disk + str(part_num)
 
 
@@ -3393,7 +3588,7 @@ def update_polkit_rule(params, pattern, new_value):
     polkit = test_setup.LibvirtPolkitConfig(params)
     polkit_rules_path = polkit.polkit_rules_path
     try:
-        polkit_f = open(polkit_rules_path, 'r+')
+        polkit_f = open(polkit_rules_path, "r+")
         rule = polkit_f.read()
         new_rule = re.sub(pattern, new_value, rule)
         polkit_f.seek(0)
@@ -3418,8 +3613,9 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
     :return: A dict include volumes' name(key) and path(value).
     """
     poolvol = libvirt_storage.PoolVolume(pool_name=pool_name)
-    vols = utils_misc.wait_for(poolvol.list_volumes, timeout,
-                               text='Waiting for volume show up')
+    vols = utils_misc.wait_for(
+        poolvol.list_volumes, timeout, text="Waiting for volume show up"
+    )
     if not vol_check:
         return vols
 
@@ -3429,8 +3625,11 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
 
     # Check volume
     for vol_path in six.itervalues(vols):
-        if not utils_misc.wait_for(lambda: os.path.exists(vol_path), timeout,
-                                   text='Waiting for %s show up' % vol_path):
+        if not utils_misc.wait_for(
+            lambda: os.path.exists(vol_path),
+            timeout,
+            text="Waiting for %s show up" % vol_path,
+        ):
             raise exceptions.TestError("Volume path %s not exist" % vol_path)
 
     return vols
@@ -3458,8 +3657,7 @@ def get_iothreadsinfo(vm_name, options=None):
         {'2': '3', '1': '0-4', '4': '0-7', '3': '0-7'}
     """
     info_dict = {}
-    ret = virsh.iothreadinfo(vm_name, options,
-                             debug=True, ignore_status=True)
+    ret = virsh.iothreadinfo(vm_name, options, debug=True, ignore_status=True)
     if ret.exit_status:
         LOG.warning(ret.stderr_text.strip())
         return info_dict
@@ -3507,10 +3705,11 @@ def create_secret(params, remote_args=None):
     sec_name = params.get("sec_name", "secret_name")
     sec_target = params.get("sec_target", "secret_target")
 
-    supporting_usage_types = ['volume', 'ceph', 'iscsi', 'tls', 'vtpm']
+    supporting_usage_types = ["volume", "ceph", "iscsi", "tls", "vtpm"]
     if sec_usage_type not in supporting_usage_types:
-        raise exceptions.TestError("Supporting secret usage types are: %s" %
-                                   supporting_usage_types)
+        raise exceptions.TestError(
+            "Supporting secret usage types are: %s" % supporting_usage_types
+        )
 
     # prepare secret xml
     sec_xml = secret_xml.SecretXML("no", "yes")
@@ -3525,11 +3724,11 @@ def create_secret(params, remote_args=None):
         sec_xml.uuid = sec_uuid
     sec_xml.usage = sec_usage_type
     # set specific attributes for different usage type
-    if sec_usage_type in ['volume']:
+    if sec_usage_type in ["volume"]:
         sec_xml.volume = sec_volume
-    if sec_usage_type in ['ceph', 'tls', 'vtpm']:
+    if sec_usage_type in ["ceph", "tls", "vtpm"]:
         sec_xml.usage_name = sec_name
-    if sec_usage_type in ['iscsi']:
+    if sec_usage_type in ["iscsi"]:
         sec_xml.target = sec_target
     sec_xml.xmltreefile.write()
     LOG.debug("The secret xml is: %s" % sec_xml)
@@ -3542,17 +3741,25 @@ def create_secret(params, remote_args=None):
         if not all([server_ip, server_user, server_pwd]):
             raise exceptions.TestError("remote_[ip|user|pwd] are necessary!")
         remote_virsh_session = virsh.VirshPersistent(**remote_args)
-        remote.scp_to_remote(server_ip, '22', server_user, server_pwd,
-                             sec_xml.xml, sec_xml.xml, limit="",
-                             log_filename=None, timeout=600, interface=None)
+        remote.scp_to_remote(
+            server_ip,
+            "22",
+            server_user,
+            server_pwd,
+            sec_xml.xml,
+            sec_xml.xml,
+            limit="",
+            log_filename=None,
+            timeout=600,
+            interface=None,
+        )
         ret = remote_virsh_session.secret_define(sec_xml.xml)
         remote_virsh_session.close_session()
     else:
         ret = virsh.secret_define(sec_xml.xml)
     check_exit_status(ret)
     try:
-        sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+",
-                              ret.stdout_text)[0].lstrip()
+        sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+", ret.stdout_text)[0].lstrip()
     except IndexError:
         raise exceptions.TestError("Fail to get newly created secret uuid")
 
@@ -3576,56 +3783,56 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
     xml_devices = vmxml.devices
-    iface_type = iface_dict.get('type')
+    iface_type = iface_dict.get("type")
 
     try:
-        iface_index = xml_devices.index(
-            xml_devices.by_device_tag("interface")[index])
+        iface_index = xml_devices.index(xml_devices.by_device_tag("interface")[index])
         iface = xml_devices[iface_index]
     except IndexError:
         iface = interface.Interface(iface_type)
         xml_devices.append(iface)
 
-    iface_driver = iface_dict.get('driver')
-    driver_host = iface_dict.get('driver_host')
-    driver_guest = iface_dict.get('driver_guest')
-    iface_model = iface_dict.get('model')
-    iface_rom = iface_dict.get('rom')
-    iface_inbound = iface_dict.get('inbound')
-    iface_outbound = iface_dict.get('outbound')
-    iface_link = iface_dict.get('link')
-    iface_source = iface_dict.get('source')
-    iface_target = iface_dict.get('target')
-    iface_addr = iface_dict.get('addr')
-    iface_filter = iface_dict.get('filter')
-    boot_order = iface_dict.get('boot')
-    iface_backend = iface_dict.get('backend')
-    iface_mac = iface_dict.get('mac')
-    iface_mtu = iface_dict.get('mtu')
-    iface_managed = iface_dict.get('managed')
-    iface_alias = iface_dict.get('alias')
-    iface_teaming = iface_dict.get('teaming')
-    iface_virtualport_type = iface_dict.get('virtualport_type')
-    iface_filter_parameters = iface_dict.get('filter_parameters')
-    iface_port = iface_dict.get('port')
-    iface_coalesce = iface_dict.get('coalesce')
-    hostdev_addr = iface_dict.get('hostdev_addr')
-    del_addr = iface_dict.get('del_addr')
-    del_rom = iface_dict.get('del_rom')
-    del_filter = iface_dict.get('del_filter')
-    del_port = iface_dict.get('del_port')
-    del_mac = iface_dict.get('del_mac')
-    del_coalesce = iface_dict.get('del_coalesce')
-    del_alias = iface_dict.get('del_alias')
-    del_target = iface_dict.get('del_target')
-    del_bandwidth = iface_dict.get('del_bandwidth')
+    iface_driver = iface_dict.get("driver")
+    driver_host = iface_dict.get("driver_host")
+    driver_guest = iface_dict.get("driver_guest")
+    iface_model = iface_dict.get("model")
+    iface_rom = iface_dict.get("rom")
+    iface_inbound = iface_dict.get("inbound")
+    iface_outbound = iface_dict.get("outbound")
+    iface_link = iface_dict.get("link")
+    iface_source = iface_dict.get("source")
+    iface_target = iface_dict.get("target")
+    iface_addr = iface_dict.get("addr")
+    iface_filter = iface_dict.get("filter")
+    boot_order = iface_dict.get("boot")
+    iface_backend = iface_dict.get("backend")
+    iface_mac = iface_dict.get("mac")
+    iface_mtu = iface_dict.get("mtu")
+    iface_managed = iface_dict.get("managed")
+    iface_alias = iface_dict.get("alias")
+    iface_teaming = iface_dict.get("teaming")
+    iface_virtualport_type = iface_dict.get("virtualport_type")
+    iface_filter_parameters = iface_dict.get("filter_parameters")
+    iface_port = iface_dict.get("port")
+    iface_coalesce = iface_dict.get("coalesce")
+    hostdev_addr = iface_dict.get("hostdev_addr")
+    del_addr = iface_dict.get("del_addr")
+    del_rom = iface_dict.get("del_rom")
+    del_filter = iface_dict.get("del_filter")
+    del_port = iface_dict.get("del_port")
+    del_mac = iface_dict.get("del_mac")
+    del_coalesce = iface_dict.get("del_coalesce")
+    del_alias = iface_dict.get("del_alias")
+    del_target = iface_dict.get("del_target")
+    del_bandwidth = iface_dict.get("del_bandwidth")
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
         iface.driver = iface.new_driver(
             driver_attr=eval(iface_driver),
             driver_host=eval(driver_host) if driver_host else {},
-            driver_guest=eval(driver_guest) if driver_guest else {})
+            driver_guest=eval(driver_guest) if driver_guest else {},
+        )
     if iface_model:
         iface.model = iface_model
     if del_rom:
@@ -3635,7 +3842,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_inbound:
         iface.bandwidth = iface.new_bandwidth(
             inbound=eval(iface_inbound),
-            outbound=eval(iface_outbound) if iface_outbound else {})
+            outbound=eval(iface_outbound) if iface_outbound else {},
+        )
     if iface_link:
         iface.link_state = iface_link
     if iface_source:
@@ -3643,11 +3851,9 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_target:
         iface.target = eval(iface_target)
     if iface_addr:
-        iface.address = iface.new_iface_address(
-            **{"attrs": eval(iface_addr)})
+        iface.address = iface.new_iface_address(**{"attrs": eval(iface_addr)})
     if hostdev_addr:
-        iface.hostdev_address = iface.new_iface_address(
-            **{"attrs": eval(hostdev_addr)})
+        iface.hostdev_address = iface.new_iface_address(**{"attrs": eval(hostdev_addr)})
     if del_addr:
         iface.del_address()
     if del_filter:
@@ -3657,7 +3863,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if del_mac:
         iface.del_mac_address()
     if del_coalesce:
-        iface.xmltreefile.remove_by_xpath('coalesce')
+        iface.xmltreefile.remove_by_xpath("coalesce")
     if del_alias:
         iface.del_alias()
     if del_target:
@@ -3666,7 +3872,9 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface.del_bandwidth()
     if iface_filter:
         if iface_filter_parameters:
-            iface.filterref = iface.new_filterref(name=iface_filter, parameters=iface_filter_parameters)
+            iface.filterref = iface.new_filterref(
+                name=iface_filter, parameters=iface_filter_parameters
+            )
         else:
             iface.filterref = iface.new_filterref(name=iface_filter)
     if boot_order:
@@ -3684,7 +3892,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_teaming:
         iface.teaming = eval(iface_teaming)
     if iface_virtualport_type:
-        iface.setup_attrs(virtualport={'type': iface_virtualport_type})
+        iface.setup_attrs(virtualport={"type": iface_virtualport_type})
     if iface_port:
         iface.port = eval(iface_port)
     if iface_coalesce:
@@ -3695,7 +3903,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         vmxml.sync()
     elif oper == "get_xml":
         LOG.info("iface xml is %s", iface)
-        wait_for_file_over('</interface>', iface.xml)
+        wait_for_file_over("</interface>", iface.xml)
         return iface.xml
 
 
@@ -3730,26 +3938,31 @@ def check_machine_type_arch(machine_type):
     """
     if not machine_type:
         return
-    arch_machine_map = {'x86_64': ['pc', 'q35'],
-                        'ppc64le': ['pseries'],
-                        's390x': ['s390-ccw-virtio'],
-                        'aarch64': ['arm64-mmio:virt', 'arm64-pci:virt']}
+    arch_machine_map = {
+        "x86_64": ["pc", "q35"],
+        "ppc64le": ["pseries"],
+        "s390x": ["s390-ccw-virtio"],
+        "aarch64": ["arm64-mmio:virt", "arm64-pci:virt"],
+    }
     arch = platform.machine()
     if machine_type not in arch_machine_map[arch]:
-        raise exceptions.TestSkipError("This machine type '%s' is not "
-                                       "supported on the host with "
-                                       "arch '%s'" % (machine_type,
-                                                      arch))
+        raise exceptions.TestSkipError(
+            "This machine type '%s' is not "
+            "supported on the host with "
+            "arch '%s'" % (machine_type, arch)
+        )
 
 
-def customize_libvirt_config(params,
-                             config_type="virtqemud",
-                             remote_host=False,
-                             extra_params=None,
-                             is_recover=False,
-                             config_object=None,
-                             restart_libvirt=True,
-                             force=False):
+def customize_libvirt_config(
+    params,
+    config_type="virtqemud",
+    remote_host=False,
+    extra_params=None,
+    is_recover=False,
+    config_object=None,
+    restart_libvirt=True,
+    force=False,
+):
     """
     Customize configuration files for libvirt
     on local and remote host if needed
@@ -3776,22 +3989,41 @@ def customize_libvirt_config(params,
     # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
     # On the contrary, hardcode it to "libvirtd" when config_type="virt*d".
     # Otherwise accept config_type as it is.
-    modular_daemons = ["virtqemud", "virtproxyd", "virtnetworkd",
-                       "virtstoraged", "virtinterfaced", "virtnodedevd",
-                       "virtnwfilterd", "virtsecretd"]
+    modular_daemons = [
+        "virtqemud",
+        "virtproxyd",
+        "virtnetworkd",
+        "virtstoraged",
+        "virtinterfaced",
+        "virtnodedevd",
+        "virtnwfilterd",
+        "virtsecretd",
+    ]
     if utils_split_daemons.is_modular_daemon():
         if config_type in ["libvirtd"] and not force:
             config_type = "virtqemud"
     else:
         if config_type in modular_daemons:
             config_type = "libvirtd"
-    config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig",
-                           "virtqemud", "virtproxyd", "virtnetworkd",
-                           "virtstoraged", "virtinterfaced", "virtnodedevd",
-                           "virtnwfilterd", "virtsecretd", "libvirt"]
+    config_list_support = [
+        "libvirtd",
+        "qemu",
+        "sysconfig",
+        "guestconfig",
+        "virtqemud",
+        "virtproxyd",
+        "virtnetworkd",
+        "virtstoraged",
+        "virtinterfaced",
+        "virtnodedevd",
+        "virtnwfilterd",
+        "virtsecretd",
+        "libvirt",
+    ]
     if config_type not in config_list_support:
-        LOG.debug("'%s' is not in the support list '%s'",
-                  config_type, config_list_support)
+        LOG.debug(
+            "'%s' is not in the support list '%s'", config_type, config_list_support
+        )
         return None
     else:
         LOG.debug("The '%s' config file will be updated.", config_type)
@@ -3803,11 +4035,12 @@ def customize_libvirt_config(params,
         if not params or not isinstance(params, dict):
             return None
         target_conf = utils_config.get_conf_obj(config_type)
-        #if params and isinstance(params, dict):
+        # if params and isinstance(params, dict):
         for key, value in params.items():
             target_conf[key] = value
-        LOG.debug("The '%s' config file is updated with:\n %s",
-                  target_conf.conf_path, params)
+        LOG.debug(
+            "The '%s' config file is updated with:\n %s", target_conf.conf_path, params
+        )
         if restart_libvirt:
             libvirtd = utils_libvirtd.Libvirtd(daemon_name)
             libvirtd.restart()
@@ -3827,28 +4060,44 @@ def customize_libvirt_config(params,
         server_user = extra_params.get("server_user", "")
         server_pwd = extra_params.get("server_pwd", "")
         local_path = obj_conf.conf_path
-        remote.scp_to_remote(server_ip, '22', server_user, server_pwd,
-                             local_path, local_path, limit="",
-                             log_filename=None, timeout=600, interface=None)
+        remote.scp_to_remote(
+            server_ip,
+            "22",
+            server_user,
+            server_pwd,
+            local_path,
+            local_path,
+            limit="",
+            log_filename=None,
+            timeout=600,
+            interface=None,
+        )
 
         # It fails to start some daemons with a non-existent log directory，
         # so create one to avoid this problem.
         with utils_config.get_conf_obj(config_type) as config:
-            if 'log_outputs' in config and 'file:' in config.log_outputs:
-                log_outputs_list = config.log_outputs.split(':')
-                log_file_path = log_outputs_list[log_outputs_list.index('file') + 1]
+            if "log_outputs" in config and "file:" in config.log_outputs:
+                log_outputs_list = config.log_outputs.split(":")
+                log_file_path = log_outputs_list[log_outputs_list.index("file") + 1]
                 cmd = "ls {0} || mkdir -p {0}".format(os.path.dirname(log_file_path))
                 remote_old.run_remote_cmd(cmd, extra_params, ignore_status=False)
         if restart_libvirt:
-            remotely_control_libvirtd(server_ip, server_user, server_pwd,
-                                      action='restart', status_error='no')
+            remotely_control_libvirtd(
+                server_ip, server_user, server_pwd, action="restart", status_error="no"
+            )
 
     return obj_conf
 
 
-def check_logfile(search_str, log_file, str_in_log=True,
-                  cmd_parms=None, runner_on_target=None,
-                  ignore_status=False, ignore_str=""):
+def check_logfile(
+    search_str,
+    log_file,
+    str_in_log=True,
+    cmd_parms=None,
+    runner_on_target=None,
+    ignore_status=False,
+    ignore_str="",
+):
     """
     Check if the given string exists in the log file
 
@@ -3872,24 +4121,26 @@ def check_logfile(search_str, log_file, str_in_log=True,
     else:
         cmdRes = remote_old.run_remote_cmd(cmd, cmd_parms, runner_on_target)
     if str_in_log == bool(int(cmdRes.exit_status)):
-        error_msg = "The string '{}' {} included in {}".format(search_str,
-                                                               "is not" if str_in_log else "is",
-                                                               log_file)
+        error_msg = "The string '{}' {} included in {}".format(
+            search_str, "is not" if str_in_log else "is", log_file
+        )
         if not ignore_status:
             raise exceptions.TestFail(error_msg)
         else:
-            LOG.debug('Log check Fails.\n%s', error_msg)
+            LOG.debug("Log check Fails.\n%s", error_msg)
             return False
     else:
         LOG.debug('Log check for "%s" PASS', search_str)
         return True
 
 
-def check_qemu_cmd_line(content,
-                        err_ignore=False,
-                        remote_params=None,
-                        runner_on_target=None,
-                        expect_exist=True):
+def check_qemu_cmd_line(
+    content,
+    err_ignore=False,
+    remote_params=None,
+    runner_on_target=None,
+    expect_exist=True,
+):
     """
     Check the specified content in the qemu command line
     :param content: the desired string to search, string or list type
@@ -3901,7 +4152,7 @@ def check_qemu_cmd_line(content,
                                Otherwise False
     :return: True if exist, False otherwise
     """
-    cmd = 'pgrep -a qemu'
+    cmd = "pgrep -a qemu"
     if not (remote_params or runner_on_target):
         qemu_line = process.run(cmd, shell=True).stdout_text
     else:
@@ -3910,17 +4161,22 @@ def check_qemu_cmd_line(content,
     if isinstance(content, str):
         content = [content]
     for con in content:
-        search_result = True if re.search(r'%s' % con, qemu_line) else False
+        search_result = True if re.search(r"%s" % con, qemu_line) else False
 
         if search_result ^ expect_exist:
             if err_ignore:
                 return False
             else:
-                raise exceptions.TestFail("Expecting '%s' does%s "
-                                          "exist in qemu command line, "
-                                          "but %sfound" % (con,
-                                                           '' if expect_exist else ' not',
-                                                           ' not' if expect_exist else ''))
+                raise exceptions.TestFail(
+                    "Expecting '%s' does%s "
+                    "exist in qemu command line, "
+                    "but %sfound"
+                    % (
+                        con,
+                        "" if expect_exist else " not",
+                        " not" if expect_exist else "",
+                    )
+                )
         else:
             LOG.info("Qemu command line check for '%s': PASS", con)
     return True
@@ -3939,17 +4195,19 @@ def check_cmd_output(cmd, content, err_ignore=False, session=None):
     """
     if cmd is None:
         raise exceptions.TestFail("cmd can not be None")
-    s, cmd_output = utils_misc.cmd_status_output(cmd, shell=True,
-                                                 ignore_status=err_ignore, session=session)
+    s, cmd_output = utils_misc.cmd_status_output(
+        cmd, shell=True, ignore_status=err_ignore, session=session
+    )
     pattern_list = [content] if not isinstance(content, list) else content
     LOG.debug('Ran command "%s" with output "%s"', cmd, cmd_output)
     for item in pattern_list:
-        if not re.search(r'%s' % item, cmd_output):
+        if not re.search(r"%s" % item, cmd_output):
             if err_ignore:
                 return False
             else:
-                raise exceptions.TestFail("Expected '%s' was not found in "
-                                          "output of '%s'" % (item, cmd))
+                raise exceptions.TestFail(
+                    "Expected '%s' was not found in " "output of '%s'" % (item, cmd)
+                )
 
 
 def get_disk_alias(vm, source_file=None):
@@ -3962,14 +4220,15 @@ def get_disk_alias(vm, source_file=None):
     """
     if vm.is_alive():
         ori_vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
-        disks = ori_vmxml.devices.by_device_tag('disk')
+        disks = ori_vmxml.devices.by_device_tag("disk")
         for disk in disks:
-            find_source = disk.xmltreefile.find('source') is not None
+            find_source = disk.xmltreefile.find("source") is not None
             try:
-                if ((find_source and disk.source.attrs['file'] == source_file) or
-                        (not find_source and not source_file)):
-                    LOG.info("Get alias name %s", disk.alias['name'])
-                    return disk.alias['name']
+                if (find_source and disk.source.attrs["file"] == source_file) or (
+                    not find_source and not source_file
+                ):
+                    LOG.info("Get alias name %s", disk.alias["name"])
+                    return disk.alias["name"]
             except KeyError as e:
                 LOG.info("Ignore error of source attr getting for file: %s" % e)
                 pass
@@ -3987,8 +4246,8 @@ def check_domuuid_compliant_with_rfc4122(dom_uuid_value):
     :param dom_uuid_value: value of domain uuid
     :return: True or False indicate whether it is compliant with RFC 4122.
     """
-    dom_uuid_segments = dom_uuid_value.split('-')
-    return dom_uuid_segments[2].startswith('4') and dom_uuid_segments[3][0] in '89ab'
+    dom_uuid_segments = dom_uuid_value.split("-")
+    return dom_uuid_segments[2].startswith("4") and dom_uuid_segments[3][0] in "89ab"
 
 
 def check_xpaths(xml, xpaths, text=None):
@@ -4004,10 +4263,12 @@ def check_xpaths(xml, xpaths, text=None):
     :raises: TestFail if no element matches all xpaths
              and optionally the given text node
     """
-    test_failure = exceptions.TestFail("XML did not match all xpaths or text."
-                                       " XPaths: %s"
-                                       " Text: %s"
-                                       " XML: %s" % (xpaths, text, xml))
+    test_failure = exceptions.TestFail(
+        "XML did not match all xpaths or text."
+        " XPaths: %s"
+        " Text: %s"
+        " XML: %s" % (xpaths, text, xml)
+    )
 
     matches = set(xml.xmltreefile.findall(xpaths[0]))
 
@@ -4040,6 +4301,7 @@ def check_dumpxml(vm, content, err_ignore=False):
             if err_ignore:
                 return False
             else:
-                raise exceptions.TestFail("Expected '%s' was not found in "
-                                          "%s's xml" % (content, vm.name))
+                raise exceptions.TestFail(
+                    "Expected '%s' was not found in " "%s's xml" % (content, vm.name)
+                )
     return True

@@ -24,18 +24,20 @@ class Seclabel(base.TypedDeviceBase):
             string, the sec label string
     """
 
-    __slots__ = ('model', 'relabel', 'baselabel', 'label')
+    __slots__ = ("model", "relabel", "baselabel", "label")
 
-    def __init__(self, type_name='dynamic', virsh_instance=base.base.virsh):
-        accessors.XMLAttribute('model', self, parent_xpath='/',
-                               tag_name='seclabel', attribute='model')
-        accessors.XMLAttribute('relabel', self, parent_xpath='/',
-                               tag_name='seclabel', attribute='relabel')
-        accessors.XMLElementText('baselabel', self, parent_xpath='/',
-                                 tag_name='baselabel')
-        accessors.XMLElementText('label', self, parent_xpath='/',
-                                 tag_name='label')
-        super(Seclabel, self).__init__(device_tag='seclabel',
-                                       type_name=type_name,
-                                       virsh_instance=virsh_instance)
-        self.xml = '<seclabel></seclabel>'
+    def __init__(self, type_name="dynamic", virsh_instance=base.base.virsh):
+        accessors.XMLAttribute(
+            "model", self, parent_xpath="/", tag_name="seclabel", attribute="model"
+        )
+        accessors.XMLAttribute(
+            "relabel", self, parent_xpath="/", tag_name="seclabel", attribute="relabel"
+        )
+        accessors.XMLElementText(
+            "baselabel", self, parent_xpath="/", tag_name="baselabel"
+        )
+        accessors.XMLElementText("label", self, parent_xpath="/", tag_name="label")
+        super(Seclabel, self).__init__(
+            device_tag="seclabel", type_name=type_name, virsh_instance=virsh_instance
+        )
+        self.xml = "<seclabel></seclabel>"

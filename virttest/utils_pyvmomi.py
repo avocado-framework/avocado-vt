@@ -13,7 +13,7 @@ from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVim.task import WaitForTask
 from pyVmomi import vim
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def to_list(obj):
@@ -66,7 +66,7 @@ class VSphereVMNotFound(VSphereError):
         self.msg = msg
 
     def __str__(self):
-        msg = '%s: %s' % (self.msg, self.vm)
+        msg = "%s: %s" % (self.msg, self.vm)
         return msg
 
 
@@ -85,7 +85,11 @@ class VSphereDevNoChangeId(VSphereError):
 
     def __str__(self):
         msg = "%s for VM(%s): device(label='%s' key=%s)" % (
-            self.msg, self.vm, self.dev.deviceInfo.label, self.dev.key)
+            self.msg,
+            self.vm,
+            self.dev.deviceInfo.label,
+            self.dev.key,
+        )
         return msg
 
 
@@ -103,7 +107,7 @@ class VSphereSnapNotFound(VSphereError):
         self.msg = msg
 
     def __str__(self):
-        msg = '%s for VM %s: %s' % (self.msg, self.vm, self.snapshot_id)
+        msg = "%s for VM %s: %s" % (self.msg, self.vm, self.snapshot_id)
         return msg
 
 
@@ -120,7 +124,7 @@ class VSphereInvalidDevType(VSphereError):
         self.msg = msg
 
     def __str__(self):
-        msg = '%s: %s' % (self.msg, self.dev_type)
+        msg = "%s: %s" % (self.msg, self.dev_type)
         return msg
 
 
@@ -157,7 +161,7 @@ class VSphereConnection(object):
         self.vsphere_conn = None
 
         try:
-            self.vm_name = self.kwargs.pop('vm_name')
+            self.vm_name = self.kwargs.pop("vm_name")
         except KeyError:
             self.vm_name = None
 
@@ -244,8 +248,10 @@ class VSphere(object):
 
         if self.service_instance:
             LOG.debug(
-                'New vsphere connection established: %s (%s)',
-                self.service_instance, id(self.service_instance))
+                "New vsphere connection established: %s (%s)",
+                self.service_instance,
+                id(self.service_instance),
+            )
 
     def close(self):
         """
@@ -254,8 +260,11 @@ class VSphere(object):
         del self.target_vm
         if not self.service_instance:
             return
-        LOG.debug('vsphere connection closed: %s (%s)',
-                  self.service_instance, id(self.service_instance))
+        LOG.debug(
+            "vsphere connection closed: %s (%s)",
+            self.service_instance,
+            id(self.service_instance),
+        )
         Disconnect(self.service_instance)
         self.service_instance = None
 
@@ -311,10 +320,11 @@ class VSphere(object):
         ['00:50:56:a2:ee:5e']
 
         """
+
         @wraps(f)
         def wraper(self, *args, **kwargs):
-            vmobj = kwargs.get('vm_obj')
-            vm_name = kwargs.get('vm_name')
+            vmobj = kwargs.get("vm_obj")
+            vm_name = kwargs.get("vm_name")
             if not vmobj:
                 if self.target_vm:
                     # If conn is dead, reassign the
@@ -324,17 +334,19 @@ class VSphere(object):
                     vmobj = self.target_vm
                     if vm_name:
                         LOG.warning(
-                            "Have you forgotten to reset target_vm to 'new vm name'?")
+                            "Have you forgotten to reset target_vm to 'new vm name'?"
+                        )
                 elif vm_name:
                     self.target_vm = vm_name
                     vmobj = self.target_vm
                 else:
                     raise VSphereVMNotSpecified
 
-                kwargs.update({'vm_obj': vmobj})
+                kwargs.update({"vm_obj": vmobj})
 
             # pylint: disable=E1102
             return f(self, *args, **kwargs)
+
         return wraper
 
     def get_all_vms(self):
@@ -344,7 +356,10 @@ class VSphere(object):
         self.connect()
         content = self.service_instance.RetrieveContent()
         container_view = content.viewManager.CreateContainerView(
-            self.service_instance.RetrieveContent().rootFolder, [vim.VirtualMachine], True)
+            self.service_instance.RetrieveContent().rootFolder,
+            [vim.VirtualMachine],
+            True,
+        )
         return [vm for vm in container_view.view]
 
     def _get_vm(self):
@@ -377,7 +392,7 @@ class VSphere(object):
             self._target_vm = tmp_vm
             raise VSphereVMNotFound(name)
         self._target_vm_name = self._target_vm.name
-        LOG.debug('Current target VM is %s' % self._target_vm.name)
+        LOG.debug("Current target VM is %s" % self._target_vm.name)
 
     def _del_vm(self):
         """
@@ -388,10 +403,8 @@ class VSphere(object):
     # This property stands a target vm object in vsphere.
     # e.g. vim.VirtualMachine:vm-1464
     target_vm = property(
-        _get_vm,
-        _set_vm,
-        _del_vm,
-        "The target VM to check and update.")
+        _get_vm, _set_vm, _del_vm, "The target VM to check and update."
+    )
 
     @vm_picker
     def get_mac_address(self, vm_obj=None, vm_name=None):
@@ -422,24 +435,23 @@ class VSphere(object):
         raw_vmsummary = vm_obj.summary
 
         # vim.vm.Summary.ConfigSummary
-        vm_summary['name'] = raw_vmsummary.config.name
-        vm_summary['memory_mb'] = raw_vmsummary.config.memorySizeMB
-        vm_summary['vm_path'] = raw_vmsummary.config.vmPathName
-        vm_summary['num_cpu'] = raw_vmsummary.config.numCpu
-        vm_summary['num_cores_per_socket'] = vm_obj.config.hardware.numCoresPerSocket
-        vm_summary['num_ethernet_cards'] = raw_vmsummary.config.numEthernetCards
-        vm_summary['num_virtual_disks'] = raw_vmsummary.config.numVirtualDisks
-        vm_summary['uuid'] = raw_vmsummary.config.uuid
-        vm_summary['instance_uuid'] = raw_vmsummary.config.instanceUuid
+        vm_summary["name"] = raw_vmsummary.config.name
+        vm_summary["memory_mb"] = raw_vmsummary.config.memorySizeMB
+        vm_summary["vm_path"] = raw_vmsummary.config.vmPathName
+        vm_summary["num_cpu"] = raw_vmsummary.config.numCpu
+        vm_summary["num_cores_per_socket"] = vm_obj.config.hardware.numCoresPerSocket
+        vm_summary["num_ethernet_cards"] = raw_vmsummary.config.numEthernetCards
+        vm_summary["num_virtual_disks"] = raw_vmsummary.config.numVirtualDisks
+        vm_summary["uuid"] = raw_vmsummary.config.uuid
+        vm_summary["instance_uuid"] = raw_vmsummary.config.instanceUuid
 
         # vim.vm.summary.runtime
-        vm_summary['power_state'] = raw_vmsummary.runtime.powerState
+        vm_summary["power_state"] = raw_vmsummary.runtime.powerState
 
         # vim.vm.summary.guest
-        vm_summary['hostname'] = raw_vmsummary.guest.hostName
-        vm_summary['ip_address'] = raw_vmsummary.guest.ipAddress
-        vm_summary['mac_address'] = self.get_mac_address(
-            vm_obj=vm_obj, vm_name=vm_name)
+        vm_summary["hostname"] = raw_vmsummary.guest.hostName
+        vm_summary["ip_address"] = raw_vmsummary.guest.ipAddress
+        vm_summary["mac_address"] = self.get_mac_address(vm_obj=vm_obj, vm_name=vm_name)
 
         return vm_summary
 
@@ -452,7 +464,7 @@ class VSphere(object):
         :param vm_name: a vm's name
         """
         WaitForTask(vm_obj.PowerOn())
-        LOG.debug('VM %s was powered on', vm_obj.name)
+        LOG.debug("VM %s was powered on", vm_obj.name)
 
     @vm_picker
     def power_off(self, vm_obj=None, vm_name=None):
@@ -466,7 +478,7 @@ class VSphere(object):
         :param vm_name: a vm's name
         """
         WaitForTask(vm_obj.PowerOff())
-        LOG.debug('VM %s was powered off', vm_obj.name)
+        LOG.debug("VM %s was powered off", vm_obj.name)
 
     @vm_picker
     def remove_all_snapshots(self, vm_obj=None, vm_name=None):
@@ -478,7 +490,7 @@ class VSphere(object):
         """
         if not vm_obj.snapshot:
             return
-        LOG.debug('Remove all snapshots for VM %s', vm_obj.name)
+        LOG.debug("Remove all snapshots for VM %s", vm_obj.name)
         WaitForTask(vm_obj.RemoveAllSnapshots())
 
     @vm_picker
@@ -491,10 +503,8 @@ class VSphere(object):
         """
         if not vm_obj.snapshot:
             return
-        LOG.debug('Remove current snapshot for VM %s', vm_obj.name)
-        WaitForTask(
-            vm_obj.snapshot.currentSnapshot.Remove(
-                removeChildren=True))
+        LOG.debug("Remove current snapshot for VM %s", vm_obj.name)
+        WaitForTask(vm_obj.snapshot.currentSnapshot.Remove(removeChildren=True))
 
     @vm_picker
     def find_snapshot_by_id(self, snapshot_id, vm_obj=None, vm_name=None):
@@ -511,6 +521,7 @@ class VSphere(object):
         :param vm_obj: a vsphere vm object
         :param vm_name: a vm's name
         """
+
         def _find_snapshot_by_recursive(snap, snapshot_id):
             if snapshot_id == snap.snapshot._moId:
                 return snap.snapshot
@@ -528,12 +539,13 @@ class VSphere(object):
 
     @vm_picker
     def remove_snapshot_by_id(
-            self,
-            snapshot_id,
-            vm_obj=None,
-            vm_name=None,
-            remove_children=True,
-            raise_not_found=False):
+        self,
+        snapshot_id,
+        vm_obj=None,
+        vm_name=None,
+        remove_children=True,
+        raise_not_found=False,
+    ):
         """
         Remove a vm's snapshot by the snapshot ID
 
@@ -555,12 +567,11 @@ class VSphere(object):
                 raise VSphereSnapNotFound(vm_obj.name, snapshot_id)
             else:
                 LOG.debug(
-                    'Not found snapshot_id %s for VM %s',
-                    snapshot_id,
-                    vm_obj.name)
+                    "Not found snapshot_id %s for VM %s", snapshot_id, vm_obj.name
+                )
                 return
 
-        LOG.debug('Remove snapshot %s for VM %s', snap, vm_obj.name)
+        LOG.debug("Remove snapshot %s for VM %s", snap, vm_obj.name)
         WaitForTask(snap.Remove(removeChildren=remove_children))
 
     @vm_picker
@@ -579,20 +590,18 @@ class VSphere(object):
         WaitForTask(vm_obj.Reconfigure(config_spec))
         WaitForTask(
             vm_obj.CreateSnapshot(
-                name='Testing Snapshot CBT',
-                description='Created at %s by Avocado-VT on testing host' %
-                str(
-                    datetime.datetime.now()),
+                name="Testing Snapshot CBT",
+                description="Created at %s by Avocado-VT on testing host"
+                % str(datetime.datetime.now()),
                 memory=False,
-                quiesce=True))
+                quiesce=True,
+            )
+        )
 
     @vm_picker
     def get_hardware_devices(
-            self,
-            vm_obj=None,
-            vm_name=None,
-            devices=None,
-            dev_type=None):
+        self, vm_obj=None, vm_name=None, devices=None, dev_type=None
+    ):
         """
         Return all hardware devices of the VM or filter the devices
         by dev_type.
@@ -656,31 +665,33 @@ class VSphere(object):
         res = [dev for dev in devs if all([cond(dev) for cond in conds])]
         if len(res) > 1:
             raise VSphereError(
-                "Mutiple devices are found for label(%s) or key(%s)" %
-                (label, key))
+                "Mutiple devices are found for label(%s) or key(%s)" % (label, key)
+            )
 
         if not res:
             raise VSphereError(
-                "Not found device for label(%s) or key(%s)" %
-                (label, key))
+                "Not found device for label(%s) or key(%s)" % (label, key)
+            )
 
         LOG.debug(
             "Found device: label(%s) key(%s) summary(%s)",
             res[0].deviceInfo.label,
             res[0].key,
-            res[0].deviceInfo.summary)
+            res[0].deviceInfo.summary,
+        )
         return res[0]
 
     @vm_picker
     def query_changed_disk_areas(
-            self,
-            vm_obj=None,
-            vm_name=None,
-            start_offset=0,
-            disk_label=None,
-            disk_key=None,
-            snapshot=None,
-            snapshot_id=None):
+        self,
+        vm_obj=None,
+        vm_name=None,
+        start_offset=0,
+        disk_label=None,
+        disk_key=None,
+        snapshot=None,
+        snapshot_id=None,
+    ):
         """
         Get a list of areas of a virtual disk belonging to this VM that
         have been modified since a well-defined point in the past.
@@ -716,11 +727,13 @@ class VSphere(object):
             all_devs = snapshot.config.hardware.device
 
         disk_devs = self.get_hardware_devices(
-            devices=all_devs, dev_type=vim.vm.device.VirtualDisk)
+            devices=all_devs, dev_type=vim.vm.device.VirtualDisk
+        )
         dev = self.get_dev_by_key_or_label(disk_devs, disk_label, disk_key)
         if not dev.backing.changeId:
             raise VSphereDevNoChangeId(vm_obj.name, dev)
 
         # if snapshot is None, currentsnapshot is used
         return vm_obj.QueryChangedDiskAreas(
-            snapshot, dev.key, start_offset, dev.backing.changeId)
+            snapshot, dev.key, start_offset, dev.backing.changeId
+        )

@@ -7,7 +7,7 @@ from virttest import remote
 
 from virttest.staging import service
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_service_name(params):
@@ -25,9 +25,9 @@ def get_service_name(params):
     s_name = None
     if service_name == "libvirtd":
         if service_on_dst:
-            remote_session = remote.wait_for_login('ssh', server_ip, '22',
-                                                   server_user, server_pwd,
-                                                   r"[\#\$]\s*$")
+            remote_session = remote.wait_for_login(
+                "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+            )
             s_name = utils_libvirtd.Libvirtd(session=remote_session).service_name
             remote_session.close()
         else:
@@ -68,9 +68,9 @@ def control_service(params):
 
     service_name = get_service_name(params)
     if service_on_dst:
-        remote_runner = remote.RemoteRunner(host=server_ip,
-                                            username=server_user,
-                                            password=server_pwd)
+        remote_runner = remote.RemoteRunner(
+            host=server_ip, username=server_user, password=server_pwd
+        )
         runner = remote_runner.run
     else:
         runner = process.run
@@ -93,11 +93,13 @@ def ensure_service_status(service_name, expect_active=True):
     """
     srvc = service.Factory.create_service(service_name)
     status = srvc.status()
-    LOG.debug(f'Current service status of {service_name} is {"active" if status else "inactive"}')
+    LOG.debug(
+        f'Current service status of {service_name} is {"active" if status else "inactive"}'
+    )
     if not status and expect_active:
-        LOG.debug(f'Starting service {service_name}')
+        LOG.debug(f"Starting service {service_name}")
         srvc.start()
     if status and not expect_active:
-        LOG.debug(f'Stopping service {service_name}')
+        LOG.debug(f"Stopping service {service_name}")
         srvc.stop()
     return status

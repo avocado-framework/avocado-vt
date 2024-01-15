@@ -3,7 +3,7 @@ import resource
 
 from virttest.test_setup.core import Setuper
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class UlimitConfig(Setuper):
@@ -19,9 +19,11 @@ class UlimitConfig(Setuper):
     vt_ulimit_memlock: The maximum size a process may lock into memory.
     """
 
-    ulimit_options = {"core": resource.RLIMIT_CORE,
-                      "nofile": resource.RLIMIT_NOFILE,
-                      "memlock": resource.RLIMIT_MEMLOCK}
+    ulimit_options = {
+        "core": resource.RLIMIT_CORE,
+        "nofile": resource.RLIMIT_NOFILE,
+        "memlock": resource.RLIMIT_MEMLOCK,
+    }
 
     def _set(self):
         self.ulimit = {}
@@ -38,11 +40,11 @@ class UlimitConfig(Setuper):
             elif set_value.isdigit():
                 set_value = int(set_value)
             else:
-                self.test.error("%s is not supported for "
-                                "setting ulimit %s" % (set_value, key))
+                self.test.error(
+                    "%s is not supported for " "setting ulimit %s" % (set_value, key)
+                )
             try:
-                resource.setrlimit(self.ulimit_options[key],
-                                   (set_value, set_value))
+                resource.setrlimit(self.ulimit_options[key], (set_value, set_value))
             except ValueError as error:
                 self.test.error(str(error))
 

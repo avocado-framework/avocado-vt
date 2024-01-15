@@ -81,8 +81,9 @@ class RoundRobinManager(IOThreadManagerBase):
         """Return iothread with least device attached."""
         if iothread == "AUTO" or iothread == "auto":
             try:
-                return min(self._iothread_finder.values(),
-                           key=self._iothread_cmpkey_getter)
+                return min(
+                    self._iothread_finder.values(), key=self._iothread_cmpkey_getter
+                )
             except ValueError:
                 raise KeyError("No available iothread to allocate")
         else:

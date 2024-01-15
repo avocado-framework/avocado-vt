@@ -21,9 +21,10 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
 import sys
 import os
 import logging
+
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import asset
@@ -42,21 +43,24 @@ def download_assets():
     all_assets_sorted = []
     if all_assets:
         logging.info("Available download assets:")
-        title_list = [a['title'] for a in all_assets]
+        title_list = [a["title"] for a in all_assets]
         for index, title in enumerate(sorted(title_list)):
-            asset_info = [a for a in all_assets if a['title'] == title][0]
+            asset_info = [a for a in all_assets if a["title"] == title][0]
             all_assets_sorted.append(asset_info)
-            asset_present_str = TERM_SUPPORT.partial_str('Missing')
-            if asset_info['asset_exists']:
-                asset_present_str = TERM_SUPPORT.healthy_str('Present')
-            asset_msg = ("%s - [%s] %s (%s)" %
-                         (index + 1,
-                          asset_present_str,
-                          TERM_SUPPORT.header_str(asset_info['title']),
-                          asset_info['destination']))
+            asset_present_str = TERM_SUPPORT.partial_str("Missing")
+            if asset_info["asset_exists"]:
+                asset_present_str = TERM_SUPPORT.healthy_str("Present")
+            asset_msg = "%s - [%s] %s (%s)" % (
+                index + 1,
+                asset_present_str,
+                TERM_SUPPORT.header_str(asset_info["title"]),
+                asset_info["destination"],
+            )
             logging.info(asset_msg)
-    indexes = input("Type the index for the assets you want to "
-                    "download (comma separated, leave empty to abort): ")
+    indexes = input(
+        "Type the index for the assets you want to "
+        "download (comma separated, leave empty to abort): "
+    )
 
     index_list = []
 
@@ -75,10 +79,8 @@ def download_assets():
         try:
             asset.download_file(asset_info, interactive=True)
         except urllib.error.HTTPError as http_error:
-            logging.error("HTTP Error %s: URL %s",
-                          http_error.code,
-                          asset_info['url'])
-            os.remove(asset_info['destination'])
+            logging.error("HTTP Error %s: URL %s", http_error.code, asset_info["url"])
+            os.remove(asset_info["destination"])
 
 
 if __name__ == "__main__":

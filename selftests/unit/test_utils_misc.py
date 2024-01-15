@@ -10,7 +10,7 @@ from avocado.utils import process
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest.unittest_utils import mock
@@ -20,7 +20,6 @@ from virttest import build_helper
 
 
 class TestUtilsMisc(unittest.TestCase):
-
     def test_cpu_vendor_intel(self):
         cpu_info = """processor : 0
 vendor_id       : GenuineIntel
@@ -29,7 +28,7 @@ model           : 58
 model name      : Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz
 """
         vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, 'GenuineIntel')
+        self.assertEqual(vendor, "GenuineIntel")
 
     def test_cpu_vendor_amd(self):
         cpu_info = """processor : 3
@@ -39,30 +38,26 @@ model           : 16
 model name      : AMD A10-5800K APU with Radeon(tm) HD Graphics
 """
         vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, 'AuthenticAMD')
+        self.assertEqual(vendor, "AuthenticAMD")
 
     def test_vendor_unknown(self):
         cpu_info = "this is an unknown cpu"
         vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, 'unknown')
+        self.assertEqual(vendor, "unknown")
 
     def test_get_archive_tarball_name(self):
-        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
-                                                           'tmp-archive',
-                                                           'bz2')
-        self.assertEqual(tarball_name, 'tmp-archive.tar.bz2')
+        tarball_name = utils_misc.get_archive_tarball_name("/tmp", "tmp-archive", "bz2")
+        self.assertEqual(tarball_name, "tmp-archive.tar.bz2")
 
     def test_get_archive_tarball_name_absolute(self):
-        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
-                                                           '/var/tmp/tmp',
-                                                           'bz2')
-        self.assertEqual(tarball_name, '/var/tmp/tmp.tar.bz2')
+        tarball_name = utils_misc.get_archive_tarball_name(
+            "/tmp", "/var/tmp/tmp", "bz2"
+        )
+        self.assertEqual(tarball_name, "/var/tmp/tmp.tar.bz2")
 
     def test_get_archive_tarball_name_from_dir(self):
-        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
-                                                           None,
-                                                           'bz2')
-        self.assertEqual(tarball_name, 'tmp.tar.bz2')
+        tarball_name = utils_misc.get_archive_tarball_name("/tmp", None, "bz2")
+        self.assertEqual(tarball_name, "tmp.tar.bz2")
 
     def test_git_repo_param_helper(self):
         config = """git_repo_foo_uri = git://git.foo.org/foo.git
@@ -74,11 +69,11 @@ git_repo_foo_commit = bc732ad8b2ed8be52160b893735417b43a1e91a8
         config_parser.parse_string(config)
         params = next(config_parser.get_dicts())
 
-        h = build_helper.GitRepoParamHelper(params, 'foo', '/tmp/foo')
-        self.assertEqual(h.name, 'foo')
-        self.assertEqual(h.branch, 'next')
-        self.assertEqual(h.lbranch, 'local')
-        self.assertEqual(h.commit, 'bc732ad8b2ed8be52160b893735417b43a1e91a8')
+        h = build_helper.GitRepoParamHelper(params, "foo", "/tmp/foo")
+        self.assertEqual(h.name, "foo")
+        self.assertEqual(h.branch, "next")
+        self.assertEqual(h.lbranch, "local")
+        self.assertEqual(h.commit, "bc732ad8b2ed8be52160b893735417b43a1e91a8")
 
     def test_normalize_data_size(self):
         n1 = utils_misc.normalize_data_size("12M")
@@ -96,11 +91,11 @@ git_repo_foo_commit = bc732ad8b2ed8be52160b893735417b43a1e91a8
 
 
 class FakeCmd(object):
-
     def __init__(self, cmd):
         self.fake_cmds = [
-            {"cmd": "numactl --hardware",
-             "stdout": """
+            {
+                "cmd": "numactl --hardware",
+                "stdout": """
 available: 1 nodes (0)
 node 0 cpus: 0 1 2 3 4 5 6 7
 node 0 size: 18431 MB
@@ -108,9 +103,11 @@ node 0 free: 17186 MB
 node distances:
 node   0
   0:  10
-"""},
-            {"cmd": "ps -eLf | awk '{print $4}'",
-             "stdout": """
+""",
+            },
+            {
+                "cmd": "ps -eLf | awk '{print $4}'",
+                "stdout": """
 1230
 1231
 1232
@@ -119,7 +116,8 @@ node   0
 1235
 1236
 1237
-"""},
+""",
+            },
             {"cmd": "taskset -cp 0 1230", "stdout": ""},
             {"cmd": "taskset -cp 1 1231", "stdout": ""},
             {"cmd": "taskset -cp 2 1232", "stdout": ""},
@@ -128,15 +126,14 @@ node   0
             {"cmd": "taskset -cp 5 1235", "stdout": ""},
             {"cmd": "taskset -cp 6 1236", "stdout": ""},
             {"cmd": "taskset -cp 7 1237", "stdout": ""},
-
         ]
 
         self.stdout = self.get_stdout(cmd)
 
     def get_stdout(self, cmd):
         for fake_cmd in self.fake_cmds:
-            if fake_cmd['cmd'] == cmd:
-                return fake_cmd['stdout']
+            if fake_cmd["cmd"] == cmd:
+                return fake_cmd["stdout"]
         raise ValueError("Could not locate locate '%s' on fake cmd db" % cmd)
 
 
@@ -149,10 +146,9 @@ online_nodes_contents = "0\n"
 
 
 class TestNumaNode(unittest.TestCase):
-
     def setUp(self):
         self.god = mock.mock_god(ut=self)
-        self.god.stub_with(process, 'run', utils_run)
+        self.god.stub_with(process, "run", utils_run)
         all_nodes = tempfile.NamedTemporaryFile(delete=False)
         all_nodes.write(all_nodes_contents)
         all_nodes.close()
@@ -161,12 +157,12 @@ class TestNumaNode(unittest.TestCase):
         online_nodes.close()
         self.all_nodes_path = all_nodes.name
         self.online_nodes_path = online_nodes.name
-        self.numa_node = utils_misc.NumaNode(-1,
-                                             self.all_nodes_path,
-                                             self.online_nodes_path)
+        self.numa_node = utils_misc.NumaNode(
+            -1, self.all_nodes_path, self.online_nodes_path
+        )
 
     def test_get_node_cpus(self):
-        self.assertEqual(self.numa_node.get_node_cpus(0), '0 1 2 3 4 5 6 7')
+        self.assertEqual(self.numa_node.get_node_cpus(0), "0 1 2 3 4 5 6 7")
 
     def test_pin_cpu(self):
         self.assertEqual(self.numa_node.pin_cpu("1230"), "0")
@@ -207,15 +203,63 @@ class TestNumaNode(unittest.TestCase):
         self.assertEqual(self.numa_node.dict["1"], ["1231"])
 
     def test_bitlist_to_string(self):
-        string = 'foo'
-        bitlist = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1,
-                   1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1]
+        string = "foo"
+        bitlist = [
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+        ]
         self.assertEqual(utils_misc.string_to_bitlist(string), bitlist)
 
     def test_string_to_bitlist(self):
-        bitlist = [0, 1, 1, 0, 0, 0, 1, 0, 0, 1,
-                   1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0]
-        string = 'bar'
+        bitlist = [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            0,
+        ]
+        string = "bar"
         self.assertEqual(utils_misc.bitlist_to_string(bitlist), string)
 
     def tearDown(self):
@@ -224,5 +268,5 @@ class TestNumaNode(unittest.TestCase):
         os.unlink(self.online_nodes_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

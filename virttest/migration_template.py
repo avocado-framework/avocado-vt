@@ -27,24 +27,24 @@ from virttest.utils_libvirt.libvirt_config import remove_key_for_modular_daemon
 
 
 # Migration flags
-VIR_MIGRATE_LIVE = (1 << 0)
-VIR_MIGRATE_PEER2PEER = (1 << 1)
-VIR_MIGRATE_TUNNELLED = (1 << 2)
-VIR_MIGRATE_COMPRESSED = (1 << 3)
-VIR_MIGRATE_AUTO_CONVERGE = (1 << 4)
-VIR_MIGRATE_POSTCOPY = (1 << 5)
-VIR_MIGRATE_TLS = (1 << 6)
-VIR_MIGRATE_PERSIST_DEST = (1 << 7)
-VIR_MIGRATE_UNDEFINE_SOURCE = (1 << 8)
-VIR_MIGRATE_PAUSED = (1 << 9)
-VIR_MIGRATE_NON_SHARED_DISK = (1 << 10)
-VIR_MIGRATE_NON_SHARED_INC = (1 << 11)
-VIR_MIGRATE_ABORT_ON_ERROR = (1 << 12)
-VIR_MIGRATE_PARALLEL = (1 << 13)
-VIR_MIGRATE_PERSIST_DEST_XML = (1 << 14)
-VIR_MIGRATE_DEST_XML = (1 << 15)
+VIR_MIGRATE_LIVE = 1 << 0
+VIR_MIGRATE_PEER2PEER = 1 << 1
+VIR_MIGRATE_TUNNELLED = 1 << 2
+VIR_MIGRATE_COMPRESSED = 1 << 3
+VIR_MIGRATE_AUTO_CONVERGE = 1 << 4
+VIR_MIGRATE_POSTCOPY = 1 << 5
+VIR_MIGRATE_TLS = 1 << 6
+VIR_MIGRATE_PERSIST_DEST = 1 << 7
+VIR_MIGRATE_UNDEFINE_SOURCE = 1 << 8
+VIR_MIGRATE_PAUSED = 1 << 9
+VIR_MIGRATE_NON_SHARED_DISK = 1 << 10
+VIR_MIGRATE_NON_SHARED_INC = 1 << 11
+VIR_MIGRATE_ABORT_ON_ERROR = 1 << 12
+VIR_MIGRATE_PARALLEL = 1 << 13
+VIR_MIGRATE_PERSIST_DEST_XML = 1 << 14
+VIR_MIGRATE_DEST_XML = 1 << 15
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 # Phase of the migration test
@@ -79,7 +79,7 @@ class Error(Exception):
     """
 
     def __str__(self):
-        return ('Error in phase %s:\n' % CURRENT_PHASE.name)
+        return "Error in phase %s:\n" % CURRENT_PHASE.name
 
 
 class MigrationTemplate(object):
@@ -198,8 +198,7 @@ class MigrationTemplate(object):
         # Initiate the params
         self.uri_type = params.get("uri_type", "qemu_system")
         self.migrate_desturi_proto = params.get("migrate_desturi_proto", "tcp")
-        self.virsh_migrate_options = params.get("virsh_migrate_options",
-                                                "--live --p2p")
+        self.virsh_migrate_options = params.get("virsh_migrate_options", "--live --p2p")
         self.persistdest = params.get("persistdest")
         self.undefinesource = params.get("undefinesource")
         self.suspend = params.get("suspend")
@@ -224,46 +223,49 @@ class MigrationTemplate(object):
         self.dest_xml = params.get("dest_xml")
         self.dest_persist_xml = params.get("dest_persist_xml")
 
-        self.migrate_thread_timeout = int(
-                params.get("migrate_thread_timeout", "900")
-                )
+        self.migrate_thread_timeout = int(params.get("migrate_thread_timeout", "900"))
         self.migrate_vm_back = params.get("migrate_vm_back", "yes")
-        self.migrate_main_vm_name = params.get("migrate_main_vm",
-                                               "avocado-vt-vm1")
+        self.migrate_main_vm_name = params.get("migrate_main_vm", "avocado-vt-vm1")
         self.migrate_vms_name = params.get("migrate_vms", "")
         self.storage_type = params.get("storage_type")
         self.nfs_mount_dir = params.get("nfs_mount_dir")
         self.local_ip = params.get("local_ip")
-        self.remote_ip = params.get('remote_ip')
-        self.remote_user = params.get('remote_user')
-        self.remote_pwd = params.get('remote_pwd')
+        self.remote_ip = params.get("remote_ip")
+        self.remote_user = params.get("remote_user")
+        self.remote_pwd = params.get("remote_pwd")
         self.migrate_source_host_cn = params.get("migrate_source_host_cn")
         self.migrate_source_host = params.get("migrate_source_host")
-        self.migrate_source_pwd = params.get('migrate_source_pwd')
+        self.migrate_source_pwd = params.get("migrate_source_pwd")
         self.migrate_dest_host_cn = params.get("migrate_dest_host_cn")
         self.migrate_dest_host = params.get("migrate_dest_host")
-        self.migrate_dest_pwd = params.get('migrate_dest_pwd')
+        self.migrate_dest_pwd = params.get("migrate_dest_pwd")
         self.selinux_state = params.get("selinux_state", "enforcing")
 
         # Set libvirtd remote access port
         self.remote_port = None
-        remote_port_dict = {'tls': '16514', 'tcp': '16509'}
+        remote_port_dict = {"tls": "16514", "tcp": "16509"}
         self.remote_port = remote_port_dict.get(self.migrate_desturi_proto)
 
         # Set migration src and dest uri
-        self.dest_uri = get_uri(self.uri_type,
-                                self.migrate_desturi_proto,
-                                (self.migrate_dest_host_cn
-                                    if self.migrate_dest_host_cn
-                                    else self.migrate_dest_host)
-                                )
+        self.dest_uri = get_uri(
+            self.uri_type,
+            self.migrate_desturi_proto,
+            (
+                self.migrate_dest_host_cn
+                if self.migrate_dest_host_cn
+                else self.migrate_dest_host
+            ),
+        )
         self.src_uri = get_uri(self.uri_type)
-        self.src_uri_full = get_uri(self.uri_type,
-                                    self.migrate_desturi_proto,
-                                    (self.migrate_source_host_cn
-                                        if self.migrate_source_host_cn
-                                        else self.migrate_source_host)
-                                    )
+        self.src_uri_full = get_uri(
+            self.uri_type,
+            self.migrate_desturi_proto,
+            (
+                self.migrate_source_host_cn
+                if self.migrate_source_host_cn
+                else self.migrate_source_host
+            ),
+        )
 
         # Set virsh migrate options
         self.virsh_migrate_options += self._extra_migrate_options()
@@ -272,21 +274,26 @@ class MigrationTemplate(object):
         self.migrate_flags = self._migrate_flags()
 
         # Remote dict
-        self.remote_dict = {'server_ip': self.remote_ip,
-                            'server_user': self.remote_user,
-                            'server_pwd': self.remote_pwd}
+        self.remote_dict = {
+            "server_ip": self.remote_ip,
+            "server_user": self.remote_user,
+            "server_pwd": self.remote_pwd,
+        }
 
         # Create a session to remote host
-        self.remote_session = remote.wait_for_login('ssh', self.remote_ip,
-                                                    '22', self.remote_user,
-                                                    self.remote_pwd,
-                                                    r"[\#\$]\s*$")
+        self.remote_session = remote.wait_for_login(
+            "ssh",
+            self.remote_ip,
+            "22",
+            self.remote_user,
+            self.remote_pwd,
+            r"[\#\$]\s*$",
+        )
         # Get vm objects
         self.vms = []
         self.main_vm = env.get_vm(self.migrate_main_vm_name.strip())
         if not self.main_vm:
-            self.test.error("Can't get vm object for vm: %s",
-                            self.migrate_main_vm_name)
+            self.test.error("Can't get vm object for vm: %s", self.migrate_main_vm_name)
         self.vms.append(self.main_vm)
         for vm_name in self.migrate_vms_name.split():
             if vm_name != self.migrate_main_vm_name.strip():
@@ -372,8 +379,7 @@ class MigrationTemplate(object):
         for vm in self.vms:
             backup = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
             if not backup:
-                self.test.error("Backing up xmlfile failed for vm %s",
-                                vm.name)
+                self.test.error("Backing up xmlfile failed for vm %s", vm.name)
             self.vm_xml_backup.append(backup)
 
         # Destroy vm on src host if it's alive
@@ -385,7 +391,7 @@ class MigrationTemplate(object):
         # Do migration pre-setup
         LOG.debug("Do migration pre-setup")
         self.obj_migration.migrate_pre_setup(self.dest_uri, self.params)
-        if self.migrate_vm_back == 'yes':
+        if self.migrate_vm_back == "yes":
             LOG.debug("Do migration pre-setup for migrate back")
             self.obj_migration.migrate_pre_setup(self.src_uri, self.params)
 
@@ -447,7 +453,9 @@ class MigrationTemplate(object):
         8.Do post migration check: check vm state, uptime, network
         """
         # Create disk image on dest host if --copy-storage-all/inc is used
-        if self.migrate_flags & (VIR_MIGRATE_NON_SHARED_DISK | VIR_MIGRATE_NON_SHARED_INC):
+        if self.migrate_flags & (
+            VIR_MIGRATE_NON_SHARED_DISK | VIR_MIGRATE_NON_SHARED_INC
+        ):
             self._create_disk_image_on_dest()
 
         # Set xml file path for --xml and --persistent-xml in migrate options
@@ -475,8 +483,9 @@ class MigrationTemplate(object):
 
             # Monitor event "Suspended Post-copy" for postcopy migration
             LOG.debug("Monitor the event for postcopy migration")
-            virsh_session = virsh.VirshSession(virsh_exec=virsh.VIRSH_EXEC,
-                                               auto_close=True)
+            virsh_session = virsh.VirshSession(
+                virsh_exec=virsh.VIRSH_EXEC, auto_close=True
+            )
             self.objs_list.append(virsh_session)
             cmd = "event %s --loop --all --timestamp" % self.main_vm.name
             virsh_session.sendline(cmd)
@@ -490,13 +499,18 @@ class MigrationTemplate(object):
         # Start to do migration
         LOG.debug("Start to do migration")
         thread_timeout = self.migrate_thread_timeout
-        self.obj_migration.do_migration(self.vms, self.src_uri,
-                                        self.dest_uri, "orderly",
-                                        options=self.virsh_migrate_options,
-                                        thread_timeout=thread_timeout,
-                                        ignore_status=True,
-                                        virsh_uri=self.src_uri,
-                                        func=func, shell=True)
+        self.obj_migration.do_migration(
+            self.vms,
+            self.src_uri,
+            self.dest_uri,
+            "orderly",
+            options=self.virsh_migrate_options,
+            thread_timeout=thread_timeout,
+            ignore_status=True,
+            virsh_uri=self.src_uri,
+            func=func,
+            shell=True,
+        )
 
         LOG.info("Check migration result: succeed or fail with expected error")
         self.obj_migration.check_result(self.obj_migration.ret, self.params)
@@ -513,8 +527,9 @@ class MigrationTemplate(object):
 
         LOG.debug("Do post migration check after migrate to dest")
         self.params["migrate_options"] = self.virsh_migrate_options
-        self.obj_migration.post_migration_check(self.vms, self.params,
-                                                self.uptime, dest_uri=self.dest_uri)
+        self.obj_migration.post_migration_check(
+            self.vms, self.params, self.uptime, dest_uri=self.dest_uri
+        )
 
     def _post_migrate(self):
         """
@@ -538,13 +553,17 @@ class MigrationTemplate(object):
 
         # Migrate vm back to src host
         LOG.debug("Start to migrate vm back to src host")
-        self.obj_migration.do_migration(self.vms, self.dest_uri,
-                                        self.src_uri_full, "orderly",
-                                        options=self.virsh_migrate_options,
-                                        thread_timeout=self.migrate_thread_timeout,
-                                        ignore_status=True,
-                                        virsh_uri=self.dest_uri,
-                                        shell=True)
+        self.obj_migration.do_migration(
+            self.vms,
+            self.dest_uri,
+            self.src_uri_full,
+            "orderly",
+            options=self.virsh_migrate_options,
+            thread_timeout=self.migrate_thread_timeout,
+            ignore_status=True,
+            virsh_uri=self.dest_uri,
+            shell=True,
+        )
 
         LOG.info("Check migration result: succeed or fail with expected error")
         self.obj_migration.check_result(self.obj_migration.ret, self.params)
@@ -555,8 +574,9 @@ class MigrationTemplate(object):
                 vm.connect_uri = self.src_uri
 
         LOG.debug("Do post migration check after migrate back to src")
-        self.obj_migration.post_migration_check(self.vms, self.params,
-                                                self.uptime, dest_uri=self.src_uri)
+        self.obj_migration.post_migration_check(
+            self.vms, self.params, self.uptime, dest_uri=self.src_uri
+        )
 
     def _post_migrate_back(self):
         """
@@ -637,13 +657,15 @@ class MigrationTemplate(object):
         new_options = self.virsh_migrate_options
 
         if self.migrate_flags & VIR_MIGRATE_DEST_XML:
-            vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
-                                                       "--security-info --migratable")
+            vmxml_path = vm_xml.VMXML.new_from_dumpxml(
+                self.main_vm.name, "--security-info --migratable"
+            )
             new_options = new_options.replace("DEST_XML", vmxml_path)
 
         if self.migrate_flags & VIR_MIGRATE_PERSIST_DEST_XML:
-            vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
-                                                       "--security-info --migratable")
+            vmxml_path = vm_xml.VMXML.new_from_dumpxml(
+                self.main_vm.name, "--security-info --migratable"
+            )
             new_options = new_options.replace("DEST_PERSIST_XML", vmxml_path)
 
         self.virsh_migrate_options = new_options
@@ -707,8 +729,10 @@ class MigrationTemplate(object):
         """
 
         if self.migrate_desturi_proto == "ssh":
-            LOG.info("Set libvirt.conf for modular daemon if \
-                    migrate_desturi_proto is ssh")
+            LOG.info(
+                "Set libvirt.conf for modular daemon if \
+                    migrate_desturi_proto is ssh"
+            )
             params = {}
             LOG.info("Setup src libvirt.conf for modular daemon")
             conf_obj = remove_key_for_modular_daemon(params)
@@ -727,13 +751,11 @@ class MigrationTemplate(object):
         :param cache: vm disk cache mode
         """
         LOG.debug("Prepare shared disk in vm xml for live migration")
-        if self.storage_type == 'nfs':
+        if self.storage_type == "nfs":
             LOG.debug("Prepare nfs backed disk in vm xml")
             for vm in self.vms:
-                libvirt.update_vm_disk_source(vm.name,
-                                              self.nfs_mount_dir)
-                libvirt.update_vm_disk_driver_cache(vm.name,
-                                                    driver_cache=cache)
+                libvirt.update_vm_disk_source(vm.name, self.nfs_mount_dir)
+                libvirt.update_vm_disk_driver_cache(vm.name, driver_cache=cache)
         else:
             # TODO:other storage types
             self.test.cancel("Only nfs storage is supported for now")
@@ -756,11 +778,14 @@ class MigrationTemplate(object):
             image_info = utils_misc.get_image_info(disk_path)
             disk_size = image_info.get("vsize")
             disk_format = image_info.get("format")
-            utils_misc.make_dirs(os.path.dirname(disk_path),
-                                 self.remote_session)
-            libvirt_disk.create_disk(disk_type, path=disk_path,
-                                     size=disk_size, disk_format=disk_format,
-                                     session=self.remote_session)
+            utils_misc.make_dirs(os.path.dirname(disk_path), self.remote_session)
+            libvirt_disk.create_disk(
+                disk_type,
+                path=disk_path,
+                size=disk_size,
+                disk_format=disk_format,
+                session=self.remote_session,
+            )
 
     def _setup_libvirtd_remote_access(self):
         """
@@ -769,16 +794,17 @@ class MigrationTemplate(object):
         LOG.debug("Setup libvirtd remote access env")
         protocol = self.migrate_desturi_proto
         self._setup_remote_connection_base(protocol, reverse=False)
-        if self.migrate_vm_back == 'yes':
-            LOG.debug("Setup libvirtd remote access env\
-                          for reverse migration")
+        if self.migrate_vm_back == "yes":
+            LOG.debug(
+                "Setup libvirtd remote access env\
+                          for reverse migration"
+            )
             tls_args = {}
-            if protocol == 'tls':
-                tls_args = {'ca_cakey_path': '/etc/pki/CA/',
-                            'scp_new_cacert': 'no'}
-            self._setup_remote_connection_base(protocol=protocol,
-                                               reverse=True,
-                                               add_args=tls_args)
+            if protocol == "tls":
+                tls_args = {"ca_cakey_path": "/etc/pki/CA/", "scp_new_cacert": "no"}
+            self._setup_remote_connection_base(
+                protocol=protocol, reverse=True, add_args=tls_args
+            )
 
         # Enable libvirtd remote access port in firewalld
         if self.remote_port:
@@ -789,19 +815,17 @@ class MigrationTemplate(object):
         Set up native encryption migration env
         """
         LOG.debug("Setup qemu tls env")
-        tls_args = {'custom_pki_path': '/etc/pki/qemu',
-                    'qemu_tls': 'yes'}
-        self._setup_remote_connection_base(protocol='tls', add_args=tls_args)
-        if self.migrate_vm_back == 'yes':
+        tls_args = {"custom_pki_path": "/etc/pki/qemu", "qemu_tls": "yes"}
+        self._setup_remote_connection_base(protocol="tls", add_args=tls_args)
+        if self.migrate_vm_back == "yes":
             LOG.debug("Setup qemu tls env for reverse migration")
-            tls_args.update(ca_cakey_path=tls_args.get('custom_pki_path'))
-            tls_args.update(scp_new_cacert='no')
-            self._setup_remote_connection_base(protocol='tls',
-                                               reverse=True,
-                                               add_args=tls_args)
+            tls_args.update(ca_cakey_path=tls_args.get("custom_pki_path"))
+            tls_args.update(scp_new_cacert="no")
+            self._setup_remote_connection_base(
+                protocol="tls", reverse=True, add_args=tls_args
+            )
 
-    def _setup_remote_connection_base(self, protocol='ssh', reverse=False,
-                                      add_args={}):
+    def _setup_remote_connection_base(self, protocol="ssh", reverse=False, add_args={}):
         """
         Base function for setting up remote connection
 
@@ -811,24 +835,30 @@ class MigrationTemplate(object):
         :param add_args: Dict of additional args for Connection obj
         """
         if reverse:
-            conn_args = {'client_ip': self.migrate_dest_host,
-                         'client_cn': self.migrate_dest_host_cn,
-                         'client_pwd': self.migrate_dest_pwd,
-                         'server_ip': self.migrate_source_host,
-                         'server_cn': self.migrate_source_host_cn,
-                         'server_pwd': self.migrate_source_pwd}
+            conn_args = {
+                "client_ip": self.migrate_dest_host,
+                "client_cn": self.migrate_dest_host_cn,
+                "client_pwd": self.migrate_dest_pwd,
+                "server_ip": self.migrate_source_host,
+                "server_cn": self.migrate_source_host_cn,
+                "server_pwd": self.migrate_source_pwd,
+            }
         else:
-            conn_args = {'server_ip': self.migrate_dest_host,
-                         'server_cn': self.migrate_dest_host_cn,
-                         'server_pwd': self.migrate_dest_pwd,
-                         'client_ip': self.migrate_source_host,
-                         'client_cn': self.migrate_source_host_cn,
-                         'client_pwd': self.migrate_source_pwd}
+            conn_args = {
+                "server_ip": self.migrate_dest_host,
+                "server_cn": self.migrate_dest_host_cn,
+                "server_pwd": self.migrate_dest_pwd,
+                "client_ip": self.migrate_source_host,
+                "client_cn": self.migrate_source_host_cn,
+                "client_pwd": self.migrate_source_pwd,
+            }
         conn_args.update(add_args)
 
-        protocol_to_class = {'tls': TLSConnection,
-                             'tcp': TCPConnection,
-                             'ssh': SSHConnection}
+        protocol_to_class = {
+            "tls": TLSConnection,
+            "tcp": TCPConnection,
+            "ssh": SSHConnection,
+        }
 
         LOG.debug("Setup remote connection env")
         conn_obj = protocol_to_class[protocol](conn_args)
@@ -854,19 +884,25 @@ class MigrationTemplate(object):
             if server_ip == self.remote_ip:
                 server_dict = self.remote_dict
                 session = self.remote_session
-            self.open_port_in_iptables(self.remote_port,
-                                       server_dict=server_dict,
-                                       session=session, cleanup=cleanup)
+            self.open_port_in_iptables(
+                self.remote_port,
+                server_dict=server_dict,
+                session=session,
+                cleanup=cleanup,
+            )
 
         LOG.debug("Enable libvirtd remote port in firewalld on dst host")
         _open_libvirtd_port_in_iptables(self.migrate_dest_host, cleanup)
-        if self.migrate_vm_back == 'yes':
-            LOG.debug("Enable libvirtd remote port in firewalld\
-                           on src host")
+        if self.migrate_vm_back == "yes":
+            LOG.debug(
+                "Enable libvirtd remote port in firewalld\
+                           on src host"
+            )
             _open_libvirtd_port_in_iptables(self.migrate_source_host, cleanup)
 
-    def open_port_in_iptables(self, port, protocol='tcp', server_dict=None,
-                              session=None, cleanup=False):
+    def open_port_in_iptables(
+        self, port, protocol="tcp", server_dict=None, session=None, cleanup=False
+    ):
         """
         Open port in iptables
 
@@ -903,9 +939,9 @@ class MigrationTemplate(object):
                 port = "%s:%s" % (port.split("-")[0], port.split("-")[1])
 
             # open migration ports in remote machine using iptables
-            rule = ["INPUT -p %s -m %s --dport %s -j ACCEPT" % (protocol,
-                                                                protocol,
-                                                                port)]
+            rule = [
+                "INPUT -p %s -m %s --dport %s -j ACCEPT" % (protocol, protocol, port)
+            ]
             iptables_func(rule, params=server_dict, cleanup=cleanup)
 
         if not cleanup:
@@ -931,8 +967,7 @@ class MigrationTemplate(object):
             try:
                 vm.remove(undef_opts=undef_opts)
             except Exception as detail:
-                LOG.warning("Failed to remove vm %s, detail: %s",
-                            vm.name, detail)
+                LOG.warning("Failed to remove vm %s, detail: %s", vm.name, detail)
                 continue
             LOG.debug("Vm %s is removed", vm.name)
 
@@ -942,8 +977,9 @@ class MigrationTemplate(object):
             try:
                 backup.undefine(options=undef_opts)
             except Exception as detail:
-                LOG.warning("Failed to undefine vm %s, detail: %s",
-                            backup.vm_name, detail)
+                LOG.warning(
+                    "Failed to undefine vm %s, detail: %s", backup.vm_name, detail
+                )
                 continue
             LOG.debug("Vm %s is undefined", backup.vm_name)
 
@@ -953,8 +989,9 @@ class MigrationTemplate(object):
             try:
                 backup.define()
             except Exception as detail:
-                LOG.warning("Failed to define vm %s, detail: %s",
-                            backup.vm_name, detail)
+                LOG.warning(
+                    "Failed to define vm %s, detail: %s", backup.vm_name, detail
+                )
                 continue
             LOG.debug("Vm %s is restored", backup.vm_name)
 
@@ -967,12 +1004,12 @@ class MigrationTemplate(object):
 
         # Cleanup migrate_pre_setup
         LOG.debug("Clean up migration setup on dest host")
-        self.obj_migration.migrate_pre_setup(self.dest_uri, self.params,
-                                             cleanup=True)
-        if self.migrate_vm_back == 'yes':
+        self.obj_migration.migrate_pre_setup(self.dest_uri, self.params, cleanup=True)
+        if self.migrate_vm_back == "yes":
             LOG.debug("Clean up migration setup on src host")
-            self.obj_migration.migrate_pre_setup(self.src_uri, self.params,
-                                                 cleanup=True)
+            self.obj_migration.migrate_pre_setup(
+                self.src_uri, self.params, cleanup=True
+            )
 
         # Restore conf files
         LOG.debug("Restore conf files")
@@ -987,10 +1024,12 @@ class MigrationTemplate(object):
             self.open_port_in_iptables(port, cleanup=True)
         for port in self.opened_ports_remote:
             LOG.debug("Disable port %s in firewalld on remote host", port)
-            self.open_port_in_iptables(port,
-                                       server_dict=self.remote_dict,
-                                       session=self.remote_session,
-                                       cleanup=True)
+            self.open_port_in_iptables(
+                port,
+                server_dict=self.remote_dict,
+                session=self.remote_session,
+                cleanup=True,
+            )
 
 
 def vm_session_handler(func):
@@ -999,6 +1038,7 @@ def vm_session_handler(func):
 
     :param func: func to be decorated, it must has VM object as first parameter
     """
+
     @functools.wraps(func)
     def manage_session(vm, *args, **kwargs):
         """
@@ -1016,4 +1056,5 @@ def vm_session_handler(func):
         finally:
             if vm.session:
                 vm.session.close()
+
     return manage_session

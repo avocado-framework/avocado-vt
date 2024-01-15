@@ -72,6 +72,7 @@ class PropCanInternal(object):
     """
     Semi-private methods for use only by PropCanBase subclasses (NOT instances)
     """
+
     #: Store all slots for debugging purposes
     __all_slots__ = None
 
@@ -116,7 +117,6 @@ class PropCanInternal(object):
 
 
 class classproperty(property):
-
     def __get__(self, obj, type_):
         data = self.fget.__get__(None, type_)()
         return data
@@ -145,16 +145,16 @@ class PropCanBase(dict, PropCanInternal):
     def __all_slots__(cls):
         if not cls.___all_slots__:
             all_slots = []
-            for cls_slots in [getattr(_cls, '__slots__', [])
-                              for _cls in cls.__mro__]:
+            for cls_slots in [getattr(_cls, "__slots__", []) for _cls in cls.__mro__]:
                 all_slots += cls_slots
             cls.___all_slots__ = tuple(all_slots)
         return cls.___all_slots__
 
     def __new__(cls, *args, **dargs):
-        if not hasattr(cls, '__slots__'):
-            raise NotImplementedError("Class '%s' must define __slots__ "
-                                      "property" % str(cls))
+        if not hasattr(cls, "__slots__"):
+            raise NotImplementedError(
+                "Class '%s' must define __slots__ " "property" % str(cls)
+            )
         newone = super(PropCanBase, cls).__new__(cls, *args, **dargs)
         cls.___all_slots__ = tuple()
         return newone
@@ -176,12 +176,11 @@ class PropCanBase(dict, PropCanInternal):
                 # Call accessor methods if present
                 self[key] = value
         # Let accessor methods know initialization is complete
-        self.__super_set__('INITIALIZED', True)
+        self.__super_set__("INITIALIZED", True)
 
     def __getitem__(self, key):
         try:
-            accessor = super(PropCanBase,
-                             self).__getattribute__('get_%s' % key)
+            accessor = super(PropCanBase, self).__getattribute__("get_%s" % key)
         except AttributeError:
             return super(PropCanBase, self).__getitem__(key)
         return accessor()
@@ -189,16 +188,14 @@ class PropCanBase(dict, PropCanInternal):
     def __setitem__(self, key, value):
         self.__canhaz__(key, KeyError)
         try:
-            accessor = super(PropCanBase,
-                             self).__getattribute__('set_%s' % key)
+            accessor = super(PropCanBase, self).__getattribute__("set_%s" % key)
         except AttributeError:
             return super(PropCanBase, self).__setitem__(key, value)
         return accessor(value)
 
     def __delitem__(self, key):
         try:
-            accessor = super(PropCanBase,
-                             self).__getattribute__('del_%s' % key)
+            accessor = super(PropCanBase, self).__getattribute__("del_%s" % key)
         except AttributeError:
             return super(PropCanBase, self).__delitem__(key)
         return accessor()
@@ -250,10 +247,12 @@ class PropCanBase(dict, PropCanInternal):
         Quickly determine if an accessor or instance attribute name is defined.
         """
         slots = self.__all_slots__
-        keys = slots + ('get_%s' % key, 'set_%s' % key, 'del_%s' % key)
+        keys = slots + ("get_%s" % key, "set_%s" % key, "del_%s" % key)
         if key not in keys:
-            raise excpt("Key '%s' not found in super class attributes or in %s"
-                        % (str(key), str(keys)))
+            raise excpt(
+                "Key '%s' not found in super class attributes or in %s"
+                % (str(key), str(keys))
+            )
 
     def copy(self):
         """
@@ -316,8 +315,7 @@ class PropCan(PropCanBase):
     def keys(self):
         # special None/False value handling
         # pylint: disable=E1133
-        return [key for key in self.__all_slots__
-                if self.__contains__(key)]
+        return [key for key in self.__all_slots__ if self.__contains__(key)]
 
     def values(self):
         # special None/False value handling

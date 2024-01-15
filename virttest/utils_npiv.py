@@ -14,7 +14,7 @@ from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.nodedev_xml import NodedevXML
 from virttest.utils_test import libvirt
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 _FC_HOST_PATH = "/sys/class/fc_host"
 _TIMEOUT = 5
@@ -43,8 +43,9 @@ def check_nodedev(dev_name, dev_parent=None):
 
     # Check device parent name
     if dev_parent != dev_xml.parent:
-        LOG.error("The parent name is different: %s is not %s",
-                  dev_parent, dev_xml.parent)
+        LOG.error(
+            "The parent name is different: %s is not %s", dev_parent, dev_xml.parent
+        )
         return False
 
     wwnn_from_xml = dev_xml.wwnn
@@ -66,16 +67,25 @@ def check_nodedev(dev_name, dev_parent=None):
         LOG.error("The wwpn is not valid: %s", wwpn_from_xml)
         return False
     if fc_dict["node_name"] != wwnn_from_xml:
-        LOG.error("The node name is differnet: %s is not %s",
-                  fc_dict["node_name"], wwnn_from_xml)
+        LOG.error(
+            "The node name is differnet: %s is not %s",
+            fc_dict["node_name"],
+            wwnn_from_xml,
+        )
         return False
     if fc_dict["port_name"] != wwpn_from_xml:
-        LOG.error("The port name is different: %s is not %s",
-                  fc_dict["port_name"], wwpn_from_xml)
+        LOG.error(
+            "The port name is different: %s is not %s",
+            fc_dict["port_name"],
+            wwpn_from_xml,
+        )
         return False
     if fc_dict["fabric_name"] != fabric_wwn_from_xml:
-        LOG.error("The fabric wwpn is differnt: %s is not %s",
-                  fc_dict["fabric_name"], fabric_wwn_from_xml)
+        LOG.error(
+            "The fabric wwpn is differnt: %s is not %s",
+            fc_dict["fabric_name"],
+            fabric_wwn_from_xml,
+        )
         return False
 
     fc_type_from_xml = dev_xml.fc_type
@@ -111,11 +121,13 @@ def find_hbas(hba_type="hba", status="online"):
         stdout = result.stdout_text.strip()
         if result.exit_status:
             raise exceptions.TestFail(result.stderr_text)
-        if (re.search('vport_ops', stdout)
-                and not re.search('<fabric_wwn>ffffffffffffffff</fabric_wwn>', stdout)
-                and not re.search('<fabric_wwn>0</fabric_wwn>', stdout)):
+        if (
+            re.search("vport_ops", stdout)
+            and not re.search("<fabric_wwn>ffffffffffffffff</fabric_wwn>", stdout)
+            and not re.search("<fabric_wwn>0</fabric_wwn>", stdout)
+        ):
             online_hbas_list.append(scsi_host)
-        if re.search('fc_host', stdout) and not re.search('vport_ops', stdout):
+        if re.search("fc_host", stdout) and not re.search("vport_ops", stdout):
             online_vhbas_list.append(scsi_host)
     if hba_type == "hba":
         return online_hbas_list
@@ -165,19 +177,20 @@ def nodedev_create_from_xml(params):
     scsi_wwpn = params.get("scsi_wwpn")
     status_error = "yes" == params.get("status_error", "no")
     vhba_xml = NodedevXML()
-    vhba_xml.cap_type = 'scsi_host'
-    vhba_xml.fc_type = 'fc_host'
+    vhba_xml.cap_type = "scsi_host"
+    vhba_xml.fc_type = "fc_host"
     vhba_xml.parent = nodedev_parent
     vhba_xml.wwnn = scsi_wwnn
     vhba_xml.wwpn = scsi_wwpn
     LOG.debug("Prepare the nodedev XML: %s", vhba_xml)
     vhba_file = mktemp()
-    with open(vhba_file, 'w') as xml_object:
+    with open(vhba_file, "w") as xml_object:
         xml_object.write(str(vhba_xml))
 
-    result = virsh.nodedev_create(vhba_file,
-                                  debug=True,
-                                  )
+    result = virsh.nodedev_create(
+        vhba_file,
+        debug=True,
+    )
     restart_multipathd()
     # Remove temporary file
     os.unlink(vhba_file)
@@ -185,17 +198,18 @@ def nodedev_create_from_xml(params):
     output = result.stdout_text
     LOG.info(output)
     for scsi in output.split():
-        if scsi.startswith('scsi_host'):
+        if scsi.startswith("scsi_host"):
             # Check node device
             utils_misc.wait_for(
-                lambda: check_nodedev(scsi, nodedev_parent),
-                timeout=_TIMEOUT)
+                lambda: check_nodedev(scsi, nodedev_parent), timeout=_TIMEOUT
+            )
             if check_nodedev(scsi, nodedev_parent):
                 return scsi
             else:
                 raise exceptions.TestFail(
                     "XML of vHBA card '%s' is not correct,"
-                    "Please refer to log err for detailed info" % scsi)
+                    "Please refer to log err for detailed info" % scsi
+                )
 
 
 def nodedev_destroy(scsi_host, params={}):
@@ -214,8 +228,9 @@ def nodedev_destroy(scsi_host, params={}):
     if not check_nodedev(scsi_host):
         LOG.info(result.stdout_text)
     else:
-        raise exceptions.TestFail("The relevant directory still exists"
-                                  " or mismatch with result")
+        raise exceptions.TestFail(
+            "The relevant directory still exists" " or mismatch with result"
+        )
 
 
 def check_nodedev_exist(scsi_host):
@@ -253,11 +268,11 @@ def create_hostdev_xml(adapter_name="", **kwargs):
      addr_unit, mode, and managed
     :return: a xml object set by kwargs
     """
-    addr_bus = kwargs.get('addr_bus', 0)
-    addr_target = kwargs.get('addr_target', 0)
-    addr_unit = kwargs.get('addr_unit', 0)
-    mode = kwargs.get('mode', 'subsystem')
-    managed = kwargs.get('managed', 'no')
+    addr_bus = kwargs.get("addr_bus", 0)
+    addr_target = kwargs.get("addr_target", 0)
+    addr_unit = kwargs.get("addr_unit", 0)
+    mode = kwargs.get("mode", "subsystem")
+    managed = kwargs.get("managed", "no")
 
     hostdev_xml = hostdev.Hostdev()
     hostdev_xml.type = "scsi"
@@ -265,10 +280,10 @@ def create_hostdev_xml(adapter_name="", **kwargs):
     hostdev_xml.mode = mode
 
     source_args = {}
-    source_args['adapter_name'] = adapter_name
-    source_args['bus'] = addr_bus
-    source_args['target'] = addr_target
-    source_args['unit'] = addr_unit
+    source_args["adapter_name"] = adapter_name
+    source_args["bus"] = addr_bus
+    source_args["target"] = addr_target
+    source_args["unit"] = addr_unit
     hostdev_xml.source = hostdev_xml.new_source(**source_args)
     LOG.info(hostdev_xml)
     return hostdev_xml
@@ -284,9 +299,12 @@ def find_scsi_luns(scsi_host):
     lun_dicts = []
     tmp_list = []
     scsi_number = scsi_host.replace("scsi_host", "")
-    cmd = "multipath -ll | grep '\- %s:' | grep 'ready running' |\
+    cmd = (
+        "multipath -ll | grep '\- %s:' | grep 'ready running' |\
            awk '{FS=\" \"}{for (f=1; f<=NF; f+=1) {if ($f ~ /%s:/)\
-           {print $f}}}'" % (scsi_number, scsi_number)
+           {print $f}}}'"
+        % (scsi_number, scsi_number)
+    )
     try:
         result = process.run(cmd, shell=True)
     except Exception as e:
@@ -335,7 +353,7 @@ def restart_multipathd(mpath_dev="", expect_exist=False):
     Restart the multipath daemon, and check if mpath_dev still exists
     after daemon restarted, as expected.
     """
-    cmd_status = process.system('service multipathd restart', verbose=True)
+    cmd_status = process.system("service multipathd restart", verbose=True)
     # Wait 2 secs for multipath devices synced
     time.sleep(2)
     if cmd_status:
@@ -349,8 +367,12 @@ def restart_multipathd(mpath_dev="", expect_exist=False):
     return False
 
 
-def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
-                           replace_existing=False, restart_multipath=True):
+def prepare_multipath_conf(
+    conf_path="/etc/multipath.conf",
+    conf_content="",
+    replace_existing=False,
+    restart_multipath=True,
+):
     """
     Prepare multipath conf file.
 
@@ -360,12 +382,13 @@ def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
     :param restart_multipathd: True means to restart multipathd.
     :return: The content of original conf, can be used to recover env.
     """
-    default_conf_content = ("defaults {\n\tuser_friendly_names yes"
-                            "\n\tfind_multipaths yes\n}")
+    default_conf_content = (
+        "defaults {\n\tuser_friendly_names yes" "\n\tfind_multipaths yes\n}"
+    )
     old_conf_content = ""
     new_conf_content = conf_content if conf_content else default_conf_content
     if os.path.exists(conf_path):
-        with open(conf_path, 'r+') as conf_file:
+        with open(conf_path, "r+") as conf_file:
             old_conf_content = conf_file.read()
             LOG.info("Old multipath conf is: %s" % old_conf_content)
             if replace_existing:
@@ -376,7 +399,7 @@ def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
             else:
                 LOG.info("Multipath conf exsits, skip preparation.")
     else:
-        with open(conf_path, 'w') as conf_file:
+        with open(conf_path, "w") as conf_file:
             conf_file.write(new_conf_content)
             LOG.info("Create multipath conf: %s" % new_conf_content)
     if restart_multipath:

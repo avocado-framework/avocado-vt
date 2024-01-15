@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-'''
+"""
 Created on Dec 6, 2013
 
 :author: jzupka, astepano
 :contact: Andrei Stepanov <astepano@redhat.com>
-'''
+"""
 
 import os
 import logging
@@ -24,7 +24,7 @@ except ImportError:
     import cPickle
 
 if __package__ is None:  # import when remote_runner.py script run directly
-    remote_interface = importlib.import_module('remote_interface')
+    remote_interface = importlib.import_module("remote_interface")
 else:
     from virttest.remote_commander import remote_interface
 
@@ -180,7 +180,6 @@ class StdIOWrapperOutBase64(StdIOWrapperOut, DataWrapperBase64):
 
 
 class MessengerError(Exception):
-
     def __init__(self, msg):
         super(MessengerError, self).__init__(msg)
         self.msg = msg
@@ -190,7 +189,7 @@ class MessengerError(Exception):
 
 
 def _map_path(mod_name, kls_name):
-    if mod_name.endswith('remote_interface'):  # catch all old module names
+    if mod_name.endswith("remote_interface"):  # catch all old module names
         mod = remote_interface
         return getattr(mod, kls_name)
     else:
@@ -264,8 +263,9 @@ class Messenger(object):
         if timeout is not None:
             endtime = time.time() + timeout
 
-        while (len(data) < self.enc_len_length and
-               (endtime is None or time.time() < endtime)):
+        while len(data) < self.enc_len_length and (
+            endtime is None or time.time() < endtime
+        ):
             d = self.stdin.read(1, timeout)
             if d is None:
                 return None
@@ -297,12 +297,12 @@ class Messenger(object):
             cmd_len = int(data)
             rdata = ""
             rdata_len = 0
-            while (rdata_len < cmd_len):
+            while rdata_len < cmd_len:
                 rdata += self.stdin.read(cmd_len - rdata_len)
                 rdata_len = len(rdata)
             rdataIO = StringIO(self.stdin.decode(rdata))
             unp = cPickle.Unpickler(rdataIO)
-            if cPickle.__name__ == 'pickle':
+            if cPickle.__name__ == "pickle":
                 unp.find_class = _map_path
             else:
                 unp.find_global = _map_path
@@ -310,8 +310,9 @@ class Messenger(object):
         except Exception as e:
             logging.error("ERROR data:%s rdata:%s" % (data, rdata))
             try:
-                self.write_msg(remote_interface.MessengerError("Communication "
-                                                               "failed.%s" % (e)))
+                self.write_msg(
+                    remote_interface.MessengerError("Communication " "failed.%s" % (e))
+                )
             except OSError:
                 pass
             self.flush_stdin()

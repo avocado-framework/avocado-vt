@@ -3,7 +3,7 @@ import logging
 
 # implementation follows
 
-logger = logging.getLogger('avocado.vt')
+logger = logging.getLogger("avocado.vt")
 
 
 _caller_code_to_skip_in_logging_stack = set()
@@ -24,8 +24,9 @@ class LoggingFile(object):
     infrastructure in an appropriate way.
     """
 
-    def __init__(self, prefix='', level=logging.DEBUG,
-                 logger=logging.getLogger('avocado.vt')):
+    def __init__(
+        self, prefix="", level=logging.DEBUG, logger=logging.getLogger("avocado.vt")
+    ):
         """
         :param prefix - The prefix for each line logged by this object.
         """
@@ -36,13 +37,13 @@ class LoggingFile(object):
 
     @do_not_report_as_logging_caller
     def write(self, data):
-        """"
+        """ "
         Writes data only if it constitutes a whole line. If it's not the case,
         store it in a buffer and wait until we have a complete line.
         :param data - Raw data (a string) that will be processed.
         """
         # splitlines() discards a trailing blank line, so use split() instead
-        data_lines = data.split('\n')
+        data_lines = data.split("\n")
         if len(data_lines) > 1:
             self._buffer.append(data_lines[0])
             self._flush_buffer()
@@ -53,7 +54,7 @@ class LoggingFile(object):
 
     @do_not_report_as_logging_caller
     def writelines(self, lines):
-        """"
+        """ "
         Writes itertable of lines
 
         :param lines: An iterable of strings that will be processed.
@@ -71,7 +72,7 @@ class LoggingFile(object):
     @do_not_report_as_logging_caller
     def _flush_buffer(self):
         if self._buffer:
-            self._log_line(''.join(self._buffer))
+            self._log_line("".join(self._buffer))
             self._buffer = []
 
     @do_not_report_as_logging_caller
