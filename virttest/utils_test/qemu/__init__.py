@@ -83,6 +83,7 @@ def pin_vm_threads(vm, node):
     :param vm: VM object
     :param node: NumaNode object
     """
+    node.flush_pin()
     if len(vm.vcpu_threads) + len(vm.vhost_threads) < len(node.cpus):
         for i in vm.vcpu_threads:
             LOG.info("pin vcpu thread(%s) to cpu(%s)" %
