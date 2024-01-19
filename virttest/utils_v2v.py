@@ -1363,7 +1363,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False, shell=Fa
     hostname = params.get('hostname')
     vpx_dc = params.get('vpx_dc')
     esxi_host = params.get('esxi_host', params.get('esx_ip'))
-    vpx_no_username = params.get('vpx_no_username')
+    vpx_no_username = params_get(params, 'vpx_no_username')
     opts_extra = params.get('v2v_opts')
     # Set v2v_cmd_timeout to 5 hours, the value can give v2v enough time to execute,
     # and avoid v2v process be killed by mistake.
