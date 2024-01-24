@@ -268,6 +268,8 @@ class Target(object):
 
                 if '%' in self._nfspath:
                     self._nfspath = self._nfspath.replace('%', '%25')
+                if ' ' in self._nfspath:
+                    self._nfspath = self._nfspath.replace(' ', '%20')
 
                 if not self._vmx_filename:
                     self._vmx_filename = self._nfspath
