@@ -125,7 +125,7 @@ class Sample(object):
                 self.files_dict.append(f)
                 fd.close()
 
-            sysinfodir = os.path.join(os.path.dirname(files[0]), "../../sysinfo/")
+            sysinfodir = os.path.join(os.path.dirname(files[0]), "../../sysinfo/pre/")
             sysinfodir = os.path.realpath(sysinfodir)
             cpuinfo = getoutput("cat %s/cpuinfo" % sysinfodir)
             lscpu = getoutput("cat %s/lscpu" % sysinfodir)
@@ -134,10 +134,7 @@ class Sample(object):
             partitions = getoutput("cat %s/partitions" % sysinfodir)
             fdisk = getoutput("cat %s/fdisk_-l" % sysinfodir)
 
-            status_path = os.path.join(os.path.dirname(files[0]), "../status")
-            status_file = open(status_path, 'r')
-            content = status_file.readlines()
-            self.testdata = re.findall("localtime=(.*)\t", content[-1])[-1]
+            self.testdata = arg.splitlines()
 
             cpunum = len(re.findall("processor\s+: \d", cpuinfo))
             cpumodel = re.findall("Model name:\s+(.*)", lscpu)
