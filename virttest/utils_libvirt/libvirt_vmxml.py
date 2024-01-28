@@ -66,8 +66,8 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
                         {'element_attrs': [".//memory[@unit='KiB']", ..., valuenn], 'text': 'aaa'}
                         {'element_attrs': ["./os/bootmenu[@enable='yes']", ..., valuenn]}
                         ]
-    :param ignore_status: boolean, True to raise an exception when not matched
-                                   False to not raise an exception when not matched
+    :param ignore_status: boolean, True to not raise an exception when not matched
+                                   False to raise an exception when not matched
     :return: boolean, True when matched, False when not matched
     """
     for xpath_text in xpaths_text:
