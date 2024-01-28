@@ -41,7 +41,7 @@ class Disk(base.TypedDeviceBase):
         alias:
             dict, keys: name
         blockio:
-            dict, keys: logical_block_size, physical_block_size
+            dict, keys: logical_block_size, physical_block_size, discard_granularity
         geometry:
             dict, keys: cyls, heads, secs, trans
         address:
