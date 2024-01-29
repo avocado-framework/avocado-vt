@@ -3929,6 +3929,9 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         LOG.error("Failed to get the default GateWay")
         return None
+    if ip_ver == 'ipv6' and 'fe80:' not in output.strip():
+        LOG.error("Multipath ipv6 router can not be recognized!")
+        return None
     return output.strip()
 
 
