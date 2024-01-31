@@ -86,7 +86,7 @@ def terminate_auto_content_server_thread():
     if _url_auto_content_server_thread_event is None:
         return False
 
-    if _url_auto_content_server_thread_event.isSet():
+    if _url_auto_content_server_thread_event.is_set():
         return True
 
     return False
@@ -100,7 +100,7 @@ def terminate_unattended_server_thread():
     if _unattended_server_thread_event is None:
         return False
 
-    if _unattended_server_thread_event.isSet():
+    if _unattended_server_thread_event.is_set():
         return True
 
     return False
@@ -1163,7 +1163,7 @@ def terminate_syslog_server_thread():
     if _syslog_server_thread_event is None:
         return False
 
-    if _syslog_server_thread_event.isSet():
+    if _syslog_server_thread_event.is_set():
         return True
 
     return False

@@ -206,7 +206,7 @@ class TestEnv(unittest.TestCase):
                 key = "%s" % utils_misc.generate_random_string(length=10)
                 value = "%s" % utils_misc.generate_random_string(length=10)
                 _update_env(env, key, value)
-                if termination_event.isSet():
+                if termination_event.is_set():
                     break
 
         changing_thread = threading.Thread(target=update_env,

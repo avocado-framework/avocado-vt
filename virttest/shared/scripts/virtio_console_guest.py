@@ -380,7 +380,7 @@ class VirtioGuestPosix(VirtioGuest):
             """
             Read and write to device in blocking mode
             """
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 data = b""
                 for desc in self.in_files:
                     data += os.read(desc, self.cachesize)
@@ -402,7 +402,7 @@ class VirtioGuestPosix(VirtioGuest):
             for fd in self.out_files:
                 po.register(fd, select.POLLOUT)
 
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 data = b""
                 t_out = self.out_files
 
@@ -412,7 +412,7 @@ class VirtioGuestPosix(VirtioGuest):
 
                 if data != b"":
                     while ((len(t_out) != len(readyf)) and not
-                           self.exit_thread.isSet()):
+                           self.exit_thread.is_set()):
                         readyf = po.poll(1.0)
                     for desc in t_out:
                         os.write(desc, data)
@@ -421,7 +421,7 @@ class VirtioGuestPosix(VirtioGuest):
             """
             Read and write to device in selecting mode.
             """
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 ret = select.select(self.in_files, [], [], 1.0)
                 data = b""
                 if ret[0] != []:
@@ -430,7 +430,7 @@ class VirtioGuestPosix(VirtioGuest):
                 if data != b"":
                     ret = select.select([], self.out_files, [], 1.0)
                     while ((len(self.out_files) != len(ret[1])) and not
-                           self.exit_thread.isSet()):
+                           self.exit_thread.is_set()):
                         ret = select.select([], self.out_files, [], 1.0)
                     for desc in ret[1]:
                         os.write(desc, data)
@@ -443,10 +443,10 @@ class VirtioGuestPosix(VirtioGuest):
             """
             # TODO: Remove port unplugging after failure from guest_worker
             #       when bz796048 is resolved.
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 data = b""
                 for i in range(len(self.in_files)):
-                    if self.exit_thread.isSet():
+                    if self.exit_thread.is_set():
                         break
                     desc = self.in_files[i]
                     try:
@@ -473,7 +473,7 @@ class VirtioGuestPosix(VirtioGuest):
                                     name = item[0]
                                     break
                             virt.close(name)
-                            while not self.exit_thread.isSet():
+                            while not self.exit_thread.is_set():
                                 try:
                                     desc = virt._open([name])[0]
                                     sys.stdout.write("PASS: Opened %s\n"
@@ -484,13 +484,13 @@ class VirtioGuestPosix(VirtioGuest):
                             self.in_files[self.in_files.index(_desc)] = desc
                 if data != b"":
                     for i in range(len(self.out_files)):
-                        if self.exit_thread.isSet():
+                        if self.exit_thread.is_set():
                             break
                         desc = self.out_files[i]
                         written = False
                         while not written:
                             try:
-                                if self.exit_thread.isSet():
+                                if self.exit_thread.is_set():
                                     break
                                 os.write(desc, data)
                                 written = True
@@ -518,7 +518,7 @@ class VirtioGuestPosix(VirtioGuest):
                                             name = item[0]
                                             break
                                     virt.close(name)
-                                    while not self.exit_thread.isSet():
+                                    while not self.exit_thread.is_set():
                                         try:
                                             desc = virt._open([name])[0]
                                             sys.stdout.write("PASS: Opened "
@@ -561,7 +561,7 @@ class VirtioGuestPosix(VirtioGuest):
                 self.data.append(random.randrange(sys.maxsize))
 
         def run(self):
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 os.write(self.port, self.data)
 
     def _open(self, in_files):
@@ -860,7 +860,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         self.exit_thread.set()
         for th in self.threads:
-            print("join %s" % th.getName())
+            print("join %s" % th.name)
             th.join()
         self.exit_thread.clear()
 
@@ -1144,7 +1144,7 @@ class VirtioGuestNt(VirtioGuest):
             Read and write to device in blocking mode
             """
             data = ""
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 data = ""
                 for desc in self.in_files:
                     ret, _data = win32file.ReadFile(desc, self.cachesize)
@@ -1185,7 +1185,7 @@ class VirtioGuestNt(VirtioGuest):
                 self.data.append(random.randrange(sys.maxint))
 
         def run(self):
-            while not self.exit_thread.isSet():
+            while not self.exit_thread.is_set():
                 if win32file.WriteFile(self.port, self.data)[0]:
                     msg = "Error occurred while sending data."
                     print("FAIL: " + msg)
@@ -1297,8 +1297,8 @@ def is_alive():
     """
     Check is only main thread is alive and if guest react.
     """
-    if ((os_linux and (threading.activeCount() == 2)) or
-            ((not os_linux) and (threading.activeCount() == 1))):
+    if ((os_linux and (threading.active_count() == 2)) or
+            ((not os_linux) and (threading.active_count() == 1))):
         print("PASS: Guest is ok no thread alive")
     else:
         threads = ""
