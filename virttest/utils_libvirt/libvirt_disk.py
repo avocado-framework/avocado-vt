@@ -28,6 +28,24 @@ def get_non_root_disk_name(session):
     """
     Returns the first disk name under /dev whose device doesn't have any
     partitions or volumes or itself mounting "/".
+
+    More details under `get_non_root_disk_names`.
+
+    :param session: If given the command will be executed in this VM or
+                    remote session.
+    :return (name, mount_point): A tuple containing the device name and the mount
+                    point. If the information doesn't exist it's returned as empty
+                    string.
+    :raises TestError: If there's no additional disk or no mount on "/" or when
+                       the disk information cannot be retrieved.
+    """
+    return get_non_root_disk_names(session)[0]
+
+
+def get_non_root_disk_names(session):
+    """
+    Returns the disk names under /dev whose device doesn't have any
+    partitions or volumes or itself mounting "/".
     Assuming that the system is installed on a single disk, this
     can be used to identify an added disk.
     It also includes read-only devices as such, e.g. sr0.
@@ -98,8 +116,10 @@ def get_non_root_disk_name(session):
         raise exceptions.TestError("No non root disks found in\n%s" % o)
     else:
         LOG.debug("Identified non_root_disks %s in\n%s", non_root_disks, o)
-        name, mpoint = entry_pattern.match(non_root_disks[0]).groups()
-        return name.strip(), mpoint.strip()
+        names_mpoints = [entry_pattern.match(non_root_disk).groups()
+                         for non_root_disk in non_root_disks]
+        return [(name.strip(), mpoint.strip())
+                for (name, mpoint) in names_mpoints]
 
 
 def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
