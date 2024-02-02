@@ -18,7 +18,7 @@ Avocado VT plugin
 
 import os
 import sys
-import pipes
+import shlex
 
 from avocado.core import exceptions
 from avocado.core import test
@@ -173,8 +173,8 @@ class VirtTest(test.Test, utils.TestUtils):
                                 archive = os.path.join(os.path.dirname(
                                     libvirtd_log), "libvirtd.tar.gz")
                                 cmd = ("tar -zcf %s -P %s"
-                                       % (pipes.quote(archive),
-                                          pipes.quote(libvirtd_log)))
+                                       % (shlex.quote(archive),
+                                          shlex.quote(libvirtd_log)))
                                 if process.system(cmd) == 0:
                                     os.remove(libvirtd_log)
                             else:
