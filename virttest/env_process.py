@@ -2026,7 +2026,7 @@ def _take_screendumps(test, params, env):
             os.unlink(temp_filename)
 
         if _screendump_thread_termination_event is not None:
-            if _screendump_thread_termination_event.isSet():
+            if _screendump_thread_termination_event.is_set():
                 _screendump_thread_termination_event = None
                 break
             _screendump_thread_termination_event.wait(delay)
@@ -2141,7 +2141,7 @@ def _store_vm_info(test, params, env):
                     cmd_details[cmd]['counter'][vm.instance] += 1
 
         if _vm_info_thread_termination_event is not None:
-            if _vm_info_thread_termination_event.isSet():
+            if _vm_info_thread_termination_event.is_set():
                 _vm_info_thread_termination_event = None
                 for cmd in cmds:
                     report_result("Thread quit", cmd,
