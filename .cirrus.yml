@@ -10,10 +10,10 @@ fedora_35_task:
     matrix:
       # Get deps from setup.py (therefor pip version of avocado)
       - AVOCADO_SRC:
-      # Older LTS release is 82.x
-      - AVOCADO_SRC: avocado-framework<83.0
-      # Latest LTS release is 92.x
+      # Older LTS release is 92.x
       - AVOCADO_SRC: avocado-framework<93.0
+      # Latest LTS release is 103.x
+      - AVOCADO_SRC: avocado-framework<104.0
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
@@ -52,10 +52,10 @@ centos_8_1_task:
     image: quay.io/avocado-framework/avocado-vt-ci-centos-8.1
   env:
     matrix:
-      # Older LTS release is 82.x
-      - AVOCADO_SRC: avocado-framework<83.0
-      # Latest LTS release is 92.x
+      # Older LTS release is 92.x
       - AVOCADO_SRC: avocado-framework<93.0
+      # Latest LTS release is 103.x
+      - AVOCADO_SRC: avocado-framework<104.0
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
@@ -77,10 +77,10 @@ avocado_devel_task:
     matrix:
       # Latest Avocado
       - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
-      # 82lts tree (from where new 82.x releases will come)
-      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@82lts#egg=avocado_framework
       # 92lts tree (from where new 92.x releases will come)
       - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@92lts#egg=avocado_framework
+      # 103lts tree (from where new 103.x releases will come)
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@103lts#egg=avocado_framework
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
