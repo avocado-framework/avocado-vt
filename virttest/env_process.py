@@ -27,7 +27,6 @@ from virttest import (
     data_dir,
     error_context,
     migration,
-    nfs,
     ppm_utils,
     qemu_monitor,
     qemu_storage,
@@ -52,6 +51,7 @@ from virttest.test_setup.core import SetupManager
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.networking import BridgeConfig, NetworkProxies
 from virttest.test_setup.os_posix import UlimitConfig
+from virttest.test_setup.storage import StorageConfig
 from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
 
@@ -1097,63 +1097,12 @@ def preprocess(test, params, env):
     _setup_manager.register(NetworkProxies)
     _setup_manager.register(LibvirtdDebugLogConfig)
     _setup_manager.register(BridgeConfig)
+    _setup_manager.register(StorageConfig)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-    if params.get("storage_type") == "iscsi":
-        iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
-        params["image_name"] = iscsidev.setup()
-        params["image_raw_device"] = "yes"
-
-    if params.get("storage_type") == "lvm":
-        lvmdev = qemu_storage.LVMdev(params, base_dir, "lvm")
-        params["image_name"] = lvmdev.setup()
-        params["image_raw_device"] = "yes"
-        env.register_lvmdev("lvm_%s" % params["main_vm"], lvmdev)
-
-    if params.get("storage_type") == "nfs":
-        selinux_local = params.get("set_sebool_local", "yes") == "yes"
-        selinux_remote = params.get("set_sebool_remote", "no") == "yes"
-        image_nfs = nfs.Nfs(params)
-        image_nfs.setup()
-        if migration_setup:
-            # Configure NFS client on remote host
-            params["server_ip"] = params.get("remote_ip")
-            params["server_user"] = params.get("remote_user", "root")
-            params["server_pwd"] = params.get("remote_pwd")
-            params["client_ip"] = params.get("local_ip")
-            params["client_user"] = params.get("local_user", "root")
-            params["client_pwd"] = params.get("local_pwd")
-            params["nfs_client_ip"] = params.get("remote_ip")
-            params["nfs_server_ip"] = params.get("local_ip")
-            nfs_client = nfs.NFSClient(params)
-            nfs_client.setup()
-        distro_details = distro.detect()
-        if distro_details.name.upper() != "UBUNTU":
-            if selinux_local:
-                params["set_sebool_local"] = "yes"
-                params["local_boolean_varible"] = "virt_use_nfs"
-                params["local_boolean_value"] = params.get("local_boolean_value", "on")
-        # configure selinux on remote host to permit migration
-        if migration_setup:
-            cmd = "cat /etc/os-release | grep '^PRETTY_NAME'"
-            session = test_setup.remote_session(params)
-            if "UBUNTU" not in str(session.cmd_output(cmd)).upper():
-                params["set_sebool_remote"] = "yes"
-                params["remote_boolean_varible"] = "virt_use_nfs"
-                params["remote_boolean_value"] = "on"
-        if selinux_local or selinux_remote:
-            seLinuxBool = utils_misc.SELinuxBoolean(params)
-            seLinuxBool.setup()
-
-        image_name_only = os.path.basename(params["image_name"])
-        for image_name in params.objects("images"):
-            name_tag = "image_name_%s" % image_name
-            if params.get(name_tag):
-                image_name_only = os.path.basename(params[name_tag])
-                params[name_tag] = os.path.join(image_nfs.mount_dir, image_name_only)
 
     firewalld_service = params.get("firewalld_service")
     if firewalld_service == "disable":
@@ -1996,37 +1945,6 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nPostprocess command: %s" % str(details).replace("\n", "\n  ")
             LOG.error(details)
-
-    if params.get("storage_type") == "iscsi":
-        try:
-            iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
-            iscsidev.cleanup()
-        except Exception as details:
-            err += "\niscsi cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
-
-    if params.get("storage_type") == "lvm":
-        try:
-            lvmdev = env.get_lvmdev("lvm_%s" % params["main_vm"])
-            lvmdev.cleanup()
-        except Exception as details:
-            err += "\nLVM cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
-        env.unregister_lvmdev("lvm_%s" % params["main_vm"])
-
-    if params.get("storage_type") == "nfs":
-        try:
-            image_nfs = nfs.Nfs(params)
-            image_nfs.cleanup()
-            if migration_setup:
-                # Cleanup NFS client on remote host
-                nfs_client = nfs.NFSClient(params)
-                nfs_client.cleanup(ssh_auto_recover=False)
-                # Cleanup selinux on remote host
-                seLinuxBool = utils_misc.SELinuxBoolean(params)
-                seLinuxBool.cleanup(keep_authorized_keys=True)
-        except Exception as details:
-            err += "\nnfs cleanup: %s" % str(details).replace("\\n", "\n  ")
 
     # cleanup migration presetup in post process
     if migration_setup:
