@@ -3905,34 +3905,41 @@ def get_default_gateway(iface_name=False, session=None, ip_ver='ipv4',
     :return: default gateway of target iface
     """
     if ip_ver == 'ipv4':
-        ip_cmd = 'ip route'
+        cmd = 'ip route'
     elif ip_ver == 'ipv6':
-        ip_cmd = 'ip -6 route'
+        cmd = 'ip -6 route'
     else:
         raise ValueError(f'Unrecognized IP version {ip_ver}')
-    if force_dhcp:
-        ip_cmd = ip_cmd + '|grep dhcp'
     if target_iface:
         regex = "default.*%s" % target_iface
     else:
         regex = "default"
-    if iface_name:
-        cmd = "%s | awk '/%s/ { print $5 }'" % (ip_cmd, regex)
-    else:
-        cmd = "%s | awk '/%s/ { print $3 }'" % (ip_cmd, regex)
+    if force_dhcp:
+        regex = regex + ".*dhcp"
     try:
         _, output = utils_misc.cmd_status_output(cmd, shell=True, session=session)
-        if session:
-            LOG.debug("Guest default gateway is %s", output)
+        matches = [x for x in output.split("\n") if re.match(regex, x)]
+        if not matches:
+            raise aexpect.ShellError
+        if ip_ver == 'ipv6' and any('fe80:' not in m for m in matches):
+            LOG.error("Multipath ipv6 router can not be recognized!")
+            return None
+        matches = [m.split() for m in matches]
+        if iface_name:
+            gateways = [m[4] for m in matches]
         else:
-            LOG.debug("Host default gateway is %s", output)
+            gateways = [m[2] for m in matches]
+        if session:
+            LOG.debug("Guest default gateway is %s", gateways)
+        else:
+            LOG.debug("Host default gateway is %s", gateways)
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         LOG.error("Failed to get the default GateWay")
         return None
-    if ip_ver == 'ipv6' and 'fe80:' not in output.strip():
-        LOG.error("Multipath ipv6 router can not be recognized!")
-        return None
-    return output.strip()
+    # historically the function was implemented with grep and pipes
+    # therefore, there could be a multiline match with multiline
+    # result and tests expect that
+    return "\n".join(gateways)
 
 
 def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
