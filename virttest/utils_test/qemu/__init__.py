@@ -657,27 +657,26 @@ class MemoryHotplugTest(MemoryBaseTest):
     def unplug_memory(self, vm, name):
         """
         Unplug memory device
-        step 1, unplug dimm device
+        step 1, unplug the associated dimm or virtio-mem device
         step 2, unplug memory object
 
         :param vm: VM object
         :param name: memory device name
         """
         devices = []
-        qid_dimm = "dimm-%s" % name
+        qid_list = ["dimm-%s" % name, "virtio_mem-%s" % name]
         qid_mem = "mem-%s" % name
-        try:
-            dimm = vm.devices.get_by_qid(qid_dimm)[0]
-        except IndexError:
-            LOG.warn("'%s' is not used by any dimm" % qid_mem)
+
+        for qid in qid_list:
+            try:
+                device = vm.devices.get_by_qid(qid)[0]
+            except IndexError:
+                pass
+            else:
+                self._device_unplug(device, qid, devices, vm)
+                break
         else:
-            step = "Unplug pc-dimm '%s'" % qid_dimm
-            error_context.context(step, LOG.info)
-            _, ver_out = vm.devices.simple_unplug(dimm, vm.monitor)
-            if ver_out is False:
-                raise exceptions.TestFail("Verify unplug memory failed")
-            devices.append(dimm)
-            self.update_vm_after_unplug(vm, dimm)
+            LOG.warn("'%s' is not used by any memory devices" % qid_mem)
 
         step = "Unplug memory object '%s'" % qid_mem
         error_context.context(step, LOG.info)
@@ -693,6 +692,22 @@ class MemoryHotplugTest(MemoryBaseTest):
         devices.append(mem)
         self.update_vm_after_unplug(vm, mem)
         return devices
+
+    @error_context.context_aware
+    def _device_unplug(self, device, device_id, devices, vm):
+        """
+        :param device: the device to be unplugged
+        :param device_id: the ID of the device
+        :param devices: list of the unplugged devices
+        :param vm: VM object
+        """
+        step = "Unplug %s '%s'" % (device, device_id)
+        error_context.context(step, LOG.info)
+        _, ver_out = vm.devices.simple_unplug(device, vm.monitor)
+        if ver_out is False:
+            raise exceptions.TestFail("Verify unplug memory failed")
+        devices.append(device)
+        self.update_vm_after_unplug(vm, device)
 
     @error_context.context_aware
     def get_mem_addr(self, vm, qid):
