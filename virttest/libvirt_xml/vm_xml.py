@@ -857,7 +857,8 @@ class VMXML(VMXMLBase):
                 except xcepts.LibvirtXMLNotFoundError:
                     LOG.debug("Can not find any cpu tag, now create one.")
                     vmcpu_xml = VMCPUXML()
-
+                    if 'aarch64' in platform.platform():
+                        vmcpu_xml.mode = 'host-passthrough'
                 if topology_correction and ((int(sockets) * int(cores) * int(threads)) != vcpus):
                     cores = vcpus
                     sockets = 1
