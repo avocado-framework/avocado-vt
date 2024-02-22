@@ -1484,15 +1484,14 @@ class HumanMonitor(Monitor):
         """
         return self.cmd("getfd %s" % name, fd=fd)
 
-    def closefd(self, fd, name):
+    def closefd(self, name):
         """
         Close a file descriptor
 
-        :param fd: File descriptor to pass to QEMU
         :param name: File descriptor name (internal to QEMU)
         :return: The command's output
         """
-        return self.cmd("closefd %s" % name, fd=fd)
+        return self.cmd("closefd %s" % name)
 
     def system_wakeup(self):
         """
@@ -2699,17 +2698,16 @@ class QMPMonitor(Monitor):
         args = {"fdname": name}
         return self.cmd("getfd", args, fd=fd)
 
-    def closefd(self, fd, name):
+    def closefd(self, name):
         """
         Close a file descriptor
 
-        :param fd: File descriptor to pass to QEMU
         :param name: File descriptor name (internal to QEMU)
 
         :return: The response to the command
         """
         args = {"fdname": name}
-        return self.cmd("closefd", args, fd=fd)
+        return self.cmd("closefd", args)
 
     def system_wakeup(self):
         """
