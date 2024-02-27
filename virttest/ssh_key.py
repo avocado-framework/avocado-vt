@@ -150,7 +150,7 @@ def setup_ssh_key(hostname, user, password, port=22, client_user=None):
 
         session.cmd('mkdir -p ~/.ssh')
         session.cmd('chmod 700 ~/.ssh')
-        session.cmd("echo '%s' >> ~/.ssh/authorized_keys; " %
+        session.cmd("echo '\n%s' >> ~/.ssh/authorized_keys; " %
                     public_key)
         session.cmd('chmod 600 ~/.ssh/authorized_keys')
         LOG.debug('SSH key setup complete.')
@@ -213,7 +213,7 @@ def setup_remote_ssh_key(hostname1, user1, password1,
                                         each_option)
         session2.cmd_output('mkdir -p ~/.ssh')
         session2.cmd_output('chmod 700 ~/.ssh')
-        session2.cmd_output("echo '%s' >> ~/.ssh/authorized_keys; " %
+        session2.cmd_output("echo '\n%s' >> ~/.ssh/authorized_keys; " %
                             public_key)
         session2.cmd_output('chmod 600 ~/.ssh/authorized_keys')
         LOG.debug('SSH key setup on %s complete.', session2)
