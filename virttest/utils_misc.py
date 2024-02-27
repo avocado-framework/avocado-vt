@@ -4382,13 +4382,11 @@ def compare_md5(file_a, file_b):
 
 def is_linux_uefi_guest(runner=cmd_status_output):
     """
-    Check whether guest is uefi guest
+    Check whether linux guest is uefi guest
     """
     cmd = "ls /sys/firmware/efi"
-    status, output = runner(cmd)
-    if status != 0:
-        return False
-    return True
+    status, _ = runner(cmd)
+    return status == 0
 
 
 def is_windows_uefi_guest(runner=cmd_status_output):
@@ -4405,7 +4403,4 @@ def is_windows_uefi_guest(runner=cmd_status_output):
     if 'BIOS' in output:
         return False
 
-    if 'EFI' in output:
-        return True
-
-    return False
+    return 'EFI' in output
