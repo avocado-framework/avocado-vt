@@ -2937,14 +2937,17 @@ class VM(virt_vm.BaseVM):
         session.close()
         return mac.strip()
 
-    def install_package(self, name, ignore_status=False, timeout=300):
+    def install_package(self, name, ignore_status=False, timeout=300,
+                        serial=False):
         """
         Install a package on VM.
         ToDo: Support multiple package manager.
 
         :param name: Name of package to be installed
+        :param serial: Whether to use a serial connection
         """
-        session = self.wait_for_login()
+        session = self.wait_for_login() if not serial \
+            else self.wait_for_serial_login()
         try:
             if not utils_package.package_install(name, session, timeout=timeout):
                 raise virt_vm.VMError("Installation of package %s failed" %
@@ -2958,14 +2961,16 @@ class VM(virt_vm.BaseVM):
         finally:
             session.close()
 
-    def remove_package(self, name, ignore_status=False):
+    def remove_package(self, name, ignore_status=False, serial=False):
         """
         Remove a package from VM.
         ToDo: Support multiple package manager.
 
         :param name: Name of package to be removed
+        :param serial: Whether to use a serial connection
         """
-        session = self.wait_for_login()
+        session = self.wait_for_login() if not serial \
+            else self.wait_for_serial_login()
         if not utils_package.package_remove(name, session):
             if not ignore_status:
                 session.close()
@@ -2975,7 +2980,7 @@ class VM(virt_vm.BaseVM):
 
     def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True,
                             source_path=None, target_name='org.qemu.guest_agent.0',
-                            with_pm_utils=False):
+                            with_pm_utils=False, serial=False):
         """
         Prepare qemu guest agent on the VM.
 
@@ -2986,11 +2991,14 @@ class VM(virt_vm.BaseVM):
         :param source_path: Source path of the guest agent channel
         :param target_name: Target name of the guest agent channel
         :param with_pm_utils: Determines if to install pm-utils
+        :param serial: Whether to use a serial connection
         """
+        virsh_inst = virsh.VirshPersistent(uri=self.connect_uri)
         if prepare_xml:
             if self.is_alive():
                 self.destroy()
-            vmxml = libvirt_xml.VMXML.new_from_inactive_dumpxml(self.name)
+            vmxml = libvirt_xml.VMXML.new_from_inactive_dumpxml(
+                self.name, virsh_instance=virsh_inst)
             # Check if we need to change XML of VM by checking
             # whether the agent is existing.
             is_existing = False
@@ -3011,25 +3019,27 @@ class VM(virt_vm.BaseVM):
                                             tgt_name=target_name)
                 else:
                     vmxml.remove_agent_channels()
-                vmxml.sync()
+                vmxml.sync(virsh_instance=virsh_inst)
 
         if not self.is_alive():
             self.start()
 
         if with_pm_utils:
             self.install_package('pm-utils', ignore_status=True, timeout=15)
-        self.install_package('qemu-guest-agent')
+        self.install_package('qemu-guest-agent', serial=serial)
 
-        self.set_state_guest_agent(start)
+        self.set_state_guest_agent(start, serial=serial)
 
-    def set_state_guest_agent(self, start):
+    def set_state_guest_agent(self, start, serial=False):
         """
         Starts or stops the guest agent in guest.
 
         :param start: Start (True) or stop (False) the agent
+        :param serial: Whether to use a serial connection
         """
 
-        session = self.wait_for_login()
+        session = self.wait_for_login() if not serial \
+            else self.wait_for_serial_login()
 
         def _is_ga_running():
             return (not session.cmd_status("pgrep qemu-ga"))

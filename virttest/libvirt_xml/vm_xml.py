@@ -1336,10 +1336,11 @@ class VMXML(VMXMLBase):
             LOG.debug("Guest agent channel already exists")
             return
 
-        if not src_path:
-            src_path = '/var/lib/libvirt/qemu/%s-guest.agent' % self.vm_name
         channel = self.get_device_class('channel')(type_name='unix')
-        channel.add_source(mode='bind', path=src_path)
+        sources = {"mode": 'bind'}
+        if src_path:
+            sources.update({'path': src_path})
+        channel.add_source(**sources)
         channel.add_target(type='virtio', name=tgt_name)
         self.devices = self.devices.append(channel)
 
