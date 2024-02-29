@@ -3414,12 +3414,7 @@ class DevContainer(object):
         """
         Create thread-context object from params.
         """
-        tc_params = Params()
-        prefix = "vm_thread_context_"
-        for key in params:
-            if key.startswith(prefix):
-                new_key = key.rsplit(prefix)[1]
-                tc_params[new_key] = params[key]
+        tc_params = params.get_dict("vm_thread_context_options")
         dev = qdevices.QObject("thread-context", params=tc_params)
         dev.set_param("id", "%s-%s" % ("thread_context", name))
         return dev
