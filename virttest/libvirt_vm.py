@@ -305,6 +305,11 @@ class VM(virt_vm.BaseVM):
                 if "--nvram" not in options:
                     options += " --nvram"
         try:
+            if "aarch" in platform.machine():
+                if options is None:
+                    options = "--nvram"
+                if "--nvram" not in options:
+                    options += " --nvram"
             virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)
         except process.CmdError as detail:
