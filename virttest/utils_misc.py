@@ -1448,11 +1448,12 @@ class NumaInfo(object):
         self.nodes = {}
         self.distances = {}
         self.online_nodes_cpus = self.get_all_node_cpus()
-
         # ensure numactl package is available
         if not utils_package.package_install('numactl', session=self.session):
             LOG.error("Numactl package is not installed")
-
+        _, self.numactl_info = cmd_status_output("numactl --hardware",
+                                                 shell=True,
+                                                 session=self.session)
         for node_id in self.online_nodes:
             self.nodes[node_id] = NumaNode(node_id + 1, session=self.session)
             self.distances[node_id] = self.get_node_distance(node_id)
@@ -1496,17 +1497,11 @@ class NumaInfo(object):
         :return: A list in of distance for the node in positive-sequence
         :rtype: builtin.list
         """
-        cmd = "numactl --hardware"
-        status, output = cmd_status_output(cmd, shell=True,
-                                           session=self.session)
-        if status != 0:
-            LOG.error("Failed to get information from %s", cmd)
         try:
-            node_distances = output.split("node distances:")[-1].strip()
+            node_distances = self.numactl_info.split("node distances:")[-1].strip()
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
-            LOG.warn("Get unexpect information from numctl")
             numa_sys_path = self.numa_sys_path
             distance_path = get_path(numa_sys_path,
                                      "node%s/distance" % node_id)
@@ -1631,6 +1626,9 @@ class NumaNode(object):
         """
         self.extra_cpus = []
         self.session = session
+        _, self.numactl_info = cmd_status_output("numactl --hardware",
+                                                 shell=True,
+                                                 session=self.session)
         if i < 0:
             host_numa_info = NumaInfo(all_nodes_path, online_nodes_path,
                                       session=self.session)
@@ -1659,11 +1657,7 @@ class NumaNode(object):
 
         :param i: Index of the CPU inside the node.
         """
-        cmd = "numactl --hardware"
-        status, output = cmd_status_output(cmd, session=self.session)
-        if status != 0:
-            LOG.error("Failed to get the information of %s", cmd)
-        cpus = re.findall("node %s cpus: (.*)" % i, output)
+        cpus = re.findall("node %s cpus: (.*)" % i, self.numactl_info)
         if cpus:
             cpus = cpus[0]
         else:
