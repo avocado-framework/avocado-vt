@@ -344,12 +344,19 @@ def change_tcp_config(expected_dict):
     process.run(cmd, shell=True, ignore_status=False)
 
 
-def check_listen_address(params):
+def check_sockets_statistics(server_ip, server_user, server_pwd, check_patterns="[r'ESTAB']"):
     """
-    Check listen address by ss command
+    Check sockets statistics by ss command
 
-    :param params: dictionary with the test parameter, get listen address
+    :param server_ip: server ip
+    :param server_user: server user
+    :param server_pwd: server password
+    :param check_patterns: patterns to check
     """
-    listen_address = params.get("listen_address")
-
-    process.run(f"ss -tnap|grep qemu-kvm| grep '{listen_address}'", shell=True, ignore_status=False)
+    server_params = {'server_ip': server_ip,
+                     'server_user': server_user,
+                     'server_pwd': server_pwd}
+    cmd = "ss -tnap|grep qemu-kvm"
+    ret = remote.run_remote_cmd(cmd, server_params)
+    for value in eval(check_patterns):
+        libvirt.check_status_output(ret.exit_status, output=ret.stdout_text, expected_match=value)
