@@ -202,7 +202,7 @@ def get_tmp_dir(public=True):
     """
     persistent_dir = get_settings_value('vt.common', 'tmp_dir',
                                         default="")
-    if persistent_dir != "":
+    if persistent_dir and persistent_dir != "":
         return persistent_dir
     tmp_dir = None
     # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
