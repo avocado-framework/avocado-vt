@@ -3175,7 +3175,7 @@ class QPCISwitchBus(QPCIBus):
         if addr not in self.__downstream_ports:
             _addr = int(addr, 16)
             bus_id = "%s.%s" % (self.busid, _addr)
-            bus = QPCIBus(bus_id, 'PCIE', bus_id)
+            bus = QPCIDownstreamPortBus(bus_id, bus_id)
             self.__downstream_ports["0x%x" % _addr] = bus
             downstream = QDevice(self.__downstream_type,
                                  {'id': bus_id,
@@ -3210,6 +3210,42 @@ class QPCISwitchBus(QPCIBus):
         downstream port.
         """
         self.__downstream_ports['0x%x' % addr[0]].insert(device)
+
+
+class QPCIDownstreamPortBus(QPCIBus):
+
+    """PCIE Switch Downstream Port Bus"""
+
+    def __init__(self, busid, aobject=None):
+        super(QPCIDownstreamPortBus, self).__init__(busid, 'PCIE', busid, length=1)
+
+    def insert(self, device, strict_mode=False):
+        """
+        Insert device into this bus representation.
+
+        :param device: QBaseDevice device
+        :param strict_mode: Use strict mode (set optional params)
+        :return: list of added devices on success,
+                 string indicating the failure on failure.
+        """
+
+        additional_devices = []
+        if not self._check_bus(device):
+            return "BusId"
+        addr_pattern = [0, 0]
+        addr = self.get_free_slot(addr_pattern)
+        if addr is None:
+            return "UsedSlot"
+        elif addr is False:
+            return "BadAddr(%s)" % addr
+        else:
+            additional_devices.extend(self._insert(device,
+                                                   self._addr2stor(addr)))
+        if strict_mode:     # Set full address in strict_mode
+            self._set_device_props(device, addr)
+        else:
+            self._update_device_props(device, addr)
+        return additional_devices
 
 
 class QSCSIBus(QSparseBus):
