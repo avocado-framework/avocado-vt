@@ -684,6 +684,12 @@ class VM(virt_vm.BaseVM):
                 if ctrl_mac_addr and ctrl_mac_addr in ["on", "off"]:
                     dev.set_param('ctrl_mac_addr', ctrl_mac_addr)
                 dev.set_param('mac', mac, dynamic=True)
+
+                # passing romfile= tells QEMU to disable ROM entirely for
+                # this device
+                no_romfile = params.get("net_dev_disable_option_rom", None)
+                if no_romfile:
+                    dev.set_param("romfile", "EMPTY_STRING")
                 # only pci domain=0,bus=0,function=0 is supported for now.
                 #
                 # libvirt gains the pci_slot, free_pci_addr here,
