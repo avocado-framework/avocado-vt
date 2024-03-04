@@ -1798,6 +1798,8 @@ class VM(virt_vm.BaseVM):
         if self.is_dead():
             LOG.error("Can't cleanup swap on a dead VM.")
             return False
+        has_swap_device = True if "created_swap_device" in dir(self) else False
+        has_swap_path = True if "created_swap_path" in dir(self) else False
 
         # Remove kernel parameters.
         self.set_kernel_param("resume", remove=True)
@@ -1807,21 +1809,22 @@ class VM(virt_vm.BaseVM):
         session = self.wait_for_login()
         try:
             session.cmd_status("swapoff -a")
-            if "created_swap_file" in dir(self):
+            if has_swap_device:
                 session.cmd_status("rm -f %s" % self.created_swap_file)
                 del self.created_swap_file
         finally:
             session.close()
 
         # Cold unplug attached swap disk
-        if self.shutdown():
-            if "created_swap_device" in dir(self):
-                self.detach_disk(
-                    self.created_swap_device, extra="--persistent")
-                del self.created_swap_device
-            if "created_swap_path" in dir(self):
-                os.remove(self.created_swap_path)
-                del self.created_swap_path
+        if any([has_swap_device, has_swap_path]):
+            if self.shutdown():
+                if has_swap_device:
+                    self.detach_disk(
+                        self.created_swap_device, extra="--persistent")
+                    del self.created_swap_device
+                if has_swap_path:
+                    os.remove(self.created_swap_path)
+                    del self.created_swap_path
 
     def set_console_getty(self, device, getty="mgetty", remove=False):
         """
