@@ -1245,6 +1245,19 @@ class BaseVM(object):
             return self.wait_for_serial_login(timeout, internal_timeout,
                                               False, username, password)
 
+        # Attempt to log useful data
+        try:
+            session = self.wait_for_serial_login(timeout, internal_timeout,
+                                                 False, username, password)
+            session.sendline("echo Login failed, dumping useful logs...")
+            session.sendline("echo /var/log/messages")
+            session.sendline("cat /var/log/messages")
+            session.sendline("echo journalctl")
+            session.cmd_status("journalctl | cat")
+            session.close()
+        except Exception:
+            pass
+
         raise remote.LoginTimeoutError("exceeded %s s timeout, last "
                                        "failure: %s" % (timeout, error))
 
