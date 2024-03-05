@@ -1,6 +1,7 @@
 import ast
 import logging
 import os.path
+import sys
 from six import StringIO
 
 try:
@@ -101,7 +102,12 @@ class SectionlessConfig(object):
         self.parser.optionxform = str
         self.backup_content = open(path, 'r').read()
         read_fp = StringIO('[root]\n' + self.backup_content)
-        self.parser.readfp(read_fp)
+        #readfp function has been deprecated since python3.2 
+        #and removed in python3.12
+        if sys.version_info >= (3, 12):
+            self.parser.read_file(read_fp)
+        else:
+            self.parser.readfp(read_fp)
 
     def __sync_file(self):
         out_file = open(self.path, 'w')
