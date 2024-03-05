@@ -7,7 +7,7 @@ import logging
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class DomCapabilityXML(base.LibvirtXMLBase):
@@ -19,25 +19,27 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         features:
             DomCapFeaturesXML instance to deal with domain features
     """
-    __slots__ = ('features', 'max')
-    __schema_name__ = 'domcapabilities'
+
+    __slots__ = ("features", "max")
+    __schema_name__ = "domcapabilities"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementNest(property_name='features',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='features',
-                                 subclass=DomCapFeaturesXML,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        accessors.XMLAttribute('max', self, parent_xpath='/',
-                               tag_name='vcpu', attribute='max')
+        accessors.XMLElementNest(
+            property_name="features",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="features",
+            subclass=DomCapFeaturesXML,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLAttribute(
+            "max", self, parent_xpath="/", tag_name="vcpu", attribute="max"
+        )
         super(DomCapabilityXML, self).__init__(virsh_instance)
-        result = self.__dict_get__('virsh').domcapabilities()
-        self['xml'] = result.stdout_text.strip()
+        result = self.__dict_get__("virsh").domcapabilities()
+        self["xml"] = result.stdout_text.strip()
 
-    def get_additional_feature_list(self, cpu_mode_name,
-                                    ignore_features=("invtsc",)):
+    def get_additional_feature_list(self, cpu_mode_name, ignore_features=("invtsc",)):
         """
         Get additional CPU features which explicitly specified by <feature>
         tag in cpu/mode[@name='host-model'] part of virsh domcapabilities.
@@ -73,14 +75,14 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                  returen is like [{'ss': 'require'}, {'pdpe1gb', 'require'}]
         """
         feature_list = []  # [{feature1: policy}, {feature2: policy}, ...]
-        xmltreefile = self.__dict_get__('xml')
+        xmltreefile = self.__dict_get__("xml")
         try:
-            for mode_node in xmltreefile.findall('/cpu/mode'):
+            for mode_node in xmltreefile.findall("/cpu/mode"):
                 # Get mode which name attribute is 'host-model'
-                if mode_node.get('name') == cpu_mode_name:
-                    for feature in mode_node.findall('feature'):
+                if mode_node.get("name") == cpu_mode_name:
+                    for feature in mode_node.findall("feature"):
                         item = {}
-                        item[feature.get('name')] = feature.get('policy')
+                        item[feature.get("name")] = feature.get("policy")
                         if ignore_features and item in ignore_features:
                             continue
                         feature_list.append(item)
@@ -130,14 +132,14 @@ class DomCapabilityXML(base.LibvirtXMLBase):
 
         :return: modelname string
         """
-        xmltreefile = self.__dict_get__('xml')
+        xmltreefile = self.__dict_get__("xml")
         try:
-            for mode_node in xmltreefile.findall('/cpu/mode'):
-                if mode_node.get('name') == 'host-model':
-                    return mode_node.find('model').text
+            for mode_node in xmltreefile.findall("/cpu/mode"):
+                if mode_node.get("name") == "host-model":
+                    return mode_node.find("model").text
         except AttributeError as elem_attr:
             LOG.warn("Failed to find attribute %s" % elem_attr)
-            return ''
+            return ""
 
 
 class DomCapFeaturesXML(base.LibvirtXMLBase):
@@ -154,36 +156,39 @@ class DomCapFeaturesXML(base.LibvirtXMLBase):
         hyperv_enums:
             list of enum dict in /hyperv
     """
-    __slots__ = ('gic_supported', 'gic_enums', 'hyperv_supported', 'hyperv_enums')
+
+    __slots__ = ("gic_supported", "gic_enums", "hyperv_supported", "hyperv_enums")
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute(property_name='gic_supported',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='gic',
-                               attribute='supported')
-        accessors.XMLAttribute(property_name='hyperv_supported',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='hyperv',
-                               attribute='supported')
-        accessors.AllForbidden(property_name='gic_enums',
-                               libvirtxml=self)
-        accessors.AllForbidden(property_name='hyperv_enums',
-                               libvirtxml=self)
+        accessors.XMLAttribute(
+            property_name="gic_supported",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="gic",
+            attribute="supported",
+        )
+        accessors.XMLAttribute(
+            property_name="hyperv_supported",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="hyperv",
+            attribute="supported",
+        )
+        accessors.AllForbidden(property_name="gic_enums", libvirtxml=self)
+        accessors.AllForbidden(property_name="hyperv_enums", libvirtxml=self)
         super(DomCapFeaturesXML, self).__init__(virsh_instance)
 
     def get_gic_enums(self):
         """
         Return EnumXML instance list of gic
         """
-        return self.get_enums('/gic/enum')
+        return self.get_enums("/gic/enum")
 
     def get_hyperv_enums(self):
         """
         Return EnumXML instance list of hyperv
         """
-        return self.get_enums('/hyperv/enum')
+        return self.get_enums("/hyperv/enum")
 
     def get_enums(self, path):
         """
@@ -193,8 +198,7 @@ class DomCapFeaturesXML(base.LibvirtXMLBase):
         """
         enum_list = []
         for enum_node in self.xmltreefile.findall(path):
-            xml_str = xml_utils.ElementTree.tostring(enum_node,
-                                                     encoding='unicode')
+            xml_str = xml_utils.ElementTree.tostring(enum_node, encoding="unicode")
             new_enum = EnumXML()
             new_enum.xml = xml_str
             enum_list.append(new_enum)
@@ -206,15 +210,14 @@ class ValueXML(base.LibvirtXMLBase):
     Value elements of EnumXML
     """
 
-    __slots__ = ('value',)
+    __slots__ = ("value",)
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText(property_name='value',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 tag_name='value')
+        accessors.XMLElementText(
+            property_name="value", libvirtxml=self, parent_xpath="/", tag_name="value"
+        )
         super(ValueXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<value/>'
+        self.xml = "<value/>"
 
 
 class EnumXML(base.LibvirtXMLBase):
@@ -227,22 +230,27 @@ class EnumXML(base.LibvirtXMLBase):
         values:
             list of ValueXML instance
     """
-    __slots__ = ('name', 'values')
+
+    __slots__ = ("name", "values")
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute(property_name='name',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='enum',
-                               attribute='name')
-        accessors.XMLElementList(property_name='values',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 marshal_from=self.marshal_from_values,
-                                 marshal_to=self.marshal_to_values,
-                                 has_subclass=True)
+        accessors.XMLAttribute(
+            property_name="name",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="enum",
+            attribute="name",
+        )
+        accessors.XMLElementList(
+            property_name="values",
+            libvirtxml=self,
+            parent_xpath="/",
+            marshal_from=self.marshal_from_values,
+            marshal_to=self.marshal_to_values,
+            has_subclass=True,
+        )
         super(EnumXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<enum/>'
+        self.xml = "<enum/>"
 
     @staticmethod
     def marshal_from_values(item, index, libvirtxml):
@@ -250,22 +258,23 @@ class EnumXML(base.LibvirtXMLBase):
         Convert an ValueXML object to value tag and xml element.
         """
         if isinstance(item, ValueXML):
-            return 'value', item
+            return "value", item
         elif isinstance(item, str):
             value = ValueXML()
             value.value = item
-            return 'value', value
+            return "value", value
         else:
-            raise xcepts.LibvirtXMLError("Expected a list of ValueXML "
-                                         "instances, not a %s" % str(item))
+            raise xcepts.LibvirtXMLError(
+                "Expected a list of ValueXML " "instances, not a %s" % str(item)
+            )
 
     @staticmethod
     def marshal_to_values(tag, new_treefile, index, libvirtxml):
         """
         Convert a value tag xml element to an object of ValueXML.
         """
-        if tag != 'value':
-            return None     # Don't convert this item
+        if tag != "value":
+            return None  # Don't convert this item
         newone = ValueXML(virsh_instance=libvirtxml.virsh)
         newone.xmltreefile = new_treefile
         return newone

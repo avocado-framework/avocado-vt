@@ -25,6 +25,7 @@ class LockCreationError(Exception):
     """
     Represents any error situation when attempting to create a lock file
     """
+
     pass
 
 
@@ -37,13 +38,14 @@ class OtherProcessHoldsLockError(Exception):
 
 class VTJobLock(Pre, Post):
 
-    name = 'vt-joblock'
-    description = 'Avocado-VT Job Lock/Unlock'
+    name = "vt-joblock"
+    description = "Avocado-VT Job Lock/Unlock"
 
     def __init__(self, **kwargs):
         self.log = logging.getLogger("avocado.app")
-        lock_dir = get_settings_value("plugins.vtjoblock", "dir",
-                                      key_type=str, default='/tmp')
+        lock_dir = get_settings_value(
+            "plugins.vtjoblock", "dir", key_type=str, default="/tmp"
+        )
         self.lock_dir = os.path.expanduser(lock_dir)
         self.lock_file = None
 
@@ -57,17 +59,16 @@ class VTJobLock(Pre, Post):
         :returns: the full path for the lock file created
         :rtype: str
         """
-        pattern = 'avocado-vt-joblock-%(jobid)s-%(uid)s-%(random)s.pid'
+        pattern = "avocado-vt-joblock-%(jobid)s-%(uid)s-%(random)s.pid"
         # the job unique id is already random, but, let's add yet another one
-        rand = ''.join([random.choice(string.ascii_lowercase + string.digits)
-                        for i in xrange(8)])
-        path = pattern % {'jobid': job.unique_id,
-                          'uid': os.getuid(),
-                          'random': rand}
+        rand = "".join(
+            [random.choice(string.ascii_lowercase + string.digits) for i in xrange(8)]
+        )
+        path = pattern % {"jobid": job.unique_id, "uid": os.getuid(), "random": rand}
         path = os.path.join(self.lock_dir, path)
 
         try:
-            with open(path, 'w') as lockfile:
+            with open(path, "w") as lockfile:
                 lockfile.write("%u" % os.getpid())
             return path
         except Exception as e:
@@ -83,10 +84,10 @@ class VTJobLock(Pre, Post):
         """
         try:
             files = os.listdir(self.lock_dir)
-            pattern = re.compile(r'avocado-vt-joblock-[0-9a-f]{40}-[0-9]+'
-                                 '-[0-9a-z]{8}\.pid')
-            return [os.path.join(self.lock_dir, _) for _ in files
-                    if pattern.match(_)]
+            pattern = re.compile(
+                r"avocado-vt-joblock-[0-9a-f]{40}-[0-9]+" "-[0-9a-z]{8}\.pid"
+            )
+            return [os.path.join(self.lock_dir, _) for _ in files if pattern.match(_)]
         except OSError as e:
             if e.errno == errno.ENOENT:
                 return []
@@ -97,7 +98,7 @@ class VTJobLock(Pre, Post):
         lock_files.remove(self.lock_file)
         for path in lock_files:
             try:
-                lock_pid = int(open(path, 'r').read())
+                lock_pid = int(open(path, "r").read())
             except Exception:
                 msg = 'Cannot read PID from "%s".' % path
                 raise LockCreationError(msg)
@@ -121,12 +122,14 @@ class VTJobLock(Pre, Post):
     def pre_tests(self, job):
         try:
             if job.test_suite is not None:
-                if hasattr(job.test_suite, 'tests'):
+                if hasattr(job.test_suite, "tests"):
                     tests = job.test_suite.tests
                 else:
                     tests = job.test_suite
-                if any(self._get_klass_or_none(test_factory) is VirtTest
-                       for test_factory in tests):
+                if any(
+                    self._get_klass_or_none(test_factory) is VirtTest
+                    for test_factory in tests
+                ):
                     self._lock(job)
         except Exception as detail:
             msg = "Failure trying to set Avocado-VT job lock: %s" % detail

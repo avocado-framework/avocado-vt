@@ -17,7 +17,7 @@ from virttest.libvirt_xml.backup_xml import BackupXML
 from virttest.libvirt_xml.checkpoint_xml import CheckpointXML
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class BackupError(Exception):
@@ -89,8 +89,9 @@ def create_checkpoint_xml(cp_params, disk_param_list=None):
         cp_xml.description = cp_desc
     if disk_param_list:
         if not isinstance(disk_param_list, list):
-            raise exceptions.TestError("checkpoint disk tags should be defined "
-                                       "by a list.")
+            raise exceptions.TestError(
+                "checkpoint disk tags should be defined " "by a list."
+            )
         cp_xml.disks = disk_param_list
     cp_xml.xmltreefile.write()
 
@@ -164,7 +165,9 @@ def create_backup_disk_xml(backup_disk_params):
         disk_target = BackupXML.DiskXML.DiskTarget()
         disk_target.attrs = backup_target["attrs"]
         if "encryption" in list(backup_target.keys()):
-            disk_target.encryption = disk_target.new_encryption(**backup_target["encryption"])
+            disk_target.encryption = disk_target.new_encryption(
+                **backup_target["encryption"]
+            )
         backup_disk_xml.target = disk_target
     if backup_driver:
         if not isinstance(backup_driver, dict):
@@ -176,7 +179,9 @@ def create_backup_disk_xml(backup_disk_params):
         disk_scratch = BackupXML.DiskXML.DiskScratch()
         disk_scratch.attrs = backup_scratch["attrs"]
         if "encryption" in list(backup_scratch.keys()):
-            disk_scratch.encryption = disk_scratch.new_encryption(**backup_scratch["encryption"])
+            disk_scratch.encryption = disk_scratch.new_encryption(
+                **backup_scratch["encryption"]
+            )
         backup_disk_xml.scratch = disk_scratch
     backup_disk_xml.xmltreefile.write()
 
@@ -184,8 +189,7 @@ def create_backup_disk_xml(backup_disk_params):
     return backup_disk_xml
 
 
-def pull_incremental_backup_to_file(nbd_params, target_path,
-                                    bitmap_name, file_size):
+def pull_incremental_backup_to_file(nbd_params, target_path, bitmap_name, file_size):
     """
     Dump pull-mode incremental backup data to a file
 
@@ -218,9 +222,11 @@ def pull_incremental_backup_to_file(nbd_params, target_path,
             qemu_rebase_cmd %= (nbd_hostname, nbd_tcp_port, nbd_export, target_path)
             map_from += ",tls-creds=tls0"
             map_from %= (nbd_export, nbd_type, nbd_server, bitmap_name)
-            qemu_map_cmd = "qemu-img map --object "\
-                           "tls-creds-x509,id=tls0,endpoint=client,dir=%s "\
-                           "--output=json %s -U" % (tls_dir, map_from)
+            qemu_map_cmd = (
+                "qemu-img map --object "
+                "tls-creds-x509,id=tls0,endpoint=client,dir=%s "
+                "--output=json %s -U" % (tls_dir, map_from)
+            )
         else:
             qemu_rebase_cmd = "qemu-img rebase -u -f qcow2 -F raw -b %s %s"
             qemu_rebase_cmd %= (nbd_image_path, target_path)
@@ -243,11 +249,13 @@ def pull_incremental_backup_to_file(nbd_params, target_path,
     # Dump backup data to target image
     for entry in json_data:
         if not entry["data"]:
-            qemu_io_cmd = "qemu-io -C -c \"r %s %s\" -f qcow2 %s"
+            qemu_io_cmd = 'qemu-io -C -c "r %s %s" -f qcow2 %s'
             qemu_io_cmd %= (entry["start"], entry["length"], target_path)
             if tls_dir:
-                qemu_io_cmd += " --object tls-creds-x509,id=tls0,"\
-                               "endpoint=client,dir=%s" % tls_dir
+                qemu_io_cmd += (
+                    " --object tls-creds-x509,id=tls0,"
+                    "endpoint=client,dir=%s" % tls_dir
+                )
             process.run(qemu_io_cmd, shell=True)
     # remove the backing file info for the target image
     qemu_rebase_cmd = "qemu-img rebase -u -f qcow2 -b '' %s" % target_path
@@ -269,22 +277,33 @@ def pull_full_backup_to_file(nbd_params, target_path):
     socket = nbd_params.get("nbd_socket")
     if protocol == "tcp":
         if not tls_dir:
-            cmd = "qemu-img convert -f raw nbd://%s:%s/%s " \
-                  "-O qcow2 %s" % (hostname, port, export, target_path)
+            cmd = "qemu-img convert -f raw nbd://%s:%s/%s " "-O qcow2 %s" % (
+                hostname,
+                port,
+                export,
+                target_path,
+            )
         else:
-            json_input = ("'json:{\"file\":{\"driver\":\"nbd\","
-                          "\"server\":{\"host\":\"%s\",\"port\":%s,"
-                          "\"type\":\"inet\"},\"export\":\"%s\","
-                          "\"tls-creds\":\"tls0\"}}'") % (hostname, port, export)
-            cmd = ("qemu-img convert -O qcow2 --object tls-creds-x509,id=tls0,"
-                   "endpoint=client,dir=%s %s %s") % (tls_dir, json_input, target_path)
+            json_input = (
+                '\'json:{"file":{"driver":"nbd",'
+                '"server":{"host":"%s","port":%s,'
+                '"type":"inet"},"export":"%s",'
+                '"tls-creds":"tls0"}}\''
+            ) % (hostname, port, export)
+            cmd = (
+                "qemu-img convert -O qcow2 --object tls-creds-x509,id=tls0,"
+                "endpoint=client,dir=%s %s %s"
+            ) % (tls_dir, json_input, target_path)
     elif protocol == "unix":
-        cmd = "qemu-img convert -f raw nbd+unix:///%s?socket=%s " \
-              "-O qcow2 %s" % (export, socket, target_path)
+        cmd = "qemu-img convert -f raw nbd+unix:///%s?socket=%s " "-O qcow2 %s" % (
+            export,
+            socket,
+            target_path,
+        )
     process.run(cmd, shell=True)
 
 
-def get_img_data_size(img_path, driver='qcow2'):
+def get_img_data_size(img_path, driver="qcow2"):
     """
     Get the actual data size of a image
 
@@ -298,10 +317,10 @@ def get_img_data_size(img_path, driver='qcow2'):
     for entry in json_data:
         if entry["data"]:
             summary += entry["length"]
-    return summary/1024/1024
+    return summary / 1024 / 1024
 
 
-def get_img_data_map(img_path, driver='qcow2'):
+def get_img_data_map(img_path, driver="qcow2"):
     """
     Get the data map of a image
 
@@ -318,7 +337,7 @@ def get_img_data_map(img_path, driver='qcow2'):
     return data_map
 
 
-def dump_data_to_file(data_map, source_file_path, target_file_path, driver='qcow2'):
+def dump_data_to_file(data_map, source_file_path, target_file_path, driver="qcow2"):
     """
     Dump real data from the source file to a target file according to data map
 
@@ -328,7 +347,7 @@ def dump_data_to_file(data_map, source_file_path, target_file_path, driver='qcow
     :param target_file_path: The path to the target file
     :param driver: The image format of the source file
     """
-    with open(target_file_path, 'w'):
+    with open(target_file_path, "w"):
         cmd = "qemu-io -f %s -c \"read -vC %s %s\" %s -r -U  | sed '$d'"
         for entry in data_map:
             cmd %= (driver, entry["start"], entry["length"], source_file_path)
@@ -336,8 +355,9 @@ def dump_data_to_file(data_map, source_file_path, target_file_path, driver='qcow
             process.run(cmd, shell=True)
 
 
-def cmp_backup_data(original_file, backup_file,
-                    original_file_driver='qcow2', backup_file_driver='qcow2'):
+def cmp_backup_data(
+    original_file, backup_file, original_file_driver="qcow2", backup_file_driver="qcow2"
+):
     """
     Compare the backuped data with the original data
 
@@ -348,7 +368,9 @@ def cmp_backup_data(original_file, backup_file,
     :return: Trun if data is correct, false if not
     """
     tmp_dir = data_dir.get_tmp_dir()
-    original_file_dump = os.path.join(tmp_dir, os.path.basename(original_file) + ".dump")
+    original_file_dump = os.path.join(
+        tmp_dir, os.path.basename(original_file) + ".dump"
+    )
     backup_file_dump = os.path.join(tmp_dir, os.path.basename(backup_file) + ".dump")
     data_map = get_img_data_map(backup_file, backup_file_driver)
     dump_data_to_file(data_map, original_file, original_file_dump, original_file_driver)
@@ -368,9 +390,9 @@ def get_img_bitmaps(image_path):
     cmd = "qemu-img info {} --output json".format(image_path)
     stdout = process.run(cmd, shell=True).stdout_text
     json_output = json.loads(stdout)
-    bitmaps = json_output['format-specific']['data']['bitmaps']
+    bitmaps = json_output["format-specific"]["data"]["bitmaps"]
     for bitmap in bitmaps:
-        bitmap_list.append(bitmap['name'])
+        bitmap_list.append(bitmap["name"])
     return bitmap_list
 
 
@@ -408,11 +430,13 @@ def clean_checkpoints(vm_name, clean_metadata=True, ignore_status=True):
     if checkpoints:
         for checkpoint in checkpoints:
             if clean_metadata:
-                virsh.checkpoint_delete(vm_name, checkpoint, "--metadata",
-                                        ignore_status=ignore_status)
+                virsh.checkpoint_delete(
+                    vm_name, checkpoint, "--metadata", ignore_status=ignore_status
+                )
             else:
-                virsh.checkpoint_delete(vm_name, checkpoint,
-                                        ignore_status=ignore_status)
+                virsh.checkpoint_delete(
+                    vm_name, checkpoint, ignore_status=ignore_status
+                )
 
 
 def enable_inc_backup_for_vm(vm, libvirt_ver=(7, 0, 0)):
@@ -428,21 +452,25 @@ def enable_inc_backup_for_vm(vm, libvirt_ver=(7, 0, 0)):
     """
     vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
     if libvirt_version.version_compare(*libvirt_ver):
-        LOG.debug("Incremental backup is enabled by default "
-                  "in current libvirt version, no need to "
-                  "update vm xml.")
+        LOG.debug(
+            "Incremental backup is enabled by default "
+            "in current libvirt version, no need to "
+            "update vm xml."
+        )
         return vmxml
-    LOG.debug("We need to redefine and start the vm to enable "
-              "incremental backup, please confirm if this effects your "
-              "other verification points.")
+    LOG.debug(
+        "We need to redefine and start the vm to enable "
+        "incremental backup, please confirm if this effects your "
+        "other verification points."
+    )
     tree = ET.parse(vmxml.xml)
     root = tree.getroot()
-    for elem in root.iter('domain'):
-        elem.set('xmlns:qemu', 'http://libvirt.org/schemas/domain/qemu/1.0')
+    for elem in root.iter("domain"):
+        elem.set("xmlns:qemu", "http://libvirt.org/schemas/domain/qemu/1.0")
         qemu_cap = ET.Element("qemu:capabilities")
         elem.insert(-1, qemu_cap)
         incbackup_cap = ET.Element("qemu:add")
-        incbackup_cap.set('capability', 'incremental-backup')
+        incbackup_cap.set("capability", "incremental-backup")
         qemu_cap.insert(1, incbackup_cap)
     vmxml.undefine()
     tmp_vm_xml = os.path.join(data_dir.get_tmp_dir(), "tmp_vm.xml")
@@ -459,9 +487,9 @@ def is_backup_canceled(vm_name):
     :param vm_name: vm's name
     :return: True means a backup job is canceled, False means not.
     """
-    virsh_output = virsh.domjobinfo(vm_name,
-                                    extra="--completed",
-                                    debug=True).stdout_text
+    virsh_output = virsh.domjobinfo(
+        vm_name, extra="--completed", debug=True
+    ).stdout_text
     if virsh_output:
         virsh_output = virsh_output.lower()
         if "backup" in virsh_output and "cancel" in virsh_output:

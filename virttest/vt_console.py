@@ -7,6 +7,7 @@ from aexpect import remote
 
 class ConsoleError(Exception):
     """A base class for console errors."""
+
     pass
 
 
@@ -26,6 +27,7 @@ class ConsoleNotResponsiveError(ConsoleError):
     """
     Raise when console is not responsive
     """
+
     pass
 
 
@@ -35,6 +37,7 @@ def lock(function):
 
     :param function: Function to wrap.
     """
+
     def wrapper(*args, **kwargs):
         console_manager = args[0]
         if not console_manager._lock.acquire(False):
@@ -43,6 +46,7 @@ def lock(function):
             return function(*args, **kwargs)
         finally:
             console_manager._lock.release()
+
     return wrapper
 
 
@@ -64,8 +68,9 @@ class ConsoleManager(object):
         self._lock = threading.Lock()
 
     @lock
-    def __login(self, linesep, status_test_command,
-                prompt, username, password, timeout):
+    def __login(
+        self, linesep, status_test_command, prompt, username, password, timeout
+    ):
         self._console.set_linesep(linesep)
         self._console.set_status_test_command(status_test_command)
 
@@ -76,13 +81,13 @@ class ConsoleManager(object):
                 is_responsive = True
                 break
         if not is_responsive:
-            raise ConsoleNotResponsiveError('Console is not responsive.')
+            raise ConsoleNotResponsiveError("Console is not responsive.")
 
-        remote.handle_prompts(self._console, username, password,
-                              prompt, timeout)
+        remote.handle_prompts(self._console, username, password, prompt, timeout)
 
-    def create_session(self, linesep, status_test_command,
-                       prompt, username, password, timeout):
+    def create_session(
+        self, linesep, status_test_command, prompt, username, password, timeout
+    ):
         """
         Return a console session with itself as the manager.
 
@@ -95,8 +100,7 @@ class ConsoleManager(object):
         """
         if self._console is None:
             raise NoConsoleError("No console available.")
-        self.__login(linesep, status_test_command, prompt,
-                     username, password, timeout)
+        self.__login(linesep, status_test_command, prompt, username, password, timeout)
         return ConsoleSession(self)
 
     def set_console(self, console):
@@ -135,92 +139,87 @@ class ConsoleSession(object):
 
     def is_responsive(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.is_responsive.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.is_responsive.__name__, *args, **kwargs)
 
     def cmd_output(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.cmd_output.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.cmd_output.__name__, *args, **kwargs)
 
     def cmd_output_safe(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.cmd_output_safe.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.cmd_output_safe.__name__, *args, **kwargs)
 
     def cmd_status_output(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.cmd_status_output.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(
+            self.cmd_status_output.__name__, *args, **kwargs
+        )
 
     def cmd_status(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.cmd_status.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.cmd_status.__name__, *args, **kwargs)
 
     def cmd(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.cmd.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.cmd.__name__, *args, **kwargs)
 
     def close(self):
         self.__verify_session_status()
         self.__closed = True
 
-# FIXME: the following methods are temporarily introduced to workaround
-#        console-session issues caused by the incorrect usages
+    # FIXME: the following methods are temporarily introduced to workaround
+    #        console-session issues caused by the incorrect usages
 
     def send(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.send.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.send.__name__, *args, **kwargs)
 
     def sendline(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.sendline.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.sendline.__name__, *args, **kwargs)
 
     def sendcontrol(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.sendcontrol.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.sendcontrol.__name__, *args, **kwargs)
 
     def send_ctrl(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.send_ctrl.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.send_ctrl.__name__, *args, **kwargs)
 
     def set_linesep(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.set_linesep.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.set_linesep.__name__, *args, **kwargs)
 
     def read_nonblocking(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.read_nonblocking.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(
+            self.read_nonblocking.__name__, *args, **kwargs
+        )
 
     def read_until_output_matches(self, *args, **kwargs):
         self.__verify_session_status()
         return self.__manager.proxy_call(
-            self.read_until_output_matches.__name__, *args, **kwargs)
+            self.read_until_output_matches.__name__, *args, **kwargs
+        )
 
     def read_until_last_line_matches(self, *args, **kwargs):
         self.__verify_session_status()
         return self.__manager.proxy_call(
-            self.read_until_last_line_matches.__name__, *args, **kwargs)
+            self.read_until_last_line_matches.__name__, *args, **kwargs
+        )
 
     def read_until_any_line_matches(self, *args, **kwargs):
         self.__verify_session_status()
         return self.__manager.proxy_call(
-            self.read_until_any_line_matches.__name__, *args, **kwargs)
+            self.read_until_any_line_matches.__name__, *args, **kwargs
+        )
 
     def read_up_to_prompt(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.read_up_to_prompt.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(
+            self.read_up_to_prompt.__name__, *args, **kwargs
+        )
 
     def get_output(self, *args, **kwargs):
         self.__verify_session_status()
-        return self.__manager.proxy_call(self.get_output.__name__,
-                                         *args, **kwargs)
+        return self.__manager.proxy_call(self.get_output.__name__, *args, **kwargs)

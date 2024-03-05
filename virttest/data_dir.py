@@ -19,18 +19,18 @@ from virttest.compat import get_settings_value
 
 from six.moves import xrange
 
-BASE_BACKEND_DIR = pkg_resources.resource_filename('virttest', 'backends')
-TEST_PROVIDERS_DIR = pkg_resources.resource_filename('virttest', 'test-providers.d')
-SHARED_DIR = pkg_resources.resource_filename('virttest', 'shared')
-DEPS_DIR = os.path.join(SHARED_DIR, 'deps')
-BASE_DOWNLOAD_DIR = os.path.join(SHARED_DIR, 'downloads')
+BASE_BACKEND_DIR = pkg_resources.resource_filename("virttest", "backends")
+TEST_PROVIDERS_DIR = pkg_resources.resource_filename("virttest", "test-providers.d")
+SHARED_DIR = pkg_resources.resource_filename("virttest", "shared")
+DEPS_DIR = os.path.join(SHARED_DIR, "deps")
+BASE_DOWNLOAD_DIR = os.path.join(SHARED_DIR, "downloads")
 
-DATA_DIR = os.path.join(data_dir.get_data_dir(), 'avocado-vt')
-DOWNLOAD_DIR = os.path.join(DATA_DIR, 'downloads')
+DATA_DIR = os.path.join(data_dir.get_data_dir(), "avocado-vt")
+DOWNLOAD_DIR = os.path.join(DATA_DIR, "downloads")
 BACKING_DATA_DIR = None
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class MissingDepsDirError(Exception):
@@ -38,14 +38,14 @@ class MissingDepsDirError(Exception):
 
 
 class UnknownBackendError(Exception):
-
     def __init__(self, backend):
         self.backend = backend
 
     def __str__(self):
-        return ("Virt Backend %s is not currently supported by avocado-vt. "
-                "Check for typos and the list of supported backends" %
-                self.backend)
+        return (
+            "Virt Backend %s is not currently supported by avocado-vt. "
+            "Check for typos and the list of supported backends" % self.backend
+        )
 
 
 class SubdirList(list):
@@ -69,7 +69,7 @@ class SubdirList(list):
             # Don't modify list while in use
             del_list = []
             for _dirname in dirnames:
-                if _dirname.startswith('.') or self.__in_filter__(_dirname):
+                if _dirname.startswith(".") or self.__in_filter__(_dirname):
                     # Don't descend into filtered or hidden directories
                     del_list.append(_dirname)
                 else:
@@ -134,7 +134,7 @@ def get_base_backend_dir():
 
 
 def get_local_backend_dir():
-    return os.path.join(get_data_dir(), 'backends')
+    return os.path.join(get_data_dir(), "backends")
 
 
 def get_backend_dir(backend_type):
@@ -144,7 +144,7 @@ def get_backend_dir(backend_type):
 
 
 def get_backend_cfg_path(backend_type, cfg_basename):
-    return os.path.join(get_backend_dir(backend_type), 'cfg', cfg_basename)
+    return os.path.join(get_backend_dir(backend_type), "cfg", cfg_basename)
 
 
 def get_deps_dir(target=None):
@@ -172,26 +172,28 @@ def get_deps_dir(target=None):
     for index in xrange(nesting_limit):
         files = os.listdir(path)
         origin_path = ""
-        if 'shared' in files:
+        if "shared" in files:
             origin_path = path
-            path = os.path.join(path, 'shared')
+            path = os.path.join(path, "shared")
             files = os.listdir(path)
-        if 'deps' in files:
-            deps = os.path.join(path, 'deps')
+        if "deps" in files:
+            deps = os.path.join(path, "deps")
             if target:
                 if target in os.listdir(deps):
                     return os.path.join(deps, target)
             else:
                 return deps
-        if '.git' in os.listdir(path):
-            raise MissingDepsDirError("Could not find specified deps dir for "
-                                      "git repo %s" % path)
+        if ".git" in os.listdir(path):
+            raise MissingDepsDirError(
+                "Could not find specified deps dir for " "git repo %s" % path
+            )
         if origin_path:
             path = origin_path
         path = os.path.dirname(path)
-    raise MissingDepsDirError("Could not find specified deps dir after "
-                              "looking %s parent directories" %
-                              nesting_limit)
+    raise MissingDepsDirError(
+        "Could not find specified deps dir after "
+        "looking %s parent directories" % nesting_limit
+    )
 
 
 def get_tmp_dir(public=True):
@@ -200,24 +202,32 @@ def get_tmp_dir(public=True):
 
     :param public: If public for all users' access
     """
-    persistent_dir = get_settings_value('vt.common', 'tmp_dir',
-                                        default="")
+    persistent_dir = get_settings_value("vt.common", "tmp_dir", default="")
     if persistent_dir != "":
         return persistent_dir
     tmp_dir = None
     # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
     # it is better to handle here
-    if distro.detect().name == 'Ubuntu':
+    if distro.detect().name == "Ubuntu":
         tmp_dir = "/var/lib/libvirt/images"
         if not utils_path.usable_rw_dir(tmp_dir):
-            LOG.warning("Unable to write in '/var/lib/libvirt/images' "
-                        "on Ubuntu, apparmor might complain...")
+            LOG.warning(
+                "Unable to write in '/var/lib/libvirt/images' "
+                "on Ubuntu, apparmor might complain..."
+            )
             tmp_dir = None
     tmp_dir = data_dir.get_tmp_dir(basedir=tmp_dir)
     if public:
         tmp_dir_st = os.stat(tmp_dir)
-        os.chmod(tmp_dir, tmp_dir_st.st_mode | stat.S_IXUSR |
-                 stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
+        os.chmod(
+            tmp_dir,
+            tmp_dir_st.st_mode
+            | stat.S_IXUSR
+            | stat.S_IXGRP
+            | stat.S_IXOTH
+            | stat.S_IRGRP
+            | stat.S_IROTH,
+        )
     return tmp_dir
 
 
@@ -229,10 +239,9 @@ def get_download_dir():
     return DOWNLOAD_DIR
 
 
-TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(get_data_dir(),
-                                           'virttest',
-                                           'test-providers.d',
-                                           'downloads')
+TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(
+    get_data_dir(), "virttest", "test-providers.d", "downloads"
+)
 
 
 def get_base_test_providers_dir():
@@ -262,7 +271,7 @@ def clean_tmp_files():
             shutil.rmtree(path, ignore_errors=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("root dir:         " + get_root_dir())
     print("tmp dir:          " + get_tmp_dir())
     print("data dir:         " + DATA_DIR)

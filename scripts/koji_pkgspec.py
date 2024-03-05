@@ -14,7 +14,7 @@ import os
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import cartesian_config
@@ -28,21 +28,31 @@ class OptionParser(optparse.OptionParser):
     """
 
     def __init__(self):
-        optparse.OptionParser.__init__(self,
-                                       usage=('Usage: %prog [options] '
-                                              '[koji-pkg-spec]'))
+        optparse.OptionParser.__init__(
+            self, usage=("Usage: %prog [options] " "[koji-pkg-spec]")
+        )
 
-        general = optparse.OptionGroup(self, 'GENERAL OPTIONS')
-        general.add_option('-a', '--arch', dest='arch', default='x86_64',
-                           help=('architecture of packages to list, together '
-                                 'with "noarch". defaults to "x86_64"'))
-        general.add_option('-t', '--tag', dest='tag', help='default koji tag')
+        general = optparse.OptionGroup(self, "GENERAL OPTIONS")
+        general.add_option(
+            "-a",
+            "--arch",
+            dest="arch",
+            default="x86_64",
+            help=(
+                "architecture of packages to list, together "
+                'with "noarch". defaults to "x86_64"'
+            ),
+        )
+        general.add_option("-t", "--tag", dest="tag", help="default koji tag")
         self.add_option_group(general)
 
-        cartesian_config = optparse.OptionGroup(self, 'CARTESIAN CONFIG')
-        cartesian_config.add_option('-c', '--config', dest='config',
-                                    help=('use a cartesian configuration file '
-                                          'for fetching package values'))
+        cartesian_config = optparse.OptionGroup(self, "CARTESIAN CONFIG")
+        cartesian_config.add_option(
+            "-c",
+            "--config",
+            dest="config",
+            help=("use a cartesian configuration file " "for fetching package values"),
+        )
 
         self.add_option_group(cartesian_config)
 
@@ -76,17 +86,17 @@ class App(object):
             if tag is not None and pkgs is not None:
                 break
 
-            if 'koji_qemu_kvm_tag' in d:
+            if "koji_qemu_kvm_tag" in d:
                 if tag is None:
-                    tag = d.get('koji_qemu_kvm_tag')
-            if 'koji_qemu_kvm_pkgs' in d:
+                    tag = d.get("koji_qemu_kvm_tag")
+            if "koji_qemu_kvm_pkgs" in d:
                 if pkgs is None:
-                    pkgs = d.get('koji_qemu_kvm_pkgs')
+                    pkgs = d.get("koji_qemu_kvm_pkgs")
         return (tag, pkgs)
 
     def check_koji_pkg_spec(self, koji_pkg_spec):
         if not koji_pkg_spec.is_valid():
-            print('ERROR:', koji_pkg_spec.describe_invalid())
+            print("ERROR:", koji_pkg_spec.describe_invalid())
             sys.exit(-1)
 
     def print_koji_pkg_spec_info(self, koji_pkg_spec):
@@ -95,13 +105,14 @@ class App(object):
             print('ERROR: could not find info about "%s"' % koji_pkg_spec.to_text())
             return
 
-        name = info.get('name', 'unknown')
-        pkgs = self.koji_client.get_pkg_rpm_file_names(koji_pkg_spec,
-                                                       arch=self.options.arch)
-        print('Package name: %s' % name)
-        print('Package files:')
+        name = info.get("name", "unknown")
+        pkgs = self.koji_client.get_pkg_rpm_file_names(
+            koji_pkg_spec, arch=self.options.arch
+        )
+        print("Package name: %s" % name)
+        print("Package files:")
         for p in pkgs:
-            print('\t* %s' % p)
+            print("\t* %s" % p)
         print()
 
     def main(self):
@@ -128,6 +139,6 @@ class App(object):
                 self.print_koji_pkg_spec_info(koji_pkg_spec)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = App()
     app.main()

@@ -11,7 +11,7 @@ from avocado.utils import process
 from virttest import utils_sriov
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def unbind_vfs(pf_pci, vf_no=4):
@@ -69,21 +69,21 @@ def get_all_representors():
     :return: All representors in '/sys/class/net' dir
     """
     reps = {}
-    for ifc in os.listdir('/sys/class/net'):
+    for ifc in os.listdir("/sys/class/net"):
         try:
-            with open(os.path.join('/sys/class/net', ifc, 'phys_port_name'), 'r') as f1:
+            with open(os.path.join("/sys/class/net", ifc, "phys_port_name"), "r") as f1:
                 port_name = f1.read().strip()
         except OSError:
             pass
         else:
-            reps.update({ifc: {'port': port_name}})
+            reps.update({ifc: {"port": port_name}})
         try:
-            with open(os.path.join('/sys/class/net', ifc, 'phys_switch_id'), 'r') as f2:
+            with open(os.path.join("/sys/class/net", ifc, "phys_switch_id"), "r") as f2:
                 switch_id = f2.read().strip()
         except OSError:
             pass
         else:
-            reps[ifc].update({'switch_id': switch_id})
+            reps[ifc].update({"switch_id": switch_id})
     return reps
 
 
@@ -96,8 +96,9 @@ def get_representor(reps, vf_idx, switch_id):
     :return: the representor
     """
     for ifc, info in reps.items():
-        if info.get('switch_id') == switch_id and \
-           info.get('port') == "pf0vf" + str(vf_idx):
+        if info.get("switch_id") == switch_id and info.get("port") == "pf0vf" + str(
+            vf_idx
+        ):
             return ifc
 
 

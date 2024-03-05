@@ -27,7 +27,7 @@ from virttest.utils_version import VersionInterval
 import six
 from six.moves import xrange
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def _convert_args(arg_dict):
@@ -63,10 +63,16 @@ def _build_cmd(cmd, args=None, q_id=None):
 #
 class QBaseDevice(object):
 
-    """ Base class of qemu objects """
+    """Base class of qemu objects"""
 
-    def __init__(self, dev_type="QBaseDevice", params=None, aobject=None,
-                 parent_bus=None, child_bus=None):
+    def __init__(
+        self,
+        dev_type="QBaseDevice",
+        params=None,
+        aobject=None,
+        parent_bus=None,
+        child_bus=None,
+    ):
         """
         :param dev_type: type of this component
         :param params: component's parameters
@@ -74,13 +80,13 @@ class QBaseDevice(object):
         :param parent_bus: list of dicts specifying the parent bus
         :param child_bus: list of buses, which this device provides
         """
-        self.aid = None         # unique per VM id
-        self.type = dev_type    # device type
+        self.aid = None  # unique per VM id
+        self.type = dev_type  # device type
         self.aobject = aobject  # related autotest object
         if parent_bus is None:
             parent_bus = tuple()
-        self.parent_bus = parent_bus   # list of buses into which this dev fits
-        self.child_bus = []            # list of buses which this dev provides
+        self.parent_bus = parent_bus  # list of buses into which this dev fits
+        self.child_bus = []  # list of buses which this dev provides
         if child_bus is None:
             child_bus = []
         elif not isinstance(child_bus, (list, tuple)):
@@ -89,7 +95,7 @@ class QBaseDevice(object):
             for bus in child_bus:
                 self.add_child_bus(bus)
         self.dynamic_params = []
-        self.params = OrderedDict()    # various device params (id, name, ...)
+        self.params = OrderedDict()  # various device params (id, name, ...)
         self.cmdline_format = "raw"
         if params:
             for key, value in six.iteritems(params):
@@ -132,53 +138,53 @@ class QBaseDevice(object):
                 self.dynamic_params.remove(option)
 
         if option_type is bool or isinstance(value, bool):
-            if value in ['yes', 'on', True]:
+            if value in ["yes", "on", True]:
                 self.params[option] = "on"
-            elif value in ['no', 'off', False]:
+            elif value in ["no", "off", False]:
                 self.params[option] = "off"
         elif value or value == 0:
             if value == "EMPTY_STRING":
-                self.params[option] = ''
+                self.params[option] = ""
             else:
                 self.params[option] = value
         elif value is None and option in self.params:
-            del (self.params[option])
+            del self.params[option]
             if option in self.dynamic_params:
                 self.dynamic_params.remove(option)
 
     def get_param(self, option, default=None):
-        """ :return: object param """
+        """:return: object param"""
         return self.params.get(option, default)
 
     def __getitem__(self, option):
-        """ :return: object param """
+        """:return: object param"""
         return self.params[option]
 
     def __delitem__(self, option):
-        """ deletes self.params[option] """
-        del (self.params[option])
+        """deletes self.params[option]"""
+        del self.params[option]
 
     def __len__(self):
-        """ length of self.params """
+        """length of self.params"""
         return len(self.params)
 
     def __setitem__(self, option, value):
-        """ self.set_param(option, value, None) """
+        """self.set_param(option, value, None)"""
         return self.set_param(option, value)
 
     def __contains__(self, option):
-        """ Is the option set? """
+        """Is the option set?"""
         return option in self.params
 
     def __str__(self):
-        """ :return: Short string representation of this object. """
+        """:return: Short string representation of this object."""
         return self.str_short()
 
     def __eq__(self, dev2, dynamic=True):
-        """ :return: True when devs are similar, False when different. """
+        """:return: True when devs are similar, False when different."""
         if not isinstance(dev2, type(self)):
             return False
-        check_attrs = ['cmdline_nd', 'hotplug_hmp_nd', 'hotplug_qmp_nd']
+        check_attrs = ["cmdline_nd", "hotplug_hmp_nd", "hotplug_qmp_nd"]
         try:
             for check_attr in check_attrs:
                 try:
@@ -197,11 +203,11 @@ class QBaseDevice(object):
         return True
 
     def __ne__(self, dev2):
-        """ :return: True when devs are different, False when similar. """
+        """:return: True when devs are different, False when similar."""
         return not self.__eq__(dev2)
 
     def str_short(self):
-        """ Short representation (aid, qid, alternative, type) """
+        """Short representation (aid, qid, alternative, type)"""
         if self.get_qid():  # Show aid only when it's based on qid
             if self.get_aid():
                 return self.get_aid()
@@ -213,28 +219,33 @@ class QBaseDevice(object):
             return "t'%s'" % self.type
 
     def str_long(self):
-        """ Full representation, multi-line with all params """
+        """Full representation, multi-line with all params"""
         out = """%s
   aid = %s
   aobject = %s
   parent_bus = %s
   child_bus = %s
-  params:""" % (self.type, self.aid, self.aobject, self.parent_bus,
-                self.child_bus)
+  params:""" % (
+            self.type,
+            self.aid,
+            self.aobject,
+            self.parent_bus,
+            self.child_bus,
+        )
         for key, value in six.iteritems(self.params):
             out += "\n    %s = %s" % (key, value)
-        return out + '\n'
+        return out + "\n"
 
     def _get_alternative_name(self):
-        """ :return: alternative object name """
+        """:return: alternative object name"""
         return None
 
     def get_qid(self):
-        """ :return: qemu_id """
-        return self.params.get('id', '')
+        """:return: qemu_id"""
+        return self.params.get("id", "")
 
     def get_aid(self):
-        """ :return: per VM unique autotest_id """
+        """:return: per VM unique autotest_id"""
         return self.aid
 
     def set_aid(self, aid):
@@ -242,27 +253,27 @@ class QBaseDevice(object):
         self.aid = aid
 
     def get_children(self):
-        """ :return: List of all children (recursive) """
+        """:return: List of all children (recursive)"""
         children = []
         for bus in self.child_bus:
             children.extend(bus)
         return children
 
     def cmdline(self):
-        """ :return: cmdline command to define this device """
-        _cmdline = {"json": self._cmdline_json,
-                    "raw": self._cmdline_raw}
+        """:return: cmdline command to define this device"""
+        _cmdline = {"json": self._cmdline_json, "raw": self._cmdline_raw}
         if self.cmdline_format not in _cmdline:
-            raise ValueError("The input of qemu-kvm command format is NOT "
-                             "supported!")
+            raise ValueError(
+                "The input of qemu-kvm command format is NOT " "supported!"
+            )
         return _cmdline.get(self.cmdline_format)()
 
     def _cmdline_raw(self):
-        """ :return: cmdline command to define this device in raw format"""
+        """:return: cmdline command to define this device in raw format"""
         return NotImplementedError
 
     def _cmdline_json(self):
-        """ :return: cmdline command to define this device in json format"""
+        """:return: cmdline command to define this device in json format"""
         return NotImplementedError
 
     def cmdline_nd(self):
@@ -286,55 +297,53 @@ class QBaseDevice(object):
         return self.hotplug_qmp
 
     def hotplug(self, monitor, qemu_version):
-        """ :return: the output of monitor.cmd() hotplug command """
+        """:return: the output of monitor.cmd() hotplug command"""
         if isinstance(monitor, qemu_monitor.QMPMonitor):
             try:
                 cmd, args = self._hotplug_qmp_mapping(qemu_version)()
                 return monitor.cmd(cmd, args)
-            except DeviceError:     # qmp command not supported
+            except DeviceError:  # qmp command not supported
                 return monitor.human_monitor_cmd(self.hotplug_hmp())
         elif isinstance(monitor, qemu_monitor.HumanMonitor):
             return monitor.cmd(self.hotplug_hmp())
         else:
-            raise TypeError("Invalid monitor object: %s(%s)" % (monitor,
-                                                                type(monitor)))
+            raise TypeError("Invalid monitor object: %s(%s)" % (monitor, type(monitor)))
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         raise DeviceError("Hotplug is not supported by this device %s", self)
 
     def hotplug_qmp(self):
-        """ :return: tuple(hotplug qemu command, arguments)"""
+        """:return: tuple(hotplug qemu command, arguments)"""
         raise DeviceError("Hotplug is not supported by this device %s", self)
 
     def unplug_hook(self):
-        """ Modification prior to unplug can be made here """
+        """Modification prior to unplug can be made here"""
         pass
 
     def unplug_unhook(self):
-        """ Roll back the modification made before unplug """
+        """Roll back the modification made before unplug"""
         pass
 
     def unplug(self, monitor):
-        """ :return: the output of monitor.cmd() unplug command """
+        """:return: the output of monitor.cmd() unplug command"""
         if isinstance(monitor, qemu_monitor.QMPMonitor):
             try:
                 cmd, args = self.unplug_qmp()
                 return monitor.cmd(cmd, args)
-            except DeviceError:     # qmp command not supported
+            except DeviceError:  # qmp command not supported
                 return monitor.human_monitor_cmd(self.unplug_hmp())
         elif isinstance(monitor, qemu_monitor.HumanMonitor):
             return monitor.cmd(self.unplug_hmp())
         else:
-            raise TypeError("Invalid monitor object: %s(%s)" % (monitor,
-                                                                type(monitor)))
+            raise TypeError("Invalid monitor object: %s(%s)" % (monitor, type(monitor)))
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         raise DeviceError("Unplug is not supported by this device %s", self)
 
     def unplug_qmp(self):
-        """ :return: tuple(unplug qemu command, arguments)"""
+        """:return: tuple(unplug qemu command, arguments)"""
         raise DeviceError("Unplug is not supported by this device %s", self)
 
     def verify_hotplug(self, out, monitor):
@@ -346,7 +355,7 @@ class QBaseDevice(object):
         """
         return out
 
-    def verify_unplug(self, out, monitor):      # pylint: disable=W0613,R0201
+    def verify_unplug(self, out, monitor):  # pylint: disable=W0613,R0201
         """
         :param out: Output of the unplug command
         :param monitor: Monitor used for unplug
@@ -356,9 +365,15 @@ class QBaseDevice(object):
     def is_pcie_device(self):
         """Check is it a pcie device"""
         driver = self.get_param("driver", "")
-        pcie_drivers = ["e1000e", "vhost-vsock-pci", "qemu-xhci", "vfio-pci",
-                        "vhost-user-fs-pci", "igb"]
-        return (driver in pcie_drivers or driver.startswith("virtio-"))
+        pcie_drivers = [
+            "e1000e",
+            "vhost-vsock-pci",
+            "qemu-xhci",
+            "vfio-pci",
+            "vhost-user-fs-pci",
+            "igb",
+        ]
+        return driver in pcie_drivers or driver.startswith("virtio-")
 
 
 class QStringDevice(QBaseDevice):
@@ -374,8 +389,16 @@ class QStringDevice(QBaseDevice):
     ``params`` will be used to subst ``%()s``
     """
 
-    def __init__(self, dev_type="dummy", params=None, aobject=None,
-                 parent_bus=None, child_bus=None, cmdline="", cmdline_nd=None):
+    def __init__(
+        self,
+        dev_type="dummy",
+        params=None,
+        aobject=None,
+        parent_bus=None,
+        child_bus=None,
+        cmdline="",
+        cmdline_nd=None,
+    ):
         """
         :param dev_type: type of this component
         :param params: component's parameters
@@ -384,21 +407,24 @@ class QStringDevice(QBaseDevice):
         :param child_bus: bus, which this device provides
         :param cmdline: cmdline string
         """
-        super(QStringDevice, self).__init__(dev_type, params, aobject,
-                                            parent_bus, child_bus)
+        super(QStringDevice, self).__init__(
+            dev_type, params, aobject, parent_bus, child_bus
+        )
         self._cmdline = cmdline
         self._cmdline_nd = cmdline_nd
         if cmdline_nd is None:
             self._cmdline_nd = cmdline
 
     def cmdline(self):
-        """ :return: cmdline command to define this device """
+        """:return: cmdline command to define this device"""
         try:
             if self._cmdline:
                 return self._cmdline % self.params
         except KeyError as details:
-            raise KeyError("Param %s required for cmdline is not present in %s"
-                           % (details, self.str_long()))
+            raise KeyError(
+                "Param %s required for cmdline is not present in %s"
+                % (details, self.str_long())
+            )
 
     def cmdline_nd(self):
         """
@@ -410,8 +436,10 @@ class QStringDevice(QBaseDevice):
             if self._cmdline_nd:
                 return self._cmdline_nd % self.params
         except KeyError as details:
-            raise KeyError("Param %s required for cmdline is not present in %s"
-                           % (details, self.str_long()))
+            raise KeyError(
+                "Param %s required for cmdline is not present in %s"
+                % (details, self.str_long())
+            )
 
 
 class QCustomDevice(QBaseDevice):
@@ -421,20 +449,28 @@ class QCustomDevice(QBaseDevice):
     This representation handles only cmdline.
     """
 
-    def __init__(self, dev_type, params=None, aobject=None,
-                 parent_bus=None, child_bus=None, backend=None):
+    def __init__(
+        self,
+        dev_type,
+        params=None,
+        aobject=None,
+        parent_bus=None,
+        child_bus=None,
+        backend=None,
+    ):
         """
         :param dev_type: The desired -$option parameter (device, chardev, ..)
         """
-        super(QCustomDevice, self).__init__(dev_type, params, aobject,
-                                            parent_bus, child_bus)
+        super(QCustomDevice, self).__init__(
+            dev_type, params, aobject, parent_bus, child_bus
+        )
         if backend:
             self.__backend = backend
         else:
             self.__backend = None
 
     def _cmdline_raw(self):
-        """ :return: cmdline command to define this device in raw format"""
+        """:return: cmdline command to define this device in raw format"""
         if self.__backend and self.params.get(self.__backend):
             out = "-%s %s," % (self.type, self.params.get(self.__backend))
             params = self.params.copy()
@@ -447,7 +483,7 @@ class QCustomDevice(QBaseDevice):
                 out += "%s=%s," % (key, value)
             else:
                 out += "%s," % key
-        if out[-1] == ',':
+        if out[-1] == ",":
             out = out[:-1]
         return out
 
@@ -472,7 +508,7 @@ class QCustomDevice(QBaseDevice):
                     out += "%s=%s," % (key, value)
             else:
                 out += "%s," % key
-        if out[-1] == ',':
+        if out[-1] == ",":
             out = out[:-1]
         return out
 
@@ -484,11 +520,10 @@ class QDrive(QCustomDevice):
     """
 
     def __init__(self, aobject, use_device=True):
-        child_bus = QDriveBus('drive_%s' % aobject, aobject)
-        super(QDrive, self).__init__("drive", {}, aobject, (),
-                                     child_bus)
+        child_bus = QDriveBus("drive_%s" % aobject, aobject)
+        super(QDrive, self).__init__("drive", {}, aobject, (), child_bus)
         if use_device:
-            self.params['id'] = 'drive_%s' % aobject
+            self.params["id"] = "drive_%s" % aobject
 
     def set_param(self, option, value, option_type=None):
         """
@@ -498,12 +533,11 @@ class QDrive(QCustomDevice):
         :param value: new value
         :param option_type: type of the option (bool)
         """
-        if option == 'id':
-            raise KeyError("Drive ID is automatically created from aobject. %s"
-                           % self)
-        elif option == 'bus':
+        if option == "id":
+            raise KeyError("Drive ID is automatically created from aobject. %s" % self)
+        elif option == "bus":
             # Workaround inconsistency between -drive and -device
-            value = re.findall(r'(\d+)', value)
+            value = re.findall(r"(\d+)", value)
             if value is not None:
                 value = value[0]
         super(QDrive, self).set_param(option, value, option_type)
@@ -519,10 +553,13 @@ class QOldDrive(QDrive):
         """
         Ignore addr parameters as they are not supported by old qemus
         """
-        if option == 'addr':
-            LOG.warn("Ignoring 'addr=%s' parameter of %s due of old qemu"
-                     ", PCI addresses might be messed up.", value,
-                     self.str_short())
+        if option == "addr":
+            LOG.warn(
+                "Ignoring 'addr=%s' parameter of %s due of old qemu"
+                ", PCI addresses might be messed up.",
+                value,
+                self.str_short(),
+            )
             return
         return super(QOldDrive, self).set_param(option, value, option_type)
 
@@ -539,16 +576,16 @@ class QHPDrive(QDrive):
 
     def verify_hotplug(self, out, monitor):
         if isinstance(monitor, qemu_monitor.QMPMonitor):
-            if out.startswith('OK'):
+            if out.startswith("OK"):
                 return True
         else:
-            if out == 'OK':
+            if out == "OK":
                 return True
         return False
 
     def verify_unplug(self, out, monitor):
         out = monitor.info("qtree", debug=False)
-        if "unknown command" in out:       # Old qemu don't have info qtree
+        if "unknown command" in out:  # Old qemu don't have info qtree
             return True
         dev_id_name = 'id "%s"' % self.aid
         if dev_id_name in out:
@@ -557,7 +594,7 @@ class QHPDrive(QDrive):
             return True
 
     def get_children(self):
-        """ Device bus should be removed too """
+        """Device bus should be removed too"""
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 drive_bus = bus
@@ -574,31 +611,30 @@ class QHPDrive(QDrive):
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 for dev in bus:
-                    self.__hook_drive_bus = dev.get_param('drive')
-                    dev['drive'] = None
+                    self.__hook_drive_bus = dev.get_param("drive")
+                    dev["drive"] = None
                 break
 
     def unplug_unhook(self):
-        """ Set back the previous 'drive' (unsafe, using the last value) """
+        """Set back the previous 'drive' (unsafe, using the last value)"""
         if self.__hook_drive_bus is not None:
             for bus in self.child_bus:
                 if isinstance(bus, QDriveBus):
                     for dev in bus:
-                        dev['drive'] = self.__hook_drive_bus
+                        dev["drive"] = self.__hook_drive_bus
                     break
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         args = self.params.copy()
-        pci_addr = args.pop('addr', 'auto')
+        pci_addr = args.pop("addr", "auto")
         args = _convert_args(args)
         return "drive_add %s %s" % (pci_addr, args)
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid() is None:
-            raise DeviceError("qid not set; device %s can't be unplugged"
-                              % self)
+            raise DeviceError("qid not set; device %s can't be unplugged" % self)
         return "drive_del %s" % self.get_qid()
 
 
@@ -613,22 +649,22 @@ class QRHDrive(QDrive):
         self.__hook_drive_bus = None
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         args = self.params.copy()
-        args.pop('addr', None)    # not supported by RHDrive
-        args.pop('if', None)
+        args.pop("addr", None)  # not supported by RHDrive
+        args.pop("if", None)
         args = _convert_args(args)
         return "__com.redhat_drive_add %s" % args
 
     def hotplug_qmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         args = self.params.copy()
-        args.pop('addr', None)    # not supported by RHDrive
-        args.pop('if', None)
+        args.pop("addr", None)  # not supported by RHDrive
+        args.pop("if", None)
         return "__com.redhat_drive_add", args
 
     def get_children(self):
-        """ Device bus should be removed too """
+        """Device bus should be removed too"""
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 drive_bus = bus
@@ -645,36 +681,34 @@ class QRHDrive(QDrive):
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 for dev in bus:
-                    self.__hook_drive_bus = dev.get_param('drive')
-                    dev['drive'] = None
+                    self.__hook_drive_bus = dev.get_param("drive")
+                    dev["drive"] = None
                 break
 
     def unplug_unhook(self):
-        """ Set back the previous 'drive' (unsafe, using the last value) """
+        """Set back the previous 'drive' (unsafe, using the last value)"""
         if self.__hook_drive_bus is not None:
             for bus in self.child_bus:
                 if isinstance(bus, QDriveBus):
                     for dev in bus:
-                        dev['drive'] = self.__hook_drive_bus
+                        dev["drive"] = self.__hook_drive_bus
                     break
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid() is None:
-            raise DeviceError("qid not set; device %s can't be unplugged"
-                              % self)
+            raise DeviceError("qid not set; device %s can't be unplugged" % self)
         return "__com.redhat_drive_del %s" % self.get_qid()
 
     def unplug_qmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid() is None:
-            raise DeviceError("qid not set; device %s can't be unplugged"
-                              % self)
-        return "__com.redhat_drive_del", {'id': self.get_qid()}
+            raise DeviceError("qid not set; device %s can't be unplugged" % self)
+        return "__com.redhat_drive_del", {"id": self.get_qid()}
 
 
 class QBlockdevNode(QCustomDevice):
-    """ Representation of the '-blockdev' qemu object. """
+    """Representation of the '-blockdev' qemu object."""
 
     TYPE = None
 
@@ -687,21 +721,20 @@ class QBlockdevNode(QCustomDevice):
         :param is_root: True if the blockdev node is root node, else False.
         :type is_root: bool
         """
-        super(QBlockdevNode, self).__init__(
-            "blockdev", {}, aobject, (), child_bus)
+        super(QBlockdevNode, self).__init__("blockdev", {}, aobject, (), child_bus)
 
         self._child_nodes = []
         self._parent_node = None
         self._is_root = is_root
         self._set_root(is_root)
-        self.set_param('driver', self.TYPE)
+        self.set_param("driver", self.TYPE)
 
     def _set_root(self, flag):
         self._is_root = flag
         if self._is_root:
-            self.params['node-name'] = '%s_%s' % ('drive', self.aobject)
+            self.params["node-name"] = "%s_%s" % ("drive", self.aobject)
         else:
-            self.params['node-name'] = '%s_%s' % (self.TYPE, self.aobject)
+            self.params["node-name"] = "%s_%s" % (self.TYPE, self.aobject)
 
     def get_child_nodes(self):
         """
@@ -716,7 +749,7 @@ class QBlockdevNode(QCustomDevice):
         self._parent_node = node
 
     def get_parent_node(self):
-        """ Get parent blockdev node. """
+        """Get parent blockdev node."""
         return self._parent_node
 
     def add_child_node(self, node):
@@ -741,7 +774,7 @@ class QBlockdevNode(QCustomDevice):
         node._set_parent_node(None)
 
     def clear_child_nodes(self):
-        """ Delete all child blockdev nodes. """
+        """Delete all child blockdev nodes."""
         self._child_nodes.clear()
 
     @staticmethod
@@ -757,12 +790,12 @@ class QBlockdevNode(QCustomDevice):
         :rtype: dict
         """
         new_args = dict()
-        keep_original_type = ("detect-zeroes", )
+        keep_original_type = ("detect-zeroes",)
         for key, value in six.iteritems(args):
             if key not in keep_original_type:
-                if value in ('on', 'yes'):
+                if value in ("on", "yes"):
                     value = True
-                elif value in ('off', 'no'):
+                elif value in ("off", "no"):
                     value = False
 
             parts = key.split(".")
@@ -832,33 +865,34 @@ class QBlockdevNode(QCustomDevice):
         :param option_type: Type of the option.
         :type option_type: bool
         """
-        if option == 'node-name':
+        if option == "node-name":
             raise KeyError(
                 "Blockdev node-name is automatically created from aobject. %s"
-                % self.aobject)
+                % self.aobject
+            )
         super(QBlockdevNode, self).set_param(option, value, option_type)
 
     def get_qid(self):
-        """ Get the node name instead of qemu id. """
-        return self.params.get('node-name')
+        """Get the node name instead of qemu id."""
+        return self.params.get("node-name")
 
     def _cmdline_json(self):
         params = self.params.copy()
         out = "-%s " % self.type
         new_args = self._convert_blkdev_args(params)
-        return out + '\'' + json.dumps(new_args) + '\''
+        return out + "'" + json.dumps(new_args) + "'"
 
 
 class QBlockdevFormatNode(QBlockdevNode):
-    """ New a format type blockdev node. """
+    """New a format type blockdev node."""
 
     def __init__(self, aobject):
-        child_bus = QDriveBus('drive_%s' % aobject, aobject)
+        child_bus = QDriveBus("drive_%s" % aobject, aobject)
         super(QBlockdevFormatNode, self).__init__(aobject, child_bus)
         self.__hook_drive_bus = None
 
     def get_children(self):
-        """ Device bus should be removed too. """
+        """Device bus should be removed too."""
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 drive_bus = bus
@@ -875,8 +909,8 @@ class QBlockdevFormatNode(QBlockdevNode):
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 for dev in bus:
-                    self.__hook_drive_bus = dev.get_param('drive')
-                    dev['drive'] = None
+                    self.__hook_drive_bus = dev.get_param("drive")
+                    dev["drive"] = None
                 break
 
     def unplug_unhook(self):
@@ -887,13 +921,14 @@ class QBlockdevFormatNode(QBlockdevNode):
             for bus in self.child_bus:
                 if isinstance(bus, QDriveBus):
                     for dev in bus:
-                        dev['drive'] = self.__hook_drive_bus
+                        dev["drive"] = self.__hook_drive_bus
                     break
 
 
 class QBlockdevFormatQcow2(QBlockdevFormatNode):
-    """ New a format qcow2 blockdev node. """
-    TYPE = 'qcow2'
+    """New a format qcow2 blockdev node."""
+
+    TYPE = "qcow2"
 
     def _convert_blkdev_args(self, args):
         for key, val in args.items():
@@ -904,60 +939,70 @@ class QBlockdevFormatQcow2(QBlockdevFormatNode):
 
 
 class QBlockdevFormatRaw(QBlockdevFormatNode):
-    """ New a format raw blockdev node. """
-    TYPE = 'raw'
+    """New a format raw blockdev node."""
+
+    TYPE = "raw"
 
 
 class QBlockdevFormatLuks(QBlockdevFormatNode):
-    """ New a format luks blockdev node. """
-    TYPE = 'luks'
+    """New a format luks blockdev node."""
+
+    TYPE = "luks"
 
 
 class QBlockdevProtocol(QBlockdevNode):
-    """ New a protocol blockdev node. """
+    """New a protocol blockdev node."""
 
     def __init__(self, aobject):
         super(QBlockdevProtocol, self).__init__(aobject, None, False)
 
 
 class QBlockdevProtocolVirtioBlkVhostVdpa(QBlockdevProtocol):
-    """ New a protocol virtio-blk-vhost-vdpa blockdev node. """
-    TYPE = 'virtio-blk-vhost-vdpa'
+    """New a protocol virtio-blk-vhost-vdpa blockdev node."""
+
+    TYPE = "virtio-blk-vhost-vdpa"
 
 
 class QBlockdevProtocolFile(QBlockdevProtocol):
-    """ New a protocol file blockdev node. """
-    TYPE = 'file'
+    """New a protocol file blockdev node."""
+
+    TYPE = "file"
 
 
 class QBlockdevProtocolNullCo(QBlockdevProtocol):
-    """ New a protocol null-co node. """
-    TYPE = 'null-co'
+    """New a protocol null-co node."""
+
+    TYPE = "null-co"
 
 
 class QBlockdevProtocolHostDevice(QBlockdevProtocol):
-    """ New a protocol host_device blockdev node. """
-    TYPE = 'host_device'
+    """New a protocol host_device blockdev node."""
+
+    TYPE = "host_device"
 
 
 class QBlockdevProtocolBlkdebug(QBlockdevProtocol):
-    """ New a protocol blkdebug blockdev node. """
-    TYPE = 'blkdebug'
+    """New a protocol blkdebug blockdev node."""
+
+    TYPE = "blkdebug"
 
 
 class QBlockdevProtocolHostCdrom(QBlockdevProtocol):
-    """ New a protocol host_cdrom blockdev node. """
-    TYPE = 'host_cdrom'
+    """New a protocol host_cdrom blockdev node."""
+
+    TYPE = "host_cdrom"
 
 
 class QBlockdevProtocolISCSI(QBlockdevProtocol):
-    """ New a protocol iscsi blockdev node. """
-    TYPE = 'iscsi'
+    """New a protocol iscsi blockdev node."""
+
+    TYPE = "iscsi"
 
 
 class QBlockdevProtocolRBD(QBlockdevProtocol):
-    """ New a protocol rbd blockdev node. """
-    TYPE = 'rbd'
+    """New a protocol rbd blockdev node."""
+
+    TYPE = "rbd"
 
 
 class QBlockdevFilter(QBlockdevNode):
@@ -978,8 +1023,9 @@ class QBlockdevFilterThrottle(QBlockdevFilter):
 
 
 class QBlockdevProtocolGluster(QBlockdevProtocol):
-    """ New a protocol gluster blockdev node. """
-    TYPE = 'gluster'
+    """New a protocol gluster blockdev node."""
+
+    TYPE = "gluster"
 
     def hotplug_qmp(self):
         # TODO: design a new _convert_blkdev_args to handle list
@@ -987,46 +1033,51 @@ class QBlockdevProtocolGluster(QBlockdevProtocol):
         # to {'server': [{'host':xx}, {'host':xx}]}
         servers = {}
         args = OrderedDict()
-        p = re.compile(r'server\.(?P<index>\d+)\.(?P<opt>.+)')
+        p = re.compile(r"server\.(?P<index>\d+)\.(?P<opt>.+)")
 
         for key, value in six.iteritems(self.params):
             m = p.match(key)
             if m is not None:
-                index = int(m.group('index'))
+                index = int(m.group("index"))
                 servers.setdefault(index, {})
-                servers[index].update({m.group('opt'): value})
+                servers[index].update({m.group("opt"): value})
             else:
                 args[key] = value
 
         params = self._convert_blkdev_args(args)
-        params['server'] = [servers[i] for i in sorted(servers)]
+        params["server"] = [servers[i] for i in sorted(servers)]
 
         return "blockdev-add", params
 
 
 class QBlockdevProtocolNBD(QBlockdevProtocol):
-    """ New a protocol nbd blockdev node. """
-    TYPE = 'nbd'
+    """New a protocol nbd blockdev node."""
+
+    TYPE = "nbd"
 
 
 class QBlockdevProtocolNVMe(QBlockdevProtocol):
-    """ New a protocol NVMe blockdev node. """
-    TYPE = 'nvme'
+    """New a protocol NVMe blockdev node."""
+
+    TYPE = "nvme"
 
 
 class QBlockdevProtocolSSH(QBlockdevProtocol):
-    """ New a protocol ssh blockdev node. """
-    TYPE = 'ssh'
+    """New a protocol ssh blockdev node."""
+
+    TYPE = "ssh"
 
 
 class QBlockdevProtocolHTTP(QBlockdevProtocol):
-    """ New a protocol http blockdev node. """
-    TYPE = 'http'
+    """New a protocol http blockdev node."""
+
+    TYPE = "http"
 
 
 class QBlockdevProtocolHTTPS(QBlockdevProtocol):
-    """ New a protocol https blockdev node. """
-    TYPE = 'https'
+    """New a protocol https blockdev node."""
+
+    TYPE = "https"
 
     def _convert_blkdev_args(self, args):
         for key, val in args.items():
@@ -1036,13 +1087,15 @@ class QBlockdevProtocolHTTPS(QBlockdevProtocol):
 
 
 class QBlockdevProtocolFTP(QBlockdevProtocol):
-    """ New a protocol ftp blockdev node. """
-    TYPE = 'ftp'
+    """New a protocol ftp blockdev node."""
+
+    TYPE = "ftp"
 
 
 class QBlockdevProtocolFTPS(QBlockdevProtocol):
-    """ New a protocol ftps blockdev node. """
-    TYPE = 'ftps'
+    """New a protocol ftps blockdev node."""
+
+    TYPE = "ftps"
 
 
 class QDevice(QCustomDevice):
@@ -1052,24 +1105,26 @@ class QDevice(QCustomDevice):
     :note: Use driver format in full form - 'driver' = '...' (usb-ehci, ide-hd)
     """
 
-    def __init__(self, driver=None, params=None, aobject=None,
-                 parent_bus=None, child_bus=None):
-        super(QDevice, self).__init__("device", params, aobject, parent_bus,
-                                      child_bus, 'driver')
+    def __init__(
+        self, driver=None, params=None, aobject=None, parent_bus=None, child_bus=None
+    ):
+        super(QDevice, self).__init__(
+            "device", params, aobject, parent_bus, child_bus, "driver"
+        )
         if driver:
-            self.set_param('driver', driver)
+            self.set_param("driver", driver)
         self.hook_drive_bus = None
 
     def _get_alternative_name(self):
-        """ :return: alternative object name """
-        if self.params.get('driver'):
-            return self.params.get('driver')
+        """:return: alternative object name"""
+        if self.params.get("driver"):
+            return self.params.get("driver")
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
-        if self.params.get('driver'):
+        """:return: the hotplug monitor command"""
+        if self.params.get("driver"):
             params = self.params.copy()
-            out = "device_add %s" % params.pop('driver')
+            out = "device_add %s" % params.pop("driver")
             params = _convert_args(params)
             if params:
                 out += ",%s" % params
@@ -1078,14 +1133,14 @@ class QDevice(QCustomDevice):
         return out
 
     def hotplug_qmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         return "device_add", self.params
 
     def hotplug_hmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
-        if self.params.get('driver'):
+        """:return: the hotplug monitor command without dynamic parameters"""
+        if self.params.get("driver"):
             params = self.params.copy()
-            out = "device_add %s" % params.pop('driver')
+            out = "device_add %s" % params.pop("driver")
             for key in self.dynamic_params:
                 params[key] = "DYN"
             params = _convert_args(params)
@@ -1099,36 +1154,36 @@ class QDevice(QCustomDevice):
         return out
 
     def hotplug_qmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
+        """:return: the hotplug monitor command without dynamic parameters"""
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
         return "device_add", params
 
     def get_children(self):
-        """ Device bus should be removed too """
+        """Device bus should be removed too"""
         devices = super(QDevice, self).get_children()
         if self.hook_drive_bus:
             devices.append(self.hook_drive_bus)
         return devices
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
             return "device_del %s" % self.get_qid()
         else:
             raise DeviceError("Device has no qemu_id.")
 
     def unplug_qmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
-            return "device_del", {'id': self.get_qid()}
+            return "device_del", {"id": self.get_qid()}
         else:
             raise DeviceError("Device has no qemu_id.")
 
     def verify_unplug(self, out, monitor):
         out = monitor.info("qtree", debug=False)
-        if "unknown command" in out:       # Old qemu don't have info qtree
+        if "unknown command" in out:  # Old qemu don't have info qtree
             return out
         dev_id_name = 'id "%s"' % self.get_qid()
         if dev_id_name in out:
@@ -1139,7 +1194,7 @@ class QDevice(QCustomDevice):
     # pylint: disable=E0202
     def verify_hotplug(self, out, monitor):
         out = monitor.info("qtree", debug=False)
-        if "unknown command" in out:       # Old qemu don't have info qtree
+        if "unknown command" in out:  # Old qemu don't have info qtree
             return out
         dev_id_name = 'id "%s"' % self.get_qid()
         if dev_id_name in out:
@@ -1157,14 +1212,22 @@ class QDevice(QCustomDevice):
 
         pvpanic = self.get_param("driver") in ("pvpanic")
 
-        expect_string_val = ("write-cache", "disable-legacy", "intremap",
-                             "serial", "eim")
+        expect_string_val = (
+            "write-cache",
+            "disable-legacy",
+            "intremap",
+            "serial",
+            "eim",
+        )
 
         for key, val in self.params.items():
             # wwn needs to be presented as hexadecimal
             # port from device ( "driver": "pcie-root-port" )
-            if key in ("wwn") or (key == "port" and pcic) \
-                    or (key == "ioport" and pvpanic):
+            if (
+                key in ("wwn")
+                or (key == "port" and pcic)
+                or (key == "ioport" and pvpanic)
+            ):
                 command_dict[key] = int(val, 16)
             # physical_block_size from device ("driver": "scsi-hd")
             # logical_block_size from device ("driver": "scsi-hd")
@@ -1185,14 +1248,30 @@ class QDevice(QCustomDevice):
             # guest-stats-polling-interval from
             # device ("driver": "virtio-balloon-ccw")
             # acpi-index from device("driver": "virtio-net-pci")
-            elif key in ("physical_block_size", "logical_block_size",
-                         "bootindex", "max_sectors", "num_queues",
-                         "virtqueue_size", "discard_granularity", "period",
-                         "max-bytes", "max-write-zeroes-sectors", "queue-size",
-                         "max-discard-sectors", "num-queues", "host_mtu",
-                         "speed", "vectors", "node", "events", "min_io_size",
-                         "opt_io_size", "guest-stats-polling-interval",
-                         "acpi-index"):
+            elif key in (
+                "physical_block_size",
+                "logical_block_size",
+                "bootindex",
+                "max_sectors",
+                "num_queues",
+                "virtqueue_size",
+                "discard_granularity",
+                "period",
+                "max-bytes",
+                "max-write-zeroes-sectors",
+                "queue-size",
+                "max-discard-sectors",
+                "num-queues",
+                "host_mtu",
+                "speed",
+                "vectors",
+                "node",
+                "events",
+                "min_io_size",
+                "opt_io_size",
+                "guest-stats-polling-interval",
+                "acpi-index",
+            ):
                 command_dict[key] = int(val)
             # port from usb related driver
             elif key == "port" and usb_driver:
@@ -1202,20 +1281,18 @@ class QDevice(QCustomDevice):
                     command_dict[key] = "on"
             # disable-legacy from device ("driver": "virtio-scsi-pci")
             # write-cache from device ("driver": "scsi-hd")
-            elif val in ('on', 'yes', "true") and key not in expect_string_val:
+            elif val in ("on", "yes", "true") and key not in expect_string_val:
                 command_dict[key] = True
-            elif val in ('off', 'no', "false") \
-                    and key not in expect_string_val:
+            elif val in ("off", "no", "false") and key not in expect_string_val:
                 command_dict[key] = False
             # requested-size from device("driver": "virtio-mem-pci")
             # label-size from device("driver": "nvdimm")
             elif key in ("requested-size", "label-size"):
-                command_dict[key] = int(utils_numeric.normalize_data_size(val,
-                                                                          "B"))
+                command_dict[key] = int(utils_numeric.normalize_data_size(val, "B"))
             else:
                 command_dict[key] = val
 
-        return out + '\'' + json.dumps(command_dict) + '\''
+        return out + "'" + json.dumps(command_dict) + "'"
 
 
 class QGlobal(QBaseDevice):
@@ -1224,8 +1301,9 @@ class QGlobal(QBaseDevice):
     Representation of qemu global setting (-global driver.property=value)
     """
 
-    def __init__(self, driver, prop, value, aobject=None,
-                 parent_bus=None, child_bus=None):
+    def __init__(
+        self, driver, prop, value, aobject=None, parent_bus=None, child_bus=None
+    ):
         """
         :param driver: Which global driver to set
         :param prop: Which property to set
@@ -1235,13 +1313,11 @@ class QGlobal(QBaseDevice):
         :param parent_bus: bus(es), in which this device is plugged in
         :param child_bus: bus, which this device provides
         """
-        params = {'driver': driver, 'property': prop, 'value': value}
-        super(QGlobal, self).__init__('global', params, aobject,
-                                      parent_bus, child_bus)
+        params = {"driver": driver, "property": prop, "value": value}
+        super(QGlobal, self).__init__("global", params, aobject, parent_bus, child_bus)
 
     def cmdline(self):
-        return "-global %s.%s=%s" % (self['driver'], self['property'],
-                                     self['value'])
+        return "-global %s.%s=%s" % (self["driver"], self["property"], self["value"])
 
 
 class QFloppy(QGlobal):
@@ -1250,8 +1326,9 @@ class QFloppy(QGlobal):
     Imitation of qemu floppy disk defined by -global isa-fdc.drive?=$drive
     """
 
-    def __init__(self, unit=None, drive=None, aobject=None, parent_bus=None,
-                 child_bus=None):
+    def __init__(
+        self, unit=None, drive=None, aobject=None, parent_bus=None, child_bus=None
+    ):
         """
         :param unit: Floppy unit (None, 0, 1 or driveA, driveB)
         :param drive: id of drive
@@ -1259,20 +1336,21 @@ class QFloppy(QGlobal):
         :param parent_bus: bus(es), in which this device is plugged in
         :param child_bus: bus(es), which this device provides
         """
-        super(QFloppy, self).__init__('isa-fdc', unit, drive, aobject,
-                                      parent_bus, child_bus)
+        super(QFloppy, self).__init__(
+            "isa-fdc", unit, drive, aobject, parent_bus, child_bus
+        )
 
     def _get_alternative_name(self):
-        return "floppy-%s" % (self.get_param('property'))
+        return "floppy-%s" % (self.get_param("property"))
 
     def set_param(self, option, value, option_type=None):
         """
         drive and unit params have to be 'translated' as value and property.
         """
-        if option == 'drive':
-            option = 'value'
-        elif option == 'unit':
-            option = 'property'
+        if option == "drive":
+            option = "value"
+        elif option == "unit":
+            option = "property"
         super(QFloppy, self).set_param(option, value, option_type)
 
 
@@ -1282,32 +1360,30 @@ class QObject(QCustomDevice):
     Representation of the '-object backend' qemu object.
     """
 
-    QMP_PROPS_VERSION_SCOPE = '(, 6.0.0)'
+    QMP_PROPS_VERSION_SCOPE = "(, 6.0.0)"
 
     def __init__(self, backend, params=None):
-        kwargs = {'dev_type': 'object',
-                  'params': params,
-                  'backend': 'backend'}
+        kwargs = {"dev_type": "object", "params": params, "backend": "backend"}
         super(QObject, self).__init__(**kwargs)
-        self.set_param('backend', backend)
+        self.set_param("backend", backend)
 
     def get_children(self):
-        """ Device bus should be removed too """
+        """Device bus should be removed too"""
         devices = super(QObject, self).get_children()
-        if getattr(self, 'hook_drive_bus', None):
+        if getattr(self, "hook_drive_bus", None):
             devices.append(self.hook_drive_bus)
         return devices
 
     def _get_alternative_name(self):
-        """ :return: alternative object name """
-        if self.get_param('backend'):
-            return self.params.get('backend')
+        """:return: alternative object name"""
+        if self.get_param("backend"):
+            return self.params.get("backend")
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
-        if self.params.get('backend'):
+        """:return: the hotplug monitor command"""
+        if self.params.get("backend"):
             params = self.params.copy()
-            out = "object_add %s" % params.pop('backend')
+            out = "object_add %s" % params.pop("backend")
             params = _convert_args(params)
             if params:
                 out += ",%s" % params
@@ -1324,18 +1400,18 @@ class QObject(QCustomDevice):
         return params
 
     def _hotplug_qmp_mapping(self, qemu_version):
-        return self.hotplug_qmp_lt_600 if qemu_version in VersionInterval(
-            self.QMP_PROPS_VERSION_SCOPE) else self.hotplug_qmp
+        return (
+            self.hotplug_qmp_lt_600
+            if qemu_version in VersionInterval(self.QMP_PROPS_VERSION_SCOPE)
+            else self.hotplug_qmp
+        )
 
     def hotplug_qmp(self):
-        """ :return: the object-add command (since 6.0.0)"""
+        """:return: the object-add command (since 6.0.0)"""
         params = self.params.copy()
 
         # qom-type and id are mandatory
-        kwargs = {
-            "qom-type": params.pop("backend"),
-            "id": params.pop("id")
-        }
+        kwargs = {"qom-type": params.pop("backend"), "id": params.pop("id")}
 
         # optional params
         params = self._refresh_hotplug_props(params)
@@ -1345,14 +1421,11 @@ class QObject(QCustomDevice):
         return "object-add", kwargs
 
     def hotplug_qmp_lt_600(self):
-        """ :return: the object-add command (before 6.0.0)"""
+        """:return: the object-add command (before 6.0.0)"""
         params = self.params.copy()
 
         # qom-type and id are mandatory
-        kwargs = {
-            "qom-type": params.pop("backend"),
-            "id": params.pop("id")
-        }
+        kwargs = {"qom-type": params.pop("backend"), "id": params.pop("id")}
 
         # props is optional
         params = self._refresh_hotplug_props(params)
@@ -1362,10 +1435,10 @@ class QObject(QCustomDevice):
         return "object-add", kwargs
 
     def hotplug_hmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
-        if self.params.get('backend'):
+        """:return: the hotplug monitor command without dynamic parameters"""
+        if self.params.get("backend"):
             params = self.params.copy()
-            out = "object_add %s" % params.pop('backend')
+            out = "object_add %s" % params.pop("backend")
             for key in self.dynamic_params:
                 params[key] = "DYN"
             params = _convert_args(params)
@@ -1379,23 +1452,23 @@ class QObject(QCustomDevice):
         return out
 
     def hotplug_qmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
+        """:return: the hotplug monitor command without dynamic parameters"""
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
         return "object-add", params
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
             return "object_del %s" % self.get_qid()
         else:
             raise DeviceError("Device has no qemu_id.")
 
     def unplug_qmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
-            return "object-del", {'id': self.get_qid()}
+            return "object-del", {"id": self.get_qid()}
         else:
             raise DeviceError("Device has no qemu_id.")
 
@@ -1411,7 +1484,7 @@ class QObject(QCustomDevice):
         out = "-%s " % self.type
         params = self.params.copy()
         command_dict["qom-type"] = params.pop("backend")
-        return out + '\'' + json.dumps(dict(command_dict, **params)) + '\''
+        return out + "'" + json.dumps(dict(command_dict, **params)) + "'"
 
 
 class QIOThread(QObject):
@@ -1435,8 +1508,10 @@ class QIOThread(QObject):
         """Return a list of active iothreads."""
         out = monitor.info("iothreads", debug=False)
         if isinstance(monitor, qemu_monitor.HumanMonitor):
-            pattern = (r"([\w-]+):\s+(thread_id)=(\d+)\s+(poll-max-ns)=(\d+)"
-                       r"\s+(poll-grow)=(\d+)\s+(poll-shrink)=(\d+)")
+            pattern = (
+                r"([\w-]+):\s+(thread_id)=(\d+)\s+(poll-max-ns)=(\d+)"
+                r"\s+(poll-grow)=(\d+)\s+(poll-shrink)=(\d+)"
+            )
             result = []
             for t in re.findall(pattern, out):
                 it_dict = {}
@@ -1497,7 +1572,7 @@ class QThrottleGroup(QObject):
         # FIXME: temporary solution to simplify conversion. There are some
         #  experimental options for throttle-group object (with x- prefix).
         #  It should be updated once final options are confirmed.
-        return {'x-%s' % k: v for k, v in params.items()}
+        return {"x-%s" % k: v for k, v in params.items()}
 
     @property
     def raw_limits(self):
@@ -1542,30 +1617,72 @@ class Memory(QObject):
     'memory-backend-epc'.
     """
 
-    __attributes__ = {"memory-backend-ram": ["size", "prealloc", "backend",
-                                             "policy", "host-nodes", "share",
-                                             "merge", "dump", "prealloc-threads",
-                                             "prealloc-context", "reserve",
-                                             "x-use-canonical-path-for-ramblock-id"],
-                      "memory-backend-file": ["size", "prealloc", "mem-path",
-                                              "backend", "policy", "host-nodes",
-                                              "share", "merge", "dump", "pmem",
-                                              "discard-data", "align",
-                                              "prealloc-threads", "readonly",
-                                              "prealloc-context", "reserve",
-                                              "x-use-canonical-path-for-ramblock-id"],
-                      "memory-backend-memfd": ["size", "prealloc", "backend",
-                                               "seal", "policy", "host-nodes",
-                                               "share", "merge", "dump",
-                                               "hugetlb", "hugetlbsize",
-                                               "prealloc-threads",
-                                               "prealloc-context", "reserve",
-                                               "x-use-canonical-path-for-ramblock-id"],
-                      "memory-backend-epc": ["size", "prealloc", "backend",
-                                             "policy", "host-nodes", "share",
-                                             "merge", "dump", "prealloc-threads",
-                                             "prealloc-context", "reserve",
-                                             "x-use-canonical-path-for-ramblock-id"]}
+    __attributes__ = {
+        "memory-backend-ram": [
+            "size",
+            "prealloc",
+            "backend",
+            "policy",
+            "host-nodes",
+            "share",
+            "merge",
+            "dump",
+            "prealloc-threads",
+            "prealloc-context",
+            "reserve",
+            "x-use-canonical-path-for-ramblock-id",
+        ],
+        "memory-backend-file": [
+            "size",
+            "prealloc",
+            "mem-path",
+            "backend",
+            "policy",
+            "host-nodes",
+            "share",
+            "merge",
+            "dump",
+            "pmem",
+            "discard-data",
+            "align",
+            "prealloc-threads",
+            "readonly",
+            "prealloc-context",
+            "reserve",
+            "x-use-canonical-path-for-ramblock-id",
+        ],
+        "memory-backend-memfd": [
+            "size",
+            "prealloc",
+            "backend",
+            "seal",
+            "policy",
+            "host-nodes",
+            "share",
+            "merge",
+            "dump",
+            "hugetlb",
+            "hugetlbsize",
+            "prealloc-threads",
+            "prealloc-context",
+            "reserve",
+            "x-use-canonical-path-for-ramblock-id",
+        ],
+        "memory-backend-epc": [
+            "size",
+            "prealloc",
+            "backend",
+            "policy",
+            "host-nodes",
+            "share",
+            "merge",
+            "dump",
+            "prealloc-threads",
+            "prealloc-context",
+            "reserve",
+            "x-use-canonical-path-for-ramblock-id",
+        ],
+    }
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
@@ -1635,7 +1752,7 @@ class Memory(QObject):
         params = self.params.copy()
         params["qom-type"] = params.pop("backend")
         params = self._convert_memobj_args(params)
-        return out + '\'' + json.dumps(params) + '\''
+        return out + "'" + json.dumps(params) + "'"
 
     @staticmethod
     def _convert_memobj_args(args):
@@ -1651,8 +1768,7 @@ class Memory(QObject):
         command_dict = {}
         for key, val in args.items():
             if key in ("size", "align"):
-                command_dict[key] = int(utils_numeric.normalize_data_size(val,
-                                                                          "B"))
+                command_dict[key] = int(utils_numeric.normalize_data_size(val, "B"))
             # "share", "reserve", "hugetlb"
             # from object( "qom-type": "memory-backend-memfd" )
             # "prealloc", "dump", "merge"
@@ -1660,9 +1776,17 @@ class Memory(QObject):
             # readonly from -object("qom-type": "memory-backend-file")
             # pmem from -object("qom-type": "memory-backend-file")
             # discard-data from object("qom-type": "memory-backend-file")
-            elif key in ("share", "reserve", "hugetlb", "pmem",
-                         "prealloc", "dump", "merge", "readonly",
-                         "discard-data"):
+            elif key in (
+                "share",
+                "reserve",
+                "hugetlb",
+                "pmem",
+                "prealloc",
+                "dump",
+                "merge",
+                "readonly",
+                "discard-data",
+            ):
                 command_dict[key] = val in ("yes", "on")
             elif key == "host-nodes":
                 command_dict[key] = list(map(int, val.split()))
@@ -1678,34 +1802,43 @@ class Dimm(QDevice):
     and 'memory-backend-file'
     """
 
-    __attributes__ = {"pc-dimm": ["memdev", "slot", "addr", "node", "size"],
-                      "nvdimm": ["memdev", "slot", "addr", "node", "unarmed",
-                                 "size", "label-size", "uuid"]}
+    __attributes__ = {
+        "pc-dimm": ["memdev", "slot", "addr", "node", "size"],
+        "nvdimm": [
+            "memdev",
+            "slot",
+            "addr",
+            "node",
+            "unarmed",
+            "size",
+            "label-size",
+            "uuid",
+        ],
+    }
 
-    def __init__(self, params=None, dimm_type='pc-dimm'):
-        kwargs = {'driver': dimm_type,
-                  'params': params}
+    def __init__(self, params=None, dimm_type="pc-dimm"):
+        kwargs = {"driver": dimm_type, "params": params}
         super(Dimm, self).__init__(**kwargs)
-        self.set_param('driver', dimm_type)
+        self.set_param("driver", dimm_type)
         self.hook_drive_bus = None
 
     def verify_hotplug(self, out, monitor):
         out = monitor.info("memory-devices", debug=False)
-        if "unknown command" in out:       # Old qemu don't have info qtree
+        if "unknown command" in out:  # Old qemu don't have info qtree
             return out
         dev_id_name = self.get_qid()
         for item in out:
-            if item['data']['id'] == dev_id_name:
+            if item["data"]["id"] == dev_id_name:
                 return True
         return False
 
     def verify_unplug(self, dev_type, monitor):
         out = monitor.info("memory-devices", debug=False)
-        if "unknown command" in out:       # Old qemu don't have info qtree
+        if "unknown command" in out:  # Old qemu don't have info qtree
             return out
         dev_id_name = self.get_qid()
         for item in out:
-            if item['data']['id'] == dev_id_name:
+            if item["data"]["id"] == dev_id_name:
                 return False
         return True
 
@@ -1715,30 +1848,41 @@ class CharDevice(QCustomDevice):
     Qemu Char Device object, hotplug and hotunplug only support via QMP
     monitor.
     """
+
     backends = [
-        "null", "socket", "udp", "msmouse", "vc", "ringbuf", "file",
-        "pipe", "pty", "stdio", "serial", "tty", "parallel", "parport",
-        "spicevmc", "spiceport"
+        "null",
+        "socket",
+        "udp",
+        "msmouse",
+        "vc",
+        "ringbuf",
+        "file",
+        "pipe",
+        "pty",
+        "stdio",
+        "serial",
+        "tty",
+        "parallel",
+        "parport",
+        "spicevmc",
+        "spiceport",
     ]
 
-    def __init__(self,
-                 params=None,
-                 aobject=None,
-                 parent_bus=None,
-                 child_bus=None):
+    def __init__(self, params=None, aobject=None, parent_bus=None, child_bus=None):
         backend = params.get("backend", "socket")
         self.verify_supported_backend(backend)
         options = self.get_supported_options(backend)
         params = params.copy_from_keys(options)
         params = self.format_params(params)
-        params['backend'] = backend
+        params["backend"] = backend
         super(CharDevice, self).__init__(
-            'chardev',
-            backend='backend',
+            "chardev",
+            backend="backend",
             params=params,
             aobject=aobject,
             parent_bus=parent_bus,
-            child_bus=child_bus)
+            child_bus=child_bus,
+        )
 
     def verify_supported_backend(self, backend):
         if backend not in self.backends:
@@ -1753,12 +1897,10 @@ class CharDevice(QCustomDevice):
         """
         special_opts, common_opts = [], ["id", "logfile", "logappend"]
 
-        if backend not in ["socket", "vc", "ringbuf",
-                           "spiceport", "spicevmc"]:
+        if backend not in ["socket", "vc", "ringbuf", "spiceport", "spicevmc"]:
             common_opts.append("mux")
 
-        if backend in ["file", "pipe", "serial",
-                       "tty", "parallel", "parport"]:
+        if backend in ["file", "pipe", "serial", "tty", "parallel", "parport"]:
             special_opts.append("path")
 
         elif backend in ["spicevmc", "spiceport"]:
@@ -1769,15 +1911,22 @@ class CharDevice(QCustomDevice):
 
         elif backend in ["socket"]:
             common_opts += ["server", "wait", "reconnect"]
-            special_opts = ["host", "port", "to", "ipv4",
-                            "ipv6", "nodelay", "path",
-                            "abstract", "tight"]
+            special_opts = [
+                "host",
+                "port",
+                "to",
+                "ipv4",
+                "ipv6",
+                "nodelay",
+                "path",
+                "abstract",
+                "tight",
+            ]
 
-        elif backend == 'udp':
-            special_opts = ["host", "port", "localaddr",
-                            "localport", "ipv4", "ipv6"]
+        elif backend == "udp":
+            special_opts = ["host", "port", "localaddr", "localport", "ipv4", "ipv6"]
 
-        elif backend == 'ringbuf':
+        elif backend == "ringbuf":
             special_opts = ["ringbuf_write_size"]
 
         return set(common_opts + special_opts)
@@ -1789,12 +1938,20 @@ class CharDevice(QCustomDevice):
         :param params: chardev test params.
         :return dict: formatted params only include support options.
         """
-        for opt in ["server", "telnet", "wait",
-                    "ipv4", "ipv6", "nodelay", "mux", "signal"]:
+        for opt in [
+            "server",
+            "telnet",
+            "wait",
+            "ipv4",
+            "ipv6",
+            "nodelay",
+            "mux",
+            "signal",
+        ]:
             if params.get(opt) in ["yes", "on"]:
                 params[opt] = "on"
             elif params.get(opt) in ["no", "off"]:
-                params[opt] = 'off'
+                params[opt] = "off"
             elif opt in params:
                 del params[opt]
 
@@ -1806,9 +1963,10 @@ class CharDevice(QCustomDevice):
 
         :return dict: dict include chardev-add required args.
         """
-        args = {"id": self.get_qid(),
-                "backend": {"type": self.params.get("backend"),
-                            "data": {}}}
+        args = {
+            "id": self.get_qid(),
+            "backend": {"type": self.params.get("backend"), "data": {}},
+        }
         if self.params.get("backend") == "socket":
             if self.get_param("port"):
                 addr_type = "inet"
@@ -1817,8 +1975,7 @@ class CharDevice(QCustomDevice):
             else:
                 addr_type = "unix"
                 addr_data = {"path": self.get_param("path")}
-            args["backend"]["data"]["addr"] = {"type": addr_type,
-                                               "data": addr_data}
+            args["backend"]["data"]["addr"] = {"type": addr_type, "data": addr_data}
             if addr_type == "inet":
                 sock_params = ["telnet", "ipv4", "ipv6", "nodelay"]
             else:
@@ -1827,7 +1984,7 @@ class CharDevice(QCustomDevice):
             for param in sock_params:
                 if self.get_param(param) is None:
                     continue
-                value = True if self.get_param(param) == 'on' else False
+                value = True if self.get_param(param) == "on" else False
                 args["backend"]["data"][param] = value
             return args
 
@@ -1843,27 +2000,27 @@ class CharDevice(QCustomDevice):
             return args
 
         if self.params.get("backend") in "ringbuf":
-            args["backend"]["data"] = {
-                "size": self.get_param("ringbuf_write_size")}
+            args["backend"]["data"] = {"size": self.get_param("ringbuf_write_size")}
             return args
 
-        raise DeviceError("chardev '%s' not support hotplug" %
-                          self.params.get("backend"))
+        raise DeviceError(
+            "chardev '%s' not support hotplug" % self.params.get("backend")
+        )
 
     def hotplug_qmp(self):
-        """ :return: hotplug command and args"""
+        """:return: hotplug command and args"""
         return "chardev-add", self.get_qmp_args()
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         raise NotImplementedError
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         raise NotImplementedError
 
     def unplug_qmp(self):
-        """ :return: unplug command and args"""
+        """:return: unplug command and args"""
         return "chardev-remove", {"id": self.get_qid()}
 
     def verify_hotplug(self, out, monitor):
@@ -1874,7 +2031,7 @@ class CharDevice(QCustomDevice):
                  when can't decide.
         """
         out = monitor.query("chardev")
-        return "\'%s\'" % self.get_qid() in str(out)
+        return "'%s'" % self.get_qid() in str(out)
 
     def verify_unplug(self, out, monitor):  # pylint: disable=W0613,R0201
         """
@@ -1882,7 +2039,7 @@ class CharDevice(QCustomDevice):
         :param monitor: Monitor used for unplug
         """
         out = monitor.query("chardev")
-        return "\'%s\'" % self.get_qid() not in str(out)
+        return "'%s'" % self.get_qid() not in str(out)
 
 
 class QCPUDevice(QDevice):
@@ -1891,16 +2048,14 @@ class QCPUDevice(QDevice):
     properties.
     """
 
-    def __init__(self, cpu_driver, enable, params=None, aobject=None,
-                 parent_bus=None):
+    def __init__(self, cpu_driver, enable, params=None, aobject=None, parent_bus=None):
         """
         :param cpu_driver: cpu driver name
         :type cpu_driver: str
         :param enable: Whether to enable this cpu device in qemu
         :type enable: bool
         """
-        super(QCPUDevice, self).__init__(cpu_driver, params, aobject,
-                                         parent_bus)
+        super(QCPUDevice, self).__init__(cpu_driver, params, aobject, parent_bus)
         self._enabled = enable
 
     def is_enabled(self):
@@ -1956,10 +2111,10 @@ class QDaemonDev(QBaseDevice):
         :param child_bus: List of buses, which this device provides.
         :type child_bus: QSparseBus
         """
-        aid = '%s_%s' % (name, aobject)
+        aid = "%s_%s" % (name, aobject)
         super(QDaemonDev, self).__init__(name, aobject=aobject, child_bus=child_bus)
         self.set_aid(aid)
-        self.set_param('name', name)
+        self.set_param("name", name)
         self._daemon_process = None
 
     @property
@@ -1973,25 +2128,26 @@ class QDaemonDev(QBaseDevice):
 
     def start_daemon(self):
         """Start daemon."""
-        cmd = self.get_param('cmd')
-        name = self.get_param('name')
-        run_bg_kwargs = self.get_param('run_bg_kwargs', {})
-        status_active = self.get_param('status_active')
-        read_until_timeout = self.get_param('read_until_timeout', 5)
-        start_until_timeout = self.get_param('start_until_timeout', 1)
+        cmd = self.get_param("cmd")
+        name = self.get_param("name")
+        run_bg_kwargs = self.get_param("run_bg_kwargs", {})
+        status_active = self.get_param("status_active")
+        read_until_timeout = self.get_param("read_until_timeout", 5)
+        start_until_timeout = self.get_param("start_until_timeout", 1)
 
         if cmd is None:
-            LOG.warn('No provided command to start %s daemon.', name)
+            LOG.warn("No provided command to start %s daemon.", name)
             self._daemon_process = None
 
         if self.is_daemon_alive():
             return
 
-        LOG.info('Running %s daemon command %s.', name, cmd)
+        LOG.info("Running %s daemon command %s.", name, cmd)
         self._daemon_process = aexpect.run_bg(cmd, **run_bg_kwargs)
         if status_active:
             self._daemon_process.read_until_any_line_matches(
-                status_active, timeout=read_until_timeout)
+                status_active, timeout=read_until_timeout
+            )
         else:
             time.sleep(start_until_timeout)
 
@@ -1999,10 +2155,13 @@ class QDaemonDev(QBaseDevice):
         """Stop daemon."""
         if self._daemon_process is not None:
             try:
-                if not utils_misc.wait_for(lambda: not self.is_daemon_alive(),
-                                           self.get_param('stop_timeout', 3)):
-                    raise DeviceError('The %s daemon is still alive.' %
-                                      self.get_param('name'))
+                if not utils_misc.wait_for(
+                    lambda: not self.is_daemon_alive(),
+                    self.get_param("stop_timeout", 3),
+                ):
+                    raise DeviceError(
+                        "The %s daemon is still alive." % self.get_param("name")
+                    )
             finally:
                 self.close_daemon_process()
 
@@ -2040,7 +2199,7 @@ class QDaemonDev(QBaseDevice):
 
     def cmdline(self):
         """Start command line."""
-        return ''
+        return ""
 
     def __eq__(self, other):
         return isinstance(other, self.__class__)
@@ -2056,8 +2215,15 @@ class QVirtioFSDev(QDaemonDev):
     Virtiofs pseudo device.
     """
 
-    def __init__(self, aobject, binary, sock_path, source, extra_options=None,
-                 enable_debug_mode=False):
+    def __init__(
+        self,
+        aobject,
+        binary,
+        sock_path,
+        source,
+        extra_options=None,
+        enable_debug_mode=False,
+    ):
         """
         :param aobject: The aobject of virtiofs daemon.
         :type aobject: str
@@ -2072,49 +2238,54 @@ class QVirtioFSDev(QDaemonDev):
         :param enable_debug_mode: Enable debug mode of virtiofs daemon.
         :type enable_debug_mode: bool
         """
-        super(QVirtioFSDev, self).__init__('virtiofs', aobject=aobject,
-                                           child_bus=QUnixSocketBus(sock_path, aobject))
-        self.set_param('binary', binary)
-        self.set_param('sock_path', sock_path)
-        self.set_param('source', source)
-        self.set_param('extra_options', extra_options)
-        self.set_param('enable_debug_mode', enable_debug_mode)
+        super(QVirtioFSDev, self).__init__(
+            "virtiofs", aobject=aobject, child_bus=QUnixSocketBus(sock_path, aobject)
+        )
+        self.set_param("binary", binary)
+        self.set_param("sock_path", sock_path)
+        self.set_param("source", source)
+        self.set_param("extra_options", extra_options)
+        self.set_param("enable_debug_mode", enable_debug_mode)
 
     def _handle_log(self, line):
         """Handle the log of virtiofs daemon."""
-        name = self.get_param('name')
+        name = self.get_param("name")
         try:
-            utils_logfile.log_line('%s-%s.log' % (self.get_qid(), name), line)
+            utils_logfile.log_line("%s-%s.log" % (self.get_qid(), name), line)
         except Exception as e:
             LOG.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
 
     def start_daemon(self):
         """Start the virtiofs daemon in background."""
-        fsd_cmd = '%s --socket-path=%s' % (self.get_param('binary'),
-                                           self.get_param('sock_path'))
-        fsd_cmd += ' -o source=%s' % self.get_param('source')
-        if self.get_param('enable_debug_mode') == "on":
-            fsd_cmd += ' -d'
-            self.set_param('status_active',
-                           'Waiting for vhost-user socket connection')
+        fsd_cmd = "%s --socket-path=%s" % (
+            self.get_param("binary"),
+            self.get_param("sock_path"),
+        )
+        fsd_cmd += " -o source=%s" % self.get_param("source")
+        if self.get_param("enable_debug_mode") == "on":
+            fsd_cmd += " -d"
+            self.set_param("status_active", "Waiting for vhost-user socket connection")
 
-        if self.get_param('extra_options'):
-            fsd_cmd += self.get_param('extra_options')
+        if self.get_param("extra_options"):
+            fsd_cmd += self.get_param("extra_options")
 
-        self.set_param('cmd', fsd_cmd)
-        self.set_param('run_bg_kwargs', {'output_func': self._handle_log,
-                                         'auto_close': False})
+        self.set_param("cmd", fsd_cmd)
+        self.set_param(
+            "run_bg_kwargs", {"output_func": self._handle_log, "auto_close": False}
+        )
         super(QVirtioFSDev, self).start_daemon()
         if not self.is_daemon_alive():
             output = self.daemon_process.get_output()
             self.close_daemon_process()
             raise DeviceError("Failed to run virtiofs daemon: %s" % output)
-        LOG.info("Created virtiofs daemon process with parent PID %d.",
-                 self.daemon_process.get_pid())
+        LOG.info(
+            "Created virtiofs daemon process with parent PID %d.",
+            self.daemon_process.get_pid(),
+        )
 
     def __eq__(self, other):
         if super(QVirtioFSDev, self).__eq__(other):
-            return self.get_param('sock_path') == other.get_param('sock_path')
+            return self.get_param("sock_path") == other.get_param("sock_path")
         return False
 
 
@@ -2123,8 +2294,9 @@ class QSwtpmDev(QDaemonDev):
     Virtual swtpm pseudo device.
     """
 
-    def __init__(self, aobject, binary, sock_path, storage_path,
-                 version=None, extra_options=None):
+    def __init__(
+        self, aobject, binary, sock_path, storage_path, version=None, extra_options=None
+    ):
         """
         :param aobject: The auto object of swtpm daemon.
         :type aobject: str
@@ -2140,44 +2312,47 @@ class QSwtpmDev(QDaemonDev):
         :param extra_options: The external options of swtpm daemon.
         :type extra_options: str
         """
-        super(QSwtpmDev, self).__init__('vtpm', aobject=aobject,
-                                        child_bus=QUnixSocketBus(sock_path, aobject))
-        self.set_param('binary', binary)
-        self.set_param('sock_path', sock_path)
-        self.set_param('storage_path', storage_path)
-        self.set_param('version', version)
-        self.set_param('extra_options', extra_options)
+        super(QSwtpmDev, self).__init__(
+            "vtpm", aobject=aobject, child_bus=QUnixSocketBus(sock_path, aobject)
+        )
+        self.set_param("binary", binary)
+        self.set_param("sock_path", sock_path)
+        self.set_param("storage_path", storage_path)
+        self.set_param("version", version)
+        self.set_param("extra_options", extra_options)
 
     def start_daemon(self):
-        tpm_cmd = '%s socket' % self.get_param('binary')
-        tpm_cmd += ' --ctrl type=unixio,path=%s,mode=0600' % self.get_param('sock_path')
-        tpm_cmd += ' --tpmstate dir=%s,mode=0600' % self.get_param('storage_path')
-        tpm_cmd += ' --terminate'
+        tpm_cmd = "%s socket" % self.get_param("binary")
+        tpm_cmd += " --ctrl type=unixio,path=%s,mode=0600" % self.get_param("sock_path")
+        tpm_cmd += " --tpmstate dir=%s,mode=0600" % self.get_param("storage_path")
+        tpm_cmd += " --terminate"
 
-        if self.get_param('version') in ('2.0', ):
-            tpm_cmd += ' --tpm2'
+        if self.get_param("version") in ("2.0",):
+            tpm_cmd += " --tpm2"
 
         log_dir = utils_logfile.get_log_file_dir()
-        log_file = os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
+        log_file = os.path.join(log_dir, "%s_swtpm.log" % self.get_qid())
         Path(log_file).touch(mode=0o644, exist_ok=True)
-        tpm_cmd += ' --log file=%s' % log_file
+        tpm_cmd += " --log file=%s" % log_file
 
-        if self.get_param('extra_options'):
-            tpm_cmd += self.get_param('extra_options')
+        if self.get_param("extra_options"):
+            tpm_cmd += self.get_param("extra_options")
 
-        self.set_param('cmd', tpm_cmd)
-        self.set_param('run_bg_kwargs', {'auto_close': False})
+        self.set_param("cmd", tpm_cmd)
+        self.set_param("run_bg_kwargs", {"auto_close": False})
         super(QSwtpmDev, self).start_daemon()
         if not self.is_daemon_alive() and self.daemon_process.get_status():
             output = self.daemon_process.get_output()
             self.close_daemon_process()
             raise DeviceError("Failed to run swtpm daemon: %s" % output)
-        LOG.info("Created swtpm daemon process with parent PID %d.",
-                 self.daemon_process.get_pid())
+        LOG.info(
+            "Created swtpm daemon process with parent PID %d.",
+            self.daemon_process.get_pid(),
+        )
 
     def __eq__(self, other):
         if super(QSwtpmDev, self).__eq__(other):
-            return self.get_param('sock_path') == other.get_param('sock_path')
+            return self.get_param("sock_path") == other.get_param("sock_path")
         return False
 
 
@@ -2191,18 +2366,19 @@ class QNetdev(QCustomDevice):
         :param params: The parameters of the netdev device.
         :type params: dict
         """
-        super().__init__('netdev', params)
-        self.set_param('type', nettype)
+        super().__init__("netdev", params)
+        self.set_param("type", nettype)
 
     def _cmdline_raw(self):
-        """ :return: cmdline command to define this device in raw format"""
+        """:return: cmdline command to define this device in raw format"""
         params = self.params.copy()
 
         out = f'-{self.type} {params.pop("type")}'
         for key, value in params.items():
             if value != "NO_EQUAL_STRING":
-                if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
-                        isinstance(value, list)):
+                if key in ["dnssearch", "hostfwd", "guestfwd"] and isinstance(
+                    value, list
+                ):
                     for v in value:
                         out += ",%s=%s" % (key, v)
                 else:
@@ -2231,29 +2407,29 @@ class QNetdev(QCustomDevice):
         keep_original_type = ("fd", "vhostfd")
         for key, value in args.items():
             if key not in keep_original_type:
-                if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
-                        isinstance(value, list)):
-                    value = [{'str': v} for v in value]
+                if key in ["dnssearch", "hostfwd", "guestfwd"] and isinstance(
+                    value, list
+                ):
+                    value = [{"str": v} for v in value]
                 # https://gitlab.com/qemu-project/qemu/-/blob/master/qapi/net.json#L242
-                elif key in ('sndbuf', ):
-                    value = int(utils_numeric.normalize_data_size(value, 'B'))
+                elif key in ("sndbuf",):
+                    value = int(utils_numeric.normalize_data_size(value, "B"))
                 elif isinstance(value, str) and value.isdigit():
                     value = int(value)
-                elif value in ('on', 'yes', 'true'):
+                elif value in ("on", "yes", "true"):
                     value = True
-                elif value in ('off', 'no', 'false'):
+                elif value in ("off", "no", "false"):
                     value = False
             new_args[key] = value
 
         return new_args
 
     def hotplug_hmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         params = self.params.copy()
-        out = "netdev_add %s" % params.pop('type')
+        out = "netdev_add %s" % params.pop("type")
         for key, value in params.items():
-            if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
-                    isinstance(value, list)):
+            if key in ["dnssearch", "hostfwd", "guestfwd"] and isinstance(value, list):
                 for v in value:
                     out += ",%s=%s" % (key, v)
             else:
@@ -2261,18 +2437,17 @@ class QNetdev(QCustomDevice):
         return out
 
     def hotplug_qmp(self):
-        """ :return: the hotplug monitor command """
+        """:return: the hotplug monitor command"""
         return "netdev_add", self._convert_netdev_args(self.params)
 
     def hotplug_hmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
+        """:return: the hotplug monitor command without dynamic parameters"""
         params = self.params.copy()
-        out = "netdev_add %s" % params.pop('type')
+        out = "netdev_add %s" % params.pop("type")
         for key in self.dynamic_params:
             params[key] = "DYN"
         for key, value in params.items():
-            if (key in ['dnssearch', 'hostfwd', 'guestfwd'] and
-                    isinstance(value, list)):
+            if key in ["dnssearch", "hostfwd", "guestfwd"] and isinstance(value, list):
                 for v in value:
                     out += ",%s=%s" % (key, v)
             else:
@@ -2280,22 +2455,22 @@ class QNetdev(QCustomDevice):
         return out
 
     def hotplug_qmp_nd(self):
-        """ :return: the hotplug monitor command without dynamic parameters"""
+        """:return: the hotplug monitor command without dynamic parameters"""
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
         return "netdev_add", self._convert_netdev_args(params)
 
     def unplug_hmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
             return "netdev_del %s" % self.get_qid()
         raise DeviceError("Device has no qemu_id.")
 
     def unplug_qmp(self):
-        """ :return: the unplug monitor command """
+        """:return: the unplug monitor command"""
         if self.get_qid():
-            return "netdev_del", {'id': self.get_qid()}
+            return "netdev_del", {"id": self.get_qid()}
         raise DeviceError("Device has no qemu_id.")
 
     def verify_unplug(self, out, monitor):
@@ -2339,8 +2514,9 @@ class QSparseBus(object):
     :note: When you insert a device, it's properties might be updated (addr,..)
     """
 
-    def __init__(self, bus_item, addr_spec, busid, bus_type=None, aobject=None,
-                 atype=None):
+    def __init__(
+        self, bus_item, addr_spec, busid, bus_type=None, aobject=None, atype=None
+    ):
         """
         :param bus_item: Name of the parameter which specifies bus (bus)
         :type bus_item: str
@@ -2358,16 +2534,16 @@ class QSparseBus(object):
         self.busid = busid
         self.type = bus_type
         self.aobject = aobject
-        self.bus = {}                       # Normal bus records
-        self.bus_item = bus_item            # bus param name
-        self.addr_items = addr_spec[0]      # [names][lengths]
+        self.bus = {}  # Normal bus records
+        self.bus_item = bus_item  # bus param name
+        self.addr_items = addr_spec[0]  # [names][lengths]
         self.addr_lengths = addr_spec[1]
         self.atype = atype
         self.__device = None
         self.first_port = [0] * len(addr_spec[0])
 
     def __str__(self):
-        """ default string representation """
+        """default string representation"""
         return self.str_short()
 
     def __getitem__(self, item):
@@ -2402,7 +2578,7 @@ class QSparseBus(object):
         self.remove(self[item])
 
     def __len__(self):
-        """ :return: Number of devices in this bus """
+        """:return: Number of devices in this bus"""
         return len(self.bus)
 
     def __contains__(self, item):
@@ -2421,11 +2597,11 @@ class QSparseBus(object):
         return False
 
     def __iter__(self):
-        """ Iterate over all defined devices. """
+        """Iterate over all defined devices."""
         return six.itervalues(self.bus)
 
     def str_short(self):
-        """ short string representation """
+        """short string representation"""
         if self.atype:
             bus_type = self.atype
         else:
@@ -2433,35 +2609,37 @@ class QSparseBus(object):
         return "%s(%s): %s" % (self.busid, bus_type, self._str_devices())
 
     def _str_devices(self):
-        """ short string representation of the good bus """
-        out = '{'
+        """short string representation of the good bus"""
+        out = "{"
         for addr in sorted(self.bus.keys()):
             out += "%s:%s," % (addr, self.bus[addr])
-        if out[-1] == ',':
+        if out[-1] == ",":
             out = out[:-1]
-        return out + '}'
+        return out + "}"
 
     def str_long(self):
-        """ long string representation """
+        """long string representation"""
         if self.atype:
             bus_type = self.atype
         else:
             bus_type = self.type
-        return "Bus %s, type=%s\nSlots:\n%s" % (self.busid, bus_type,
-                                                self._str_devices_long())
+        return "Bus %s, type=%s\nSlots:\n%s" % (
+            self.busid,
+            bus_type,
+            self._str_devices_long(),
+        )
 
     def _str_devices_long(self):
-        """ long string representation of devices in the good bus """
+        """long string representation of devices in the good bus"""
         out = ""
         for addr, dev in six.iteritems(self.bus):
-            out += '%s< %4s >%s\n  ' % ('-' * 15, addr,
-                                        '-' * 15)
+            out += "%s< %4s >%s\n  " % ("-" * 15, addr, "-" * 15)
             if isinstance(dev, six.string_types):
                 out += '"%s"\n  ' % dev
             else:
-                out += dev.str_long().replace('\n', '\n  ')
+                out += dev.str_long().replace("\n", "\n  ")
                 out = out[:-3]
-            out += '\n'
+            out += "\n"
         return out
 
     def _increment_addr(self, addr, last_addr=None):
@@ -2496,9 +2674,9 @@ class QSparseBus(object):
         out = ""
         for value in addr:
             if value is None:
-                out += '*-'
+                out += "*-"
             else:
-                out += '%s-' % value
+                out += "%s-" % value
         if out:
             return out[:-1]
         else:
@@ -2526,7 +2704,7 @@ class QSparseBus(object):
         # set first usable addr
         last_addr = addr_pattern[:]
         if None in last_addr:  # Address is not fully specified
-            use_reserved = False    # Use only free address
+            use_reserved = False  # Use only free address
             for i in xrange(len(last_addr)):
                 if last_addr[i] is None:
                     last_addr[i] = self.first_port[i]
@@ -2545,18 +2723,19 @@ class QSparseBus(object):
         last_addr, use_reserved = self._set_first_addr(addr_pattern)
         # Check the addr_pattern ranges
         for i in xrange(len(self.addr_lengths)):
-            if (last_addr[i] < self.first_port[i] or
-                    last_addr[i] >= self.addr_lengths[i]):
+            if (
+                last_addr[i] < self.first_port[i]
+                or last_addr[i] >= self.addr_lengths[i]
+            ):
                 return False
         # Increment addr until free match is found
         while last_addr is not False:
             if self._addr2stor(last_addr) not in self.bus:
                 return last_addr
-            if (use_reserved and
-                    self.bus[self._addr2stor(last_addr)] == "reserved"):
+            if use_reserved and self.bus[self._addr2stor(last_addr)] == "reserved":
                 return last_addr
             last_addr = self._increment_addr(addr_pattern, last_addr)
-        return None     # No free matching address found
+        return None  # No free matching address found
 
     def _check_bus(self, device):
         """
@@ -2564,8 +2743,10 @@ class QSparseBus(object):
         :param device: QBaseDevice device
         :return: True in case ids are correct, False when not
         """
-        if (device.get_param(self.bus_item) and
-                device.get_param(self.bus_item) != self.busid):
+        if (
+            device.get_param(self.bus_item)
+            and device.get_param(self.bus_item) != self.busid
+        ):
             return False
         else:
             return True
@@ -2628,9 +2809,8 @@ class QSparseBus(object):
         elif addr is False:
             return "BadAddr(%s)" % addr
         else:
-            additional_devices.extend(self._insert(device,
-                                                   self._addr2stor(addr)))
-        if strict_mode:     # Set full address in strict_mode
+            additional_devices.extend(self._insert(device, self._addr2stor(addr)))
+        if strict_mode:  # Set full address in strict_mode
             self._set_device_props(device, addr)
         else:
             self._update_device_props(device, addr)
@@ -2668,16 +2848,16 @@ class QSparseBus(object):
                     remove = key
                     break
             if remove is not None:
-                del (self.bus[remove])
+                del self.bus[remove]
                 return True
         return False
 
     def set_device(self, device):
-        """ Set the device in which this bus belongs """
+        """Set the device in which this bus belongs"""
         self.__device = device
 
     def get_device(self):
-        """ Get device in which this bus is present """
+        """Get device in which this bus is present"""
         return self.__device
 
     def match_bus(self, bus_spec, type_test=True):
@@ -2690,13 +2870,13 @@ class QSparseBus(object):
         :return: True when the bus matches the specification
         :rtype: bool
         """
-        if type_test and bus_spec.get('type'):
-            if isinstance(bus_spec['type'], (tuple, list)):
-                for bus_type in bus_spec['type']:
+        if type_test and bus_spec.get("type"):
+            if isinstance(bus_spec["type"], (tuple, list)):
+                for bus_type in bus_spec["type"]:
                     if bus_type == self.type:
                         return True
                 return False
-            elif self.type == bus_spec['type']:
+            elif self.type == bus_spec["type"]:
                 return True
         for key, value in six.iteritems(bus_spec):
             if isinstance(value, (tuple, list)):
@@ -2716,15 +2896,24 @@ class QStrictCustomBus(QSparseBus):
     Similar to QSparseBus. The address starts with 1 and addr is always set
     """
 
-    def __init__(self, bus_item, addr_spec, busid, bus_type=None, aobject=None,
-                 atype=None, first_port=None):
-        super(QStrictCustomBus, self).__init__(bus_item, addr_spec, busid,
-                                               bus_type, aobject, atype)
+    def __init__(
+        self,
+        bus_item,
+        addr_spec,
+        busid,
+        bus_type=None,
+        aobject=None,
+        atype=None,
+        first_port=None,
+    ):
+        super(QStrictCustomBus, self).__init__(
+            bus_item, addr_spec, busid, bus_type, aobject, atype
+        )
         if first_port:
             self.first_port = first_port
 
     def _update_device_props(self, device, addr):
-        """ in case this is usb-hub update the child port_prefix """
+        """in case this is usb-hub update the child port_prefix"""
         self._set_device_props(device, addr)
 
 
@@ -2748,32 +2937,32 @@ class QUSBBus(QSparseBus):
     USB bus representation including usb-hub handling.
     """
 
-    def __init__(self, length, busid, bus_type, aobject=None,
-                 port_prefix=""):
+    def __init__(self, length, busid, bus_type, aobject=None, port_prefix=""):
         """
         Bus type have to be generalized and parsed from original bus type:
         (usb-ehci == ehci, ich9-usb-uhci1 == uhci, ...)
         """
         # There are various usb devices for the same bus type, use only portion
-        for bus in ('uhci', 'ehci', 'ohci', 'xhci'):
+        for bus in ("uhci", "ehci", "ohci", "xhci"):
             if bus in bus_type:
                 bus_type = bus
                 break
         # Usb ports are counted from 1 so the length have to be +1
-        super(QUSBBus, self).__init__('bus', [['port'], [length + 1]], busid,
-                                      bus_type, aobject)
+        super(QUSBBus, self).__init__(
+            "bus", [["port"], [length + 1]], busid, bus_type, aobject
+        )
         self.__port_prefix = port_prefix
         self.__length = length
         self.first_port = [1]
 
     def _check_bus(self, device):
-        """ Check port prefix in order to match addresses in usb-hubs """
+        """Check port prefix in order to match addresses in usb-hubs"""
         if not super(QUSBBus, self)._check_bus(device):
             return False
-        port = device.get_param('port')   # 2.1.6
-        if port or port == 0:   # If port is specified
-            idx = str(port).rfind('.')
-            if idx != -1:   # Strip last number and compare with port_prefix
+        port = device.get_param("port")  # 2.1.6
+        if port or port == 0:  # If port is specified
+            idx = str(port).rfind(".")
+            if idx != -1:  # Strip last number and compare with port_prefix
                 return port[:idx] == self.__port_prefix
             # Port is number, match only root usb bus
             elif self.__port_prefix != "":
@@ -2786,36 +2975,35 @@ class QUSBBus(QSparseBus):
         :param device: QBaseDevice device
         :return: internal address  [addr1, addr2, ...]
         """
-        value = device.get_param('port')
+        value = device.get_param("port")
         if value is None:
             addr = [None]
         # this part allows to specify the port of usb devices on the root bus
         elif not self.__port_prefix:
             addr = [int(value)]
         else:
-            addr = [int(value[len(self.__port_prefix) + 1:])]
+            addr = [int(value[len(self.__port_prefix) + 1 :])]
         return addr
 
     def __hook_child_bus(self, device, addr):
-        """ If this is usb-hub, add child bus """
+        """If this is usb-hub, add child bus"""
         # only usb hub needs customization
-        if device.get_param('driver') != 'usb-hub':
+        if device.get_param("driver") != "usb-hub":
             return
         _bus = [_ for _ in device.child_bus if not isinstance(_, QUSBBus)]
-        _bus.append(QUSBBus(8, self.busid, self.type, device.get_aid(),
-                            str(addr[0])))
+        _bus.append(QUSBBus(8, self.busid, self.type, device.get_aid(), str(addr[0])))
         device.child_bus = _bus
 
     def _set_device_props(self, device, addr):
-        """ in case this is usb-hub update the child port_prefix """
+        """in case this is usb-hub update the child port_prefix"""
         if addr[0] or addr[0] == 0:
             if self.__port_prefix:
-                addr = ['%s.%s' % (self.__port_prefix, addr[0])]
+                addr = ["%s.%s" % (self.__port_prefix, addr[0])]
         self.__hook_child_bus(device, addr)
         super(QUSBBus, self)._set_device_props(device, addr)
 
     def _update_device_props(self, device, addr):
-        """ in case this is usb-hub update the child port_prefix """
+        """in case this is usb-hub update the child port_prefix"""
         self._set_device_props(device, addr)
 
 
@@ -2830,20 +3018,19 @@ class QDriveBus(QSparseBus):
         :param busid: id of the bus (pci.0)
         :param aobject: Related autotest object (image1)
         """
-        super(QDriveBus, self).__init__('drive', [[], []], busid, 'QDrive',
-                                        aobject)
+        super(QDriveBus, self).__init__("drive", [[], []], busid, "QDrive", aobject)
 
     def get_free_slot(self, addr_pattern):
-        """ Use only drive as slot """
-        if 'drive' in self.bus:
+        """Use only drive as slot"""
+        if "drive" in self.bus:
             return None
         else:
             return True
 
     @staticmethod
     def _addr2stor(addr):
-        """ address is always drive """
-        return 'drive'
+        """address is always drive"""
+        return "drive"
 
     def _update_device_props(self, device, addr):
         """
@@ -2851,7 +3038,7 @@ class QDriveBus(QSparseBus):
         store this bus device into hook variable of the device.
         """
         self._set_device_props(device, addr)
-        if hasattr(device, 'hook_drive_bus'):
+        if hasattr(device, "hook_drive_bus"):
             device.hook_drive_bus = self.get_device()
 
 
@@ -2864,36 +3051,35 @@ class QDenseBus(QSparseBus):
     """
 
     def _str_devices_long(self):
-        """ Show all addresses even when they are unused """
+        """Show all addresses even when they are unused"""
         out = ""
         addr_pattern = [None] * len(self.addr_items)
         addr = self._set_first_addr(addr_pattern)[0]
         while addr:
             dev = self.bus.get(self._addr2stor(addr))
-            out += '%s< %4s >%s\n  ' % ('-' * 15, self._addr2stor(addr),
-                                        '-' * 15)
-            if hasattr(dev, 'str_long'):
-                out += dev.str_long().replace('\n', '\n  ')
+            out += "%s< %4s >%s\n  " % ("-" * 15, self._addr2stor(addr), "-" * 15)
+            if hasattr(dev, "str_long"):
+                out += dev.str_long().replace("\n", "\n  ")
                 out = out[:-3]
             elif isinstance(dev, six.string_types):
                 out += '"%s"' % dev
             else:
                 out += "%s" % dev
-            out += '\n'
+            out += "\n"
             addr = self._increment_addr(addr_pattern, addr)
         return out
 
     def _str_devices(self):
-        """ Show all addresses even when they are unused, don't print addr """
-        out = '['
+        """Show all addresses even when they are unused, don't print addr"""
+        out = "["
         addr_pattern = [None] * len(self.addr_items)
         addr = self._set_first_addr(addr_pattern)[0]
         while addr:
             out += "%s," % self.bus.get(self._addr2stor(addr))
             addr = self._increment_addr(addr_pattern, addr)
-        if out[-1] == ',':
+        if out[-1] == ",":
             out = out[:-1]
-        return out + ']'
+        return out + "]"
 
 
 class QPCIBus(QSparseBus):
@@ -2903,54 +3089,56 @@ class QPCIBus(QSparseBus):
     """
 
     def __init__(self, busid, bus_type, aobject=None, length=32, first_port=0):
-        """ bus&addr, 32 slots """
-        super(QPCIBus, self).__init__('bus', [['addr', 'func'], [length, 8]],
-                                      busid, bus_type, aobject)
+        """bus&addr, 32 slots"""
+        super(QPCIBus, self).__init__(
+            "bus", [["addr", "func"], [length, 8]], busid, bus_type, aobject
+        )
         self.first_port = (first_port, 0)
 
     @staticmethod
     def _addr2stor(addr):
-        """ force all items as hexadecimal values """
+        """force all items as hexadecimal values"""
         out = ""
         for value in addr:
             if value is None:
-                out += '*-'
+                out += "*-"
             else:
-                out += '0x%x-' % value
+                out += "0x%x-" % value
         if out:
             return out[:-1]
         else:
             return "*"
 
     def _dev2addr(self, device):
-        """ Read the values in base of 16 (hex) """
-        addr = device.get_param('addr')
-        if isinstance(addr, int):     # only addr
+        """Read the values in base of 16 (hex)"""
+        addr = device.get_param("addr")
+        if isinstance(addr, int):  # only addr
             return [addr, 0]
-        elif not addr:    # not defined
+        elif not addr:  # not defined
             return [None, 0]
-        elif isinstance(addr, six.string_types):     # addr or addr.func
-            addr = [int(_, 16) for _ in addr.split('.', 1)]
-            if len(addr) < 2:   # only addr
+        elif isinstance(addr, six.string_types):  # addr or addr.func
+            addr = [int(_, 16) for _ in addr.split(".", 1)]
+            if len(addr) < 2:  # only addr
                 addr.append(0)
         return addr
 
     def _set_device_props(self, device, addr):
-        """ Convert addr to the format used by qtree """
+        """Convert addr to the format used by qtree"""
         device.set_param(self.bus_item, self.busid)
-        orig_addr = device.get_param('addr')
-        if addr[1] or (isinstance(orig_addr, six.string_types) and
-                       orig_addr.find('.') != -1):
-            device.set_param('addr', '%s.%s' % (hex(addr[0]), hex(addr[1])))
+        orig_addr = device.get_param("addr")
+        if addr[1] or (
+            isinstance(orig_addr, six.string_types) and orig_addr.find(".") != -1
+        ):
+            device.set_param("addr", "%s.%s" % (hex(addr[0]), hex(addr[1])))
         else:
-            device.set_param('addr', '%s' % hex(addr[0]))
+            device.set_param("addr", "%s" % hex(addr[0]))
 
     def _update_device_props(self, device, addr):
-        """ Always set properties """
+        """Always set properties"""
         self._set_device_props(device, addr)
 
     def _increment_addr(self, addr, last_addr=None):
-        """ Don't use multifunction address by default """
+        """Don't use multifunction address by default"""
         if addr[1] is None:
             addr[1] = 0
         return super(QPCIBus, self)._increment_addr(addr, last_addr=last_addr)
@@ -2962,8 +3150,9 @@ class QPCIEBus(QPCIBus):
     device by default.)
     """
 
-    def __init__(self, busid, bus_type, root_port_type,
-                 aobject=None, root_port_params=None):
+    def __init__(
+        self, busid, bus_type, root_port_type, aobject=None, root_port_params=None
+    ):
         """
         :param busid: id of the bus (pcie.0)
         :param bus_type: type of the bus (PCIE)
@@ -2987,8 +3176,9 @@ class QPCIEBus(QPCIBus):
         :param device: the QBaseDevice object
         :return: bool value for directly plug or not.
         """
-        direct_plug = (device.pcie_direct_plug
-                       if hasattr(device, "pcie_direct_plug") else False)
+        direct_plug = (
+            device.pcie_direct_plug if hasattr(device, "pcie_direct_plug") else False
+        )
         if not direct_plug and device.is_pcie_device():
             return False
         return True
@@ -3000,8 +3190,8 @@ class QPCIEBus(QPCIBus):
         :param root_port: pcie-root-port QDevice object
         :return string: pcie-root-port address or None if slot is full
         """
-        slot = root_port.get_param('addr').split('.')[0]
-        full_addrs = set(['%s.%s' % (slot, hex(_)) for _ in range(1, 8)])
+        slot = root_port.get_param("addr").split(".")[0]
+        full_addrs = set(["%s.%s" % (slot, hex(_)) for _ in range(1, 8)])
         used_addrs = set(self.__root_ports.keys())
         try:
             return sorted(list(full_addrs - used_addrs))[0]
@@ -3009,8 +3199,7 @@ class QPCIEBus(QPCIBus):
             pass
         return None
 
-    def add_root_port(self, root_port_type, root_port=None,
-                      root_port_params=None):
+    def add_root_port(self, root_port_type, root_port=None, root_port_params=None):
         """
         Add pcie root port to the bus and __root_ports list, assign free slot,
         chassis, and addr for it according to current list.
@@ -3022,12 +3211,12 @@ class QPCIEBus(QPCIBus):
         """
         if not root_port:
             root_port = self._add_root_port(root_port_type, root_port_params)
-            root_port.set_param('multifunction', 'on')
+            root_port.set_param("multifunction", "on")
             self.insert(root_port)
         else:
             addr = self._get_port_addr(root_port)
             root_port = self._add_root_port(root_port_type, root_port_params)
-            root_port.set_param('addr', addr)
+            root_port.set_param("addr", addr)
             self.insert(root_port)
         return root_port
 
@@ -3042,18 +3231,16 @@ class QPCIEBus(QPCIBus):
         index = self.__last_port_index[0] + 1
         self.__last_port_index = [index]
         bus_id = "%s-%s" % (root_port_type, index)
-        bus = QPCIBus(bus_id, 'PCIE', bus_id, length=1, first_port=0)
-        parent_bus = {'busid': '_PCI_CHASSIS'}
-        params = {'id': bus_id, 'port': hex(index)}
+        bus = QPCIBus(bus_id, "PCIE", bus_id, length=1, first_port=0)
+        parent_bus = {"busid": "_PCI_CHASSIS"}
+        params = {"id": bus_id, "port": hex(index)}
         if root_port_params:
             for extra_param in root_port_params.split(","):
-                key, value = extra_param.split('=')
+                key, value = extra_param.split("=")
                 params[key] = value
-        root_port = QDevice(root_port_type,
-                            params,
-                            aobject=bus_id,
-                            parent_bus=parent_bus,
-                            child_bus=bus)
+        root_port = QDevice(
+            root_port_type, params, aobject=bus_id, parent_bus=parent_bus, child_bus=bus
+        )
         return root_port
 
     def _insert(self, device, addr):
@@ -3064,10 +3251,10 @@ class QPCIEBus(QPCIBus):
         :param device: qdevice.QDevice object
         :param addr: addr to insert the device
         """
-        if device.get_param('driver') == self.__root_port_type:
-            key = addr.replace('-', '.')
+        if device.get_param("driver") == self.__root_port_type:
+            key = addr.replace("-", ".")
             self.__root_ports[key] = device
-            device.set_param('bus', self.aobject)
+            device.set_param("bus", self.aobject)
             return super(QPCIEBus, self)._insert(device, addr)
 
         if self.is_direct_plug(device):
@@ -3077,7 +3264,7 @@ class QPCIEBus(QPCIBus):
         root_port = self.prepare_free_root_port()
         added_devices.append(root_port)
         bus = added_devices[-1].child_bus[0]
-        device['bus'] = bus.busid
+        device["bus"] = bus.busid
         bus.insert(device)
         return added_devices
 
@@ -3116,16 +3303,16 @@ class QPCIEBus(QPCIBus):
 
         :return: QDevice object, pcie-root-port device
         """
-        root_ports = self.get_root_port_by_params({'multifunction': 'on'})
+        root_ports = self.get_root_port_by_params({"multifunction": "on"})
         # sort root ports to ensure continuity of port addresses
-        root_ports = sorted(root_ports, key=lambda x: x.get_param('addr'))
+        root_ports = sorted(root_ports, key=lambda x: x.get_param("addr"))
         for root_port in root_ports:
             addr = self._get_port_addr(root_port)
             if addr is not None:
-                return self.add_root_port(self.__root_port_type, root_port,
-                                          self.__root_port_params)
-        return self.add_root_port(self.__root_port_type, None,
-                                  self.__root_port_params)
+                return self.add_root_port(
+                    self.__root_port_type, root_port, self.__root_port_params
+                )
+        return self.add_root_port(self.__root_port_type, None, self.__root_port_params)
 
     def get_free_root_port(self):
         """
@@ -3151,8 +3338,9 @@ class QPCIEBus(QPCIBus):
         if not isinstance(parent_bus, (tuple, list)):
             device.parent_bus = [device.parent_bus]
             return
-        device.parent_bus = ({"busid": bus.busid},) + \
-            tuple(bus for bus in parent_bus if not self.match_bus(bus))
+        device.parent_bus = ({"busid": bus.busid},) + tuple(
+            bus for bus in parent_bus if not self.match_bus(bus)
+        )
         return
 
 
@@ -3175,15 +3363,15 @@ class QPCISwitchBus(QPCIBus):
         if addr not in self.__downstream_ports:
             _addr = int(addr, 16)
             bus_id = "%s.%s" % (self.busid, _addr)
-            bus = QPCIBus(bus_id, 'PCIE', bus_id)
+            bus = QPCIBus(bus_id, "PCIE", bus_id)
             self.__downstream_ports["0x%x" % _addr] = bus
-            downstream = QDevice(self.__downstream_type,
-                                 {'id': bus_id,
-                                  'bus': self.busid,
-                                  'addr': "0x%x" % _addr},
-                                 aobject=self.aobject,
-                                 parent_bus={'busid': '_PCI_CHASSIS'},
-                                 child_bus=bus)
+            downstream = QDevice(
+                self.__downstream_type,
+                {"id": bus_id, "bus": self.busid, "addr": "0x%x" % _addr},
+                aobject=self.aobject,
+                parent_bus={"busid": "_PCI_CHASSIS"},
+                child_bus=bus,
+            )
             return downstream
 
     def _insert(self, device, addr):
@@ -3191,16 +3379,15 @@ class QPCISwitchBus(QPCIBus):
         Instead of the device inserts the downstream port. The device is
         inserted later during _set_device_props into this downstream port.
         """
-        _addr = addr.split('-')[0]
+        _addr = addr.split("-")[0]
         added_devices = []
         downstream = self.add_downstream_port(_addr)
         if downstream is not None:
             added_devices.append(downstream)
-            added_devices.extend(super(QPCISwitchBus, self)._insert(downstream,
-                                                                    addr))
+            added_devices.extend(super(QPCISwitchBus, self)._insert(downstream, addr))
 
         bus_id = "%s.%s" % (self.busid, int(_addr, 16))
-        device['bus'] = bus_id
+        device["bus"] = bus_id
 
         return added_devices
 
@@ -3209,7 +3396,7 @@ class QPCISwitchBus(QPCIBus):
         Instead of setting the addr this insert the device into the
         downstream port.
         """
-        self.__downstream_ports['0x%x' % addr[0]].insert(device)
+        self.__downstream_ports["0x%x" % addr[0]].insert(device)
 
 
 class QSCSIBus(QSparseBus):
@@ -3227,8 +3414,9 @@ class QSCSIBus(QSparseBus):
         :param atype: Autotest bus type
         :type atype: str
         """
-        super(QSCSIBus, self).__init__('bus', [['scsi-id', 'lun'], addr_spec],
-                                       busid, bus_type, aobject, atype)
+        super(QSCSIBus, self).__init__(
+            "bus", [["scsi-id", "lun"], addr_spec], busid, bus_type, aobject, atype
+        )
 
     def _increment_addr(self, addr, last_addr=None):
         """
@@ -3242,9 +3430,11 @@ class QSCSIBus(QSparseBus):
 
 class QBusUnitBus(QDenseBus):
 
-    """ Implementation of bus-unit/nr bus (ahci, ide, virtio-serial) """
+    """Implementation of bus-unit/nr bus (ahci, ide, virtio-serial)"""
 
-    def __init__(self, busid, bus_type, lengths, aobject=None, atype=None, unit_spec='unit'):
+    def __init__(
+        self, busid, bus_type, lengths, aobject=None, atype=None, unit_spec="unit"
+    ):
         """
         :param busid: id of the bus (mybus.0)
         :type busid: str
@@ -3259,40 +3449,41 @@ class QBusUnitBus(QDenseBus):
         """
         if len(lengths) != 2:
             raise ValueError("len(lengths) have to be 2 (%s)" % self)
-        super(QBusUnitBus, self).__init__('bus', [['bus', unit_spec], lengths],
-                                          busid, bus_type, aobject, atype)
+        super(QBusUnitBus, self).__init__(
+            "bus", [["bus", unit_spec], lengths], busid, bus_type, aobject, atype
+        )
         self.unit_spec = unit_spec
 
     def _update_device_props(self, device, addr):
-        """ Always set the properties """
+        """Always set the properties"""
         return self._set_device_props(device, addr)
 
     def _set_device_props(self, device, addr):
-        """This bus is compound of m-buses + n-units, set properties """
-        device.set_param('bus', "%s.%s" % (self.busid, addr[0]))
+        """This bus is compound of m-buses + n-units, set properties"""
+        device.set_param("bus", "%s.%s" % (self.busid, addr[0]))
         device.set_param(self.unit_spec, addr[1])
 
     def _check_bus(self, device):
-        """ This bus is compound of m-buses + n-units, check correct busid """
-        bus = device.get_param('bus')
+        """This bus is compound of m-buses + n-units, check correct busid"""
+        bus = device.get_param("bus")
         if isinstance(bus, six.string_types):
-            bus = bus.rsplit('.', 1)
+            bus = bus.rsplit(".", 1)
             if len(bus) == 2 and bus[0] != self.busid:  # aaa.3
                 return False
-            elif not bus[0].isdigit() and bus[0] != self.busid:     # aaa
+            elif not bus[0].isdigit() and bus[0] != self.busid:  # aaa
                 return False
         return True  # None, 5, '3'
 
     def _dev2addr(self, device):
-        """ This bus is compound of m-buses + n-units, parse addr from dev """
+        """This bus is compound of m-buses + n-units, parse addr from dev"""
         bus = None
         unit = None
-        busid = device.get_param('bus')
+        busid = device.get_param("bus")
         if isinstance(busid, six.string_types):
             if busid.isdigit():
                 bus = int(busid)
             else:
-                busid = busid.rsplit('.', 1)
+                busid = busid.rsplit(".", 1)
                 if len(busid) == 2 and busid[1].isdigit():
                     bus = int(busid[1])
         if isinstance(busid, int):
@@ -3304,7 +3495,7 @@ class QBusUnitBus(QDenseBus):
 
 class QSerialBus(QBusUnitBus):
 
-    """ Serial bus representation """
+    """Serial bus representation"""
 
     def __init__(self, busid, bus_type, aobject=None, max_ports=32):
         """
@@ -3314,27 +3505,28 @@ class QSerialBus(QBusUnitBus):
         :param max_ports: max ports, default 32
         """
 
-        super(QSerialBus, self).__init__(busid, 'SERIAL', [1, max_ports],
-                                         aobject, bus_type, unit_spec='nr')
+        super(QSerialBus, self).__init__(
+            busid, "SERIAL", [1, max_ports], aobject, bus_type, unit_spec="nr"
+        )
         self.first_port = (0, 1)
 
 
 class QAHCIBus(QBusUnitBus):
 
-    """ AHCI bus (ich9-ahci, ahci) """
+    """AHCI bus (ich9-ahci, ahci)"""
 
     def __init__(self, busid, aobject=None):
-        """ 6xbus, 2xunit """
-        super(QAHCIBus, self).__init__(busid, 'IDE', [6, 1], aobject, 'ahci')
+        """6xbus, 2xunit"""
+        super(QAHCIBus, self).__init__(busid, "IDE", [6, 1], aobject, "ahci")
 
 
 class QIDEBus(QBusUnitBus):
 
-    """ IDE bus (piix3-ide) """
+    """IDE bus (piix3-ide)"""
 
     def __init__(self, busid, aobject=None):
-        """ 2xbus, 2xunit """
-        super(QIDEBus, self).__init__(busid, 'IDE', [2, 2], aobject, 'ide')
+        """2xbus, 2xunit"""
+        super(QIDEBus, self).__init__(busid, "IDE", [2, 2], aobject, "ide")
 
 
 class QFloppyBus(QDenseBus):
@@ -3344,32 +3536,33 @@ class QFloppyBus(QDenseBus):
     """
 
     def __init__(self, busid, aobject=None):
-        """ property <= [driveA, driveB] """
-        super(QFloppyBus, self).__init__(None, [['property'], [2]], busid,
-                                         'floppy', aobject)
+        """property <= [driveA, driveB]"""
+        super(QFloppyBus, self).__init__(
+            None, [["property"], [2]], busid, "floppy", aobject
+        )
 
     @staticmethod
     def _addr2stor(addr):
-        """ translate as drive$CHAR """
+        """translate as drive$CHAR"""
         return "drive%s" % chr(65 + addr[0])  # 'A' + addr
 
     def _dev2addr(self, device):
-        """ Read None, number or drive$CHAR and convert to int() """
-        addr = device.get_param('property')
+        """Read None, number or drive$CHAR and convert to int()"""
+        addr = device.get_param("property")
         if isinstance(addr, six.string_types):
-            if addr.startswith('drive') and len(addr) > 5:
+            if addr.startswith("drive") and len(addr) > 5:
                 addr = ord(addr[5])
             elif addr.isdigit():
                 addr = int(addr)
         return [addr]
 
     def _update_device_props(self, device, addr):
-        """ Always set props """
+        """Always set props"""
         self._set_device_props(device, addr)
 
     def _set_device_props(self, device, addr):
-        """ Change value to drive{A,B,...} """
-        device.set_param('property', self._addr2stor(addr))
+        """Change value to drive{A,B,...}"""
+        device.set_param("property", self._addr2stor(addr))
 
 
 class QOldFloppyBus(QDenseBus):
@@ -3379,17 +3572,18 @@ class QOldFloppyBus(QDenseBus):
     """
 
     def __init__(self, busid, aobject=None):
-        """ property <= [driveA, driveB] """
-        super(QOldFloppyBus, self).__init__(None, [['index'], [2]], busid,
-                                            'floppy', aobject)
+        """property <= [driveA, driveB]"""
+        super(QOldFloppyBus, self).__init__(
+            None, [["index"], [2]], busid, "floppy", aobject
+        )
 
     def _update_device_props(self, device, addr):
-        """ Always set props """
+        """Always set props"""
         self._set_device_props(device, addr)
 
     def _set_device_props(self, device, addr):
-        """ Change value to drive{A,B,...} """
-        device.set_param('index', self._addr2stor(addr))
+        """Change value to drive{A,B,...}"""
+        device.set_param("index", self._addr2stor(addr))
 
 
 class QCPUBus(QSparseBus):
@@ -3402,19 +3596,20 @@ class QCPUBus(QSparseBus):
         :param cpu_model: cpu model name
         :type cpu_model: str
         """
-        super(QCPUBus, self).__init__(None, addr_spec, "vcpu_bus", cpu_model,
-                                      aobject, atype)
+        super(QCPUBus, self).__init__(
+            None, addr_spec, "vcpu_bus", cpu_model, aobject, atype
+        )
         self.vcpus_count = 0
 
     def _str_devices(self):
         """
         short string representation of the bus, will ignore all reserved slot
         """
-        out = '{'
+        out = "{"
         for addr in sorted(self.bus.keys(), key=lambda x: "{0:0>8}".format(x)):
             if self.bus[addr] != "reserved":
                 out += "%s:%s, " % (addr, self.bus[addr])
-        return out.rstrip(", ") + '}'
+        return out.rstrip(", ") + "}"
 
     def _str_devices_long(self):
         """
@@ -3427,13 +3622,13 @@ class QCPUBus(QSparseBus):
                 if not dev.is_enabled():
                     addr += " idled"
                 out += "%s< %s >%s\n  " % ("-" * 15, addr.center(10), "-" * 15)
-                out += dev.str_long().replace('\n', '\n  ')
+                out += dev.str_long().replace("\n", "\n  ")
                 out = out.rstrip()
-            out += '\n'
+            out += "\n"
         return out.rstrip()
 
     def _update_device_props(self, device, addr):
-        """ Always set properties """
+        """Always set properties"""
         return self._set_device_props(device, addr)
 
     def initialize(self, cpuinfo):
@@ -3456,18 +3651,23 @@ class QCPUBus(QSparseBus):
         else:
             self.vcpus_count = 1
             self.addr_items = ["socket-id", "core-id", "thread-id"]
-            self.addr_lengths = [cpuinfo.sockets, cpuinfo.cores,
-                                 cpuinfo.threads]
-            self.first_port = [[s, c, t] for s in range(cpuinfo.sockets)
-                               for c in range(cpuinfo.cores)
-                               for t in range(cpuinfo.threads)][cpuinfo.smp]
+            self.addr_lengths = [cpuinfo.sockets, cpuinfo.cores, cpuinfo.threads]
+            self.first_port = [
+                [s, c, t]
+                for s in range(cpuinfo.sockets)
+                for c in range(cpuinfo.cores)
+                for t in range(cpuinfo.threads)
+            ][cpuinfo.smp]
             if cpuinfo.dies != 0:
                 self.addr_items.insert(1, "die-id")
                 self.addr_lengths.insert(1, cpuinfo.dies)
-                self.first_port = [[s, d, c, t] for s in range(cpuinfo.sockets)
-                                   for d in range(cpuinfo.dies)
-                                   for c in range(cpuinfo.cores)
-                                   for t in range(cpuinfo.threads)][cpuinfo.smp]
+                self.first_port = [
+                    [s, d, c, t]
+                    for s in range(cpuinfo.sockets)
+                    for d in range(cpuinfo.dies)
+                    for c in range(cpuinfo.cores)
+                    for t in range(cpuinfo.threads)
+                ][cpuinfo.smp]
 
 
 class QThrottleGroupBus(QSparseBus):
@@ -3479,10 +3679,13 @@ class QThrottleGroupBus(QSparseBus):
 
         :param throttle_group_id: related ThrottleGroup object id
         """
-        super(QThrottleGroupBus, self).__init__("throttle-group", [[], []],
-                                                "%s" % throttle_group_id,
-                                                "ThrottleGroup",
-                                                throttle_group_id)
+        super(QThrottleGroupBus, self).__init__(
+            "throttle-group",
+            [[], []],
+            "%s" % throttle_group_id,
+            "ThrottleGroup",
+            throttle_group_id,
+        )
 
     def get_free_slot(self, addr_pattern):
         """Return the device id as unoccupied address."""
@@ -3502,9 +3705,13 @@ class QIOThreadBus(QSparseBus):
 
         :param iothread_id: related QIOThread object id
         """
-        super(QIOThreadBus, self).__init__("iothread", [[], []],
-                                           "iothread_bus_%s" % iothread_id,
-                                           "IOTHREAD", iothread_id)
+        super(QIOThreadBus, self).__init__(
+            "iothread",
+            [[], []],
+            "iothread_bus_%s" % iothread_id,
+            "IOTHREAD",
+            iothread_id,
+        )
 
     def _check_bus(self, device):
         """Check if the device is pluggable."""
@@ -3534,8 +3741,9 @@ class QUnixSocketBus(QSparseBus):
     """
 
     def __init__(self, busid, aobject):
-        super(QUnixSocketBus, self).__init__("path", [[], []], busid,
-                                             "QUnixSocketBus", aobject)
+        super(QUnixSocketBus, self).__init__(
+            "path", [[], []], busid, "QUnixSocketBus", aobject
+        )
 
     def _update_device_props(self, device, addr):
         """Update device properties."""
@@ -3543,12 +3751,15 @@ class QUnixSocketBus(QSparseBus):
 
 
 class QMachine(QCustomDevice):
-
-    def __init__(self, params=None, aobject=None, parent_bus=None,
-                 child_bus=None):
-        super(QMachine, self).__init__("machine", params=params,
-                                       aobject=aobject, parent_bus=parent_bus,
-                                       child_bus=child_bus, backend="type")
+    def __init__(self, params=None, aobject=None, parent_bus=None, child_bus=None):
+        super(QMachine, self).__init__(
+            "machine",
+            params=params,
+            aobject=aobject,
+            parent_bus=parent_bus,
+            child_bus=child_bus,
+            backend="type",
+        )
 
     def _cmdline_raw(self):
         if not self.params:

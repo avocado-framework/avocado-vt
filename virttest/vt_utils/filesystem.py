@@ -42,11 +42,10 @@ def is_mounted(src, dst=None, fstype=None, options=None):
     :rtype: boolean
     """
     mount_str = "%s %s %s" % (src, dst, fstype)
-    mount_str = mount_str.replace('None', '').strip()
-    mount_list_cmd = 'cat /proc/mounts'
+    mount_str = mount_str.replace("None", "").strip()
+    mount_list_cmd = "cat /proc/mounts"
 
-    mount_result = process.run(mount_list_cmd, shell=True,
-                               verbose=False).stdout_text
+    mount_result = process.run(mount_list_cmd, shell=True, verbose=False).stdout_text
 
     for result in mount_result.splitlines():
         if mount_str in result:
@@ -78,17 +77,17 @@ def mount(src, dst, fstype=None, options=None):
     :return: if mounted successfully, return True. Otherwise, return False
     :rtype: boolean
     """
-    options = '' if options is None else options
+    options = "" if options is None else options
     if is_mounted(src, dst, fstype, options):
-        if 'remount' not in options:
-            options = 'remount,%s' % options
-    cmd = ['mount']
+        if "remount" not in options:
+            options = "remount,%s" % options
+    cmd = ["mount"]
     if fstype:
-        cmd.extend(['-t', fstype])
+        cmd.extend(["-t", fstype])
     if options:
-        cmd.extend(['-o', options])
+        cmd.extend(["-o", options])
     cmd.extend([src, dst])
-    cmd = ' '.join(cmd)
+    cmd = " ".join(cmd)
     return process.system(cmd, verbose=False) == 0
 
 
@@ -109,17 +108,15 @@ def umount(src, dst, fstype=None):
     mounted = is_mounted(src, dst, fstype)
     if mounted:
         from virttest import utils_package
+
         package = "psmisc"
         # check package is available, if not try installing it
         if not utils_package.package_install(package):
-            raise RuntimeError("%s is not available/installed for fuser",
-                               package)
+            raise RuntimeError("%s is not available/installed for fuser", package)
         fuser_cmd = "fuser -km %s" % dst
         umount_cmd = "umount %s" % dst
-        process.system(fuser_cmd, ignore_status=True, shell=True,
-                       verbose=False)
-        return process.system(umount_cmd, ignore_status=True,
-                              verbose=False) == 0
+        process.system(fuser_cmd, ignore_status=True, shell=True, verbose=False)
+        return process.system(umount_cmd, ignore_status=True, verbose=False) == 0
     return True
 
 
@@ -151,20 +148,24 @@ def resize_filesystem(partition, size):
                  support transfer size with SIZE_AVAILABLE,
                  enlarge to maximun available size.
     """
+
     def get_start_size():
-        start_size = block.get_partition_attrs(partition)['start']
-        return int(utils_numeric.normalize_data_size(start_size, 'B').split('.')[0])
+        start_size = block.get_partition_attrs(partition)["start"]
+        return int(utils_numeric.normalize_data_size(start_size, "B").split(".")[0])
 
     def resize_xfs_fs(size):
         if size == SIZE_AVAILABLE:
-            resize_fs_cmd = 'xfs_growfs -d %s' % mountpoint
+            resize_fs_cmd = "xfs_growfs -d %s" % mountpoint
         else:
-            output = process.run('xfs_growfs -n %s' % mountpoint,
-                                 verbose=False).stdout_text
-            bsize = int(re.findall(r'data\s+=\s+bsize=(\d+)', output, re.M)[0])
-            blocks = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0]) -
-                      get_start_size()) // bsize
-            resize_fs_cmd = 'xfs_growfs -D %s %s' % (blocks, mountpoint)
+            output = process.run(
+                "xfs_growfs -n %s" % mountpoint, verbose=False
+            ).stdout_text
+            bsize = int(re.findall(r"data\s+=\s+bsize=(\d+)", output, re.M)[0])
+            blocks = (
+                int(utils_numeric.normalize_data_size(size, "B").split(".")[0])
+                - get_start_size()
+            ) // bsize
+            resize_fs_cmd = "xfs_growfs -D %s %s" % (blocks, mountpoint)
         process.system(resize_fs_cmd, verbose=False)
 
     def resize_ext_fs(size):
@@ -173,26 +174,30 @@ def resize_filesystem(partition, size):
             umount(partition, mountpoint, fstype=fstype)
             flag = True
 
-        process.system('e2fsck -f %s' % partition, verbose=False)
+        process.system("e2fsck -f %s" % partition, verbose=False)
 
         if size == SIZE_AVAILABLE:
-            resize_fs_cmd = 'resize2fs %s' % partition
+            resize_fs_cmd = "resize2fs %s" % partition
         else:
-            output = process.run('tune2fs -l %s | grep -i block' % partition,
-                                 verbose=False).stdout_text
-            bsize = int(re.findall(r'Block size:\s+(\d+)', output, re.M)[0])
-            size = ((int(utils_numeric.normalize_data_size(size, 'B').split(".")[0]) -
-                     get_start_size()) // bsize) * bsize
-            size = utils_numeric.normalize_data_size(str(size).split(".")[0],
-                                                     'K')
-            resize_fs_cmd = 'resize2fs %s %sK' % (partition,
-                                                  int(size.split(".")[0]))
+            output = process.run(
+                "tune2fs -l %s | grep -i block" % partition, verbose=False
+            ).stdout_text
+            bsize = int(re.findall(r"Block size:\s+(\d+)", output, re.M)[0])
+            size = (
+                (
+                    int(utils_numeric.normalize_data_size(size, "B").split(".")[0])
+                    - get_start_size()
+                )
+                // bsize
+            ) * bsize
+            size = utils_numeric.normalize_data_size(str(size).split(".")[0], "K")
+            resize_fs_cmd = "resize2fs %s %sK" % (partition, int(size.split(".")[0]))
         process.system(resize_fs_cmd, verbose=False)
         if flag:
             mount(partition, mountpoint, fstype=fstype)
 
     mountpoint, fstype = get_mpoint_fstype(partition)
-    if fstype == 'xfs':
+    if fstype == "xfs":
         resize_xfs_fs(size)
     elif fstype.startswith("ext"):
         resize_ext_fs(size)
@@ -207,6 +212,6 @@ def get_mpoint_fstype(partition):
     :param partition: disk partition, like /dev/sdb1.
     :return: Tuple (mountpoint, fstype)
     """
-    mount_list = process.run('cat /proc/mounts', verbose=False).stdout_text
-    mount_info = re.search(r'%s\s(.+?)\s(.+?)\s' % partition, mount_list)
+    mount_list = process.run("cat /proc/mounts", verbose=False).stdout_text
+    mount_info = re.search(r"%s\s(.+?)\s(.+?)\s" % partition, mount_list)
     return mount_info.groups()

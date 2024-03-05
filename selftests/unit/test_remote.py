@@ -6,7 +6,7 @@ import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import remote
@@ -28,8 +28,9 @@ class RemoteFileTest(unittest.TestCase):
         test_file = open(self.test_file_path, "w")
         test_file.writelines(self.default_data)
         test_file.close()
-        remote_file = remote.RemoteFile(None, "test", None, None, None,
-                                        self.test_file_path)
+        remote_file = remote.RemoteFile(
+            None, "test", None, None, None, self.test_file_path
+        )
         return remote_file
 
     def _read_test_file(self):
@@ -43,11 +44,13 @@ class RemoteFileTest(unittest.TestCase):
         _add_list = ["add_line_1", "add_line_2", "add_line_3"]
         remote_file.add(_add_list)
         test_data = self._read_test_file()
-        except_data = ["RemoteFile Test.\n",
-                       "Pattern Line.\n",
-                       "add_line_1\n",
-                       "add_line_2\n",
-                       "add_line_3"]
+        except_data = [
+            "RemoteFile Test.\n",
+            "Pattern Line.\n",
+            "add_line_1\n",
+            "add_line_2\n",
+            "add_line_3",
+        ]
         for index in range(len(except_data)):
             self.assertEqual(except_data[index], test_data[index])
         del remote_file
@@ -59,8 +62,7 @@ class RemoteFileTest(unittest.TestCase):
         _pattern2repl = {r"Remote": "Local", r"^Pat.*$": "Replace Line"}
         remote_file.sub(_pattern2repl)
         test_data = self._read_test_file()
-        except_data = ["LocalFile Test.\n",
-                       "Replace Line"]
+        except_data = ["LocalFile Test.\n", "Replace Line"]
         for index in range(len(except_data)):
             self.assertEqual(except_data[index], test_data[index])
         del remote_file
@@ -84,9 +86,7 @@ class RemoteFileTest(unittest.TestCase):
         _pattern2repl = {r"Remote": "Local", r"NoMatch": "ADD line."}
         remote_file.sub_else_add(_pattern2repl)
         test_data = self._read_test_file()
-        except_data = ["LocalFile Test.\n",
-                       "Pattern Line.\n",
-                       "ADD line."]
+        except_data = ["LocalFile Test.\n", "Pattern Line.\n", "ADD line."]
         for index in range(len(except_data)):
             self.assertEqual(except_data[index], test_data[index])
         del remote_file

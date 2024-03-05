@@ -15,7 +15,7 @@ import logging
 import re
 
 
-__all__ = ['get_video_maker_klass', 'video_maker']
+__all__ = ["get_video_maker_klass", "video_maker"]
 
 #
 # Check what kind of video libraries tools we have available
@@ -24,8 +24,10 @@ __all__ = ['get_video_maker_klass', 'video_maker']
 GI_GSTREAMER_INSTALLED = False
 try:
     import gi
-    gi.require_version('Gst', '1.0')
+
+    gi.require_version("Gst", "1.0")
     from gi.repository import Gst
+
     GI_GSTREAMER_INSTALLED = True
 except (ImportError, ValueError):
     pass
@@ -36,6 +38,7 @@ GST_PYTHON_INSTALLED = False
 if not GI_GSTREAMER_INSTALLED:
     try:
         import gst
+
         GST_PYTHON_INSTALLED = True
     except ImportError:
         pass
@@ -45,6 +48,7 @@ if not GI_GSTREAMER_INSTALLED:
 #
 try:
     import PIL.Image
+
     PIL_INSTALLED = True
 except ImportError:
     PIL_INSTALLED = False
@@ -53,14 +57,13 @@ except ImportError:
 #
 # We only do video
 #
-CONTAINER_PREFERENCE = ['ogg', 'webm']
-ENCODER_PREFERENCE = ['theora', 'vp8']
+CONTAINER_PREFERENCE = ["ogg", "webm"]
+ENCODER_PREFERENCE = ["theora", "vp8"]
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class EncodingError(Exception):
-
     def __init__(self, err, debug):
         self.err = err
         self.debug = debug
@@ -85,9 +88,9 @@ class GiEncoder(object):
 
     def __init__(self, verbose=False):
         if not GI_GSTREAMER_INSTALLED:
-            raise ValueError('pygobject library was not found')
+            raise ValueError("pygobject library was not found")
         if not PIL_INSTALLED:
-            raise ValueError('python-imaging library was not found')
+            raise ValueError("python-imaging library was not found")
         self.verbose = verbose
         Gst.init(None)
 
@@ -97,10 +100,10 @@ class GiEncoder(object):
 
         :param input_dir: Directory to inspect.
         """
-        image_files = glob.glob(os.path.join(input_dir, '*.ppm'))
+        image_files = glob.glob(os.path.join(input_dir, "*.ppm"))
         for ppm_file in image_files:
             ppm_file_basename = os.path.basename(ppm_file)
-            jpg_file_basename = ppm_file_basename[:-4] + '.jpg'
+            jpg_file_basename = ppm_file_basename[:-4] + ".jpg"
             jpg_file = os.path.join(input_dir, jpg_file_basename)
             i = PIL.Image.open(ppm_file)
             i.save(jpg_file, format="JPEG", quality=95)
@@ -112,8 +115,10 @@ class GiEncoder(object):
 
         :param input_dir: Directory to inspect.
         """
-        image_sizes = [PIL.Image.open(path).size for path in
-                       glob.glob(os.path.join(input_dir, '*.jpg'))]
+        image_sizes = [
+            PIL.Image.open(path).size
+            for path in glob.glob(os.path.join(input_dir, "*.jpg"))
+        ]
         return max(set(image_sizes), key=image_sizes.count)
 
     def normalize_images(self, input_dir):
@@ -128,12 +133,12 @@ class GiEncoder(object):
         else:
             if image_size[0] < 640:
                 image_size[0] = 640
-            if image_size[1] < 480:     # is list pylint: disable=E1136
+            if image_size[1] < 480:  # is list pylint: disable=E1136
                 image_size[1] = 480
 
         if self.verbose:
-            LOG.debug('Normalizing image files to size: %s' % (image_size,))
-        image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
+            LOG.debug("Normalizing image files to size: %s" % (image_size,))
+        image_files = glob.glob(os.path.join(input_dir, "*.jpg"))
         for f in image_files:
             i = PIL.Image.open(f)
             if i.size != image_size:
@@ -149,13 +154,13 @@ class GiEncoder(object):
         """
         Gets the video container available that is the best based on preference
         """
-        return 'webmmux'
+        return "webmmux"
 
     def get_encoder_name(self):
         """
         Gets the video encoder available that is the best based on preference
         """
-        return 'vp8enc'
+        return "vp8enc"
 
     def get_element(self, name):
         """
@@ -179,7 +184,7 @@ class GiEncoder(object):
         self.convert_to_jpg(input_dir)
         self.normalize_images(input_dir)
 
-        file_list = glob.glob(os.path.join(input_dir, '*.jpg'))
+        file_list = glob.glob(os.path.join(input_dir, "*.jpg"))
 
         no_files = len(file_list)
         if no_files == 0:
@@ -191,7 +196,7 @@ class GiEncoder(object):
         index_list.sort()
 
         if self.verbose:
-            LOG.debug('Number of files to encode as video: %s' % no_files)
+            LOG.debug("Number of files to encode as video: %s" % no_files)
 
         # Define the gstreamer pipeline
         pipeline = Gst.Pipeline()
@@ -204,12 +209,12 @@ class GiEncoder(object):
         # Defining source properties (multifilesrc, jpegs and framerate)
         source = Gst.ElementFactory.make("multifilesrc", "multifilesrc")
         source_location = os.path.join(input_dir, "%04d.jpg")
-        source.set_property('location', source_location)
+        source.set_property("location", source_location)
         # The index property won't work in Fedora 21 Alpha, see bug:
         # https://bugzilla.gnome.org/show_bug.cgi?id=739472
-        source.set_property('start-index', index_list[0])
-        source_caps = Gst.caps_from_string('image/jpeg, framerate=(fraction)4/1')
-        source.set_property('caps', source_caps)
+        source.set_property("start-index", index_list[0])
+        source_caps = Gst.caps_from_string("image/jpeg, framerate=(fraction)4/1")
+        source.set_property("caps", source_caps)
 
         # Decoder element (jpeg format decoder)
         decoder = self.get_element("jpegdec")
@@ -222,7 +227,7 @@ class GiEncoder(object):
 
         # Defining output properties
         output = self.get_element("filesink")
-        output.set_property('location', output_file)
+        output.set_property("location", output_file)
 
         # Adding all elements to the pipeline
         pipeline.add(source)
@@ -274,20 +279,17 @@ class GstEncoder(object):
     multifilesrc -> jpegdec -> vp8enc -> webmmux -> filesink
     """
 
-    CONTAINER_MAPPING = {'ogg': 'oggmux',
-                         'webm': 'webmmux'}
+    CONTAINER_MAPPING = {"ogg": "oggmux", "webm": "webmmux"}
 
-    ENCODER_MAPPING = {'theora': 'theoraenc',
-                       'vp8': 'vp8enc'}
+    ENCODER_MAPPING = {"theora": "theoraenc", "vp8": "vp8enc"}
 
-    CONTAINER_ENCODER_MAPPING = {'ogg': 'theora',
-                                 'webm': 'vp8'}
+    CONTAINER_ENCODER_MAPPING = {"ogg": "theora", "webm": "vp8"}
 
     def __init__(self, verbose=False):
         if not GST_PYTHON_INSTALLED:
-            raise ValueError('gstreamer-python library was not found')
+            raise ValueError("gstreamer-python library was not found")
         if not PIL_INSTALLED:
-            raise ValueError('python-imaging library was not found')
+            raise ValueError("python-imaging library was not found")
 
         self.verbose = verbose
 
@@ -296,7 +298,7 @@ class GstEncoder(object):
         Find the most common image size
         """
         image_sizes = {}
-        image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
+        image_files = glob.glob(os.path.join(input_dir, "*.jpg"))
         for f in image_files:
             i = PIL.Image.open(f)
             if i.size not in image_sizes:
@@ -321,8 +323,8 @@ class GstEncoder(object):
             image_size = (800, 600)
 
         if self.verbose:
-            LOG.debug('Normalizing image files to size: %s', image_size)
-        image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
+            LOG.debug("Normalizing image files to size: %s", image_size)
+        image_files = glob.glob(os.path.join(input_dir, "*.jpg"))
         for f in image_files:
             i = PIL.Image.open(f)
             if i.size != image_size:
@@ -343,7 +345,7 @@ class GstEncoder(object):
             if self.has_element(element_kind):
                 return element_kind
 
-        raise ValueError('No suitable container format was found')
+        raise ValueError("No suitable container format was found")
 
     def get_encoder_name(self):
         """
@@ -354,14 +356,14 @@ class GstEncoder(object):
             if self.has_element(element_kind):
                 return element_kind
 
-        raise ValueError('No suitable encoder format was found')
+        raise ValueError("No suitable encoder format was found")
 
     def get_element(self, name):
         """
         Makes and returns and element from the gst factory interface
         """
         if self.verbose:
-            LOG.debug('GStreamer element requested: %s', name)
+            LOG.debug("GStreamer element requested: %s", name)
         return gst.element_factory_make(name, name)
 
     def encode(self, input_dir, output_file):
@@ -369,7 +371,7 @@ class GstEncoder(object):
         Process the input files and output the video file
         """
         self.normalize_images(input_dir)
-        file_list = glob.glob(os.path.join(input_dir, '*.jpg'))
+        file_list = glob.glob(os.path.join(input_dir, "*.jpg"))
         no_files = len(file_list)
         if no_files == 0:
             if self.verbose:
@@ -380,7 +382,7 @@ class GstEncoder(object):
             index_list.append(int(re.findall(r"/+.*/(\d{4})\.jpg", ifile)[0]))
             index_list.sort()
         if self.verbose:
-            LOG.debug('Number of files to encode as video: %s', no_files)
+            LOG.debug("Number of files to encode as video: %s", no_files)
 
         pipeline = gst.Pipeline("pipeline")
 
@@ -388,11 +390,11 @@ class GstEncoder(object):
         source_location = os.path.join(input_dir, "%04d.jpg")
         if self.verbose:
             LOG.debug("Source location: %s", source_location)
-        source.set_property('location', source_location)
-        source.set_property('index', index_list[0])
+        source.set_property("location", source_location)
+        source.set_property("index", index_list[0])
         source_caps = gst.Caps()
-        source_caps.append('image/jpeg,framerate=(fraction)4/1')
-        source.set_property('caps', source_caps)
+        source_caps.append("image/jpeg,framerate=(fraction)4/1")
+        source.set_property("caps", source_caps)
 
         decoder = self.get_element("jpegdec")
 
@@ -401,7 +403,7 @@ class GstEncoder(object):
         container = None
 
         for container_name in self.CONTAINER_ENCODER_MAPPING:
-            if output_file.endswith('.%s' % container_name):
+            if output_file.endswith(".%s" % container_name):
 
                 enc_name = self.CONTAINER_ENCODER_MAPPING[container_name]
                 enc_name_gst = self.ENCODER_MAPPING[enc_name]
@@ -417,17 +419,19 @@ class GstEncoder(object):
             container = self.get_element(self.get_container_name())
 
         output = self.get_element("filesink")
-        output.set_property('location', output_file)
+        output.set_property("location", output_file)
 
         pipeline.add_many(source, decoder, encoder, container, output)
         gst.element_link_many(source, decoder, encoder, container, output)
 
         pipeline.set_state(gst.STATE_PLAYING)
         while True:
-            if source.get_property('index') <= no_files:
+            if source.get_property("index") <= no_files:
                 if self.verbose:
-                    LOG.debug("Currently processing image number: %s",
-                              source.get_property('index'))
+                    LOG.debug(
+                        "Currently processing image number: %s",
+                        source.get_property("index"),
+                    )
                 time.sleep(1)
             else:
                 break
@@ -450,9 +454,10 @@ def video_maker(input_dir, output_file):
     v.encode(input_dir, output_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     if len(sys.argv) < 3:
-        print('Usage: %s <input_dir> <output_file>' % sys.argv[0])
+        print("Usage: %s <input_dir> <output_file>" % sys.argv[0])
     else:
         video_maker(sys.argv[1], sys.argv[2])

@@ -19,7 +19,7 @@ from virttest.qemu_monitor import Monitor, MonitorError
 
 import six
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VAgentError(MonitorError):
@@ -31,7 +31,6 @@ class VAgentConnectError(VAgentError):
 
 
 class VAgentSocketError(VAgentError):
-
     def __init__(self, msg, e):
         VAgentError.__init__(self)
         self.msg = msg
@@ -54,7 +53,6 @@ class VAgentNotSupportedError(VAgentError):
 
 
 class VAgentCmdError(VAgentError):
-
     def __init__(self, cmd, args, data):
         VAgentError.__init__(self)
         self.ecmd = cmd
@@ -62,23 +60,22 @@ class VAgentCmdError(VAgentError):
         self.edata = data
 
     def __str__(self):
-        return ("Virt Agent command %r failed    (arguments: %r,    "
-                "error message: %r)" % (self.ecmd, self.eargs, self.edata))
+        return (
+            "Virt Agent command %r failed    (arguments: %r,    "
+            "error message: %r)" % (self.ecmd, self.eargs, self.edata)
+        )
 
 
 class VAgentCmdNotSupportedError(VAgentError):
-
     def __init__(self, cmd):
         VAgentError.__init__(self)
         self.ecmd = cmd
 
     def __str__(self):
-        return ("The command %s is not supported by the current version qga"
-                % self.ecmd)
+        return "The command %s is not supported by the current version qga" % self.ecmd
 
 
 class VAgentSyncError(VAgentError):
-
     def __init__(self, vm_name):
         VAgentError.__init__(self)
         self.vm_name = vm_name
@@ -92,7 +89,6 @@ class VAgentSuspendError(VAgentError):
 
 
 class VAgentSuspendUnknownModeError(VAgentSuspendError):
-
     def __init__(self, mode):
         VAgentSuspendError.__init__(self)
         self.mode = mode
@@ -102,7 +98,6 @@ class VAgentSuspendUnknownModeError(VAgentSuspendError):
 
 
 class VAgentFreezeStatusError(VAgentError):
-
     def __init__(self, vm_name, status, expected):
         VAgentError.__init__(self)
         self.vm_name = vm_name
@@ -110,8 +105,11 @@ class VAgentFreezeStatusError(VAgentError):
         self.expected = expected
 
     def __str__(self):
-        return ("Unexpected guest FS status '%s' (expected '%s') in vm "
-                "'%s'" % (self.status, self.expected, self.vm_name))
+        return "Unexpected guest FS status '%s' (expected '%s') in vm " "'%s'" % (
+            self.status,
+            self.expected,
+            self.vm_name,
+        )
 
 
 class QemuAgent(Monitor):
@@ -141,8 +139,15 @@ class QemuAgent(Monitor):
     FSFREEZE_STATUS_FROZEN = "frozen"
     FSFREEZE_STATUS_THAWED = "thawed"
 
-    def __init__(self, vm, name, serial_type, gagent_params,
-                 get_supported_cmds=False, suppress_exceptions=False):
+    def __init__(
+        self,
+        vm,
+        name,
+        serial_type,
+        gagent_params,
+        get_supported_cmds=False,
+        suppress_exceptions=False,
+    ):
         """
         Connect to the guest agent socket, Also make sure the json
         module is available.
@@ -165,16 +170,18 @@ class QemuAgent(Monitor):
         """
         try:
             if serial_type not in self.SUPPORTED_SERIAL_TYPE:
-                raise VAgentNotSupportedError("Not supported serial type: "
-                                              "'%s'" % serial_type)
+                raise VAgentNotSupportedError(
+                    "Not supported serial type: " "'%s'" % serial_type
+                )
 
             Monitor.__init__(self, vm, name, gagent_params)
             # Make sure json is available
             try:
                 json
             except NameError:
-                raise VAgentNotSupportedError("guest agent requires the json"
-                                              " module (Python 2.6 and up)")
+                raise VAgentNotSupportedError(
+                    "guest agent requires the json" " module (Python 2.6 and up)"
+                )
 
             # Set a reference to the VM object that has this GuestAgent.
             self.vm = vm
@@ -227,7 +234,7 @@ class QemuAgent(Monitor):
         objs = []
         for line in s.splitlines():
             try:
-                if line[0:1] == b'\xff':
+                if line[0:1] == b"\xff":
                     line = line[1:]
                 objs += [json.loads(line)]
                 self._log_lines(line.decode(errors="replace"))
@@ -277,16 +284,19 @@ class QemuAgent(Monitor):
         :param sync_mode: sync or sync-delimited
         :return: True if socket is synced.
         """
+
         def check_result(response):
             if response:
                 self._log_response(cmd, r)
             if "return" in response:
                 return response["return"]
             if "error" in response:
-                raise VAgentError("Get an error message when waiting for sync"
-                                  " with qemu guest agent, check the debug log"
-                                  " for the future message,"
-                                  " detail: '%s'" % r["error"])
+                raise VAgentError(
+                    "Get an error message when waiting for sync"
+                    " with qemu guest agent, check the debug log"
+                    " for the future message,"
+                    " detail: '%s'" % r["error"]
+                )
 
         cmd = sync_mode
         rnd_num = random.randint(1000, 9999)
@@ -318,8 +328,9 @@ class QemuAgent(Monitor):
         cmds = self.guest_info()
         if cmds and "supported_commands" in cmds:
             cmd_list = cmds["supported_commands"]
-            self._supported_cmds = [n["name"] for n in cmd_list if
-                                    isinstance(n, dict) and "name" in n]
+            self._supported_cmds = [
+                n["name"] for n in cmd_list if isinstance(n, dict) and "name" in n
+            ]
 
         if not self._supported_cmds:
             # If initiation fails, set supported list to a None-only list.
@@ -356,8 +367,7 @@ class QemuAgent(Monitor):
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            LOG.debug("(vagent %s) Sending command '%s' %s",
-                      self.name, cmd, extra_str)
+            LOG.debug("(vagent %s) Sending command '%s' %s", self.name, cmd, extra_str)
 
     def _log_response(self, cmd, resp, debug=True):
         """
@@ -367,6 +377,7 @@ class QemuAgent(Monitor):
         :param resp: Response from guest agent command.
         :param debug: Whether to print the commands.
         """
+
         def _log_output(o, indent=0):
             LOG.debug("(vagent %s)    %s%s", self.name, " " * indent, o)
 
@@ -391,8 +402,7 @@ class QemuAgent(Monitor):
                     _log_output(o, indent)
 
         if self.debug_log or debug:
-            LOG.debug("(vagent %s) Response to '%s' "
-                      "(re-formatted)", self.name, cmd)
+            LOG.debug("(vagent %s) Response to '%s' " "(re-formatted)", self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -402,8 +412,7 @@ class QemuAgent(Monitor):
                     _log_output(l)
 
     # Public methods
-    def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True,
-            success_resp=True):
+    def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True, success_resp=True):
         """
         Send a guest agent command and return the response if success_resp.
 
@@ -451,8 +460,9 @@ class QemuAgent(Monitor):
         :raise VAgentProtocolError: Raised if no response is received
         """
         if not self._acquire_lock():
-            raise VAgentLockError("Could not acquire exclusive lock to send "
-                                  "data: %r" % data)
+            raise VAgentLockError(
+                "Could not acquire exclusive lock to send " "data: %r" % data
+            )
 
         try:
             self._read_objects()
@@ -468,8 +478,7 @@ class QemuAgent(Monitor):
             self._lock.release()
 
         if r is None:
-            raise VAgentProtocolError(
-                "Received no response to data: %r" % data)
+            raise VAgentProtocolError("Received no response to data: %r" % data)
         return r
 
     def cmd_obj(self, obj, timeout=CMD_TIMEOUT):
@@ -509,8 +518,11 @@ class QemuAgent(Monitor):
         cmd = "guest-shutdown"
         self.check_has_command(cmd)
         args = None
-        if mode in [self.SHUTDOWN_MODE_POWERDOWN, self.SHUTDOWN_MODE_REBOOT,
-                    self.SHUTDOWN_MODE_HALT]:
+        if mode in [
+            self.SHUTDOWN_MODE_POWERDOWN,
+            self.SHUTDOWN_MODE_REBOOT,
+            self.SHUTDOWN_MODE_HALT,
+        ]:
             args = {"mode": mode}
         try:
             self.cmd(cmd=cmd, args=args)
@@ -539,10 +551,13 @@ class QemuAgent(Monitor):
 
         if crypted:
             openssl_cmd = "openssl passwd -6 %s" % password
-            password = process.run(openssl_cmd).stdout_text.strip('\n')
+            password = process.run(openssl_cmd).stdout_text.strip("\n")
 
-        args = {"crypted": crypted, "username": username,
-                "password": base64.b64encode(password.encode()).decode()}
+        args = {
+            "crypted": crypted,
+            "username": username,
+            "password": base64.b64encode(password.encode()).decode(),
+        }
         return self.cmd(cmd=cmd, args=args)
 
     @error_context.context_aware
@@ -633,13 +648,16 @@ class QemuAgent(Monitor):
                  ``suspend`` is unsupported.
         :raise VAgentSuspendUnknownModeError: Raise if mode is not supported.
         """
-        error_context.context(
-            "Suspend guest '%s' to '%s'" % (self.vm.name, mode))
+        error_context.context("Suspend guest '%s' to '%s'" % (self.vm.name, mode))
 
-        if mode not in [self.SUSPEND_MODE_DISK, self.SUSPEND_MODE_RAM,
-                        self.SUSPEND_MODE_HYBRID]:
-            raise VAgentSuspendUnknownModeError("Not supported suspend"
-                                                " mode '%s'" % mode)
+        if mode not in [
+            self.SUSPEND_MODE_DISK,
+            self.SUSPEND_MODE_RAM,
+            self.SUSPEND_MODE_HYBRID,
+        ]:
+            raise VAgentSuspendUnknownModeError(
+                "Not supported suspend" " mode '%s'" % mode
+            )
 
         cmd = "guest-suspend-%s" % mode
         self.check_has_command(cmd)
@@ -674,8 +692,13 @@ class QemuAgent(Monitor):
             raise VAgentFreezeStatusError(self.vm.name, status, expected)
 
     @error_context.context_aware
-    def fsfreeze(self, check_status=True, timeout=FSFREEZE_TIMEOUT,
-                 fsfreeze_list=False, mountpoints=None):
+    def fsfreeze(
+        self,
+        check_status=True,
+        timeout=FSFREEZE_TIMEOUT,
+        fsfreeze_list=False,
+        mountpoints=None,
+    ):
         """
         Freeze File system on guest, there are two commands,
         "guest-fsfreeze-freeze" and "guest-fsfreeze-freeze-list".
@@ -804,8 +827,9 @@ class QemuAgent(Monitor):
         """
         cmd = "guest-file-write"
         con_encode = base64.b64encode(content.encode()).decode()
-        return self._cmd_args_update(cmd, handle=handle,
-                                     buf_b64=con_encode, count=count)
+        return self._cmd_args_update(
+            cmd, handle=handle, buf_b64=con_encode, count=count
+        )
 
     def guest_file_read(self, handle, count=None):
         """
@@ -841,11 +865,11 @@ class QemuAgent(Monitor):
         :return: a dict with position and eof.
         """
         cmd = "guest-file-seek"
-        return self._cmd_args_update(cmd, handle=handle, offset=offset,
-                                     whence=whence)
+        return self._cmd_args_update(cmd, handle=handle, offset=offset, whence=whence)
 
-    def guest_exec(self, path, arg=None, env=None, input_data=None,
-                   capture_output=None):
+    def guest_exec(
+        self, path, arg=None, env=None, input_data=None, capture_output=None
+    ):
         """
         Execute a command in the guest.
 
@@ -858,9 +882,14 @@ class QemuAgent(Monitor):
         :return: PID on success
         """
         cmd = "guest-exec"
-        return self._cmd_args_update(cmd, path=path, arg=arg, env=env,
-                                     input_data=input_data,
-                                     capture_output=capture_output)
+        return self._cmd_args_update(
+            cmd,
+            path=path,
+            arg=arg,
+            env=env,
+            input_data=input_data,
+            capture_output=capture_output,
+        )
 
     def guest_exec_status(self, pid):
         """
@@ -893,9 +922,8 @@ class QemuAgent(Monitor):
         """
         cmd = "guest-ssh-add-authorized-keys"
         keys = list(keys)
-        reset = kwargs.get('reset')
-        return self._cmd_args_update(cmd, username=username,
-                                     keys=keys, reset=reset)
+        reset = kwargs.get("reset")
+        return self._cmd_args_update(cmd, username=username, keys=keys, reset=reset)
 
     def ssh_remove_authorized_keys(self, username, *keys):
         """

@@ -11,12 +11,9 @@ from six import string_types
 from virttest import utils_misc
 from virttest import vt_console
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
-PACKAGE_MANAGERS = ['apt-get',
-                    'yum',
-                    'zypper',
-                    'dnf']
+PACKAGE_MANAGERS = ["apt-get", "yum", "zypper", "dnf"]
 
 PKG_MGR_TIMEOUT = 300
 
@@ -31,16 +28,17 @@ class RemotePackageMgr(object):
         :param session: session object
         :param pkg: package name or list
         """
-        if not isinstance(session,
-                          (aexpect.ShellSession,
-                           aexpect.Expect,
-                           vt_console.ConsoleSession)):
+        if not isinstance(
+            session, (aexpect.ShellSession, aexpect.Expect, vt_console.ConsoleSession)
+        ):
             raise exceptions.TestError("Parameters exception on session")
         if not isinstance(pkg, list):
             if not isinstance(pkg, string_types):
                 raise exceptions.TestError("pkg %s must be list or str" % pkg)
             else:
-                self.pkg_list = [pkg, ]
+                self.pkg_list = [
+                    pkg,
+                ]
         else:
             self.pkg_list = pkg
         self.package_manager = None
@@ -53,15 +51,14 @@ class RemotePackageMgr(object):
 
         # Inspect and set package manager
         for pkg_mgr in PACKAGE_MANAGERS:
-            cmd = 'which ' + pkg_mgr
+            cmd = "which " + pkg_mgr
             if not self.session.cmd_status(cmd):
                 self.package_manager = pkg_mgr
                 break
 
         if not self.package_manager:
-            raise exceptions.TestError("Package manager not in %s" %
-                                       PACKAGE_MANAGERS)
-        elif self.package_manager == 'apt-get':
+            raise exceptions.TestError("Package manager not in %s" % PACKAGE_MANAGERS)
+        elif self.package_manager == "apt-get":
             self.query_cmd = "dpkg -s "
             self.remove_cmd = "apt-get --purge remove -y "
             self.install_cmd = "apt-get install -y "
@@ -101,16 +98,16 @@ class RemotePackageMgr(object):
         """
         for pkg in self.pkg_list:
             need = False
-            if '*' not in pkg:
+            if "*" not in pkg:
                 if self.is_installed(pkg) == default_status:
                     need = True
             else:
                 need = True
             if need:
                 cmd = self.cmd + pkg
-                status, output = self.session.cmd_status_output(cmd,
-                                                                timeout,
-                                                                internal_timeout)
+                status, output = self.session.cmd_status_output(
+                    cmd, timeout, internal_timeout
+                )
                 if status:
                     LOG.error("'%s' execution failed with %s", cmd, output)
                     # Try to clean the repo db and re-try installation
@@ -158,7 +155,9 @@ class LocalPackageMgr(manager.SoftwareManager):
             if not isinstance(pkg, string_types):
                 raise exceptions.TestError("pkg %s must be list or str" % pkg)
             else:
-                self.pkg_list = [pkg, ]
+                self.pkg_list = [
+                    pkg,
+                ]
         else:
             self.pkg_list = pkg
         super(LocalPackageMgr, self).__init__()
@@ -172,7 +171,7 @@ class LocalPackageMgr(manager.SoftwareManager):
         """
         for pkg in self.pkg_list:
             need = False
-            if '*' not in pkg:
+            if "*" not in pkg:
                 if self.check_installed(pkg) == default_status:
                     need = True
             else:
@@ -189,7 +188,7 @@ class LocalPackageMgr(manager.SoftwareManager):
 
         :return: if install succeed return True, else False
         """
-        self.func = super(LocalPackageMgr, self).__getattr__('install')
+        self.func = super(LocalPackageMgr, self).__getattr__("install")
         return self.operate(False)
 
     def remove(self):
@@ -198,7 +197,7 @@ class LocalPackageMgr(manager.SoftwareManager):
 
         :return: if remove succeed return True, else False
         """
-        self.func = super(LocalPackageMgr, self).__getattr__('remove')
+        self.func = super(LocalPackageMgr, self).__getattr__("remove")
         return self.operate(True)
 
     def upgrade(self):
@@ -207,7 +206,7 @@ class LocalPackageMgr(manager.SoftwareManager):
 
         :return: if upgrade succeed return True, else False
         """
-        self.func = super(LocalPackageMgr, self).__getattr__('upgrade')
+        self.func = super(LocalPackageMgr, self).__getattr__("upgrade")
         return self.operate(True)
 
 

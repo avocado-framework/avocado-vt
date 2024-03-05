@@ -21,40 +21,36 @@ import logging
 
 from avocado.utils import process
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class KernelModuleError(Exception):
-
     def __init__(self, handler, module_name, reason):
         self.handler = handler
         self.module_name = module_name
         self.reason = reason
 
     def __str__(self):
-        return "Couldn't %s module %s: %s" % (self.handler, self.module_name,
-                                              self.reason)
+        return "Couldn't %s module %s: %s" % (
+            self.handler,
+            self.module_name,
+            self.reason,
+        )
 
 
 class KernelModuleUnloadError(KernelModuleError):
-
     def __init__(self, module_name, reason):
-        super(KernelModuleUnloadError, self).__init__("unload", module_name,
-                                                      reason)
+        super(KernelModuleUnloadError, self).__init__("unload", module_name, reason)
 
 
 class KernelModuleReloadError(KernelModuleError):
-
     def __init__(self, module_name, reason):
-        super(KernelModuleReloadError, self).__init__("reload", module_name,
-                                                      reason)
+        super(KernelModuleReloadError, self).__init__("reload", module_name, reason)
 
 
 class KernelModuleRestoreError(KernelModuleError):
-
     def __init__(self, module_name, reason):
-        super(KernelModuleRestoreError, self).__init__("restore", module_name,
-                                                       reason)
+        super(KernelModuleRestoreError, self).__init__("restore", module_name, reason)
 
 
 def reload(module_name, force, params=""):
@@ -82,9 +78,10 @@ class KernelModuleHandler(object):
         """Create kernel module handler"""
 
         self._module_name = module_name
-        self._module_path = os.path.join('/sys/module/',
-                                         self._module_name.replace('-', '_'))
-        self._module_params_path = os.path.join(self._module_path, 'parameters')
+        self._module_path = os.path.join(
+            "/sys/module/", self._module_name.replace("-", "_")
+        )
+        self._module_params_path = os.path.join(self._module_path, "parameters")
         self._module_holders_path = os.path.join(self._module_path, "holders")
         self._module_holders = self.module_holders
         self._was_loaded = None
@@ -100,7 +97,7 @@ class KernelModuleHandler(object):
         if os.path.exists(self._module_path):
             for holder in self._module_holders:
                 holder.unload_module()
-            unload_cmd = 'rmmod ' + self._module_name
+            unload_cmd = "rmmod " + self._module_name
             LOG.debug("Unloading module: %s", unload_cmd)
             status, output = process.getstatusoutput(unload_cmd)
             if status:
@@ -135,24 +132,31 @@ class KernelModuleHandler(object):
         current_config = self.current_config
         if not force:
             do_not_load = False
-            if (current_config and
-                    all(x in current_config.split() for x in params.split())):
-                LOG.debug("Not reloading module. Current module configuration"
-                          " for %s already contains all requested parameters."
-                          " Requested: '%s'. Current: '%s'. Use force=True to"
-                          " force loading.",
-                          self._module_name, params, current_config)
+            if current_config and all(
+                x in current_config.split() for x in params.split()
+            ):
+                LOG.debug(
+                    "Not reloading module. Current module configuration"
+                    " for %s already contains all requested parameters."
+                    " Requested: '%s'. Current: '%s'. Use force=True to"
+                    " force loading.",
+                    self._module_name,
+                    params,
+                    current_config,
+                )
                 do_not_load = True
             elif not self._was_loaded:
-                LOG.debug("Module %s isn't loaded. Use force=True to force"
-                          " loading.", self._module_name)
+                LOG.debug(
+                    "Module %s isn't loaded. Use force=True to force" " loading.",
+                    self._module_name,
+                )
                 do_not_load = True
             if do_not_load:
                 return
 
         # TODO: Handle cases were module cannot be removed
         self.unload_module()
-        reload_cmd = 'modprobe %s %s' % (self._module_name, params)
+        reload_cmd = "modprobe %s %s" % (self._module_name, params)
         LOG.debug("Reloading module: %s", reload_cmd)
         status, output = process.getstatusoutput(reload_cmd.strip())
         if status:
@@ -184,13 +188,14 @@ class KernelModuleHandler(object):
             # TODO: Handle cases were module cannot be removed
             self.unload_module()
             if self._was_loaded:
-                restore_cmd = 'modprobe %s %s' % (self._module_name,
-                                                  self._config_backup)
+                restore_cmd = "modprobe %s %s" % (
+                    self._module_name,
+                    self._config_backup,
+                )
                 LOG.debug("Restoring module state: %s", restore_cmd)
                 status, output = process.getstatusoutput(restore_cmd)
                 if status:
-                    raise KernelModuleRestoreError(self._module_name,
-                                                   output)
+                    raise KernelModuleRestoreError(self._module_name, output)
             for holder in self._module_holders:
                 holder.restore()
 
@@ -205,25 +210,28 @@ class KernelModuleHandler(object):
             self._was_loaded = True
         else:
             self._was_loaded = False
-        LOG.debug("Backed up %s module state (was_loaded, params)"
-                  "=(%s, %s)", self._module_name, self._was_loaded,
-                  self._config_backup)
+        LOG.debug(
+            "Backed up %s module state (was_loaded, params)" "=(%s, %s)",
+            self._module_name,
+            self._was_loaded,
+            self._config_backup,
+        )
 
     @property
     def was_loaded(self):
-        """ Read-only property """
+        """Read-only property"""
 
         return self._was_loaded
 
     @property
     def config_backup(self):
-        """ Read-only property """
+        """Read-only property"""
 
         return self._config_backup
 
     @property
     def current_config(self):
-        """ Read-only property """
+        """Read-only property"""
 
         return self._get_serialized_config()
 
@@ -240,13 +248,12 @@ class KernelModuleHandler(object):
             return
         # Some modules do not have parameters
         elif not os.path.exists(self._module_params_path):
-            return ''
+            return ""
 
         mod_params = {}
         params = os.listdir(self._module_params_path)
         for param in params:
-            with open(os.path.join(self._module_params_path,
-                                   param), 'r') as param_file:
+            with open(os.path.join(self._module_params_path, param), "r") as param_file:
                 mod_params[param] = param_file.read().strip()
         return " ".join("%s=%s" % _ for _ in mod_params.items())
 

@@ -7,7 +7,6 @@ from selftests import BASEDIR
 
 
 class VtInitTest(unittest.TestCase):
-
     @staticmethod
     def _swap():
         data_dir = os.path.join(BASEDIR, "selftests", ".data")
@@ -27,11 +26,11 @@ class VtInitTest(unittest.TestCase):
         When the `avocado.core.settings` is imported the vt plugin is
         initialized.
         """
-        settings = getattr(importlib.import_module('avocado.core.settings'),
-                           'settings')
-        tmp_dir = settings.as_dict().get('vt.common.tmp_dir', "")
-        address_pool_filename = getattr(importlib.import_module(
-            'virttest.utils_net'), 'ADDRESS_POOL_FILENAME')
+        settings = getattr(importlib.import_module("avocado.core.settings"), "settings")
+        tmp_dir = settings.as_dict().get("vt.common.tmp_dir", "")
+        address_pool_filename = getattr(
+            importlib.import_module("virttest.utils_net"), "ADDRESS_POOL_FILENAME"
+        )
         self.assertEqual(tmp_dir, "/tmp")
         self.assertEqual(address_pool_filename, "/tmp/address_pool")
 
@@ -39,5 +38,5 @@ class VtInitTest(unittest.TestCase):
         self._swap()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

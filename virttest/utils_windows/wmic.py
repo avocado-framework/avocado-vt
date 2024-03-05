@@ -61,7 +61,7 @@ def parse_list(data):
         for para in re.split("(?:\r?\n){2,}", data.strip()):
             keys, vals = [], []
             for line in para.splitlines():
-                key, val = line.split('=', 1)
+                key, val = line.split("=", 1)
                 keys.append(key)
                 vals.append(val)
             if len(keys) == 1:

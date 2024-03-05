@@ -12,7 +12,7 @@ from virttest import utils_test
 # so get explicit command 'grep' with path
 grep_binary = path.find_command("grep")
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 @error_context.context_aware
@@ -21,13 +21,15 @@ def get_host_timezone():
     Get host's timezone
     """
     timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
-    timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
+    timezone_pattern = "^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$"
     error_context.context("Get host's timezone", LOG.info)
     host_timezone = process.run(timezone_cmd, timeout=240, shell=True).stdout_text
     try:
         host_timezone_set = re.match(timezone_pattern, host_timezone).groups()
-        return {"timezone_city": host_timezone_set[0],
-                "timezone_code": host_timezone_set[1]}
+        return {
+            "timezone_city": host_timezone_set[0],
+            "timezone_code": host_timezone_set[1],
+        }
     except (AttributeError, IndexError):
         raise exceptions.TestError("Fail to get host's timezone.")
 
@@ -41,11 +43,11 @@ def verify_timezone_linux(session):
     """
     error_context.context("Verify guest's timezone", LOG.info)
     timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
-    timezone_pattern = '(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)'
+    timezone_pattern = "(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)"
     guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
         guest_timezone_set = re.search(timezone_pattern, guest_timezone).groups()
-        return guest_timezone_set[0] == get_host_timezone()['timezone_city']
+        return guest_timezone_set[0] == get_host_timezone()["timezone_city"]
     except (AttributeError, IndexError):
         raise exceptions.TestError("Fail to get guest's timezone.")
 
@@ -62,7 +64,7 @@ def sync_timezone_linux(vm, login_timeout=360):
     error_context.context("Sync guest's timezone", LOG.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
-        host_timezone_city = get_host_timezone()['timezone_city']
+        host_timezone_city = get_host_timezone()["timezone_city"]
         session.cmd(set_timezone_cmd % host_timezone_city)
         if not verify_timezone_linux(session):
             session.close()
@@ -78,6 +80,7 @@ def verify_timezone_win(session):
     :params session: VM session
     :return tuple(verify_status, get_timezone_name)
     """
+
     def get_timezone_list():
         timezone_list_cmd = "tzutil /l"
         timezone_list = session.cmd_output_safe(timezone_list_cmd)
@@ -93,7 +96,7 @@ def verify_timezone_win(session):
             if not code:
                 code = "+0000"
             else:
-                code = re.sub(r'(\d{2}):(\d{2})', r'\1\2', code)
+                code = re.sub(r"(\d{2}):(\d{2})", r"\1\2", code)
             timezone_sets.append((code, name))
         return timezone_sets
 
@@ -110,10 +113,10 @@ def verify_timezone_win(session):
         return None
 
     error_context.context("Verify guest's timezone", LOG.info)
-    timezone_cmd = 'tzutil /g'
-    host_timezone_code = get_host_timezone()['timezone_code']
+    timezone_cmd = "tzutil /g"
+    host_timezone_code = get_host_timezone()["timezone_code"]
     # Workaround to handle two line prompts in serial session
-    timezone_name = session.cmd_output_safe(timezone_cmd).split('\n')[0]
+    timezone_name = session.cmd_output_safe(timezone_cmd).split("\n")[0]
     if get_timezone_code(timezone_name) != host_timezone_code:
         return False, get_timezone_name(host_timezone_code)
     return True, ""
@@ -163,7 +166,7 @@ def execute(cmd, timeout=360, session=None):
         ret = session.cmd_output_safe(cmd, timeout=timeout)
     else:
         ret = process.getoutput(cmd)
-    target = 'guest' if session else 'host'
+    target = "guest" if session else "host"
     LOG.debug("(%s) Execute command('%s')" % (target, cmd))
     return ret
 
@@ -201,13 +204,13 @@ def update_clksrc(vm, clksrc=None):
     :params clksrc: Expected clocksource
     """
     params = vm.get_params()
-    if 'fedora' in params["os_variant"] and clksrc and clksrc != 'kvm-clock':
+    if "fedora" in params["os_variant"] and clksrc and clksrc != "kvm-clock":
         cpu_model_flags = params.get["cpu_model_flags"]
         params["cpu_model_flags"] = cpu_model_flags + ",-kvmclock"
 
-    error_context.context("Update guest kernel cli to '%s'" %
-                          (clksrc or "kvm-clock"),
-                          LOG.info)
+    error_context.context(
+        "Update guest kernel cli to '%s'" % (clksrc or "kvm-clock"), LOG.info
+    )
     if clksrc:
         boot_option_added = "clocksource=%s" % clksrc
         utils_test.update_boot_option(vm, args_added=boot_option_added)
@@ -218,7 +221,7 @@ def is_ntp_enabled(session):
     Get current NTP state for guest/host
     """
     cmd = 'timedatectl | %s "NTP enabled"' % grep_binary
-    return 'yes' in execute(cmd, session=session).split(":")[1].strip()
+    return "yes" in execute(cmd, session=session).split(":")[1].strip()
 
 
 def ntp_switch(session, off=True):

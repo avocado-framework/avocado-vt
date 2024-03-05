@@ -23,15 +23,19 @@ except path.CmdNotFoundError:
     except path.CmdNotFoundError:
         LIBVIRTD = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_libvirtd_split_enable_bit():
-    base_cfg_path = os.path.join(data_dir.get_shared_dir(), 'cfg', 'base.cfg')
+    base_cfg_path = os.path.join(data_dir.get_shared_dir(), "cfg", "base.cfg")
     if os.path.isfile(base_cfg_path):
-        with open(base_cfg_path, 'r') as base_file:
+        with open(base_cfg_path, "r") as base_file:
             for line in base_file:
-                if 'enable_split_libvirtd_feature' in line and 'yes' in line and '#' not in line:
+                if (
+                    "enable_split_libvirtd_feature" in line
+                    and "yes" in line
+                    and "#" not in line
+                ):
                     return True
     else:
         LOG.info("CAN NOT find base.cfg file")
@@ -68,14 +72,18 @@ def get_libvirt_version_compare(major, minor, update, session=None):
     libvirt_ver_cmd = "%s -V" % LIBVIRTD
     LOG.warn(libvirt_ver_cmd)
     try:
-        regex = r'%s\s*.*[Ll]ibvirt.*\s*' % LIBVIRTD
-        regex += r'(\d+)\.(\d+)\.(\d+)'
+        regex = r"%s\s*.*[Ll]ibvirt.*\s*" % LIBVIRTD
+        regex += r"(\d+)\.(\d+)\.(\d+)"
         lines = astring.to_text(func(libvirt_ver_cmd)).splitlines()
         LOG.warn("libvirt version value by libvirtd or virtqemud command: %s" % lines)
         for line in lines:
             match = re.search(regex, line.strip())
             if match:
-                LIBVIRT_LIB_VERSION = int(match.group(1)) * 1000000 + int(match.group(2)) * 1000 + int(match.group(3))
+                LIBVIRT_LIB_VERSION = (
+                    int(match.group(1)) * 1000000
+                    + int(match.group(2)) * 1000
+                    + int(match.group(3))
+                )
                 break
     except (ValueError, TypeError, AttributeError):
         LOG.warn("Error determining libvirt version")
@@ -106,6 +114,7 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
 
     :param fn: function name.
     """
+
     def new_fn(*args, **kwargs):
         """
         Keep previous function as working before if libvirt version< 5.6.0, else do nothing
@@ -115,11 +124,18 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
         """
         check_libvirt_version()
         if not IS_LIBVIRTD_SPLIT_VERSION or not LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn("legacy start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warn(
+                "legacy start libvirtd daemon NORMALLY with function name: %s"
+                % fn.__name__
+            )
             return fn(*args, **kwargs)
         else:
-            LOG.warn("legacy start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warn(
+                "legacy start libvirtd daemon IGNORED with function name: %s"
+                % fn.__name__
+            )
             return None
+
     return new_fn
 
 
@@ -129,6 +145,7 @@ def libvirt_version_context_aware_libvirtd_split(fn):
 
     :param fn: function name.
     """
+
     def new_fn(*args, **kwargs):
         """
         Keep previous function as working before if libvirt version>= 5.6.0, else do nothing
@@ -138,9 +155,16 @@ def libvirt_version_context_aware_libvirtd_split(fn):
         """
         check_libvirt_version()
         if IS_LIBVIRTD_SPLIT_VERSION and LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn("Split start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warn(
+                "Split start libvirtd daemon NORMALLY with function name: %s"
+                % fn.__name__
+            )
             return fn(*args, **kwargs)
         else:
-            LOG.warn("Split start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warn(
+                "Split start libvirtd daemon IGNORED with function name: %s"
+                % fn.__name__
+            )
             return None
+
     return new_fn

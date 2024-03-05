@@ -18,11 +18,10 @@ from virttest.utils_net import ping
 _api = None
 _connected = False
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class WaitStateTimeoutError(Exception):
-
     def __init__(self, msg, output):
         Exception.__init__(self, msg, output)
         self.msg = msg
@@ -30,7 +29,6 @@ class WaitStateTimeoutError(Exception):
 
 
 class WaitVMStateTimeoutError(WaitStateTimeoutError):
-
     def __str__(self):
         str = "Timeout expired when waiting for VM to %s,"
         str += " actual state is: %s"
@@ -38,7 +36,6 @@ class WaitVMStateTimeoutError(WaitStateTimeoutError):
 
 
 class WaitHostStateTimeoutError(WaitStateTimeoutError):
-
     def __str__(self):
         str = "Timeout expired when waiting for Host to %s,"
         str += " actual state is: %s"
@@ -49,12 +46,12 @@ def connect(params):
     """
     Connect ovirt manager API.
     """
-    url = params.get('ovirt_engine_url')
-    username = params.get('ovirt_engine_user')
-    password = params.get('ovirt_engine_password')
+    url = params.get("ovirt_engine_url")
+    username = params.get("ovirt_engine_user")
+    password = params.get("ovirt_engine_password")
 
     if not all([url, username, password]):
-        LOG.error('ovirt_engine[url|user|password] are necessary!!')
+        LOG.error("ovirt_engine[url|user|password] are necessary!!")
 
     global connection, _connected, version
 
@@ -63,10 +60,7 @@ def connect(params):
         # otherwise, directly return existing API connection.
         if not _connected:
             connection = sdk.Connection(
-                url=url,
-                username=username,
-                password=password,
-                insecure=True
+                url=url, username=username, password=password, insecure=True
             )
             version = connection.system_service().get().product_info.version
             _connected = True
@@ -74,9 +68,9 @@ def connect(params):
         else:
             return connection, version
     except Exception as e:
-        LOG.error('Failed to connect: %s\n' % str(e))
+        LOG.error("Failed to connect: %s\n" % str(e))
     else:
-        LOG.info('Succeed to connect oVirt/Rhevm manager\n')
+        LOG.info("Succeed to connect oVirt/Rhevm manager\n")
 
 
 def disconnect():
@@ -95,8 +89,7 @@ class VMManager(virt_vm.BaseVM):
     This class handles all basic VM operations for oVirt.
     """
 
-    def __init__(self, name, params, root_dir=None, address_cache=None,
-                 state=None):
+    def __init__(self, name, params, root_dir=None, address_cache=None, state=None):
         """
         Initialize the object and set a few attributes.
 
@@ -140,7 +133,7 @@ class VMManager(virt_vm.BaseVM):
 
     def update_instance(self):
         vms_service = self.connection.system_service().vms_service()
-        vms = vms_service.list(search='name=%s' % self.name)
+        vms = vms_service.list(search="name=%s" % self.name)
         if vms:
             vm = vms[0]
             self.instance = vms_service.vm_service(vm.id)
@@ -158,7 +151,7 @@ class VMManager(virt_vm.BaseVM):
                 vm_list.append(vms[i].name)
             return vm_list
         except Exception as e:
-            LOG.error('Failed to get vms:\n%s' % str(e))
+            LOG.error("Failed to get vms:\n%s" % str(e))
 
     def state(self):
         """
@@ -168,21 +161,21 @@ class VMManager(virt_vm.BaseVM):
             self.update_instance()
             return self.instance.get().status
         except Exception as e:
-            LOG.error('Failed to get %s status:\n%s' % (self.name, str(e)))
+            LOG.error("Failed to get %s status:\n%s" % (self.name, str(e)))
 
-    def get_mac_address(self, net_name='*'):
+    def get_mac_address(self, net_name="*"):
         """
         Return MAC address of a VM.
         """
         if not self.instance:
             self.update_instance()
         vnet_list = self.instance.nics_service().list()
-        if net_name != '*':
+        if net_name != "*":
             vnet_list = [vnet for vnet in vnet_list if vnet.name == net_name]
         try:
             return [vnet.mac.address for vnet in vnet_list if vnet.mac.address]
         except Exception as e:
-            LOG.error('Failed to get %s status:\n%s' % (self.name, str(e)))
+            LOG.error("Failed to get %s status:\n%s" % (self.name, str(e)))
 
     def lookup_by_storagedomains(self, storage_name):
         """
@@ -191,19 +184,24 @@ class VMManager(virt_vm.BaseVM):
         try:
             sds_service = self.connection.system_service().storage_domains_service()
             export_sd = sds_service.list(search=storage_name)[0]
-            export_vms_service = sds_service.storage_domain_service(export_sd.id).vms_service()
-            target_vm = [vm for vm in export_vms_service.list() if vm.name == self.name][0]
+            export_vms_service = sds_service.storage_domain_service(
+                export_sd.id
+            ).vms_service()
+            target_vm = [
+                vm for vm in export_vms_service.list() if vm.name == self.name
+            ][0]
             return target_vm
         except Exception as e:
-            LOG.error('Failed to get %s from %s:\n%s' % (self.name,
-                                                         storage_name, str(e)))
+            LOG.error(
+                "Failed to get %s from %s:\n%s" % (self.name, storage_name, str(e))
+            )
 
     def is_dead(self):
         """
         Judge if a VM is dead.
         """
         if self.state() == types.VmStatus.DOWN:
-            LOG.info('VM %s status is <Down>' % self.name)
+            LOG.info("VM %s status is <Down>" % self.name)
             return True
         else:
             return False
@@ -221,7 +219,7 @@ class VMManager(virt_vm.BaseVM):
         if self.state() == types.VmStatus.SUSPENDED:
             return True
         else:
-            LOG.debug('VM %s status is %s ' % (self.name, self.state()))
+            LOG.debug("VM %s status is %s " % (self.name, self.state()))
             return False
 
     def start(self, wait_for_up=True, timeout=300):
@@ -230,7 +228,7 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         if self.is_dead():
-            LOG.info('Starting VM %s' % self.name)
+            LOG.info("Starting VM %s" % self.name)
             self.instance.start()
             vm_powering_up = False
             vm_up = False
@@ -238,7 +236,7 @@ class VMManager(virt_vm.BaseVM):
                 if self.state() == types.VmStatus.POWERING_UP:
                     vm_powering_up = True
                     if wait_for_up:
-                        LOG.info('Waiting for VM to reach <Up> status')
+                        LOG.info("Waiting for VM to reach <Up> status")
                         if self.state() == types.VmStatus.UP:
                             vm_up = True
                             break
@@ -251,7 +249,7 @@ class VMManager(virt_vm.BaseVM):
             if not vm_powering_up and not vm_up:
                 raise WaitVMStateTimeoutError("START", self.state())
         else:
-            LOG.debug('VM is alive')
+            LOG.debug("VM is alive")
 
     def suspend(self, timeout):
         """
@@ -261,17 +259,18 @@ class VMManager(virt_vm.BaseVM):
         vm_suspend = False
         while time.time() < end_time:
             try:
-                LOG.info('Suspend VM %s' % self.name)
+                LOG.info("Suspend VM %s" % self.name)
                 self.instance.suspend()
-                LOG.info('Waiting for VM to reach <Suspended> status')
+                LOG.info("Waiting for VM to reach <Suspended> status")
                 if self.is_paused():
                     vm_suspend = True
                     break
             except Exception as e:
-                if e.reason == 'Bad Request' \
-                        and 'asynchronous running tasks' in e.detail:
-                    LOG.warning("VM has asynchronous running tasks, "
-                                "trying again")
+                if (
+                    e.reason == "Bad Request"
+                    and "asynchronous running tasks" in e.detail
+                ):
+                    LOG.warning("VM has asynchronous running tasks, " "trying again")
                     time.sleep(1)
                 else:
                     raise e
@@ -285,10 +284,10 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         try:
-            if self.state() != 'up':
-                LOG.info('Resume VM %s' % self.name)
+            if self.state() != "up":
+                LOG.info("Resume VM %s" % self.name)
                 self.instance.start()
-                LOG.info('Waiting for VM to <UP> status')
+                LOG.info("Waiting for VM to <UP> status")
                 vm_resume = False
                 while time.time() < end_time:
                     if self.state() == types.VmStatus.UP:
@@ -298,9 +297,9 @@ class VMManager(virt_vm.BaseVM):
                 if not vm_resume:
                     raise WaitVMStateTimeoutError("RESUME", self.state())
             else:
-                LOG.debug('VM already up')
+                LOG.debug("VM already up")
         except Exception as e:
-            LOG.error('Failed to resume VM:\n%s' % str(e))
+            LOG.error("Failed to resume VM:\n%s" % str(e))
 
     def shutdown(self, gracefully=True, timeout=300):
         """
@@ -308,12 +307,12 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         if self.is_alive():
-            LOG.info('Shutdown VM %s' % self.name)
+            LOG.info("Shutdown VM %s" % self.name)
             if gracefully:
                 self.instance.shutdown()
             else:
                 self.instance.stop()
-            LOG.info('Waiting for VM to reach <Down> status')
+            LOG.info("Waiting for VM to reach <Down> status")
             vm_down = False
             while time.time() < end_time:
                 if self.is_dead():
@@ -323,7 +322,7 @@ class VMManager(virt_vm.BaseVM):
             if not vm_down:
                 raise WaitVMStateTimeoutError("DOWN", self.state())
         else:
-            LOG.debug('VM already down')
+            LOG.debug("VM already down")
 
     def delete(self, timeout=300):
         """
@@ -331,9 +330,9 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         if self.name in self.list():
-            LOG.info('Delete VM %s' % self.name)
+            LOG.info("Delete VM %s" % self.name)
             self.instance.remove()
-            LOG.info('Waiting for VM to be <Deleted>')
+            LOG.info("Waiting for VM to be <Deleted>")
             vm_delete = False
             while time.time() < end_time:
                 if self.name not in self.list():
@@ -342,9 +341,9 @@ class VMManager(virt_vm.BaseVM):
                 time.sleep(1)
             if not vm_delete:
                 raise WaitVMStateTimeoutError("DELETE", self.state())
-            LOG.info('VM was removed successfully')
+            LOG.info("VM was removed successfully")
         else:
-            LOG.debug('VM not exist')
+            LOG.debug("VM not exist")
 
     def destroy(self, gracefully=False):
         """
@@ -364,14 +363,17 @@ class VMManager(virt_vm.BaseVM):
         try:
             sds_service = self.connection.system_service().storage_domains_service()
             export_sd = sds_service.list(search=export_name)[0]
-            LOG.info('Remove VM %s from export storage' % self.name)
-            export_vms_service = sds_service.storage_domain_service(export_sd.id).vms_service()
+            LOG.info("Remove VM %s from export storage" % self.name)
+            export_vms_service = sds_service.storage_domain_service(
+                export_sd.id
+            ).vms_service()
             export_vms_service.vm_service(vm.id).remove()
         except Exception as e:
-            LOG.error('Failed to remove VM:\n%s' % str(e))
+            LOG.error("Failed to remove VM:\n%s" % str(e))
 
-    def import_from_export_domain(self, export_name, storage_name,
-                                  cluster_name, timeout=300):
+    def import_from_export_domain(
+        self, export_name, storage_name, cluster_name, timeout=300
+    ):
         """
         Import a VM from export domain to data domain.
 
@@ -388,15 +390,17 @@ class VMManager(virt_vm.BaseVM):
         storage_domains = sds_service.list(search=storage_name)[0]
         clusters_service = self.connection.system_service().clusters_service()
         cluster = clusters_service.list(search=cluster_name)[0]
-        LOG.info('Import VM %s' % self.name)
-        export_vms_service = sds_service.storage_domain_service(export_sd.id).vms_service()
+        LOG.info("Import VM %s" % self.name)
+        export_vms_service = sds_service.storage_domain_service(
+            export_sd.id
+        ).vms_service()
         export_vms_service.vm_service(vm.id).import_(
             storage_domain=types.StorageDomain(id=storage_domains.id),
             cluster=types.Cluster(id=cluster.id),
             vm=types.Vm(id=vm.id),
-            exclusive=False
+            exclusive=False,
         )
-        LOG.info('Waiting for VM to reach <Down> status')
+        LOG.info("Waiting for VM to reach <Down> status")
         vm_down = False
         while time.time() < end_time:
             if self.name in self.list():
@@ -406,8 +410,11 @@ class VMManager(virt_vm.BaseVM):
             time.sleep(1)
         if not vm_down:
             raise WaitVMStateTimeoutError("DOWN", self.state())
-        LOG.info('Import %s successfully(time lapse %ds)',
-                 self.name, time.time() - begin_time)
+        LOG.info(
+            "Import %s successfully(time lapse %ds)",
+            self.name,
+            time.time() - begin_time,
+        )
 
     def export_from_export_domain(self, export_name, timeout=300):
         """
@@ -417,9 +424,9 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         storage_domains = self.connection.storagedomains.get(export_name)
-        LOG.info('Export VM %s' % self.name)
+        LOG.info("Export VM %s" % self.name)
         self.instance.export(types.Action(storage_domain=storage_domains))
-        LOG.info('Waiting for VM to reach <Down> status')
+        LOG.info("Waiting for VM to reach <Down> status")
         vm_down = False
         while time.time() < end_time:
             if self.is_dead():
@@ -428,9 +435,9 @@ class VMManager(virt_vm.BaseVM):
             time.sleep(1)
         if not vm_down:
             raise WaitVMStateTimeoutError("DOWN", self.state())
-        LOG.info('Export %s successfully', self.name)
+        LOG.info("Export %s successfully", self.name)
 
-    def snapshot(self, snapshot_name='my_snapshot', timeout=300):
+    def snapshot(self, snapshot_name="my_snapshot", timeout=300):
         """
         Create a snapshot to VM.
 
@@ -438,23 +445,21 @@ class VMManager(virt_vm.BaseVM):
         :param timeout: Time out
         """
         end_time = time.time() + timeout
-        snap_params = types.Snapshot(description=snapshot_name,
-                                     vm=self.instance)
-        LOG.info('Creating a snapshot %s for VM %s'
-                 % (snapshot_name, self.name))
+        snap_params = types.Snapshot(description=snapshot_name, vm=self.instance)
+        LOG.info("Creating a snapshot %s for VM %s" % (snapshot_name, self.name))
         self.instance.snapshots.add(snap_params)
-        LOG.info('Waiting for snapshot creation to finish')
+        LOG.info("Waiting for snapshot creation to finish")
         vm_snapsnop = False
         while time.time() < end_time:
-            if self.state() != 'image_locked':
+            if self.state() != "image_locked":
                 vm_snapsnop = True
                 break
             time.sleep(1)
         if not vm_snapsnop:
             raise WaitVMStateTimeoutError("SNAPSHOT", self.state())
-        LOG.info('Snapshot was created successfully')
+        LOG.info("Snapshot was created successfully")
 
-    def create_template(self, cluster_name, template_name='my_template', timeout=300):
+    def create_template(self, cluster_name, template_name="my_template", timeout=300):
         """
         Create a template from VM.
 
@@ -465,14 +470,13 @@ class VMManager(virt_vm.BaseVM):
         end_time = time.time() + timeout
         cluster = self.connection.clusters.get(cluster_name)
 
-        tmpl_params = types.Template(name=template_name,
-                                     vm=self.instance,
-                                     cluster=cluster)
+        tmpl_params = types.Template(
+            name=template_name, vm=self.instance, cluster=cluster
+        )
         try:
-            LOG.info('Creating a template %s from VM %s'
-                     % (template_name, self.name))
+            LOG.info("Creating a template %s from VM %s" % (template_name, self.name))
             self.connection.templates.add(tmpl_params)
-            LOG.info('Waiting for VM to reach <Down> status')
+            LOG.info("Waiting for VM to reach <Down> status")
             vm_down = False
             while time.time() < end_time:
                 if self.is_dead():
@@ -482,12 +486,22 @@ class VMManager(virt_vm.BaseVM):
             if not vm_down:
                 raise WaitVMStateTimeoutError("DOWN", self.state())
         except Exception as e:
-            LOG.error('Failed to create a template from VM:\n%s' % str(e))
+            LOG.error("Failed to create a template from VM:\n%s" % str(e))
 
-    def add(self, memory, disk_size, cluster_name, storage_name,
-            nic_name='eth0', network_interface='virtio',
-            network_name='ovirtmgmt', disk_interface='virtio',
-            disk_format='raw', template_name='Blank', timeout=300):
+    def add(
+        self,
+        memory,
+        disk_size,
+        cluster_name,
+        storage_name,
+        nic_name="eth0",
+        network_interface="virtio",
+        network_name="ovirtmgmt",
+        disk_interface="virtio",
+        disk_format="raw",
+        template_name="Blank",
+        timeout=300,
+    ):
         """
         Create VM with one NIC and one Disk.
 
@@ -505,38 +519,45 @@ class VMManager(virt_vm.BaseVM):
         """
         end_time = time.time() + timeout
         # network name is ovirtmgmt for ovirt, rhevm for rhel.
-        vm_params = types.VM(name=self.name, memory=memory,
-                             cluster=self.connection.clusters.get(cluster_name),
-                             template=self.connection.templates.get(template_name))
+        vm_params = types.VM(
+            name=self.name,
+            memory=memory,
+            cluster=self.connection.clusters.get(cluster_name),
+            template=self.connection.templates.get(template_name),
+        )
 
         storage = self.connection.storagedomains.get(storage_name)
 
         storage_params = types.StorageDomains(storage_domain=[storage])
 
-        nic_params = types.NIC(name=nic_name,
-                               network=types.Network(name=network_name),
-                               interface=network_interface)
+        nic_params = types.NIC(
+            name=nic_name,
+            network=types.Network(name=network_name),
+            interface=network_interface,
+        )
 
-        disk_params = types.Disk(storage_domains=storage_params,
-                                 size=disk_size,
-                                 type_='system',
-                                 status=None,
-                                 interface=disk_interface,
-                                 format=disk_format,
-                                 sparse=True,
-                                 bootable=True)
+        disk_params = types.Disk(
+            storage_domains=storage_params,
+            size=disk_size,
+            type_="system",
+            status=None,
+            interface=disk_interface,
+            format=disk_format,
+            sparse=True,
+            bootable=True,
+        )
 
         try:
-            LOG.info('Creating a VM %s' % self.name)
+            LOG.info("Creating a VM %s" % self.name)
             self.connection.vms.add(vm_params)
 
-            LOG.info('NIC is added to VM %s' % self.name)
+            LOG.info("NIC is added to VM %s" % self.name)
             self.instance.nics.add(nic_params)
 
-            LOG.info('Disk is added to VM %s' % self.name)
+            LOG.info("Disk is added to VM %s" % self.name)
             self.instance.disks.add(disk_params)
 
-            LOG.info('Waiting for VM to reach <Down> status')
+            LOG.info("Waiting for VM to reach <Down> status")
             vm_down = False
             while time.time() < end_time:
                 if self.is_dead():
@@ -546,10 +567,11 @@ class VMManager(virt_vm.BaseVM):
             if not vm_down:
                 raise WaitVMStateTimeoutError("DOWN", self.state())
         except Exception as e:
-            LOG.error('Failed to create VM with disk and NIC\n%s' % str(e))
+            LOG.error("Failed to create VM with disk and NIC\n%s" % str(e))
 
-    def add_vm_from_template(self, cluster_name, template_name='Blank',
-                             new_name='my_new_vm', timeout=300):
+    def add_vm_from_template(
+        self, cluster_name, template_name="Blank", new_name="my_new_vm", timeout=300
+    ):
         """
         Create a VM from template.
 
@@ -559,14 +581,15 @@ class VMManager(virt_vm.BaseVM):
         :param timeout: Time out
         """
         end_time = time.time() + timeout
-        vm_params = types.VM(name=new_name,
-                             cluster=self.connection.clusters.get(cluster_name),
-                             template=self.connection.templates.get(template_name))
+        vm_params = types.VM(
+            name=new_name,
+            cluster=self.connection.clusters.get(cluster_name),
+            template=self.connection.templates.get(template_name),
+        )
         try:
-            LOG.info('Creating a VM %s from template %s'
-                     % (new_name, template_name))
+            LOG.info("Creating a VM %s from template %s" % (new_name, template_name))
             self.connection.vms.add(vm_params)
-            LOG.info('Waiting for VM to reach <Down> status')
+            LOG.info("Waiting for VM to reach <Down> status")
             vm_down = False
             while time.time() < end_time:
                 if self.is_dead():
@@ -575,9 +598,9 @@ class VMManager(virt_vm.BaseVM):
                 time.sleep(1)
             if not vm_down:
                 raise WaitVMStateTimeoutError("DOWN", self.state())
-            LOG.info('VM was created from template successfully')
+            LOG.info("VM was created from template successfully")
         except Exception as e:
-            LOG.error('Failed to create VM from template:\n%s' % str(e))
+            LOG.error("Failed to create VM from template:\n%s" % str(e))
 
     def get_address(self, index=0, *args):
         """
@@ -588,12 +611,13 @@ class VMManager(virt_vm.BaseVM):
         :raise VMIPAddressMissingError: If no IP address is found for the the
                 NIC's MAC address
         """
+
         def is_ip_reachable(ipaddr):
             res, _ = ping(ipaddr, timeout=5)
             return res == 0
 
         nic = self.virtnet[index]
-        if nic.nettype == 'bridge':
+        if nic.nettype == "bridge":
             mac = self.get_mac_address()
             for mac_i in mac:
                 ip = self.address_cache.get(mac_i)
@@ -618,7 +642,7 @@ class DataCenterManager(object):
         self.dcs_service = self.connection.system_service().data_centers_service()
 
         if self.name:
-            dc_search_result = self.dcs_service.list(search='name=%s' % self.name)
+            dc_search_result = self.dcs_service.list(search="name=%s" % self.name)
             if dc_search_result:
                 self.instance = dc_search_result[0]
 
@@ -628,13 +652,13 @@ class DataCenterManager(object):
         """
         dc_list = []
         try:
-            LOG.info('List Data centers')
-            dcs = self.dcs_service.list(search='name=%s' % self.name)
+            LOG.info("List Data centers")
+            dcs = self.dcs_service.list(search="name=%s" % self.name)
             for i in range(len(dcs)):
                 dc_list.append(dcs[i].name)
             return dc_list
         except Exception as e:
-            LOG.error('Failed to get data centers:\n%s' % str(e))
+            LOG.error("Failed to get data centers:\n%s" % str(e))
 
     def add(self, storage_type):
         """
@@ -643,12 +667,15 @@ class DataCenterManager(object):
         if not self.name:
             self.name = "my_datacenter"
         try:
-            LOG.info('Creating a %s type datacenter %s'
-                     % (storage_type, self.name))
-            if self.dcs_service.add(types.DataCenter(name=self.name, storage_type=storage_type, version=self.version)):
-                LOG.info('Data center was created successfully')
+            LOG.info("Creating a %s type datacenter %s" % (storage_type, self.name))
+            if self.dcs_service.add(
+                types.DataCenter(
+                    name=self.name, storage_type=storage_type, version=self.version
+                )
+            ):
+                LOG.info("Data center was created successfully")
         except Exception as e:
-            LOG.error('Failed to create data center:\n%s' % str(e))
+            LOG.error("Failed to create data center:\n%s" % str(e))
 
 
 class ClusterManager(object):
@@ -664,7 +691,7 @@ class ClusterManager(object):
         self.clusters_service = self.connection.system_service().clusters_service()
 
         if self.name:
-            self.instance = self.clusters_service.list(search='name=%s' % self.name)
+            self.instance = self.clusters_service.list(search="name=%s" % self.name)
 
     def list(self):
         """
@@ -672,32 +699,39 @@ class ClusterManager(object):
         """
         cluster_list = []
         try:
-            LOG.info('List clusters')
+            LOG.info("List clusters")
             clusters = self.clusters_service.list()
             for i in range(len(clusters)):
                 cluster_list.append(clusters[i].name)
             return cluster_list
         except Exception as e:
-            LOG.error('Failed to get clusters:\n%s' % str(e))
+            LOG.error("Failed to get clusters:\n%s" % str(e))
 
-    def add(self, dc_name, cpu_type='Intel Nehalem Family'):
+    def add(self, dc_name, cpu_type="Intel Nehalem Family"):
         """
         Add a new cluster into data center.
         """
         if not self.name:
             self.name = "my_cluster"
 
-        dc = self.connection.system_service().data_centers_service().list(search='name=%s' % dc_name)[0]
+        dc = (
+            self.connection.system_service()
+            .data_centers_service()
+            .list(search="name=%s" % dc_name)[0]
+        )
         try:
-            LOG.info('Creating a cluster %s in datacenter %s'
-                     % (self.name, dc_name))
-            if self.clusters_service.add(types.Cluster(name=self.name,
-                                                       cpu=types.CPU(id=cpu_type),
-                                                       data_center=dc,
-                                                       version=self.version)):
-                LOG.info('Cluster was created successfully')
+            LOG.info("Creating a cluster %s in datacenter %s" % (self.name, dc_name))
+            if self.clusters_service.add(
+                types.Cluster(
+                    name=self.name,
+                    cpu=types.CPU(id=cpu_type),
+                    data_center=dc,
+                    version=self.version,
+                )
+            ):
+                LOG.info("Cluster was created successfully")
         except Exception as e:
-            LOG.error('Failed to create cluster:\n%s' % str(e))
+            LOG.error("Failed to create cluster:\n%s" % str(e))
 
 
 class HostManager(object):
@@ -713,7 +747,7 @@ class HostManager(object):
         self.hosts_service = self.connection.system_service().hosts_service()
 
         if self.name:
-            self.instance = self.hosts_service.list(search='name=%s' % self.name)
+            self.instance = self.hosts_service.list(search="name=%s" % self.name)
 
     def list(self):
         """
@@ -721,13 +755,13 @@ class HostManager(object):
         """
         host_list = []
         try:
-            LOG.info('List hosts')
+            LOG.info("List hosts")
             hosts = self.hosts_service.list()
             for i in range(len(hosts)):
                 host_list.append(hosts[i].name)
             return host_list
         except Exception as e:
-            LOG.error('Failed to get hosts:\n%s' % str(e))
+            LOG.error("Failed to get hosts:\n%s" % str(e))
 
     def state(self):
         """
@@ -736,7 +770,7 @@ class HostManager(object):
         try:
             return self.instance.status.state
         except Exception as e:
-            LOG.error('Failed to get %s status:\n%s' % (self.name, str(e)))
+            LOG.error("Failed to get %s status:\n%s" % (self.name, str(e)))
 
     def add(self, host_address, host_password, cluster_name, timeout=300):
         """
@@ -744,17 +778,23 @@ class HostManager(object):
         """
         end_time = time.time() + timeout
         if not self.name:
-            self.name = 'my_host'
+            self.name = "my_host"
 
-        clusters = self.connection.system_service().clusters_service().list(
-            search='name=%s' % cluster_name)[0]
-        host_params = types.Host(name=self.name, address=host_address,
-                                 cluster=clusters, root_password=host_password)
+        clusters = (
+            self.connection.system_service()
+            .clusters_service()
+            .list(search="name=%s" % cluster_name)[0]
+        )
+        host_params = types.Host(
+            name=self.name,
+            address=host_address,
+            cluster=clusters,
+            root_password=host_password,
+        )
         try:
-            LOG.info('Registing a host %s into cluster %s'
-                     % (self.name, cluster_name))
+            LOG.info("Registing a host %s into cluster %s" % (self.name, cluster_name))
             if self.hosts_service.add(host_params):
-                LOG.info('Waiting for host to reach the <Up> status ...')
+                LOG.info("Waiting for host to reach the <Up> status ...")
                 host_up = False
                 while time.time() < end_time:
                     if self.state() == types.VmStatus.UP:
@@ -763,20 +803,19 @@ class HostManager(object):
                     time.sleep(1)
                 if not host_up:
                     raise WaitHostStateTimeoutError("UP", self.state())
-                LOG.info('Host was installed successfully')
+                LOG.info("Host was installed successfully")
         except Exception as e:
-            LOG.error('Failed to install host:\n%s' % str(e))
+            LOG.error("Failed to install host:\n%s" % str(e))
 
     def get_address(self):
         """
         Return host IP address.
         """
         try:
-            LOG.info('Get host %s IP' % self.name)
+            LOG.info("Get host %s IP" % self.name)
             return self.instance.get_address()
         except Exception as e:
-            LOG.error('Failed to get host %s IP address:\n%s' %
-                      (self.name, str(e)))
+            LOG.error("Failed to get host %s IP address:\n%s" % (self.name, str(e)))
 
 
 class StorageDomainManager(object):
@@ -792,7 +831,7 @@ class StorageDomainManager(object):
         self.sds_service = self.connection.system_service().storage_domains_service()
 
         if self.name:
-            self.instance = self.sds_service.list(search='name=%s' % self.name)
+            self.instance = self.sds_service.list(search="name=%s" % self.name)
 
     def list(self):
         """
@@ -800,19 +839,24 @@ class StorageDomainManager(object):
         """
         storage_list = []
         try:
-            LOG.info('List storage domains')
+            LOG.info("List storage domains")
             storages = self.sds_service.list()
             for i in range(len(storages)):
                 storage_list.append(storages[i].name)
             return storage_list
         except Exception as e:
-            LOG.error('Failed to get storage domains:\n%s' % str(e))
+            LOG.error("Failed to get storage domains:\n%s" % str(e))
 
-    def attach_iso_export_domain_into_datacenter(self, address, path,
-                                                 dc_name, host_name,
-                                                 domain_type,
-                                                 storage_type='nfs',
-                                                 name='my_iso'):
+    def attach_iso_export_domain_into_datacenter(
+        self,
+        address,
+        path,
+        dc_name,
+        host_name,
+        domain_type,
+        storage_type="nfs",
+        name="my_iso",
+    ):
         """
         Attach ISO/export domain into data center.
 
@@ -826,30 +870,29 @@ class StorageDomainManager(object):
         """
         dc = self.api.datacenters.get(dc_name)
         host = self.api.hosts.get(host_name)
-        storage_params = types.Storage(type_=storage_type,
-                                       address=address,
-                                       path=path)
+        storage_params = types.Storage(type_=storage_type, address=address, path=path)
 
-        storage_domain__params = types.StorageDomain(name=name,
-                                                     data_center=dc,
-                                                     type_=domain_type,
-                                                     host=host,
-                                                     storage=storage_params)
+        storage_domain__params = types.StorageDomain(
+            name=name,
+            data_center=dc,
+            type_=domain_type,
+            host=host,
+            storage=storage_params,
+        )
 
         try:
-            LOG.info('Create/import ISO storage domain %s' % name)
+            LOG.info("Create/import ISO storage domain %s" % name)
             if self.api.storagedomains.add(storage_domain__params):
-                LOG.info('%s domain was created/imported successfully'
-                         % domain_type)
+                LOG.info("%s domain was created/imported successfully" % domain_type)
 
-            LOG.info('Attach ISO storage domain %s' % name)
+            LOG.info("Attach ISO storage domain %s" % name)
             if self.api.datacenters.get(dc_name).storagedomains.add(
-                    self.api.storagedomains.get(name)):
-                LOG.info('%s domain was attached successfully' % domain_type)
+                self.api.storagedomains.get(name)
+            ):
+                LOG.info("%s domain was attached successfully" % domain_type)
 
-            LOG.info('Activate ISO storage domain %s' % name)
-            if self.api.datacenters.get(dc_name).storagedomains.get(
-                    name).activate():
-                LOG.info('%s domain was activated successfully' % domain_type)
+            LOG.info("Activate ISO storage domain %s" % name)
+            if self.api.datacenters.get(dc_name).storagedomains.get(name).activate():
+                LOG.info("%s domain was activated successfully" % domain_type)
         except Exception as e:
-            LOG.error('Failed to add %s domain:\n%s' % (domain_type, str(e)))
+            LOG.error("Failed to add %s domain:\n%s" % (domain_type, str(e)))

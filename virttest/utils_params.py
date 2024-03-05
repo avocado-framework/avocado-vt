@@ -1,4 +1,5 @@
 from threading import Lock
+
 try:
     from collections import UserDict as IterableUserDict
 except ImportError:
@@ -19,19 +20,21 @@ class Params(IterableUserDict):
     """
     A dict-like object passed to every test.
     """
+
     lock = Lock()
 
     def __getitem__(self, key):
-        """ overrides the error messages of missing params[$key] """
+        """overrides the error messages of missing params[$key]"""
         try:
             return IterableUserDict.__getitem__(self, key)
         except KeyError:
-            raise ParamNotFound("Mandatory parameter '%s' is missing. "
-                                "Check your cfg files for typos/mistakes" %
-                                key)
+            raise ParamNotFound(
+                "Mandatory parameter '%s' is missing. "
+                "Check your cfg files for typos/mistakes" % key
+            )
 
     def get(self, key, default=None):
-        """ overrides the behavior to catch ParamNotFound error"""
+        """overrides the behavior to catch ParamNotFound error"""
         try:
             return self[key]
         except ParamNotFound:
@@ -179,11 +182,12 @@ class Params(IterableUserDict):
         else:
             result = dict()
         for entry in self.get_list(key, default, delimiter):
-            index = entry.find('=')
+            index = entry.find("=")
             if index == -1:
-                raise ValueError('failed to find "=" in "{0}" (value for {1})'
-                                 .format(entry, key))
-            result[entry[:index].strip()] = entry[index+1:].strip()
+                raise ValueError(
+                    'failed to find "=" in "{0}" (value for {1})'.format(entry, key)
+                )
+            result[entry[:index].strip()] = entry[index + 1 :].strip()
         return result
 
     def drop_dict_internals(self):
@@ -194,4 +198,6 @@ class Params(IterableUserDict):
         :returns: parameters without the internal keys
         :rtype: {str, str}
         """
-        return Params({key: value for key, value in self.items() if not key.startswith("_")})
+        return Params(
+            {key: value for key, value in self.items() if not key.startswith("_")}
+        )

@@ -15,7 +15,7 @@ from six.moves import xrange
 from . import data_dir
 from . import remote as remote_old
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class NetperfError(Exception):
@@ -23,7 +23,6 @@ class NetperfError(Exception):
 
 
 class NetperfPackageError(NetperfError):
-
     def __init__(self, error_info):
         NetperfError.__init__(self)
         self.error_info = error_info
@@ -34,7 +33,6 @@ class NetperfPackageError(NetperfError):
 
 
 class NetserverError(NetperfError):
-
     def __init__(self, error_info):
         NetperfError.__init__(self)
         self.error_info = error_info
@@ -45,7 +43,6 @@ class NetserverError(NetperfError):
 
 
 class NetperfTestError(NetperfError):
-
     def __init__(self, error_info):
         NetperfError.__init__(self)
         self.error_info = error_info
@@ -56,10 +53,20 @@ class NetperfTestError(NetperfError):
 
 
 class NetperfPackage(remote_old.Remote_Package):
-
-    def __init__(self, address, netperf_path, md5sum="", netperf_source="",
-                 client="ssh", port="22", username="root", password="123456",
-                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?"):
+    def __init__(
+        self,
+        address,
+        netperf_path,
+        md5sum="",
+        netperf_source="",
+        client="ssh",
+        port="22",
+        username="root",
+        password="123456",
+        prompt="^root@.*[\#\$]\s*$|",
+        linesep="\n",
+        status_test_command="echo $?",
+    ):
         """
         Class NetperfPackage just represent the netperf package
         Init NetperfPackage class.
@@ -73,8 +80,9 @@ class NetperfPackage(remote_old.Remote_Package):
         :param username: Username (if required)
         :param password: Password (if required)
         """
-        super(NetperfPackage, self).__init__(address, client, username,
-                                             password, port, netperf_path)
+        super(NetperfPackage, self).__init__(
+            address, client, username, password, port, netperf_path
+        )
 
         self.netperf_source = netperf_source
         self.pack_suffix = ""
@@ -89,11 +97,9 @@ class NetperfPackage(remote_old.Remote_Package):
         #      different platforms.
         self.__win_platform = self.cp_client == "rss"
         if self.__win_platform:
-            self.__remote_file = ntpath.join(self.netperf_base_dir,
-                                             self.netperf_file)
+            self.__remote_file = ntpath.join(self.netperf_base_dir, self.netperf_file)
         else:
-            self.__remote_file = os.path.join(self.netperf_base_dir,
-                                              self.netperf_file)
+            self.__remote_file = os.path.join(self.netperf_base_dir, self.netperf_file)
 
         if client == "ssh":
             if self.netperf_source.endswith("tar.bz2"):
@@ -102,14 +108,13 @@ class NetperfPackage(remote_old.Remote_Package):
             elif self.netperf_source.endswith("tar.gz"):
                 self.pack_suffix = ".tar.gz"
                 self.decomp_cmd = "tar zxf"
-            self.netperf_dir = os.path.join(self.remote_path,
-                                            self.netperf_file.rstrip(self.pack_suffix))
+            self.netperf_dir = os.path.join(
+                self.remote_path, self.netperf_file.rstrip(self.pack_suffix)
+            )
 
         if self.pack_suffix:
-            self.netserver_path = os.path.join(self.netperf_dir,
-                                               "src/netserver")
-            self.netperf_path = os.path.join(self.netperf_dir,
-                                             "src/netperf")
+            self.netserver_path = os.path.join(self.netperf_dir, "src/netserver")
+            self.netperf_path = os.path.join(self.netperf_dir, "src/netperf")
         else:
             self.netserver_path = self.__remote_file
             self.netperf_path = self.__remote_file
@@ -126,11 +131,17 @@ class NetperfPackage(remote_old.Remote_Package):
         if self._session is not None:
             return
         prompt, linesep, status_test_command = self._session_attrs
-        self._session = remote.remote_login(self.client, self.address,
-                                            self.port, self.username,
-                                            self.password, prompt,
-                                            linesep, timeout=360,
-                                            status_test_command=status_test_command)
+        self._session = remote.remote_login(
+            self.client,
+            self.address,
+            self.port,
+            self.username,
+            self.password,
+            prompt,
+            linesep,
+            timeout=360,
+            status_test_command=status_test_command,
+        )
 
     def _release_session(self):
         if self._session is None:
@@ -159,9 +170,10 @@ class NetperfPackage(remote_old.Remote_Package):
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
         build_arch = self.session.cmd_output("arch", timeout=60).strip()
         np_build = build_type.get(build_arch, build_arch).strip()
-        setup_cmd = "./autogen.sh > /dev/null 2>&1 &&" \
-                    " ./configure --build=%s %s > /dev/null 2>&1" % (np_build,
-                                                                     compile_option)
+        setup_cmd = (
+            "./autogen.sh > /dev/null 2>&1 &&"
+            " ./configure --build=%s %s > /dev/null 2>&1" % (np_build, compile_option)
+        )
         setup_cmd += " && make > /dev/null 2>&1"
         self.env_cleanup(clean_all=False)
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
@@ -180,9 +192,9 @@ class NetperfPackage(remote_old.Remote_Package):
             LOG.debug("Download URL file to local path")
             tmp_dir = data_dir.get_download_dir()
             dst = os.path.join(tmp_dir, os.path.basename(netperf_source))
-            self.netperf_source = download.get_file(src=netperf_source,
-                                                    dst=dst,
-                                                    hash_expected=self.md5sum)
+            self.netperf_source = download.get_file(
+                src=netperf_source, dst=dst, hash_expected=self.md5sum
+            )
         else:
             self.netperf_source = netperf_source
         return self.netperf_source
@@ -206,18 +218,31 @@ class NetperfPackage(remote_old.Remote_Package):
                 LOG.debug("Compiling netserver from source")
                 self.pack_compile(compile_option)
 
-        msg = "Using local netperf: %s and %s" % (self.netperf_path,
-                                                  self.netserver_path)
+        msg = "Using local netperf: %s and %s" % (
+            self.netperf_path,
+            self.netserver_path,
+        )
         LOG.debug(msg)
         return (self.netserver_path, self.netperf_path)
 
 
 class Netperf(object):
-
-    def __init__(self, address, netperf_path, md5sum="", netperf_source="",
-                 client="ssh", port="22", username="root", password="redhat",
-                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
-                 compile_option="--enable-demo=yes", install=True):
+    def __init__(
+        self,
+        address,
+        netperf_path,
+        md5sum="",
+        netperf_source="",
+        client="ssh",
+        port="22",
+        username="root",
+        password="redhat",
+        prompt="^root@.*[\#\$]\s*$|",
+        linesep="\n",
+        status_test_command="echo $?",
+        compile_option="--enable-demo=yes",
+        install=True,
+    ):
         """
         Init Netperf class.
 
@@ -235,16 +260,34 @@ class Netperf(object):
         """
         self.client = client
 
-        self.package = NetperfPackage(address, netperf_path, md5sum,
-                                      netperf_source, client, port, username,
-                                      password, prompt, linesep, status_test_command)
-        self.netserver_path, self.netperf_path = self.package.install(install,
-                                                                      compile_option)
+        self.package = NetperfPackage(
+            address,
+            netperf_path,
+            md5sum,
+            netperf_source,
+            client,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            status_test_command,
+        )
+        self.netserver_path, self.netperf_path = self.package.install(
+            install, compile_option
+        )
         LOG.debug("Create remote session")
-        self.session = remote.remote_login(client, address, port, username,
-                                           password, prompt,
-                                           linesep, timeout=360,
-                                           status_test_command=status_test_command)
+        self.session = remote.remote_login(
+            client,
+            address,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            timeout=360,
+            status_test_command=status_test_command,
+        )
 
     def is_target_running(self, target):
         list_cmd = "ps -C %s" % target
@@ -283,11 +326,22 @@ class Netperf(object):
 
 
 class NetperfServer(Netperf):
-
-    def __init__(self, address, netperf_path, md5sum="", netperf_source="",
-                 client="ssh", port="22", username="root", password="redhat",
-                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
-                 compile_option="--enable-demo=yes", install=True):
+    def __init__(
+        self,
+        address,
+        netperf_path,
+        md5sum="",
+        netperf_source="",
+        client="ssh",
+        port="22",
+        username="root",
+        password="redhat",
+        prompt="^root@.*[\#\$]\s*$|",
+        linesep="\n",
+        status_test_command="echo $?",
+        compile_option="--enable-demo=yes",
+        install=True,
+    ):
         """
         Init NetperfServer class.
 
@@ -303,10 +357,21 @@ class NetperfServer(Netperf):
         :param compile_option: Compile option for netperf
         :param install: Whether need install netperf or not.
         """
-        super(NetperfServer, self).__init__(address, netperf_path, md5sum,
-                                            netperf_source, client, port, username,
-                                            password, prompt, linesep, status_test_command,
-                                            compile_option, install)
+        super(NetperfServer, self).__init__(
+            address,
+            netperf_path,
+            md5sum,
+            netperf_source,
+            client,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            status_test_command,
+            compile_option,
+            install,
+        )
 
     @property
     def netserver_bin(self):
@@ -347,11 +412,22 @@ class NetperfServer(Netperf):
 
 
 class NetperfClient(Netperf):
-
-    def __init__(self, address, netperf_path, md5sum="", netperf_source="",
-                 client="ssh", port="22", username="root", password="redhat",
-                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
-                 compile_option="", install=True):
+    def __init__(
+        self,
+        address,
+        netperf_path,
+        md5sum="",
+        netperf_source="",
+        client="ssh",
+        port="22",
+        username="root",
+        password="redhat",
+        prompt="^root@.*[\#\$]\s*$|",
+        linesep="\n",
+        status_test_command="echo $?",
+        compile_option="",
+        install=True,
+    ):
         """
         Init NetperfClient class.
 
@@ -367,10 +443,21 @@ class NetperfClient(Netperf):
         :param compile_option: Compile option for netperf
         :param install: Whether need install netperf or not.
         """
-        super(NetperfClient, self).__init__(address, netperf_path, md5sum,
-                                            netperf_source, client, port, username,
-                                            password, prompt, linesep, status_test_command,
-                                            compile_option, install)
+        super(NetperfClient, self).__init__(
+            address,
+            netperf_path,
+            md5sum,
+            netperf_source,
+            client,
+            port,
+            username,
+            password,
+            prompt,
+            linesep,
+            status_test_command,
+            compile_option,
+            install,
+        )
 
     @property
     def netperf_bin(self):
@@ -379,8 +466,14 @@ class NetperfClient(Netperf):
             get_basename = ntpath.basename
         return get_basename(self.netperf_path)
 
-    def start(self, server_address, test_option="", timeout=1200,
-              cmd_prefix="", package_sizes=""):
+    def start(
+        self,
+        server_address,
+        test_option="",
+        timeout=1200,
+        cmd_prefix="",
+        package_sizes="",
+    ):
         """
         Run netperf test
 
@@ -391,27 +484,35 @@ class NetperfClient(Netperf):
         :param package_sizes: Package sizes test in netperf command.
         :return: return test result
         """
-        netperf_cmd = "%s %s -H %s %s " % (cmd_prefix, self.netperf_path,
-                                           server_address, test_option)
+        netperf_cmd = "%s %s -H %s %s " % (
+            cmd_prefix,
+            self.netperf_path,
+            server_address,
+            test_option,
+        )
         try:
             output = ""
             if package_sizes:
                 for p_size in package_sizes.split():
                     cmd = netperf_cmd + " -- -m %s" % p_size
                     LOG.info("Start netperf with cmd: '%s'" % cmd)
-                    output += self.session.cmd_output_safe(cmd,
-                                                           timeout=timeout)
+                    output += self.session.cmd_output_safe(cmd, timeout=timeout)
             else:
                 LOG.info("Start netperf with cmd: '%s'" % netperf_cmd)
-                output = self.session.cmd_output_safe(netperf_cmd,
-                                                      timeout=timeout)
+                output = self.session.cmd_output_safe(netperf_cmd, timeout=timeout)
         except aexpect.ShellError as err:
             raise NetperfTestError("Run netperf error. %s" % str(err))
         self.result = output
         return self.result
 
-    def bg_start(self, server_address, test_option="", session_num=1,
-                 cmd_prefix="", package_sizes=""):
+    def bg_start(
+        self,
+        server_address,
+        test_option="",
+        session_num=1,
+        cmd_prefix="",
+        package_sizes="",
+    ):
         """
         Run netperf background, for stress test do not have output
 
@@ -423,15 +524,19 @@ class NetperfClient(Netperf):
 
         """
         if self.client == "nc":
-            netperf_cmd = "start /b %s %s -H %s %s " % (cmd_prefix,
-                                                        self.netperf_path,
-                                                        server_address,
-                                                        test_option)
+            netperf_cmd = "start /b %s %s -H %s %s " % (
+                cmd_prefix,
+                self.netperf_path,
+                server_address,
+                test_option,
+            )
         else:
-            netperf_cmd = "%s %s -H %s %s " % (cmd_prefix,
-                                               self.netperf_path,
-                                               server_address,
-                                               test_option)
+            netperf_cmd = "%s %s -H %s %s " % (
+                cmd_prefix,
+                self.netperf_path,
+                server_address,
+                test_option,
+            )
         if package_sizes:
             for p_size in package_sizes.split():
                 cmd = netperf_cmd + " -- -m %s" % p_size

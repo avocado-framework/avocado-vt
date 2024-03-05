@@ -11,7 +11,7 @@ from avocado.utils import process
 from avocado.utils.astring import to_text
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def version_compare(major, minor, update, session=None):
@@ -38,7 +38,7 @@ def version_compare(major, minor, update, session=None):
     if session:
         func = session.cmd_output
         cmd = "virtqemud"
-        if session.cmd_status('which %s' % cmd):
+        if session.cmd_status("which %s" % cmd):
             cmd = "libvirtd"
     else:
         try:
@@ -48,15 +48,17 @@ def version_compare(major, minor, update, session=None):
             cmd = "libvirtd"
 
     try:
-        regex = r'\w*d\s*\(libvirt\)\s*'
-        regex += r'(\d+)\.(\d+)\.(\d+)'
+        regex = r"\w*d\s*\(libvirt\)\s*"
+        regex += r"(\d+)\.(\d+)\.(\d+)"
         lines = to_text(func("%s -V" % cmd)).splitlines()
         for line in lines:
             mobj = re.search(regex, line, re.I)
             if bool(mobj):
-                LIBVIRT_LIB_VERSION = int(mobj.group(1)) * 1000000 + \
-                                      int(mobj.group(2)) * 1000 + \
-                                      int(mobj.group(3))
+                LIBVIRT_LIB_VERSION = (
+                    int(mobj.group(1)) * 1000000
+                    + int(mobj.group(2)) * 1000
+                    + int(mobj.group(3))
+                )
                 break
     except (ValueError, TypeError, AttributeError):
         LOG.warning("Error determining libvirt version")
@@ -90,10 +92,11 @@ def is_libvirt_feature_supported(params, ignore_error=False):
         libvirt's (major, minor, update) version.
     """
     func_supported_since_libvirt_ver = eval(
-        params.get("func_supported_since_libvirt_ver", '()'))
-    unsupported_err_msg = params.get("unsupported_err_msg",
-                                     "This libvirt version doesn't support "
-                                     "this function.")
+        params.get("func_supported_since_libvirt_ver", "()")
+    )
+    unsupported_err_msg = params.get(
+        "unsupported_err_msg", "This libvirt version doesn't support " "this function."
+    )
 
     if func_supported_since_libvirt_ver:
         if not version_compare(*func_supported_since_libvirt_ver):

@@ -13,7 +13,7 @@ from avocado.core import exceptions
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
 ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def arch_dirname_iso(session):
@@ -41,8 +41,9 @@ def arch_dirname_vfd(session):
 def _product_info(session):
     # Some windows system would present 'r' as the registered
     # trademark character at the end of string "Server"
-    match = re.search(r"Windows((?: )Serverr?)? (\S+)(?: (R2))?",
-                      system.product_name(session), re.I)
+    match = re.search(
+        r"Windows((?: )Serverr?)? (\S+)(?: (R2))?", system.product_name(session), re.I
+    )
     if not match:
         return ("", "", "")
     server, name, suffix = match.groups()
@@ -133,8 +134,11 @@ def _get_netkvmco_path(session):
 
     middle_path = "%s\\%s" % (guest_name, guest_arch)
     for file_name in ["netkvmco.dll", "netkvmco.exe"]:
-        find_cmd = 'dir /b /s "%s" | findstr "%s" | findstr "%s"' \
-                               % (viowin_ltr, middle_path, file_name)
+        find_cmd = 'dir /b /s "%s" | findstr "%s" | findstr "%s"' % (
+            viowin_ltr,
+            middle_path,
+            file_name,
+        )
         status, output = session.cmd_status_output(find_cmd)
         if status != 0:
             continue
@@ -153,7 +157,7 @@ def prepare_netkvmco(vm):
     session = vm.wait_for_login(timeout=360)
     try:
         get_netkvmco_path = _get_netkvmco_path(session)
-        if 'netkvmco.dll' in get_netkvmco_path:
+        if "netkvmco.dll" in get_netkvmco_path:
             prepare_netkvmco_cmd = "xcopy %s c:\\ /y && "
             prepare_netkvmco_cmd += "rundll32 netkvmco.dll,"
             prepare_netkvmco_cmd += "RegisterNetKVMNetShHelper"

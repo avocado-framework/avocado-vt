@@ -23,7 +23,7 @@ from virttest import utils_misc
 from virttest import utils_net
 from virttest import error_context
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class GlusterError(Exception):
@@ -31,7 +31,6 @@ class GlusterError(Exception):
 
 
 class GlusterBrickError(GlusterError):
-
     def __init__(self, error_mgs):
         super(GlusterBrickError, self).__init__(error_mgs)
         self.error_mgs = error_mgs
@@ -48,7 +47,7 @@ def glusterd_start():
     cmd = "service glusterd status"
     output = process.run(cmd, ignore_status=True).stdout_text
     # The blank before 'active' makes a distinction with 'inactive'
-    if ' active' not in output or 'running' not in output:
+    if " active" not in output or "running" not in output:
         cmd = "service glusterd start"
         error_context.context("Starting gluster daemon failed")
         output = process.run(cmd).stdout_text
@@ -63,14 +62,13 @@ def is_gluster_vol_started(vol_name, session=None):
     :param session: ShellSession object of remote host
     """
     cmd = "gluster volume info %s" % vol_name
-    error_context.context(
-        "Gluster volume info failed for volume: %s" % vol_name)
+    error_context.context("Gluster volume info failed for volume: %s" % vol_name)
     if session:
         vol_info = session.cmd_output(cmd)
     else:
         vol_info = process.run(cmd).stdout_text
-    volume_status = re.findall(r'Status: (\S+)', vol_info)
-    if 'Started' in volume_status:
+    volume_status = re.findall(r"Status: (\S+)", vol_info)
+    if "Started" in volume_status:
         return True
     else:
         return False
@@ -86,8 +84,7 @@ def gluster_vol_start(vol_name, session=None):
     """
     # Check if the volume is stopped, if then start
     if not is_gluster_vol_started(vol_name, session):
-        error_context.context(
-            "Gluster volume start failed for volume; %s" % vol_name)
+        error_context.context("Gluster volume start failed for volume; %s" % vol_name)
         cmd = "gluster volume start %s" % vol_name
         if session:
             session.cmd(cmd)
@@ -158,7 +155,7 @@ def is_gluster_vol_avail(vol_name, session=None):
         output = session.cmd_output(cmd)
     else:
         output = process.run(cmd).stdout_text
-    volume_name = re.findall(r'Volume Name: (%s)\n' % vol_name, output)
+    volume_name = re.findall(r"Volume Name: (%s)\n" % vol_name, output)
     if volume_name:
         return gluster_vol_start(vol_name, session)
 
@@ -194,7 +191,7 @@ def gluster_brick_delete(brick_path, session=None):
     :param brick_path: path of gluster brick
     :param session: ShellSession object of remote host
     """
-    cmd2 = 'rm -rf %s' % brick_path
+    cmd2 = "rm -rf %s" % brick_path
     if session:
         cmd1_str = "session.cmd_status('[ ! -d %s ]' % brick_path)"
         cmd2_str = "session.cmd(cmd2)"
@@ -232,8 +229,12 @@ def gluster_vol_create(vol_name, hostname, brick_path, force=False, session=None
     else:
         force_opt = ""
 
-    cmd = "gluster volume create %s %s:/%s %s" % (vol_name, hostname,
-                                                  brick_path, force_opt)
+    cmd = "gluster volume create %s %s:/%s %s" % (
+        vol_name,
+        hostname,
+        brick_path,
+        force_opt,
+    )
     error_context.context("Volume creation failed")
     if session:
         session.cmd(cmd)
@@ -253,8 +254,7 @@ def glusterfs_mount(g_uri, mount_point, session=None):
     :session: mount within the session if given
     """
     glusterfs_umount(g_uri, mount_point, session)
-    utils_disk.mount(g_uri, mount_point, "glusterfs", None,
-                     False, session)
+    utils_disk.mount(g_uri, mount_point, "glusterfs", None, False, session)
 
 
 @error_context.context_aware
@@ -268,8 +268,7 @@ def glusterfs_umount(g_uri, mount_point, session=None):
     :session: mount within the session if given
     :return: if unmounted return True else return False
     """
-    return utils_disk.umount(g_uri, mount_point,
-                             "fuse.glusterfs", False, session)
+    return utils_disk.umount(g_uri, mount_point, "fuse.glusterfs", False, session)
 
 
 @error_context.context_aware
@@ -287,7 +286,7 @@ def glusterfs_is_mounted(g_uri, session=None):
 @error_context.context_aware
 def create_gluster_vol(params):
     vol_name = params.get("gluster_volume_name")
-    force = params.get('force_recreate_gluster') == "yes"
+    force = params.get("force_recreate_gluster") == "yes"
 
     brick_path = params.get("gluster_brick")
     if not os.path.isabs(brick_path):  # do nothing when path is absolute
@@ -346,13 +345,14 @@ def create_gluster_uri(params, stripped=False):
 
         if is_unix_socket:
             sock = "?socket=%s" % params["gluster_unix_socket"]
-            img = params.get("image_name").split('/')[-1]
+            img = params.get("image_name").split("/")[-1]
             fmt = params.get("image_format", "qcow2")
-            image_path = img if params.get_boolean(
-                "image_raw_device") else "%s.%s" % (img, fmt)
-            gluster_uri = "gluster+unix://{v}{p}{s}".format(v=volume,
-                                                            p=image_path,
-                                                            s=sock)
+            image_path = (
+                img if params.get_boolean("image_raw_device") else "%s.%s" % (img, fmt)
+            )
+            gluster_uri = "gluster+unix://{v}{p}{s}".format(
+                v=volume, p=image_path, s=sock
+            )
         else:
             # Access gluster server by hostname or ip
             gluster_transport = params.get("gluster_transport")
@@ -373,9 +373,7 @@ def create_gluster_uri(params, stripped=False):
 
             host = "%s%s" % (server, port)
 
-            gluster_uri = "gluster{t}://{h}{v}".format(t=transport,
-                                                       h=host,
-                                                       v=volume)
+            gluster_uri = "gluster{t}://{h}{v}".format(t=transport, h=host, v=volume)
 
     return gluster_uri
 
@@ -396,13 +394,14 @@ def file_exists(params, filename_path):
         try:
             os.mkdir(tmpdir_path)
             glusterfs_mount(sg_uri, tmpdir_path)
-            mount_filename_path = os.path.join(tmpdir_path,
-                                               filename_path[len(g_uri):])
+            mount_filename_path = os.path.join(tmpdir_path, filename_path[len(g_uri) :])
             if os.path.exists(mount_filename_path):
                 ret = True
         except Exception as e:
-            LOG.error("Failed to mount gluster volume %s to"
-                      " mount dir %s: %s" % (sg_uri, tmpdir_path, e))
+            LOG.error(
+                "Failed to mount gluster volume %s to"
+                " mount dir %s: %s" % (sg_uri, tmpdir_path, e)
+            )
     finally:
         if glusterfs_umount(sg_uri, tmpdir_path):
             try:
@@ -410,8 +409,10 @@ def file_exists(params, filename_path):
             except OSError:
                 pass
         else:
-            LOG.warning("Unable to unmount tmp directory %s with glusterfs"
-                        " mount.", tmpdir_path)
+            LOG.warning(
+                "Unable to unmount tmp directory %s with glusterfs" " mount.",
+                tmpdir_path,
+            )
     return ret
 
 
@@ -425,9 +426,12 @@ def get_image_filename(params, image_name, image_format):
     if uri.startswith("gluster+unix:"):
         filename = uri
     else:
-        img_name = image_name.split('/')[-1]
-        image_path = img_name if params.get_boolean(
-            "image_raw_device") else "%s.%s" % (img_name, image_format)
+        img_name = image_name.split("/")[-1]
+        image_path = (
+            img_name
+            if params.get_boolean("image_raw_device")
+            else "%s.%s" % (img_name, image_format)
+        )
         filename = "{vol_uri}{path}".format(vol_uri=uri, path=image_path)
 
     return filename
@@ -453,7 +457,7 @@ def gluster_allow_insecure(vol_name, session=None):
         process.system(cmd1)
         output = process.run(cmd2).stdout_text
 
-    match = re.findall(r'server.allow-insecure: on', output)
+    match = re.findall(r"server.allow-insecure: on", output)
 
     if not match:
         return False
@@ -468,11 +472,14 @@ def add_rpc_insecure(filepath):
 
     cmd = "cat %s" % filepath
     content = process.run(cmd).stdout_text
-    match = re.findall(r'rpc-auth-allow-insecure on', content)
+    match = re.findall(r"rpc-auth-allow-insecure on", content)
     LOG.info("match is %s", match)
     if not match:
         LOG.info("not match")
-        cmd = "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s" % filepath
+        cmd = (
+            "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s"
+            % filepath
+        )
         process.system(cmd, shell=True)
         process.system("service glusterd restart; sleep 2", shell=True)
 
@@ -497,11 +504,17 @@ def gluster_nfs_disable(vol_name, session=None):
         process.system(cmd1)
         output = process.run(cmd2).stdout_text
 
-    return 'nfs.disable: on' in output
+    return "nfs.disable: on" in output
 
 
-def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
-                             file_path="/etc/glusterfs/glusterd.vol", **kwargs):
+def setup_or_cleanup_gluster(
+    is_setup,
+    vol_name,
+    brick_path="",
+    pool_name="",
+    file_path="/etc/glusterfs/glusterd.vol",
+    **kwargs
+):
     # pylint: disable=E1121
     """
     Set up or clean up glusterfs environment on localhost or remote. These actions
@@ -537,9 +550,15 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
         remote_user = kwargs.get("gluster_server_user")
         remote_pwd = kwargs.get("gluster_server_pwd")
         remote_identity_file = kwargs.get("gluster_identity_file")
-        session = remote.remote_login("ssh", ip_addr, "22",
-                                      remote_user, remote_pwd, "#",
-                                      identity_file=remote_identity_file)
+        session = remote.remote_login(
+            "ssh",
+            ip_addr,
+            "22",
+            remote_user,
+            remote_pwd,
+            "#",
+            identity_file=remote_identity_file,
+        )
     if is_setup:
         if ip_addr == "":
             ip_addr = utils_net.get_host_ip_address()

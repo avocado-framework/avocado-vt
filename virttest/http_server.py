@@ -1,6 +1,7 @@
 import os
 import posixpath
 import logging
+
 try:
     from urllib.parse import unquote, urlparse
 except ImportError:
@@ -15,11 +16,10 @@ except ImportError:
 from avocado.utils.astring import to_text
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class HTTPRequestHandler(SimpleHTTPRequestHandler):
-
     def do_GET(self):
         """
         Serve a GET request.
@@ -37,13 +37,13 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
                 f.close()
 
     def parse_header_byte_range(self):
-        range_param = 'Range'
-        range_discard = 'bytes='
+        range_param = "Range"
+        range_discard = "bytes="
         if range_param in self.headers:
             rg = self.headers.get(range_param)
             if rg.startswith(range_discard):
-                rg = rg[len(range_discard):]
-                begin, end = rg.split('-')
+                rg = rg[len(range_discard) :]
+                begin, end = rg.split("-")
                 return (int(begin), int(end))
         return None
 
@@ -72,7 +72,7 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
             # Always read in binary mode. Opening files in text mode may cause
             # newline translations, making the actual size of the content
             # transmitted *less* than the content-length!
-            f = open(path, 'rb')
+            f = open(path, "rb")
         except IOError:
             self.send_error(404, "File not found")
             return None
@@ -81,9 +81,9 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         range_size = str(range_end - range_begin + 1)
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", range_size)
-        self.send_header("Content-Range", "bytes %s-%s/%s" % (range_begin,
-                                                              range_end,
-                                                              file_size))
+        self.send_header(
+            "Content-Range", "bytes %s-%s/%s" % (range_begin, range_end, file_size)
+        )
         self.send_header("Content-type", ctype)
         self.end_headers()
         return f
@@ -100,7 +100,7 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         # abandon query parameters
         path = urlparse(to_text(path))[2]
         path = posixpath.normpath(unquote(path))
-        words = path.split('/')
+        words = path.split("/")
         words = list(filter(None, words))
         path = self.server.cwd
         for word in words:
@@ -112,23 +112,25 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         return path
 
     def address_string(self):
-        '''
+        """
         This HTTP server does not care about name resolution for the requests
 
         The first reason is that most of the times our clients are going to be
         virtual machines without a proper name resolution setup. Also, by not
         resolving names, we should be a bit faster and be resilient about
         misconfigured or resilient name servers.
-        '''
+        """
         return self.client_address[0]
 
     def log_message(self, fmt, *args):
-        LOG.debug("builtin http server handling request from %s: %s" %
-                  (self.address_string(), fmt % args))
+        LOG.debug(
+            "builtin http server handling request from %s: %s"
+            % (self.address_string(), fmt % args)
+        )
 
 
 def http_server(port=8000, cwd=None, terminate_callable=None):
-    http = HTTPServer(('', port), HTTPRequestHandler)
+    http = HTTPServer(("", port), HTTPRequestHandler)
     http.timeout = 1
 
     if cwd is None:
@@ -147,5 +149,5 @@ def http_server(port=8000, cwd=None, terminate_callable=None):
         http.handle_request()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     http_server()

@@ -4,8 +4,9 @@ from avocado.utils import process
 
 
 @error_context.context_aware
-def get_image_filename(curl_protocol, curl_server, curl_path,
-                       curl_user=None, curl_passwd=None):
+def get_image_filename(
+    curl_protocol, curl_server, curl_path, curl_user=None, curl_passwd=None
+):
     """
     Form the url: <protocol>://[<username>[:<password>]@]<host>/<path>
 
@@ -18,17 +19,17 @@ def get_image_filename(curl_protocol, curl_server, curl_path,
     """
     url = "{protocol}://{auth}{host}/{path}"
 
-    protocols = ('http', 'https', 'ftp', 'ftps')
+    protocols = ("http", "https", "ftp", "ftps")
     if curl_protocol not in protocols:
-        raise ValueError('curl_protocol should be in %s.' % str(protocols))
+        raise ValueError("curl_protocol should be in %s." % str(protocols))
 
-    auth = ''
+    auth = ""
     if curl_user:
-        auth = '%s:%s@' % (curl_user,
-                           curl_passwd) if curl_passwd else '%s@' % curl_user
+        auth = "%s:%s@" % (curl_user, curl_passwd) if curl_passwd else "%s@" % curl_user
 
-    return url.format(protocol=curl_protocol, auth=auth,
-                      host=curl_server, path=curl_path)
+    return url.format(
+        protocol=curl_protocol, auth=auth, host=curl_server, path=curl_path
+    )
 
 
 @error_context.context_aware
@@ -40,8 +41,9 @@ def file_exists(params, filename):
     :param filename: The image filename
     :return: True if the image exists, else False
     """
-    curl_cmd = 'curl -I -L -k {tmo} {filename}'
-    t = '-m %s' % params['curl_timeout'] if params.get('curl_timeout') else ''
-    o = process.run(curl_cmd.format(tmo=t, filename=filename),
-                    ignore_status=True, verbose=True).stdout_text.strip()
-    return 'Content-Length:' in o
+    curl_cmd = "curl -I -L -k {tmo} {filename}"
+    t = "-m %s" % params["curl_timeout"] if params.get("curl_timeout") else ""
+    o = process.run(
+        curl_cmd.format(tmo=t, filename=filename), ignore_status=True, verbose=True
+    ).stdout_text.strip()
+    return "Content-Length:" in o

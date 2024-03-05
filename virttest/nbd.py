@@ -16,21 +16,23 @@ def get_image_filename(params):
     :param params: image specified params
     :return: nbd image uri string
     """
-    server = params.get('nbd_server')
-    unix_socket = params.get('nbd_unix_socket')
-    export_name = '/%s' % params['nbd_export_name'] if params.get(
-        'nbd_export_name') else ''
+    server = params.get("nbd_server")
+    unix_socket = params.get("nbd_unix_socket")
+    export_name = (
+        "/%s" % params["nbd_export_name"] if params.get("nbd_export_name") else ""
+    )
 
     if server:
-        port = ':%s' % params['nbd_port'] if params.get('nbd_port') else ''
-        return 'nbd://{server}{port}{export}'.format(server=server,
-                                                     port=port,
-                                                     export=export_name)
+        port = ":%s" % params["nbd_port"] if params.get("nbd_port") else ""
+        return "nbd://{server}{port}{export}".format(
+            server=server, port=port, export=export_name
+        )
     elif unix_socket:
-        return 'nbd+unix://{export}?socket={sock}'.format(export=export_name,
-                                                          sock=unix_socket)
+        return "nbd+unix://{export}?socket={sock}".format(
+            export=export_name, sock=unix_socket
+        )
 
-    raise ValueError('Either nbd_server or nbd_unix_socket is required.')
+    raise ValueError("Either nbd_server or nbd_unix_socket is required.")
 
 
 @error_context.context_aware
@@ -70,69 +72,73 @@ def export_image(qemu_nbd, filename, local_image, params):
         "bitmap": "",
         "allocation_depth": "",
         "export_readonly": "",
-        "image_opts": ""
+        "image_opts": "",
     }
     export_cmd = (
-        '{secret_object} {tls_creds} {allocation_depth} {export_readonly} '
-        '{export_format} {persistent} {desc} {port} {bitmap} '
-        '{export_name} {fork} {pid_file} {unix_socket} {filename} '
-        '{image_opts}')
+        "{secret_object} {tls_creds} {allocation_depth} {export_readonly} "
+        "{export_format} {persistent} {desc} {port} {bitmap} "
+        "{export_name} {fork} {pid_file} {unix_socket} {filename} "
+        "{image_opts}"
+    )
 
-    pid_file = utils_misc.generate_tmp_file_name('%s_nbd_server' % local_image,
-                                                 'pid')
-    cmd_dict['pid_file'] = '--pid-file %s' % pid_file
-    cmd_dict['filename'] = filename
+    pid_file = utils_misc.generate_tmp_file_name("%s_nbd_server" % local_image, "pid")
+    cmd_dict["pid_file"] = "--pid-file %s" % pid_file
+    cmd_dict["filename"] = filename
 
     # auto-detect format if format(-f) is not specified
-    if params.get('nbd_export_format'):
-        cmd_dict['export_format'] = '-f %s' % params['nbd_export_format']
+    if params.get("nbd_export_format"):
+        cmd_dict["export_format"] = "-f %s" % params["nbd_export_format"]
 
-        if params['nbd_export_format'] == 'luks':
+        if params["nbd_export_format"] == "luks":
             # We can only export a local luks image in luks
-            if params.get("image_format") != 'luks':
+            if params.get("image_format") != "luks":
                 raise ValueError("Only a luks image can be exported in luks")
 
-            secret_str = '--object secret,id={aid},data={data}'
-            cmd_dict.update({
-                'secret_object': secret_str.format(
-                    aid='%s_encrypt0' % local_image,
-                    data=params["image_secret"]),
-                'filename': "'%s'" % filename
-            })
+            secret_str = "--object secret,id={aid},data={data}"
+            cmd_dict.update(
+                {
+                    "secret_object": secret_str.format(
+                        aid="%s_encrypt0" % local_image, data=params["image_secret"]
+                    ),
+                    "filename": "'%s'" % filename,
+                }
+            )
 
     # expose allocation depth information via the qemu:allocation-depth
-    if params.get('nbd_allocation_exported') == 'yes':
-        cmd_dict['allocation_depth'] = '-A'
+    if params.get("nbd_allocation_exported") == "yes":
+        cmd_dict["allocation_depth"] = "-A"
 
-    if params.get('nbd_export_readonly') == 'yes':
-        cmd_dict['export_readonly'] = '-r'
+    if params.get("nbd_export_readonly") == "yes":
+        cmd_dict["export_readonly"] = "-r"
 
-    if params.get('nbd_export_name'):
-        cmd_dict['export_name'] = '-x %s' % params['nbd_export_name']
+    if params.get("nbd_export_name"):
+        cmd_dict["export_name"] = "-x %s" % params["nbd_export_name"]
 
-    if params.get('nbd_export_description'):
-        cmd_dict['desc'] = '-D "%s"' % params['nbd_export_description']
+    if params.get("nbd_export_description"):
+        cmd_dict["desc"] = '-D "%s"' % params["nbd_export_description"]
 
-    if params.get('nbd_unix_socket'):
-        cmd_dict['unix_socket'] = '-k %s' % params['nbd_unix_socket']
+    if params.get("nbd_unix_socket"):
+        cmd_dict["unix_socket"] = "-k %s" % params["nbd_unix_socket"]
     else:
         # 10809 is used by default if port is not set
-        if params.get('nbd_port'):
-            cmd_dict['port'] = '-p %s' % params['nbd_port']
+        if params.get("nbd_port"):
+            cmd_dict["port"] = "-p %s" % params["nbd_port"]
 
         # tls creds is supported for ip only
-        if params.get('nbd_server_tls_creds'):
-            tls_str = ('--object tls-creds-x509,id={aid},endpoint=server,'
-                       'dir={tls_creds} --tls-creds {aid}')
-            cmd_dict['tls_creds'] = tls_str.format(
-                aid='%s_server_tls_creds' % local_image,
-                tls_creds=params['nbd_server_tls_creds']
+        if params.get("nbd_server_tls_creds"):
+            tls_str = (
+                "--object tls-creds-x509,id={aid},endpoint=server,"
+                "dir={tls_creds} --tls-creds {aid}"
+            )
+            cmd_dict["tls_creds"] = tls_str.format(
+                aid="%s_server_tls_creds" % local_image,
+                tls_creds=params["nbd_server_tls_creds"],
             )
 
     # multiple bitmaps can be exported
-    if params.get('nbd_export_bitmaps'):
-        cmd_dict['bitmap'] = "".join(
-            [" -B %s" % _ for _ in params['nbd_export_bitmaps'].split()]
+    if params.get("nbd_export_bitmaps"):
+        cmd_dict["bitmap"] = "".join(
+            [" -B %s" % _ for _ in params["nbd_export_bitmaps"].split()]
         )
 
     # Export image with a filter
@@ -144,10 +150,10 @@ def export_image(qemu_nbd, filename, local_image, params):
         cmd_dict["image_opts"] = "--image-opts %s" % image_opts
 
     qemu_nbd_pid = None
-    cmdline = qemu_nbd + ' ' + string.Formatter().format(export_cmd,
-                                                         **cmd_dict)
-    result = process.run(cmdline, ignore_status=True, shell=True,
-                         ignore_bg_processes=True)
+    cmdline = qemu_nbd + " " + string.Formatter().format(export_cmd, **cmd_dict)
+    result = process.run(
+        cmdline, ignore_status=True, shell=True, ignore_bg_processes=True
+    )
     if result.exit_status == 0:
         with open(pid_file, "r") as pid_file_fd:
             qemu_nbd_pid = int(pid_file_fd.read().strip())
@@ -164,34 +170,32 @@ def list_exported_image(qemu_nbd, nbd_image, params):
     :param params: nbd image specified params
     :return: CmdResult object of qemu-nbd output
     """
-    cmd_dict = {
-        "tls_creds": "",
-        "port": "",
-        "server": ""
-    }
-    list_cmd = '-L {tls_creds} {port} {server}'
+    cmd_dict = {"tls_creds": "", "port": "", "server": ""}
+    list_cmd = "-L {tls_creds} {port} {server}"
 
-    if params.get('nbd_unix_socket'):
-        cmd_dict['server'] = '-k %s' % params['nbd_unix_socket']
+    if params.get("nbd_unix_socket"):
+        cmd_dict["server"] = "-k %s" % params["nbd_unix_socket"]
     else:
         # 0.0.0.0 is used by default if interface is not set
-        if params.get('nbd_server'):
-            cmd_dict['server'] = '-b %s' % params['nbd_server']
+        if params.get("nbd_server"):
+            cmd_dict["server"] = "-b %s" % params["nbd_server"]
 
         # 10809 is used by default if port is not set
-        if params.get('nbd_port'):
-            cmd_dict['port'] = '-p %s' % params['nbd_port']
+        if params.get("nbd_port"):
+            cmd_dict["port"] = "-p %s" % params["nbd_port"]
 
         # tls creds is supported for ip only
-        if params.get('nbd_client_tls_creds'):
-            tls_str = ('--object tls-creds-x509,id={aid},endpoint=client,'
-                       'dir={tls_creds} --tls-creds {aid}')
-            cmd_dict['tls_creds'] = tls_str.format(
-                aid='%s_client_tls_creds' % nbd_image,
-                tls_creds=params['nbd_client_tls_creds']
+        if params.get("nbd_client_tls_creds"):
+            tls_str = (
+                "--object tls-creds-x509,id={aid},endpoint=client,"
+                "dir={tls_creds} --tls-creds {aid}"
+            )
+            cmd_dict["tls_creds"] = tls_str.format(
+                aid="%s_client_tls_creds" % nbd_image,
+                tls_creds=params["nbd_client_tls_creds"],
             )
 
-    cmdline = qemu_nbd + ' ' + string.Formatter().format(list_cmd,
-                                                         **cmd_dict)
-    return process.run(cmdline, ignore_status=True, shell=True,
-                       ignore_bg_processes=True)
+    cmdline = qemu_nbd + " " + string.Formatter().format(list_cmd, **cmd_dict)
+    return process.run(
+        cmdline, ignore_status=True, shell=True, ignore_bg_processes=True
+    )

@@ -7,10 +7,10 @@ from virttest import utils_misc
 
 
 def _logical_disks(session, cond=None, props=None):
-    cmd = wmic.make_query("LogicalDisk", cond, props,
-                          get_swch=wmic.FMT_TYPE_LIST)
-    out = utils_misc.wait_for(lambda: wmic.parse_list(session.cmd(cmd,
-                                                                  timeout=120)), 240)
+    cmd = wmic.make_query("LogicalDisk", cond, props, get_swch=wmic.FMT_TYPE_LIST)
+    out = utils_misc.wait_for(
+        lambda: wmic.parse_list(session.cmd(cmd, timeout=120)), 240
+    )
     return out if out else []
 
 
@@ -64,12 +64,12 @@ def extend_volume(session, vol_id, size=None):
                  The default unit of size is M.
     """
     script_path = r"%TEMP%\extend_{0}.dp".format(vol_id)
-    extend_cmd = 'echo select volume %s > {0} && ' % vol_id
+    extend_cmd = "echo select volume %s > {0} && " % vol_id
     if not size:
-        extend_cmd += 'echo extend >> {0} && diskpart /s {0}'
+        extend_cmd += "echo extend >> {0} && diskpart /s {0}"
     else:
-        extend_cmd += 'echo extend desired=%s >> {0} ' % size
-        extend_cmd += '&& diskpart /s {0}'
+        extend_cmd += "echo extend desired=%s >> {0} " % size
+        extend_cmd += "&& diskpart /s {0}"
     session.cmd(extend_cmd.format(script_path))
 
 
@@ -82,9 +82,9 @@ def shrink_volume(session, vol_id, size):
     :param size: Desired decrease size. The default unit of size is M.
     """
     script_path = r"%TEMP%\shrink_{0}.dp".format(vol_id)
-    shrink_cmd = 'echo select volume %s > {0} && ' % vol_id
-    shrink_cmd += 'echo shrink desired=%s >> {0} ' % size
-    shrink_cmd += '&& diskpart /s {0}'
+    shrink_cmd = "echo select volume %s > {0} && " % vol_id
+    shrink_cmd += "echo shrink desired=%s >> {0} " % size
+    shrink_cmd += "&& diskpart /s {0}"
     session.cmd(shrink_cmd.format(script_path))
 
 
@@ -103,7 +103,7 @@ def get_disk_props_by_serial_number(session, serial_number, props):
     :rtype: dict
     """
     cond = "SerialNumber like '%s'" % serial_number
-    cmd = wmic.make_query('diskdrive', cond, props=props, get_swch=wmic.FMT_TYPE_LIST)
+    cmd = wmic.make_query("diskdrive", cond, props=props, get_swch=wmic.FMT_TYPE_LIST)
     out = wmic.parse_list(session.cmd(cmd, timeout=120))
 
     if out:

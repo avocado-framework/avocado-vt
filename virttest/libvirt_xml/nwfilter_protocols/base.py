@@ -15,7 +15,7 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
     type attr.
     """
 
-    __slots__ = ('protocol_tag',)
+    __slots__ = ("protocol_tag",)
 
     # Subclasses are expected to hide protocol_tag
     def __init__(self, protocol_tag, virsh_instance=base.virsh):
@@ -25,9 +25,9 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
         super(UntypedDeviceBase, self).__init__(virsh_instance=virsh_instance)
         # Just a regular dictionary value
         # (Using a property to change element tag won't work)
-        self['protocol_tag'] = protocol_tag
+        self["protocol_tag"] = protocol_tag
         # setup bare-bones XML
-        self.xml = u"<%s/>" % protocol_tag
+        self.xml = "<%s/>" % protocol_tag
 
     def from_element(self, element):
         """
@@ -35,9 +35,10 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
         """
         class_name = self.__class__.__name__
         if element.tag != class_name.lower():
-            raise xcepts.LibvirtXMLError('Refusing to create %s instance'
-                                         'from %s tagged element'
-                                         % (class_name, element.tag))
+            raise xcepts.LibvirtXMLError(
+                "Refusing to create %s instance"
+                "from %s tagged element" % (class_name, element.tag)
+            )
         # XMLTreeFile only supports element trees
         etree = xml_utils.ElementTree.ElementTree(element)
         # ET only writes to open file-like objects
@@ -76,7 +77,7 @@ class TypedDeviceBase(UntypedDeviceBase):
     type attr.
     """
 
-    __slots__ = ('type_name',)
+    __slots__ = ("type_name",)
 
     # Subclasses are expected to hide protocol_tag
     def __init__(self, protocol_tag, type_name, virsh_instance=base.virsh):
@@ -85,14 +86,18 @@ class TypedDeviceBase(UntypedDeviceBase):
         type_name & protocol_tag
         """
         # generate getter, setter, deleter for 'type_name' property
-        accessors.XMLAttribute('type_name', self,
-                               # each rule protocol is it's own XML "document"
-                               # because python 2.6 ElementPath is broken
-                               parent_xpath='/',
-                               tag_name=protocol_tag,
-                               attribute='type')
-        super(TypedDeviceBase, self).__init__(protocol_tag=protocol_tag,
-                                              virsh_instance=virsh_instance)
+        accessors.XMLAttribute(
+            "type_name",
+            self,
+            # each rule protocol is it's own XML "document"
+            # because python 2.6 ElementPath is broken
+            parent_xpath="/",
+            tag_name=protocol_tag,
+            attribute="type",
+        )
+        super(TypedDeviceBase, self).__init__(
+            protocol_tag=protocol_tag, virsh_instance=virsh_instance
+        )
         # Calls accessor to modify xml
         self.type_name = type_name
 
@@ -101,9 +106,8 @@ class TypedDeviceBase(UntypedDeviceBase):
         """
         Hides type_name from superclass new_from_element().
         """
-        type_name = element.get('type', None)
+        type_name = element.get("type", None)
         # subclasses must hide protocol_tag parameter
-        instance = cls(type_name=type_name,
-                       virsh_instance=virsh_instance)
+        instance = cls(type_name=type_name, virsh_instance=virsh_instance)
         instance.from_element(element)
         return instance

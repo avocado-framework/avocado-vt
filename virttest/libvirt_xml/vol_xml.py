@@ -31,54 +31,86 @@ class VolXMLBase(base.LibvirtXMLBase):
         clusterSize_unit: string, operates on unit attribute of clusterSize tag
     """
 
-    __slots__ = ('name', 'key', 'capacity', 'allocation', 'format', 'path',
-                 'owner', 'group', 'mode', 'label', 'compat', 'lazy_refcounts',
-                 'encryption', 'capacity_unit', 'clusterSize', 'clusterSize_unit')
+    __slots__ = (
+        "name",
+        "key",
+        "capacity",
+        "allocation",
+        "format",
+        "path",
+        "owner",
+        "group",
+        "mode",
+        "label",
+        "compat",
+        "lazy_refcounts",
+        "encryption",
+        "capacity_unit",
+        "clusterSize",
+        "clusterSize_unit",
+    )
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
     __schema_name__ = "storagevol"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementText('name', self, parent_xpath='/',
-                                 tag_name='name')
-        accessors.XMLElementText('key', self, parent_xpath='/',
-                                 tag_name='key')
-        accessors.XMLElementInt('capacity', self, parent_xpath='/',
-                                tag_name='capacity')
-        accessors.XMLElementInt('allocation', self, parent_xpath='/',
-                                tag_name='allocation')
-        accessors.XMLAttribute('format', self, parent_xpath='/target',
-                               tag_name='format', attribute='type')
-        accessors.XMLAttribute('capacity_unit', self, parent_xpath='/',
-                               tag_name='capacity', attribute='unit')
-        accessors.XMLElementNest('encryption', self, parent_xpath='/target',
-                                 tag_name='encryption', subclass=self.Encryption,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        accessors.XMLElementText('path', self, parent_xpath='/target',
-                                 tag_name='path')
-        accessors.XMLElementInt('owner', self,
-                                parent_xpath='/target/permissions',
-                                tag_name='owner')
-        accessors.XMLElementInt('group', self,
-                                parent_xpath='/target/permissions',
-                                tag_name='group')
-        accessors.XMLElementText('mode', self,
-                                 parent_xpath='/target/permissions',
-                                 tag_name='mode')
-        accessors.XMLElementText('label', self,
-                                 parent_xpath='/target/permissions',
-                                 tag_name='label')
-        accessors.XMLElementText('compat', self, parent_xpath='/target',
-                                 tag_name='compat')
-        accessors.XMLElementBool('lazy_refcounts', self,
-                                 parent_xpath='/target/features',
-                                 tag_name='lazy_refcounts')
-        accessors.XMLElementInt('clusterSize', self, parent_xpath='/target',
-                                tag_name='clusterSize')
-        accessors.XMLAttribute('clusterSize_unit', self, parent_xpath='/target',
-                               tag_name='clusterSize', attribute='unit')
+        accessors.XMLElementText("name", self, parent_xpath="/", tag_name="name")
+        accessors.XMLElementText("key", self, parent_xpath="/", tag_name="key")
+        accessors.XMLElementInt("capacity", self, parent_xpath="/", tag_name="capacity")
+        accessors.XMLElementInt(
+            "allocation", self, parent_xpath="/", tag_name="allocation"
+        )
+        accessors.XMLAttribute(
+            "format", self, parent_xpath="/target", tag_name="format", attribute="type"
+        )
+        accessors.XMLAttribute(
+            "capacity_unit",
+            self,
+            parent_xpath="/",
+            tag_name="capacity",
+            attribute="unit",
+        )
+        accessors.XMLElementNest(
+            "encryption",
+            self,
+            parent_xpath="/target",
+            tag_name="encryption",
+            subclass=self.Encryption,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementText("path", self, parent_xpath="/target", tag_name="path")
+        accessors.XMLElementInt(
+            "owner", self, parent_xpath="/target/permissions", tag_name="owner"
+        )
+        accessors.XMLElementInt(
+            "group", self, parent_xpath="/target/permissions", tag_name="group"
+        )
+        accessors.XMLElementText(
+            "mode", self, parent_xpath="/target/permissions", tag_name="mode"
+        )
+        accessors.XMLElementText(
+            "label", self, parent_xpath="/target/permissions", tag_name="label"
+        )
+        accessors.XMLElementText(
+            "compat", self, parent_xpath="/target", tag_name="compat"
+        )
+        accessors.XMLElementBool(
+            "lazy_refcounts",
+            self,
+            parent_xpath="/target/features",
+            tag_name="lazy_refcounts",
+        )
+        accessors.XMLElementInt(
+            "clusterSize", self, parent_xpath="/target", tag_name="clusterSize"
+        )
+        accessors.XMLAttribute(
+            "clusterSize_unit",
+            self,
+            parent_xpath="/target",
+            tag_name="clusterSize",
+            attribute="unit",
+        )
         super(VolXMLBase, self).__init__(virsh_instance=virsh_instance)
 
 
@@ -90,12 +122,12 @@ class VolXML(VolXMLBase):
 
     __slots__ = []
 
-    def __init__(self, vol_name='default', virsh_instance=base.virsh):
+    def __init__(self, vol_name="default", virsh_instance=base.virsh):
         """
         Initialize new instance with empty XML
         """
         super(VolXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = u"<volume><name>%s</name></volume>" % vol_name
+        self.xml = "<volume><name>%s</name></volume>" % vol_name
 
     def new_encryption(self, **dargs):
         """
@@ -126,7 +158,7 @@ class VolXML(VolXMLBase):
         """
         volxml = VolXML(virsh_instance=virsh_instance)
         result = virsh_instance.vol_dumpxml(vol_name, pool_name)
-        volxml['xml'] = result.stdout_text.strip()
+        volxml["xml"] = result.stdout_text.strip()
         return volxml
 
     @staticmethod
@@ -138,16 +170,15 @@ class VolXML(VolXMLBase):
         :return: volume xml dictionary
         """
         volume_xml = {}
-        vol_xml = VolXML.new_from_vol_dumpxml(vol_name, pool_name,
-                                              virsh_instance)
-        volume_xml['key'] = vol_xml.key
-        volume_xml['path'] = vol_xml.path
-        volume_xml['capacity'] = vol_xml.capacity
-        volume_xml['allocation'] = vol_xml.allocation
+        vol_xml = VolXML.new_from_vol_dumpxml(vol_name, pool_name, virsh_instance)
+        volume_xml["key"] = vol_xml.key
+        volume_xml["path"] = vol_xml.path
+        volume_xml["capacity"] = vol_xml.capacity
+        volume_xml["allocation"] = vol_xml.allocation
         try:
-            volume_xml['format'] = vol_xml.format
+            volume_xml["format"] = vol_xml.format
         except LibvirtXMLNotFoundError:
-            volume_xml['format'] = None
+            volume_xml["format"] = None
         return volume_xml
 
     @staticmethod
@@ -176,13 +207,18 @@ class VolXML(VolXMLBase):
             dict, keys: type, uuid
         """
 
-        __slots__ = ('format', 'secret')
+        __slots__ = ("format", "secret")
 
         def __init__(self, virsh_instance=base.virsh):
-            accessors.XMLAttribute('format', self, parent_xpath='/',
-                                   tag_name='encryption', attribute='format')
-            accessors.XMLElementDict('secret', self, parent_xpath='/',
-                                     tag_name='secret')
-            super(VolXML.Encryption, self).__init__(
-                virsh_instance=virsh_instance)
-            self.xml = '<encryption/>'
+            accessors.XMLAttribute(
+                "format",
+                self,
+                parent_xpath="/",
+                tag_name="encryption",
+                attribute="format",
+            )
+            accessors.XMLElementDict(
+                "secret", self, parent_xpath="/", tag_name="secret"
+            )
+            super(VolXML.Encryption, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<encryption/>"

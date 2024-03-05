@@ -4,7 +4,7 @@ import logging
 from virttest import utils_misc
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class TestDmesgFilter(unittest.TestCase):
@@ -13,9 +13,9 @@ class TestDmesgFilter(unittest.TestCase):
         expected_dmesg = "'^msg_1$', '^msg_4$'"
         result = utils_misc._remove_dmesg_matches(messages, expected_dmesg)
         self.assertTrue(len(result), 2)
-        self.assertTrue('msg_2' in result)
-        self.assertTrue('msg_3' in result)
+        self.assertTrue("msg_2" in result)
+        self.assertTrue("msg_3" in result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
