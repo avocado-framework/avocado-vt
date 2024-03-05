@@ -4378,3 +4378,29 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
+
+
+def is_linux_uefi_guest(runner=cmd_status_output):
+    """
+    Check whether linux guest is uefi guest
+    """
+    cmd = "ls /sys/firmware/efi"
+    status, _ = runner(cmd)
+    return status == 0
+
+
+def is_windows_uefi_guest(runner=cmd_status_output):
+    """
+    Check whether windows guest is uefi guest
+
+    More info:
+    https://www.tenforums.com/tutorials/85195-check-if-windows-10-using-uefi-legacy-bios.html
+    """
+    search_str = "Detected boot environment"
+    target_file = r"c:\Windows\Panther\setupact.log"
+    cmd = 'findstr /c:"%s" %s' % (search_str, target_file)
+    status, output = runner(cmd)
+    if 'BIOS' in output:
+        return False
+
+    return 'EFI' in output

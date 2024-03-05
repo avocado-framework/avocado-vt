@@ -38,6 +38,8 @@ from virttest.libvirt_xml import vm_xml
 from virttest.utils_version import VersionInterval
 from virttest.utils_misc import asterisk_passwd
 from virttest.utils_misc import compare_md5
+from virttest.utils_misc import is_linux_uefi_guest
+from virttest.utils_misc import is_windows_uefi_guest
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -972,11 +974,7 @@ class LinuxVMCheck(VMCheck):
         """
         Check whether guest is uefi guest
         """
-        cmd = "ls /sys/firmware/efi"
-        status, output = self.run_cmd(cmd)
-        if status != 0:
-            return False
-        return True
+        is_linux_uefi_guest(self.run_cmd)
 
     def get_grub_device(self, dev_map="/boot/grub*/device.map"):
         """
@@ -1247,23 +1245,7 @@ class WindowsVMCheck(VMCheck):
         return self.run_cmd(cmd)[0]
 
     def is_uefi_guest(self):
-        """
-        Check whether windows guest is uefi guest
-
-        More info:
-        https://www.tenforums.com/tutorials/85195-check-if-windows-10-using-uefi-legacy-bios.html
-        """
-        search_str = "Detected boot environment"
-        target_file = r"c:\Windows\Panther\setupact.log"
-        cmd = 'findstr /c:"%s" %s' % (search_str, target_file)
-        status, output = self.run_cmd(cmd)
-        if 'BIOS' in output:
-            return False
-
-        if 'EFI' in output:
-            return True
-
-        return False
+        is_windows_uefi_guest(self.run_cmd)
 
 
 def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False, shell=False):
