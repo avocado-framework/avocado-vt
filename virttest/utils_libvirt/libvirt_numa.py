@@ -83,6 +83,43 @@ def create_hmat_xml(vmxml, params):
     return vmxml
 
 
+def convert_all_nodes_to_string(node_list):
+    """
+    Convert the node list to a string representation.
+    For example:
+    If node list is [0, 1, 2, 3, 4], return "0-4"
+    If node list is [0, 1, 3, 4, 6], return "0-1,3-4,6"
+
+    :param node_list: list, the host numa node list
+    :return: str, the string representation of the node list
+    """
+
+    LOG.debug("node_list=%s" % node_list)
+    node_ranges = []
+    start_node = node_list[0]
+    end_node = node_list[0]
+
+    for node in node_list[1:]:
+        if node == end_node + 1:
+            end_node = node
+        else:
+            if start_node == end_node:
+                node_ranges.append(f"{start_node}")
+            else:
+                node_ranges.append(f"{start_node}-{end_node}")
+            start_node = node
+            end_node = node
+
+    if start_node == end_node:
+        node_ranges.append(f"{start_node}")
+    else:
+        node_ranges.append(f"{start_node}-{end_node}")
+
+    converted_numa_nodes = ",".join(node_ranges)
+    LOG.debug("Convert output for all online numa nodes: '%s'", converted_numa_nodes)
+    return converted_numa_nodes
+
+
 def parse_numa_nodeset_to_str(numa_nodeset, node_list, ignore_error=False):
     """
     Parse numa nodeset to a string
