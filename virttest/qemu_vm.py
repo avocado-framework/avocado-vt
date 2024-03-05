@@ -2518,7 +2518,7 @@ class VM(virt_vm.BaseVM):
                     self.last_boot_index += 1
             iso = image_params.get("cdrom")
             if iso or image_params.get("cdrom_without_file") == "yes":
-                if ("virtio" in image_params.get("driver_format", "") or
+                if ("virtio" in image_params.get("drive_format", "") or
                         "virtio" in image_params.get("scsi_hba", "")):
                     parent_bus = self._get_pci_bus(image_params, "cdrom", True)
                 else:
