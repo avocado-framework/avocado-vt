@@ -92,6 +92,8 @@ class DevContainer(object):
     BLOCKDEV_VERSION_SCOPE = "[2.12.0, )"
     SMP_DIES_VERSION_SCOPE = "[4.1.0, )"
     SMP_CLUSTERS_VERSION_SCOPE = "[7.0.0, )"
+    SMP_BOOKS_VERSION_SCOPE = "[8.2.0, )"
+    SMP_DRAWERS_VERSION_SCOPE = "[8.2.0, )"
     FLOPPY_DEVICE_VERSION_SCOPE = "[5.1.0, )"
 
     MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = "[5.1.0, )"
@@ -323,6 +325,12 @@ class DevContainer(object):
         # -smp clusters=?
         if self.__qemu_ver in VersionInterval(self.SMP_CLUSTERS_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_CLUSTERS)
+        # -smp drawers=?
+        if self.__qemu_ver in VersionInterval(self.SMP_DRAWERS_VERSION_SCOPE):
+            self.caps.set_flag(Flags.SMP_DRAWERS)
+        # -smp book=?
+        if self.__qemu_ver in VersionInterval(self.SMP_BOOKS_VERSION_SCOPE):
+            self.caps.set_flag(Flags.SMP_BOOKS)
         # -incoming defer
         if self.has_option("incoming defer"):
             self.caps.set_flag(Flags.INCOMING_DEFER)

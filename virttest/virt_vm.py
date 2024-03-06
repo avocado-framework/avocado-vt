@@ -497,6 +497,8 @@ class CpuInfo(object):
         dies=0,
         clusters=0,
         sockets=0,
+        drawers=0,
+        books=0,
     ):
         """
         :param model: CPU Model of VM (use 'qemu -cpu ?' for list)
@@ -512,6 +514,8 @@ class CpuInfo(object):
         :param dies: number of CPU dies on one socket (for PC only)
         :param clusters: number of CPU clusters on one socket (for ARM only)
         :param sockets: number of discrete sockets in the system
+        :param drawers: number of discrete drawers in the system (for s390x only)
+        :param books: number of discrete books in the system (for s390x only)
         """
         self.model = model
         self.vendor = vendor
@@ -525,6 +529,8 @@ class CpuInfo(object):
         self.dies = dies
         self.clusters = clusters
         self.sockets = sockets
+        self.drawers = drawers
+        self.books = books
 
 
 def session_handler(func):
