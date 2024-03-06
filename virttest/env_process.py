@@ -51,7 +51,7 @@ from virttest.staging import service
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.networking import NetworkProxies, BridgeConfig
-
+from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
@@ -1096,22 +1096,11 @@ def preprocess(test, params, env):
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(UlimitConfig)
     _setup_manager.register(NetworkProxies)
+    _setup_manager.register(LibvirtdDebugLogConfig)
     _setup_manager.register(BridgeConfig)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
-
-    if vm_type == "libvirt":
-        if params.get("enable_libvirtd_debug_log", "yes") == "yes":
-            # By default log the info level
-            log_level = params.get("libvirtd_debug_level", "2")
-            log_file = params.get("libvirtd_debug_file", "")
-            log_filters = params.get("libvirtd_debug_filters", "%s:*" % log_level)
-            log_permission = params.get("libvirtd_log_permission")
-            libvirtd_debug_log = test_setup.LibvirtdDebugLog(
-                test, log_level, log_file, log_filters, log_permission
-            )
-            libvirtd_debug_log.enable()
 
     base_dir = data_dir.get_data_dir()
     if params.get("storage_type") == "iscsi":
@@ -1993,9 +1982,6 @@ def postprocess(test, params, env):
             except Exception as details:
                 err += "\nPolkit cleanup: %s" % str(details).replace("\\n", "\n  ")
                 LOG.error("Unexpected error: %s" % details)
-        if params.get("enable_libvirtd_debug_log", "yes") == "yes":
-            libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
-            libvirtd_debug_log.disable()
 
     # Execute any post_commands
     if params.get("post_command"):
