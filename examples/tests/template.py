@@ -3,7 +3,6 @@
 # $ avocado run template --vt-type qemu to execute it.
 import logging
 
-
 LOG = logging.getLogger("avocado.test")
 
 

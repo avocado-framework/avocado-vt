@@ -1,8 +1,8 @@
 from __future__ import division
-import re
+
 import math
-from decimal import Decimal
-from decimal import getcontext
+import re
+from decimal import Decimal, getcontext
 
 
 def align_value(value, factor=1024):

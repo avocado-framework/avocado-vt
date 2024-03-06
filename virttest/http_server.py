@@ -1,11 +1,12 @@
+import logging
 import os
 import posixpath
-import logging
 
 try:
     from urllib.parse import unquote, urlparse
 except ImportError:
     from urllib import unquote
+
     from urlparse import urlparse
 try:
     from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -14,7 +15,6 @@ except ImportError:
     from SimpleHTTPServer import SimpleHTTPRequestHandler
 
 from avocado.utils.astring import to_text
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -4,13 +4,13 @@ Installer code that implement KVM specific bits.
 See BaseInstaller class in base_installer.py for interface details.
 """
 
+import logging
 import os
 import platform
-import logging
 
 from avocado.utils import process
-from virttest import base_installer
 
+from virttest import base_installer
 
 __all__ = [
     "GitRepoInstaller",

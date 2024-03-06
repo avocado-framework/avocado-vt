@@ -2,9 +2,9 @@
 Virsh domjobinfo command related utility functions
 """
 
-import re
-import math
 import logging
+import math
+import re
 
 from avocado.core import exceptions
 

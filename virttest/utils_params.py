@@ -4,10 +4,10 @@ try:
     from collections import UserDict as IterableUserDict
 except ImportError:
     from UserDict import IterableUserDict
+
 from collections import OrderedDict
 
 from avocado.core import exceptions
-
 from six.moves import xrange
 
 

@@ -18,8 +18,8 @@
 
 
 import logging
-from virttest.libvirt_xml.devices import memory
 
+from virttest.libvirt_xml.devices import memory
 
 LOG = logging.getLogger("avocado." + __name__)
 

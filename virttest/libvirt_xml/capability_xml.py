@@ -4,7 +4,7 @@ http://libvirt.org/formatcaps.html
 """
 
 from virttest import xml_utils
-from virttest.libvirt_xml import base, accessors, xcepts
+from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class CapabilityXML(base.LibvirtXMLBase):

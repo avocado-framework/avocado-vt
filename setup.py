@@ -17,7 +17,8 @@ import os
 import shutil
 from distutils.command.clean import clean
 from pathlib import Path
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 VERSION = open("VERSION", "r").read().strip()
 

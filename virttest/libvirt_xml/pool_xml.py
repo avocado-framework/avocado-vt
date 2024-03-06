@@ -2,17 +2,15 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatstorage.html#StoragePool
 """
-import os
 import logging
+import os
 import tempfile
-
 from xml.etree import ElementTree as ET
 
 from avocado.utils import process
 
-from .. import data_dir
-from .. import libvirt_storage
-from ..libvirt_xml import base, xcepts, accessors
+from .. import data_dir, libvirt_storage
+from ..libvirt_xml import accessors, base, xcepts
 
 LOG = logging.getLogger("avocado." + __name__)
 

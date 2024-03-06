@@ -7,9 +7,7 @@ import logging
 from avocado.core import exceptions
 
 from virttest import remote
-
 from virttest.utils_test import libvirt
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

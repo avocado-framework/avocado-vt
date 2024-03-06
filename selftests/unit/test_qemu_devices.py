@@ -7,23 +7,22 @@ This is a unittest for qemu_devices library.
 """
 __author__ = """Lukas Doktor (ldoktor@redhat.com)"""
 
-import re
-import unittest
 import os
+import re
 import sys
+import unittest
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest.unittest_utils import mock
-from virttest.qemu_devices import qdevices, qcontainer
-from virttest import qemu_monitor
-
 import six
 from six.moves import xrange
 
+from virttest import qemu_monitor
+from virttest.qemu_devices import qcontainer, qdevices
+from virttest.unittest_utils import mock
 
 UNITTEST_DATA_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "unittest_data"

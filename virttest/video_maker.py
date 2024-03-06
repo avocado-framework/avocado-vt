@@ -8,12 +8,11 @@ and tools.
 """
 
 
-import os
-import time
 import glob
 import logging
+import os
 import re
-
+import time
 
 __all__ = ["get_video_maker_klass", "video_maker"]
 

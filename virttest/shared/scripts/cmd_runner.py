@@ -3,13 +3,13 @@ This script is used to execute a program and collect the monitor
 information in background, redirect the outputs to log files.
 """
 
-import threading
-import shelve
-import re
 import os
-import sys
 import random
+import re
+import shelve
 import string
+import sys
+import threading
 
 
 def getstatusoutput(cmd):

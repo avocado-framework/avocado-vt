@@ -5,8 +5,7 @@ http://libvirt.org/formatdomain.html#elementsNICS
 http://libvirt.org/formatnwfilter.html#nwfconceptsvars
 """
 
-from virttest.libvirt_xml import accessors
-from virttest.libvirt_xml import xcepts
+from virttest.libvirt_xml import accessors, xcepts
 from virttest.libvirt_xml.devices import base, librarian
 
 

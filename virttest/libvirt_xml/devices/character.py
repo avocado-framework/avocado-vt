@@ -4,7 +4,7 @@ Generic character device support for serial, parallel, channel, and console
 http://libvirt.org/formatdomain.html#elementCharSerial
 """
 
-from virttest.libvirt_xml import base, accessors, xcepts
+from virttest.libvirt_xml import accessors, base, xcepts
 from virttest.libvirt_xml.devices import base
 from virttest.libvirt_xml.devices.seclabel import Seclabel
 

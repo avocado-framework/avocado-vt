@@ -8,7 +8,6 @@ import unittest
 
 from avocado.utils import process
 
-
 basedir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 basedir = os.path.abspath(basedir)
 

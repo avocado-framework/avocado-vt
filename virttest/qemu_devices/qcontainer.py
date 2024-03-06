@@ -9,21 +9,21 @@ interact and verify the qemu qdev structure.
 
 # Python imports
 from __future__ import division
+
+import json
 import logging
-import re
 import os
+import re
 import shutil
 import stat
-import json
 import uuid
+
+import aexpect
+import six
 
 # Avocado imports
 from avocado.core import exceptions
 from avocado.utils import process
-
-import aexpect
-
-import six
 from six.moves import xrange
 
 try:
@@ -32,14 +32,20 @@ except ImportError:
     from collections import Sequence
 
 # Internal imports
-from virttest import vt_iothread
-from virttest import utils_qemu
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import arch, storage, data_dir, virt_vm
-from virttest import qemu_storage
-from virttest.qemu_devices.qdevices import QThrottleGroup
+from virttest import (
+    arch,
+    data_dir,
+    qemu_storage,
+    storage,
+    utils_logfile,
+    utils_misc,
+    utils_qemu,
+    virt_vm,
+    vt_iothread,
+)
+from virttest.qemu_capabilities import Capabilities, Flags, MigrationParams
 from virttest.qemu_devices import qdevices
+from virttest.qemu_devices.qdevices import QThrottleGroup
 from virttest.qemu_devices.utils import (
     DeviceError,
     DeviceHotplugError,
@@ -47,10 +53,9 @@ from virttest.qemu_devices.utils import (
     DeviceRemoveError,
     DeviceUnplugError,
     none_or_int,
+    set_cmdline_format_by_cfg,
 )
-from virttest.qemu_devices.utils import set_cmdline_format_by_cfg
 from virttest.utils_params import Params
-from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
 
 LOG = logging.getLogger("avocado." + __name__)

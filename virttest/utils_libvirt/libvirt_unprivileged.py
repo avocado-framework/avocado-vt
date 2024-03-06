@@ -1,9 +1,8 @@
 import logging
 
 import aexpect
-from virttest import libvirt_vm
-from virttest import remote
-from virttest import utils_params
+
+from virttest import libvirt_vm, remote, utils_params
 
 LOG = logging.getLogger("avocado." + __name__)
 

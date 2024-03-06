@@ -3,12 +3,11 @@ Specializations of base.AccessorBase for particular XML manipulation types
 """
 
 import logging
-
 from xml.etree.ElementTree import tostring
 
 from virttest import xml_utils
+from virttest.libvirt_xml import base, xcepts
 from virttest.propcan import PropCanBase
-from virttest.libvirt_xml import xcepts, base
 
 
 def type_check(name, thing, expected):

@@ -4,8 +4,8 @@ http://libvirt.org/formatdomain.html
 """
 
 
-import logging
 import ast
+import logging
 
 from avocado.core import exceptions
 

@@ -1,4 +1,5 @@
 from avocado.core.plugin_interfaces import CLICmd
+
 from virttest.compat import add_option
 from virttest.standalone_test import get_guest_name_parser
 

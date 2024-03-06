@@ -1,12 +1,10 @@
 import logging
 import re
 
-from avocado.utils import path
-from avocado.utils import process
 from avocado.core import exceptions
+from avocado.utils import path, process
 
-from virttest import error_context
-from virttest import utils_test
+from virttest import error_context, utils_test
 
 # command `grep --color` may have alias name `grep` in some systems,
 # so get explicit command 'grep' with path

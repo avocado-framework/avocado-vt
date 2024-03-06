@@ -2,15 +2,15 @@
 Common spice test utility functions.
 
 """
-import os
 import logging
-import time
+import os
 import sys
+import time
 
 from aexpect import ShellCmdError, ShellStatusError
 from avocado.core import exceptions
 
-from . import utils_net, utils_misc
+from . import utils_misc, utils_net
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -1,14 +1,13 @@
-import re
-import os
 import logging
+import os
+import re
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from .. import virsh, virt_vm, libvirt_vm, data_dir
-from .. import utils_net, xml_utils
+from .. import data_dir, libvirt_vm, qemu_storage
 from .. import utils_libguestfs as lgf
-from .. import qemu_storage
+from .. import utils_net, virsh, virt_vm, xml_utils
 from ..libvirt_xml import vm_xml, xcepts
 
 LOG = logging.getLogger("avocado." + __name__)

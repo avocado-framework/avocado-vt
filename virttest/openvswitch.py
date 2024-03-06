@@ -1,14 +1,12 @@
 import logging
-import re
 import os
+import re
 import signal
 
-from avocado.utils import path
-from avocado.utils import process
-from avocado.utils import linux_modules
+from avocado.utils import linux_modules, path, process
 
-from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
+from .versionable_class import Manager, VersionableClass, factory
 
 LOG = logging.getLogger("avocado." + __name__)
 

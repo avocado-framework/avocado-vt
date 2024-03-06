@@ -2,14 +2,13 @@
 Package utility for manage package operation on host
 """
 import logging
-import aexpect
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils.software_manager import manager
 from six import string_types
 
-from virttest import utils_misc
-from virttest import vt_console
+from virttest import utils_misc, vt_console
 
 LOG = logging.getLogger("avocado." + __name__)
 

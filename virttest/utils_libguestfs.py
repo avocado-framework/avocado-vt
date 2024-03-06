@@ -3,13 +3,12 @@ libguestfs tools test utility functions.
 """
 
 import logging
-import signal
 import os
 import re
+import signal
 
 import aexpect
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
 from . import propcan
 

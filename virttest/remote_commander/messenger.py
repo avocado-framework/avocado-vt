@@ -7,12 +7,12 @@ Created on Dec 6, 2013
 :contact: Andrei Stepanov <astepano@redhat.com>
 """
 
-import os
-import logging
-import select
-import time
 import base64
 import importlib
+import logging
+import os
+import select
+import time
 
 try:
     from cStringIO import StringIO

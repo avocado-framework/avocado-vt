@@ -2,21 +2,18 @@
 Basic nfs support for Linux host. It can support the remote
 nfs mount and the local nfs set up and mount.
 """
-import re
-import aexpect
 import logging
+import re
 
-from avocado.utils import path
-from avocado.utils import process
-from avocado.utils import distro
-from avocado.utils.astring import to_text
+import aexpect
 from avocado.core import exceptions
+from avocado.utils import distro, path, process
+from avocado.utils.astring import to_text
 
-from virttest import utils_misc
-from virttest import test_setup
-from virttest.utils_iptables import Iptables
-from virttest.utils_conn import SSHConnection
+from virttest import test_setup, utils_misc
 from virttest.staging import service
+from virttest.utils_conn import SSHConnection
+from virttest.utils_iptables import Iptables
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -1,6 +1,5 @@
-import sys
 import os
-
+import sys
 
 if len(sys.argv) != 3:
     print("Useage: %s path size")

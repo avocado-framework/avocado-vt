@@ -1,18 +1,14 @@
 """
 Virsh net* command related utility functions
 """
-import re
-import logging
 import ast
+import logging
+import re
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import virsh
-from virttest import remote
-from virttest import utils_misc
-from virttest import utils_iptables
-
+from virttest import remote, utils_iptables, utils_misc, virsh
 from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
 

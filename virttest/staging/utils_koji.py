@@ -1,6 +1,6 @@
+import logging
 import os
 import time
-import logging
 
 try:
     from html.parser import HTMLParser
@@ -11,12 +11,8 @@ try:
 except ImportError:
     import ConfigParser
 
-from avocado.utils import astring
-from avocado.utils import path
-from avocado.utils import download
-
+from avocado.utils import astring, download, path
 from six.moves import urllib
-
 
 try:
     import koji

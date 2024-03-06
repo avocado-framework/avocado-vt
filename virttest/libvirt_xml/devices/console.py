@@ -4,7 +4,7 @@ Console device support class(es)
 http://libvirt.org/formatdomain.html#elementCharSerial
 """
 
-from virttest.libvirt_xml import base, accessors
+from virttest.libvirt_xml import accessors, base
 from virttest.libvirt_xml.devices.character import CharacterBase
 
 

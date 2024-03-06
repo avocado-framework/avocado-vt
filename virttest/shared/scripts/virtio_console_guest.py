@@ -8,20 +8,21 @@ Auxiliary script used to send data between ports on guests.
 :author: Lukas Doktor (ldoktor@redhat.com)
 """
 from __future__ import division
-import threading
-from threading import Thread
-import os
-import select
-import re
-import random
-import sys
+
 import array
-import stat
-import traceback
-import signal
-import time
+import os
 import platform
+import random
+import re
+import select
+import signal
+import stat
+import sys
+import threading
+import time
+import traceback
 from distutils.version import LooseVersion  # pylint: disable=W0611,E0611
+from threading import Thread
 
 # For Python 2 and 3 compatibility
 # xrange

@@ -2,9 +2,7 @@
 Interface for QEMU migration.
 """
 
-from virttest.qemu_capabilities import MigrationParams
-from virttest.qemu_capabilities import Flags
-
+from virttest.qemu_capabilities import Flags, MigrationParams
 from virttest.utils_numeric import normalize_data_size
 
 

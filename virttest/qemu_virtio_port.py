@@ -4,21 +4,20 @@ Interfaces and helpers for the virtio_serial ports.
 :copyright: 2012 Red Hat Inc.
 """
 from __future__ import division
-from threading import Thread
-from collections import deque
+
 import logging
 import os
 import random
 import select
 import socket
-import time
 import struct
+import time
+from collections import deque
+from threading import Thread
 
 import aexpect
-
 from avocado.core import exceptions
 from avocado.utils import process
-
 from six.moves import xrange
 
 from virttest import data_dir

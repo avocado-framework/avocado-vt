@@ -13,9 +13,9 @@ from avocado_vt import test
 # the 92.0 support will be dropped.
 try:
     from avocado.core.nrunner import (
+        RUNNER_RUN_CHECK_INTERVAL,
         BaseRunner,
         BaseRunnerApp,
-        RUNNER_RUN_CHECK_INTERVAL,
     )
     from avocado.core.nrunner import main as nrunner_main
     from avocado.core.runners.utils import messages
@@ -23,7 +23,7 @@ try:
     LTS = True
 except ImportError:
     from avocado.core.nrunner.app import BaseRunnerApp
-    from avocado.core.nrunner.runner import BaseRunner, RUNNER_RUN_CHECK_INTERVAL
+    from avocado.core.nrunner.runner import RUNNER_RUN_CHECK_INTERVAL, BaseRunner
     from avocado.core.utils import messages
 
     LTS = False

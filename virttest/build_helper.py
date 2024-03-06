@@ -5,13 +5,9 @@ import shutil
 import tarfile
 
 from avocado.core import exceptions
-from avocado.utils import download
-from avocado.utils import git
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import download, git, path, process
 
 from virttest import data_dir
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -18,6 +18,7 @@ Avocado VT plugin
 """
 
 from virttest.compat import get_opt
+
 from .options import VirtTestOptionsProcess
 
 

@@ -7,13 +7,12 @@ This exports:
   - class for storage pool operations
 """
 
-import re
 import logging
+import re
 
 from avocado.utils import process
 
-from virttest import storage
-from virttest import virsh
+from virttest import storage, virsh
 
 LOG = logging.getLogger("avocado." + __name__)
 

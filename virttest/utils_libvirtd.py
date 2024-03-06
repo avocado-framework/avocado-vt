@@ -1,16 +1,13 @@
 """
 Module to control libvirtd service.
 """
-import re
 import logging
+import re
 
 import aexpect
-from avocado.utils import path
-from avocado.utils import process
-from avocado.utils import wait
+from avocado.utils import path, process, wait
 
-from virttest import libvirt_version
-from virttest import utils_split_daemons
+from virttest import libvirt_version, utils_split_daemons
 
 from . import remote as remote_old
 from . import utils_misc

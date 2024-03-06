@@ -6,8 +6,8 @@ Accommodate libvirt pci controller utility functions.
 
 import logging
 
-from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

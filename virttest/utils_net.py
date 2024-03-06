@@ -1,50 +1,45 @@
-import re
-import os
-import socket
-import fcntl
 import errno
-import struct
-import logging
-import random
-import math
-import time
-import shelve
-import signal
-import sys
-import netifaces
-import platform
-import uuid
+import fcntl
 import hashlib
-import shutil
-import json
 import ipaddress as pyipaddr
+import json
+import logging
+import math
+import os
+import platform
+import random
+import re
+import shelve
+import shutil
+import signal
+import socket
+import struct
+import sys
+import time
+import uuid
 
 import aexpect
+import netifaces
+import six
 from aexpect import remote
-
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
-from avocado.utils import process
-from avocado.utils import stacktrace
-
-import six
+from avocado.utils import process, stacktrace
 from six.moves import xrange
 
-from virttest import openvswitch
-from virttest import data_dir
-from virttest import propcan
-from virttest import utils_misc
-from virttest import arch
-from virttest import utils_selinux
-from virttest import utils_package
-
+from virttest import (
+    arch,
+    data_dir,
+    openvswitch,
+    propcan,
+    utils_misc,
+    utils_package,
+    utils_selinux,
+)
 from virttest.remote import RemoteRunner
-from virttest.staging import utils_memory
-from virttest.staging import service
+from virttest.staging import service, utils_memory
+from virttest.utils_windows import system, virtio_win
 from virttest.versionable_class import factory
-from virttest.utils_windows import virtio_win
-from virttest.utils_windows import system
-
 
 try:
     unicode

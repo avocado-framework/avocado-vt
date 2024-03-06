@@ -1,8 +1,7 @@
-import unittest
 import logging
+import unittest
 
 from virttest import utils_misc
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -2,9 +2,7 @@ import logging
 
 from avocado.utils import process
 
-from virttest import utils_libvirtd
-from virttest import remote
-
+from virttest import remote, utils_libvirtd
 from virttest.staging import service
 
 LOG = logging.getLogger("avocado." + __name__)

@@ -6,9 +6,9 @@ http://libvirt.org/formatdomain.html#elementsTpm
 
 import logging
 
+from virttest import xml_utils
 from virttest.libvirt_xml import accessors
 from virttest.libvirt_xml.devices import base
-from virttest import xml_utils
 
 LOG = logging.getLogger("avocado." + __name__)
 

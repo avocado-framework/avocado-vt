@@ -2,13 +2,12 @@ import logging
 
 from avocado.utils import process
 
-from .. import propcan, xml_utils
-from ..libvirt_xml import xcepts
-from .._wrappers import import_module
-
-
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
+
+from .. import propcan, xml_utils
+from .._wrappers import import_module
+from ..libvirt_xml import xcepts
 
 virsh = lazy_import("virttest.virsh")
 

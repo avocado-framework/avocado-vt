@@ -8,9 +8,8 @@ __all__ = ["register", "run_exitfuncs", "unregister"]
 
 import traceback
 
-from avocado.core import exceptions
-
 import six
+from avocado.core import exceptions
 
 
 def run_exitfuncs(env, test_type):

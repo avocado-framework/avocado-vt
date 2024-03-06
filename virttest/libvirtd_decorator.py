@@ -6,12 +6,10 @@ Copyright: Red Hat Inc. 2020
 import logging
 import os
 import re
+
+from avocado.utils import astring, path, process
+
 from virttest import data_dir
-
-from avocado.utils import process
-from avocado.utils import path
-from avocado.utils import astring
-
 
 try:
     path.find_command("libvirtd")

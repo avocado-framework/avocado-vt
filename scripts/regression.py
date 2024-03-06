@@ -7,9 +7,10 @@ compute and check regression bug.
 :author: Amos Kong <akong@redhat.com>
 """
 from __future__ import division
+
 import os
-import sys
 import re
+import sys
 import warnings
 
 try:
@@ -243,8 +244,8 @@ Please check sysinfo directory in autotest result to get more details.
         t-test: http://en.wikipedia.org/wiki/Student's_t-test
         """
         try:
-            from scipy import stats
             import numpy as np
+            from scipy import stats
         except ImportError:
             print("No python scipy/numpy library installed!")
             return None

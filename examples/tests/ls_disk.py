@@ -14,7 +14,6 @@ bigger differences.
 """
 import logging
 
-
 LOG = logging.getLogger("avocado.vt.examples.lsdisk")
 
 

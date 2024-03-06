@@ -8,10 +8,11 @@ import errno
 import fcntl
 import logging
 import os
+import re
 import socket
 import threading
 import time
-import re
+
 import six
 
 try:
@@ -20,21 +21,15 @@ except ImportError:
     import cPickle
 
 from aexpect import remote
-
 from avocado.core import exceptions
-from avocado.utils import crypto
-from avocado.utils import data_factory
+from avocado.utils import crypto, data_factory
 from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils.data_structures import DataSize
 
-from virttest import data_dir
-from virttest import storage
-from virttest import utils_test
-from virttest import utils_misc
-from virttest import env_process
+from virttest import data_dir, env_process
 from virttest import error_context as error
-from virttest import qemu_migration
+from virttest import qemu_migration, storage, utils_misc, utils_test
 
 try:
     import aexpect

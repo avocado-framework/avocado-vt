@@ -7,10 +7,7 @@ import re
 
 from avocado.core import exceptions
 
-from virttest import utils_config
-from virttest import utils_libvirtd
-from virttest import utils_split_daemons
-from virttest import remote
+from virttest import remote, utils_config, utils_libvirtd, utils_split_daemons
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)

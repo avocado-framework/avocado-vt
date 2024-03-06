@@ -4,20 +4,18 @@ Interfaces to the virt agent.
 :copyright: 2008-2012 Red Hat Inc.
 """
 
-import socket
-import time
-import logging
-import random
 import base64
 import json
+import logging
+import random
+import socket
+import time
 
+import six
 from avocado.utils import process
 
 from virttest import error_context
 from virttest.qemu_monitor import Monitor, MonitorError
-
-
-import six
 
 LOG = logging.getLogger("avocado." + __name__)
 

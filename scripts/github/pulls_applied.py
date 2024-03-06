@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import getpass
+
 import datetime
+import getpass
 
 from github import Github
 from github_issues import GithubIssues
-
 from six.moves import input
-
 
 gh = Github(
     login_or_token=input("Enter github username: "),

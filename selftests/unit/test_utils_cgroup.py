@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import os
-import unittest
-import tempfile
 import sys
+import tempfile
+import unittest
 
 from avocado.core import exceptions
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

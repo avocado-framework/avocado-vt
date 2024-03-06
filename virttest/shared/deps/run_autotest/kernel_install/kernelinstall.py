@@ -1,10 +1,9 @@
-import os
 import logging
+import os
 import sys
 
-from autotest.client import test
-from autotest.client import utils
-from autotest.client.shared import git, error, software_manager
+from autotest.client import test, utils
+from autotest.client.shared import error, git, software_manager
 
 LOG = logging.getLogger("avocado." + __name__)
 

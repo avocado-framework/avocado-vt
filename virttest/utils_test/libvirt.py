@@ -17,70 +17,68 @@ More specifically:
 """
 
 from __future__ import division
-import re
-import os
+
 import ast
 import logging
-import shutil
-import time
-import sys
-import aexpect
+import os
 import platform
 import random
-import string
+import re
 import shutil
+import string
+import sys
+import time
 
+import aexpect
+import six
 from aexpect import remote
-
 from avocado.core import exceptions
+from avocado.utils import distro, linux_modules
 from avocado.utils import path as utils_path
-from avocado.utils import process
-from avocado.utils import stacktrace
-from avocado.utils import linux_modules
-from avocado.utils import distro
+from avocado.utils import process, stacktrace
 from avocado.utils.astring import to_text
 
-import six
-
-from virttest import virsh
-from virttest import xml_utils
-from virttest import iscsi
-from virttest import nfs
-from virttest import utils_misc
-from virttest import utils_selinux
-from virttest import libvirt_storage
-from virttest import utils_net
-from virttest import gluster
-from virttest import test_setup
-from virttest import data_dir
-from virttest import utils_libvirtd
-from virttest import utils_config
-from virttest import utils_split_daemons
+from virttest import data_dir, gluster, iscsi, libvirt_storage, nfs
 from virttest import remote as remote_old
+from virttest import (
+    test_setup,
+    utils_config,
+    utils_libvirtd,
+    utils_misc,
+    utils_net,
+    utils_selinux,
+    utils_split_daemons,
+    virsh,
+    xml_utils,
+)
+from virttest.libvirt_xml import (
+    IPXML,
+    CapabilityXML,
+    NetworkXML,
+    base,
+    network_xml,
+    nwfilter_xml,
+    pool_xml,
+    secret_xml,
+    vm_xml,
+    vol_xml,
+    xcepts,
+)
+from virttest.libvirt_xml.devices import (
+    channel,
+    controller,
+    disk,
+    hostdev,
+    interface,
+    panic,
+    redirdev,
+    rng,
+    seclabel,
+    tpm,
+    vsock,
+)
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
-from virttest.libvirt_xml import vm_xml
-from virttest.libvirt_xml import network_xml
-from virttest.libvirt_xml import xcepts
-from virttest.libvirt_xml import NetworkXML
-from virttest.libvirt_xml import IPXML
-from virttest.libvirt_xml import pool_xml
-from virttest.libvirt_xml import nwfilter_xml
-from virttest.libvirt_xml import vol_xml
-from virttest.libvirt_xml import secret_xml
-from virttest.libvirt_xml import CapabilityXML
-from virttest.libvirt_xml import base
-from virttest.libvirt_xml.devices import disk
-from virttest.libvirt_xml.devices import hostdev
-from virttest.libvirt_xml.devices import controller
-from virttest.libvirt_xml.devices import redirdev
-from virttest.libvirt_xml.devices import seclabel
-from virttest.libvirt_xml.devices import channel
-from virttest.libvirt_xml.devices import interface
-from virttest.libvirt_xml.devices import panic
-from virttest.libvirt_xml.devices import tpm
-from virttest.libvirt_xml.devices import vsock
-from virttest.libvirt_xml.devices import rng
 
 ping = utils_net.ping
 

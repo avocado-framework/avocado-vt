@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import sys
-import getpass
+
 import datetime
+import getpass
+import sys
 
 # PyGithub >= 1.13 is required https://pypi.python.org/pypi/PyGithub
 from github import Github
-from github_issues import GithubIssuesBase, GithubIssues
+from github_issues import GithubIssues, GithubIssuesBase
 
 # You could use OAuth here too for unattended access
 # see http://developer.github.com/v3/oauth/#create-a-new-authorization

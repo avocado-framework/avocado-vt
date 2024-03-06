@@ -21,8 +21,7 @@ import traceback
 from avocado.core import exceptions
 from avocado.utils import genio, stacktrace
 
-from virttest import asset, bootstrap
-from virttest import data_dir
+from virttest import asset, bootstrap, data_dir
 from virttest._wrappers import import_module
 
 BG_ERR_FILE = "background-error.log"

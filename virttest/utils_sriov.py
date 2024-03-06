@@ -3,14 +3,12 @@ SRIOV related utility functions
 """
 
 import logging
-import re
 import os
+import re
 
 from avocado.core import exceptions
 
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import utils_package
+from virttest import utils_misc, utils_net, utils_package
 
 LOG = logging.getLogger("avocado." + __name__)
 

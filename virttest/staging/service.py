@@ -16,13 +16,12 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
+import logging
 import os
 import re
-import logging
 from tempfile import mktemp
 
 from avocado.utils import process
-
 
 _COMMAND_TABLE_DOC = """
 

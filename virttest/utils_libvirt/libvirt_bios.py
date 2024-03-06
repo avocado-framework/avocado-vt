@@ -6,7 +6,6 @@ Libvirt BIOS related utilities.
 
 import logging
 
-
 LOG = logging.getLogger("avocado." + __name__)
 
 

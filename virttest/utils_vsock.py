@@ -1,7 +1,7 @@
-import os
-import fcntl
-import struct
 import errno
+import fcntl
+import os
+import struct
 
 from virttest import arch
 

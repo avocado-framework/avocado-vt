@@ -8,8 +8,8 @@ import logging
 
 from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.devices import iommu
-from virttest.utils_test import libvirt
 from virttest.utils_libvirt import libvirt_vmxml
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

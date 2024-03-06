@@ -10,18 +10,13 @@ import json
 import logging
 import os
 import re
-import six
 import string
 
+import six
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import utils_misc
-from virttest import virt_vm
-from virttest import storage
-from virttest import nvme
-from virttest import data_dir
-from virttest import error_context
+from virttest import data_dir, error_context, nvme, storage, utils_misc, virt_vm
 
 LOG = logging.getLogger("avocado." + __name__)
 

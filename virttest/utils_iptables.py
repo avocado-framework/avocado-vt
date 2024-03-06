@@ -4,9 +4,8 @@ Library to perform iptables configuration for virt test.
 import logging
 
 from aexpect import remote
-
-from avocado.utils import process
 from avocado.core import exceptions
+from avocado.utils import process
 
 LOG = logging.getLogger("avocado." + __name__)
 

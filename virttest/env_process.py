@@ -1,60 +1,59 @@
 from __future__ import division
-import os
-import time
-import re
-import logging
+
+import copy
 import glob
-import threading
+import logging
+import multiprocessing
+import os
+import re
 import shutil
 import sys
-import copy
-import multiprocessing
+import threading
+import time
 
 import aexpect
+import six
 from aexpect import remote
-
-from avocado.utils import process as a_process
-from avocado.utils import crypto
-from avocado.utils import path
-from avocado.utils import distro
-from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
 from avocado.utils import archive
-
-import six
+from avocado.utils import cpu as cpu_utils
+from avocado.utils import crypto, distro, path
+from avocado.utils import process as a_process
 from six.moves import xrange
 
-from virttest import error_context
-from virttest import qemu_monitor
-from virttest import ppm_utils
-from virttest import test_setup
-from virttest import virt_vm
-from virttest import utils_misc
-from virttest import cpu
-from virttest import storage
-from virttest import utils_libguestfs
-from virttest import qemu_storage
-from virttest import data_dir
-from virttest import utils_net
-from virttest import nfs
-from virttest import utils_test
-from virttest import utils_iptables
-from virttest import utils_package
-from virttest import utils_qemu
-from virttest import migration
-from virttest import utils_kernel_module
-from virttest import arch
-from virttest import utils_logfile
-from virttest.utils_conn import SSHConnection
-from virttest.utils_version import VersionInterval
-from virttest.staging import service
-from virttest.test_setup.core import SetupManager
-from virttest.test_setup.os_posix import UlimitConfig
-from virttest.test_setup.networking import NetworkProxies, BridgeConfig
-from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
+from virttest import (
+    arch,
+    cpu,
+    data_dir,
+    error_context,
+    migration,
+    nfs,
+    ppm_utils,
+    qemu_monitor,
+    qemu_storage,
+    storage,
+    test_setup,
+    utils_iptables,
+    utils_kernel_module,
+    utils_libguestfs,
+    utils_logfile,
+    utils_misc,
+    utils_net,
+    utils_package,
+    utils_qemu,
+    utils_test,
+    virt_vm,
+)
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
+from virttest.staging import service
+from virttest.test_setup.core import SetupManager
+from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
+from virttest.test_setup.networking import BridgeConfig, NetworkProxies
+from virttest.test_setup.os_posix import UlimitConfig
+from virttest.utils_conn import SSHConnection
+from virttest.utils_version import VersionInterval
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
 virsh = lazy_import("virttest.virsh")

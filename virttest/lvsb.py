@@ -5,11 +5,10 @@ Higher order classes and functions for Libvirt Sandbox (lxc) container testing
 """
 
 import datetime
-import time
 import logging
+import time
 
 from virttest import lvsb_base
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

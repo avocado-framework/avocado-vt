@@ -1,18 +1,16 @@
 """
 Module to control split daemon service.
 """
-# pylint: disable=E0611
-import re
 import logging
 
-import aexpect
-from avocado.utils import process
-from avocado.utils import wait
-from avocado.core import exceptions
+# pylint: disable=E0611
+import re
 
-from virttest import libvirtd_decorator
-from virttest import remote
-from virttest import utils_misc
+import aexpect
+from avocado.core import exceptions
+from avocado.utils import process, wait
+
+from virttest import libvirtd_decorator, remote, utils_misc
 from virttest.staging import service
 from virttest.utils_gdb import GDB
 

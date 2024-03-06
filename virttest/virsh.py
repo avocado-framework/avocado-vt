@@ -21,31 +21,24 @@ for non-existant keys.
 :copyright: 2012 Red Hat Inc.
 """
 
-import signal
+import base64
+import inspect
+import locale
 import logging
 import os
 import re
-import weakref
-import time
 import select
-import locale
-import base64
-import inspect
-
+import signal
+import time
+import weakref
 from functools import wraps
 
 import aexpect
 from aexpect import remote
-
-from avocado.utils import path
-from avocado.utils import process
-
+from avocado.utils import path, process
 from six.moves import urllib
 
-from virttest import propcan
-from virttest import utils_misc
-from virttest import data_dir
-
+from virttest import data_dir, propcan, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 

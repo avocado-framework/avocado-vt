@@ -3,9 +3,7 @@ import re
 import aexpect
 from avocado.utils import process
 
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import error_context
+from virttest import error_context, utils_logfile, utils_misc
 
 
 class QemuIOParamError(Exception):

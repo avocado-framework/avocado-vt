@@ -4,8 +4,8 @@ Virtualization test - utility functions for libvirt
 :copyright: 2021 Red Hat Inc.
 """
 
-import re
 import logging
+import re
 
 LOG = logging.getLogger("avocado." + __name__)
 

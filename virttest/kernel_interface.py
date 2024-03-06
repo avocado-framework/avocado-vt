@@ -1,9 +1,8 @@
+import logging
 import os
 import re
-import logging
 
 from avocado.utils import process
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

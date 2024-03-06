@@ -8,9 +8,9 @@ The main use case is making sure the packages specified in a KojiInstaller
 will match the packages you intended to install.
 """
 
-import sys
 import optparse
 import os
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

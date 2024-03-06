@@ -1,16 +1,14 @@
 """
 Classes and functions for embedded qemu driver.
 """
-import re
 import logging
+import re
 
 import aexpect
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
-from virttest import utils_split_daemons
-from virttest import utils_misc
+from virttest import utils_misc, utils_split_daemons
 
 try:
     path.find_command("virt-qemu-run")

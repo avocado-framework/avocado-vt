@@ -3,13 +3,12 @@ Virtualization test - SwitchDev related utilities
 
 :copyright: Red Hat Inc.
 """
-import os
 import logging
+import os
 
 from avocado.utils import process
 
 from virttest import utils_sriov
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

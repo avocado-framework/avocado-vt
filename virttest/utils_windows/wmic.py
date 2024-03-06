@@ -4,7 +4,6 @@ Windows WMIC utilities
 
 import re
 
-
 _WMIC_CMD = "wmic"
 
 FMT_TYPE_LIST = "/format:list"

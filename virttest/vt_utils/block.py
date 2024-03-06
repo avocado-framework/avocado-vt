@@ -16,8 +16,8 @@
 import platform
 import re
 
-from avocado.utils import process
-from avocado.utils import wait
+from avocado.utils import process, wait
+
 from virttest import utils_numeric
 from virttest.vt_utils import filesystem
 

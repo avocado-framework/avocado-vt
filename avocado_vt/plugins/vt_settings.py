@@ -17,10 +17,9 @@ Avocado plugin that extends the settings path of our config paths
 """
 
 import os
-from pkg_resources import resource_filename
-from pkg_resources import resource_listdir
 
 from avocado.core.plugin_interfaces import Settings
+from pkg_resources import resource_filename, resource_listdir
 
 
 class VTSettings(Settings):

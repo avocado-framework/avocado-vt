@@ -1,46 +1,39 @@
 """Library to perform pre/post test setup for virt test."""
 from __future__ import division
-import os
-import logging
-import time
-import re
-import random
-import math
-import shutil
-import platform
-import ipaddress
-import six
 
+import ipaddress
+import logging
+import math
+import os
+import platform
+import random
+import re
+import shutil
+import time
 from pathlib import Path
 
+import six
 from aexpect import remote
-
-from avocado.utils import process
-from avocado.utils import archive
-from avocado.utils import wait
-from avocado.utils import genio
-from avocado.utils import path
-from avocado.utils import distro
-from avocado.utils import linux_modules
 from avocado.core import exceptions
+from avocado.utils import archive, distro, genio, linux_modules, path, process, wait
 
-from virttest import data_dir
-from virttest import error_context
-from virttest import cpu
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import versionable_class
-from virttest import openvswitch
-from virttest import utils_libvirtd
-from virttest import utils_net
-from virttest import utils_config
-from virttest import utils_package
-from virttest import kernel_interface
-from virttest import libvirt_version
-from virttest import utils_split_daemons
-from virttest.staging import service
-from virttest.staging import utils_memory
-
+from virttest import (
+    cpu,
+    data_dir,
+    error_context,
+    kernel_interface,
+    libvirt_version,
+    openvswitch,
+    utils_config,
+    utils_libvirtd,
+    utils_logfile,
+    utils_misc,
+    utils_net,
+    utils_package,
+    utils_split_daemons,
+    versionable_class,
+)
+from virttest.staging import service, utils_memory
 
 ARCH = platform.machine()
 

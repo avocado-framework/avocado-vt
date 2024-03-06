@@ -2,7 +2,6 @@ import unittest
 
 from virttest.libvirt_xml.devices import controller
 
-
 XM_PCI = """
     <controller type='pci' index='1' model='pcie-root-port'>
       <model name='pcie-root-port'/>

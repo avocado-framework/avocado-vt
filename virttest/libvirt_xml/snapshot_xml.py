@@ -4,9 +4,8 @@ http://libvirt.org/formatsnapshot.html
 """
 
 from virttest import xml_utils
-from virttest.libvirt_xml import base, accessors
+from virttest.libvirt_xml import accessors, base, xcepts
 from virttest.libvirt_xml.devices.disk import Disk
-from virttest.libvirt_xml import xcepts
 
 
 class SnapshotXMLBase(base.LibvirtXMLBase):

@@ -12,16 +12,11 @@ import os
 import re
 import socket
 
-from avocado.utils import process
-from avocado.utils import path as utils_path
 from avocado.core import exceptions
+from avocado.utils import path as utils_path
+from avocado.utils import process
 
-from virttest import data_dir
-from virttest import utils_disk
-from virttest import remote
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import error_context
+from virttest import data_dir, error_context, remote, utils_disk, utils_misc, utils_net
 
 LOG = logging.getLogger("avocado." + __name__)
 

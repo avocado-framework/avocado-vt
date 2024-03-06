@@ -2,7 +2,7 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatbackup.html
 """
-from virttest.libvirt_xml import base, accessors, xcepts
+from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class BackupXML(base.LibvirtXMLBase):

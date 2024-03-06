@@ -4,9 +4,7 @@ graphics framebuffer device support class(es)
 http://libvirt.org/formatdomain.html#elementsGraphics
 """
 
-from virttest.libvirt_xml import accessors
-from virttest.libvirt_xml import vm_xml
-from virttest.libvirt_xml import xcepts
+from virttest.libvirt_xml import accessors, vm_xml, xcepts
 from virttest.libvirt_xml.devices import base
 
 

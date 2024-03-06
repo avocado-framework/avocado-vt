@@ -5,37 +5,37 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 """
 
 from __future__ import division
-import time
-import string
-import os
-import logging
+
 import fcntl
+import logging
+import os
+import platform
 import re
 import shutil
+import string
 import tempfile
-import platform
+import time
 
 import aexpect
 from aexpect import remote
-
-from avocado.utils import process
-from avocado.utils import crypto
 from avocado.core import exceptions
+from avocado.utils import crypto, process
 
-from virttest import error_context
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import cpu
-from virttest import virt_vm
-from virttest import storage
-from virttest import virsh
-from virttest import libvirt_xml
-from virttest import data_dir
-from virttest import xml_utils
-from virttest import utils_selinux
-from virttest import test_setup
-from virttest import utils_package
-
+from virttest import (
+    cpu,
+    data_dir,
+    error_context,
+    libvirt_xml,
+    storage,
+    test_setup,
+    utils_logfile,
+    utils_misc,
+    utils_package,
+    utils_selinux,
+    virsh,
+    virt_vm,
+    xml_utils,
+)
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.

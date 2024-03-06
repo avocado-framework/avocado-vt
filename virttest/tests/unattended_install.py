@@ -1,12 +1,13 @@
 from __future__ import division
+
 import logging
-import time
-import re
 import os
-import tempfile
-import threading
+import re
 import shutil
 import stat
+import tempfile
+import threading
+import time
 import xml.dom.minidom
 
 try:
@@ -15,29 +16,25 @@ except ImportError:
     import ConfigParser
 
 from aexpect import remote
-
 from avocado.core import exceptions
-from avocado.utils import astring
-from avocado.utils import iso9660
-from avocado.utils import process
-from avocado.utils import crypto
-from avocado.utils import download
+from avocado.utils import astring, crypto, download, iso9660, process
 
-from virttest import virt_vm
-from virttest import asset
-from virttest import utils_disk
-from virttest import qemu_monitor
-from virttest import syslog_server
-from virttest import http_server
-from virttest import data_dir
-from virttest import utils_net
-from virttest import utils_test
-from virttest import utils_misc
-from virttest import funcatexit
-from virttest import storage
-from virttest import error_context
-from virttest import qemu_storage
-
+from virttest import (
+    asset,
+    data_dir,
+    error_context,
+    funcatexit,
+    http_server,
+    qemu_monitor,
+    qemu_storage,
+    storage,
+    syslog_server,
+    utils_disk,
+    utils_misc,
+    utils_net,
+    utils_test,
+    virt_vm,
+)
 
 # Whether to print all shell commands called
 DEBUG = False

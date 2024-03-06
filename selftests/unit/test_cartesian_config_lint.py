@@ -10,7 +10,6 @@ else:
 
 from virttest import cartesian_config
 
-
 BASEDIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RHELDIR = os.path.join(BASEDIR, "shared", "cfg", "guest-os", "Linux", "RHEL")
 UNATTENDEDDIR = os.path.join(BASEDIR, "shared", "unattended")

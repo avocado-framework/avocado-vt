@@ -2,7 +2,7 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomaincheckpoint.html
 """
-from virttest.libvirt_xml import base, accessors
+from virttest.libvirt_xml import accessors, base
 
 
 class CheckpointXML(base.LibvirtXMLBase):

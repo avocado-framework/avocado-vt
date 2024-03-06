@@ -12,14 +12,13 @@
 # Copyright: Red Hat Inc. 2015
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
-import sys
 import logging
+import sys
 
-from avocado.utils import process
 from avocado.core.plugin_interfaces import CLICmd
+from avocado.utils import process
 
-from virttest import bootstrap
-from virttest import defaults
+from virttest import bootstrap, defaults
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
 LOG = logging.getLogger("avocado.app")

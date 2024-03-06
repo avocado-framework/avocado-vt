@@ -6,32 +6,35 @@ This exports:
   - class for image operates and basic parameters
 """
 from __future__ import division
+
+import collections
 import errno
+import functools
+import json
 import logging
 import os
-import shutil
 import re
-import functools
-import collections
-import json
+import shutil
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import storage_ssh
-from virttest import nbd
-from virttest import curl
-from virttest import iscsi
-from virttest import utils_misc
-from virttest import utils_numeric
-from virttest import utils_params
-from virttest import virt_vm
-from virttest import gluster
-from virttest import lvm
-from virttest import ceph
-from virttest import nvme
-from virttest import data_dir
-from virttest import vdpa_blk
+from virttest import (
+    ceph,
+    curl,
+    data_dir,
+    gluster,
+    iscsi,
+    lvm,
+    nbd,
+    nvme,
+    storage_ssh,
+    utils_misc,
+    utils_numeric,
+    utils_params,
+    vdpa_blk,
+    virt_vm,
+)
 
 LOG = logging.getLogger("avocado." + __name__)
 

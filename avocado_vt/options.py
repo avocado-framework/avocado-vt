@@ -21,18 +21,16 @@ import os
 
 from avocado.utils import path as utils_path
 
-from virttest import cartesian_config
-from virttest import data_dir
-from virttest import defaults
-from virttest import standalone_test
+from virttest import cartesian_config, data_dir, defaults, standalone_test
 from virttest.compat import get_opt, set_opt, set_opt_from_settings
-from virttest.standalone_test import SUPPORTED_DISK_BUSES
-from virttest.standalone_test import SUPPORTED_IMAGE_TYPES
-from virttest.standalone_test import SUPPORTED_LIBVIRT_DRIVERS
-from virttest.standalone_test import SUPPORTED_NET_TYPES
-from virttest.standalone_test import SUPPORTED_NIC_MODELS
-from virttest.standalone_test import SUPPORTED_TEST_TYPES
-
+from virttest.standalone_test import (
+    SUPPORTED_DISK_BUSES,
+    SUPPORTED_IMAGE_TYPES,
+    SUPPORTED_LIBVIRT_DRIVERS,
+    SUPPORTED_NET_TYPES,
+    SUPPORTED_NIC_MODELS,
+    SUPPORTED_TEST_TYPES,
+)
 
 LOG = logging.getLogger("avocado.vt.options")
 

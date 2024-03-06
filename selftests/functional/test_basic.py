@@ -4,10 +4,9 @@ import shutil
 import tempfile
 import unittest
 
-from avocado.utils import process
-from avocado.utils import script
-from virttest import data_dir
+from avocado.utils import process, script
 
+from virttest import data_dir
 
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 BASE_DIR = os.path.abspath(BASE_DIR)

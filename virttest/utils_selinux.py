@@ -3,12 +3,10 @@ selinux test utility functions.
 """
 
 import logging
-import re
 import os
+import re
 
-from avocado.utils import process
-from avocado.utils import distro
-
+from avocado.utils import distro, process
 
 ubuntu = distro.detect().name == "Ubuntu"
 

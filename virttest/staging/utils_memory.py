@@ -1,8 +1,9 @@
 from __future__ import division
-import re
-import math
+
 import logging
+import math
 import os
+import re
 
 from avocado.core import exceptions
 from avocado.utils import process

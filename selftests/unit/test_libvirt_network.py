@@ -2,13 +2,12 @@
 """
 Unit tests for Manipulator classes in libvirt_xml module.
 """
-import unittest
+import itertools
 import os
 import sys
-import itertools
+import unittest
 
 from avocado.utils.process import CmdResult
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +15,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from test_virsh import FakeVirshFactory
+
 from virttest.libvirt_xml.network_xml import NetworkXML
 
 # The output of virsh.net_list with only default net

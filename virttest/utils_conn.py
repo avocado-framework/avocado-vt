@@ -9,19 +9,18 @@ import tempfile
 
 import aexpect
 from aexpect import remote
-
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
-from virttest import propcan, utils_libvirtd
+from virttest import data_dir, libvirt_version, propcan
 from virttest import remote as remote_old
-from virttest import data_dir
-from virttest import utils_misc
-from virttest import utils_package
-from virttest import libvirt_version
-from virttest import utils_split_daemons
-from virttest import utils_iptables
+from virttest import (
+    utils_iptables,
+    utils_libvirtd,
+    utils_misc,
+    utils_package,
+    utils_split_daemons,
+)
 
 LOG = logging.getLogger("avocado." + __name__)
 

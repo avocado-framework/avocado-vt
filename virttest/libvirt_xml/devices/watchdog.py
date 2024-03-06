@@ -4,8 +4,9 @@ watchdog device support class(es)
 http://libvirt.org/formatdomain.html#elementsWatchdog
 """
 
-import aexpect
 import logging
+
+import aexpect
 
 from virttest.libvirt_xml import accessors
 from virttest.libvirt_xml.devices import base

@@ -3,32 +3,29 @@ Virtualization test - Virtual disk related utility functions
 
 :copyright: Red Hat Inc.
 """
-import os
 import glob
-import shutil
-import stat
+import logging
+import os
 import platform
 import random
+import re
+import shutil
+import stat
 import string
 import tempfile
-import logging
-import re
 
 try:
     import configparser as ConfigParser
 except ImportError:
     import ConfigParser
+
 from functools import cmp_to_key
 
 from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import wait
+from avocado.utils import process, wait
 from avocado.utils.service import SpecificServiceManager
 
-from virttest import error_context
-from virttest import utils_numeric
-from virttest import utils_misc
-from virttest import remote
+from virttest import error_context, remote, utils_misc, utils_numeric
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
 PARTITION_TABLE_TYPE_GPT = "gpt"

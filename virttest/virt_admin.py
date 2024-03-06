@@ -21,24 +21,18 @@ for non-existant keys.
 :copyright: 2012 Red Hat Inc.
 """
 
-import signal
 import logging
 import re
-import weakref
-import time
 import select
+import signal
+import time
+import weakref
 
 import aexpect
 from aexpect import remote
+from avocado.utils import path, process
 
-from avocado.utils import path
-from avocado.utils import process
-
-from virttest import propcan
-from virttest import utils_misc
-from virttest import utils_split_daemons
-from virttest import utils_config
-
+from virttest import propcan, utils_config, utils_misc, utils_split_daemons
 
 # list of symbol names NOT to wrap as Virtadmin class methods
 # Everything else from globals() will become a method of Virtadmin class

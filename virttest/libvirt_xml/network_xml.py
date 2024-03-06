@@ -6,7 +6,7 @@ http://libvirt.org/formatnetwork.html
 import logging
 
 from virttest import xml_utils
-from virttest.libvirt_xml import base, xcepts, accessors
+from virttest.libvirt_xml import accessors, base, xcepts
 from virttest.libvirt_xml.devices import librarian
 
 LOG = logging.getLogger("avocado." + __name__)

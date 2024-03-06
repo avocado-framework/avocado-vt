@@ -2,7 +2,6 @@ import unittest
 
 from virttest.libvirt_xml.devices import interface
 
-
 XML = """
   <interface type='network'>
     <source network='default' portgroup='engineering'/>

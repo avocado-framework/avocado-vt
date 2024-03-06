@@ -6,7 +6,6 @@ import os
 
 from virttest.libvirt_xml import base
 
-
 # Avoid accidental names like __init__, librarian, and/or other support modules
 DEVICE_TYPES = [
     "disk",

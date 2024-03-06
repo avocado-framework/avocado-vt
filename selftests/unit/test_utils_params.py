@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import unittest
 import os
 import sys
+import unittest
 from collections import OrderedDict
 
 # simple magic for using scripts within a source tree

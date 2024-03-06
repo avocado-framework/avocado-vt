@@ -3,14 +3,13 @@ Virtualization test - cgroup related utility functions for libvirt
 
 :copyright: 2019 Red Hat Inc.
 """
-import os
 import logging
+import os
 import re
 
 from avocado.utils import process
 
-from virttest import utils_disk
-from virttest import virsh
+from virttest import utils_disk, virsh
 from virttest.staging import utils_cgroup
 
 VIRSH_BLKIOTUNE_OUTPUT_MAPPING = {

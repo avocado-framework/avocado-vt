@@ -3,14 +3,13 @@ Graphical Console
 """
 
 from __future__ import division
-import time
-import os
+
 import csv
 import math
+import os
+import time
 
-from virttest import data_dir
-from virttest import ppm_utils
-
+from virttest import data_dir, ppm_utils
 
 _STR_DASH = "-"
 

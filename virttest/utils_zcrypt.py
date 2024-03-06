@@ -30,10 +30,11 @@ Example:
     mask_helper.return_to_host_all()
 
 """
-from uuid import uuid1
 from os.path import join
+from uuid import uuid1
 
 from avocado.utils import process
+
 from virttest.utils_misc import cmd_status_output
 
 # timeout value in seconds for any command run

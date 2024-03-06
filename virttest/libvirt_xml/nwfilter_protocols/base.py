@@ -5,7 +5,7 @@ Common base classes for filter rule protocols
 from six import StringIO
 
 from virttest import xml_utils
-from virttest.libvirt_xml import base, xcepts, accessors
+from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class UntypedDeviceBase(base.LibvirtXMLBase):

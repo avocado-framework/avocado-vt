@@ -1,6 +1,7 @@
 import ast
 import logging
 import os.path
+
 from six import StringIO
 
 try:

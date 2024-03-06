@@ -5,15 +5,14 @@ oVirt SDK wrapper module.
 """
 
 
-import time
 import logging
+import time
 
 import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
 
 from virttest import virt_vm
 from virttest.utils_net import ping
-
 
 _api = None
 _connected = False

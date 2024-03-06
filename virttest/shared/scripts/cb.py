@@ -1,11 +1,11 @@
 import pygtk
 
 pygtk.require("2.0")
-import gtk
-import sys
 import os
+import sys
 from optparse import OptionParser
 
+import gtk
 from six.moves import xrange
 
 

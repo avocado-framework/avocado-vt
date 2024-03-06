@@ -1,8 +1,7 @@
 import logging
-import six
+from abc import ABCMeta, abstractmethod
 
-from abc import ABCMeta
-from abc import abstractmethod
+import six
 
 LOG = logging.getLogger("avocado." + __name__)
 

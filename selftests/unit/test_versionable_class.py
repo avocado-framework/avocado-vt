@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import unittest
 import os
 import sys
+import unittest
 
 try:
     import pickle as cPickle
@@ -15,7 +15,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest.unittest_utils import mock
-from virttest.versionable_class import Manager, factory, VersionableClass
+from virttest.versionable_class import Manager, VersionableClass, factory
 
 man = Manager(__name__)
 

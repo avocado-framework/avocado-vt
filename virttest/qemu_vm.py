@@ -6,56 +6,52 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 
 from __future__ import division
 
-import shutil
-import time
-import os
-import logging
-import fcntl
-import re
-import random
-import sys
-import math
-import json
 import ast
-
+import fcntl
+import json
+import logging
+import math
+import os
+import random
+import re
+import shutil
+import sys
+import time
 from functools import partial, reduce
 from operator import mul
 
 import aexpect
-from aexpect import remote
-
-from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import crypto
-from avocado.utils import linux_modules
-from avocado.utils.astring import to_text
-
 import six
+from aexpect import remote
+from avocado.core import exceptions
+from avocado.utils import crypto, linux_modules, process
+from avocado.utils.astring import to_text
 from six.moves import xrange
 
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import utils_qemu
-from virttest import cpu
-from virttest import virt_vm
-from virttest import test_setup
-from virttest import qemu_migration
-from virttest import qemu_monitor
-from virttest import qemu_virtio_port
-from virttest import data_dir
-from virttest import utils_net
-from virttest import arch
-from virttest import storage
-from virttest import error_context
-from virttest import utils_vsock
-from virttest import utils_vdpa
-from virttest import error_event
-from virttest.qemu_devices import qdevices, qcontainer
-from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
+from virttest import (
+    arch,
+    cpu,
+    data_dir,
+    error_context,
+    error_event,
+    qemu_migration,
+    qemu_monitor,
+    qemu_virtio_port,
+    storage,
+    test_setup,
+    utils_logfile,
+    utils_misc,
+    utils_net,
+    utils_qemu,
+    utils_vdpa,
+    utils_vsock,
+    virt_vm,
+)
 from virttest.qemu_capabilities import Flags
+from virttest.qemu_devices import qcontainer, qdevices
+from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
 from virttest.utils_params import Params
 from virttest.utils_version import VersionInterval
-
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.

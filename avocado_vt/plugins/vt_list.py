@@ -21,12 +21,14 @@ import sys
 
 from avocado.core.plugin_interfaces import CLI
 
-from virttest.compat import get_settings_value, add_option
-from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from virttest._wrappers import load_source
+from virttest.compat import add_option, get_settings_value
+
+from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 
 try:
     from avocado.core.loader import loader
+
     from ..loader import VirtTestLoader
 
     AVOCADO_LOADER_AVAILABLE = True
@@ -69,7 +71,6 @@ if VIRT_TEST_PATH is not None:
     sys.path.append(os.path.expanduser(VIRT_TEST_PATH))
 
 from virttest import data_dir  # pylint: disable=C0413
-
 
 _PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_test_providers_dir(), "downloads")
 

@@ -12,15 +12,10 @@ import os
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import ceph
-from virttest import data_dir
-from virttest import utils_package
-from virttest import virsh
-
-from virttest.utils_test import libvirt
-from virttest.utils_libvirt import libvirt_disk
-
+from virttest import ceph, data_dir, utils_package, virsh
 from virttest.libvirt_xml import vm_xml
+from virttest.utils_libvirt import libvirt_disk
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

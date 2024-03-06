@@ -6,12 +6,11 @@ import logging
 import re
 
 from aexpect import remote
-
 from avocado.core import exceptions
 
 from virttest import virsh
-from virttest.utils_test import libvirt
 from virttest.libvirt_xml import secret_xml
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

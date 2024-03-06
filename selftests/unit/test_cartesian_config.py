@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import unittest
-import os
 import gzip
+import os
 import sys
+import unittest
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -11,7 +11,6 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import cartesian_config
-
 
 mydir = os.path.dirname(__file__)
 testdatadir = os.path.join(mydir, "unittest_data")

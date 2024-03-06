@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from virttest.test_setup.networking import BridgeConfig, NetworkProxies
 from virttest.utils_params import Params
-from virttest.test_setup.networking import NetworkProxies, BridgeConfig
 
 
 class TestProxySetuper(unittest.TestCase):

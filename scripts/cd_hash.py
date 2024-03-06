@@ -5,15 +5,13 @@ Program that calculates several hashes for a given CD image.
 :copyright: Red Hat 2008-2009
 """
 
-import os
-import sys
 import logging
 import optparse
+import os
+import sys
 
 from avocado.utils import crypto
-
 from logging_config import LoggingConfig
-
 
 if __name__ == "__main__":
     log_cfg = LoggingConfig(set_fmt=False)

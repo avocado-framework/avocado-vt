@@ -2,13 +2,12 @@
 Windows virtio-win utilities
 """
 
-import re
 import logging
+import re
 
-from . import drive
-from . import system
 from avocado.core import exceptions
 
+from . import drive, system
 
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
 ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}

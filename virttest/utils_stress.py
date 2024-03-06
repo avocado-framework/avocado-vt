@@ -1,18 +1,16 @@
+import logging
 import os
 import random
-import time
 import threading
-import logging
+import time
 
-from avocado.utils import cpu
 from avocado.core import exceptions
+from avocado.utils import cpu
 
-from virttest import virsh
 from virttest import cpu as cpuutil
-from virttest import utils_net
-from virttest import utils_package
-from virttest.utils_test import libvirt
+from virttest import utils_net, utils_package, virsh
 from virttest.libvirt_xml.devices.disk import Disk
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

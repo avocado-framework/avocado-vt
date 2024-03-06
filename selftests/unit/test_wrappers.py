@@ -1,13 +1,12 @@
 import os
+import random
 import sys
 import unittest
-import random
-from string import ascii_lowercase as ascii_lc
-
-from time import sleep
-from copy import deepcopy
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, wait
+from copy import deepcopy
+from string import ascii_lowercase as ascii_lc
+from time import sleep
 
 from virttest import _wrappers
 
