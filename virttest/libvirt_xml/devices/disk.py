@@ -104,6 +104,7 @@ class Disk(base.TypedDeviceBase):
         "reservations",
         "backingstore",
         "driver_metadatacache",
+        "driver_iothreads",
         "sharebacking",
     )
 
@@ -135,6 +136,14 @@ class Disk(base.TypedDeviceBase):
         accessors.XMLElementText("vendor", self, parent_xpath="/", tag_name="vendor")
         accessors.XMLElementText("product", self, parent_xpath="/", tag_name="product")
         accessors.XMLElementDict("driver", self, parent_xpath="/", tag_name="driver")
+        accessors.XMLElementNest(
+            "driver_iothreads",
+            self,
+            parent_xpath="/driver",
+            tag_name="iothreads",
+            subclass=self.DiskDriverIOthreadsXML,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
         accessors.XMLElementNest(
             "driver_metadatacache",
             self,
@@ -479,6 +488,114 @@ class Disk(base.TypedDeviceBase):
             if tag != "host":
                 return None  # skip this one
             return dict(attr_dict)  # return copy of dict, not reference
+
+    class DiskDriverIOthreadsXML(base.base.LibvirtXMLBase):
+
+        """
+        iothreads tag XML class
+
+        Elements:
+            iothread
+        """
+
+        __slots__ = ("iothread",)
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementList(
+                "iothread",
+                self,
+                forbidden=[],
+                parent_xpath="/",
+                marshal_from=self.marshal_from_iothread,
+                marshal_to=self.marshal_to_iothread,
+                has_subclass=True,
+            )
+            super(Disk.DiskDriverIOthreadsXML, self).__init__(
+                virsh_instance=virsh_instance
+            )
+            self.xml = "<iothreads/>"
+
+        @staticmethod
+        def marshal_from_iothread(item, index, libvirtxml):
+            """
+            Convert an xml object to iothread tag and xml element.
+            """
+            if isinstance(item, Disk.DiskDriverIOthreadsXML.IOthreadXML):
+                return "iothread", item
+            elif isinstance(item, dict):
+                iothread = Disk.DiskDriverIOthreadsXML.IOthreadXML()
+                iothread.setup_attrs(**item)
+                return "iothread", iothread
+            else:
+                raise xcepts.LibvirtXMLError(
+                    "Expected a list of iothread instances, not a %s" % str(item)
+                )
+
+        @staticmethod
+        def marshal_to_iothread(tag, new_treefile, index, libvirtxml):
+            """
+            Convert an iothread tag xml element to an object of VMIothreadXML.
+            """
+            if tag != "iothread":
+                return None  # Don't convert this item
+            newone = Disk.DiskDriverIOthreadsXML.IOthreadXML(
+                virsh_instance=libvirtxml.virsh
+            )
+            newone.xmltreefile = new_treefile
+            return newone
+
+        class IOthreadXML(base.base.LibvirtXMLBase):
+            """
+            Class of disk driver iothread tag
+            """
+
+            __slots__ = ("id", "queue")
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLAttribute(
+                    property_name="id",
+                    libvirtxml=self,
+                    forbidden=[],
+                    parent_xpath="/",
+                    tag_name="iothread",
+                    attribute="id",
+                )
+                accessors.XMLElementList(
+                    "queue",
+                    self,
+                    parent_xpath="/",
+                    marshal_from=self.marshal_from_queue,
+                    marshal_to=self.marshal_to_queue,
+                )
+                super(Disk.DiskDriverIOthreadsXML.IOthreadXML, self).__init__(
+                    virsh_instance=virsh_instance
+                )
+                self.xml = "<iothread/>"
+
+            @staticmethod
+            def marshal_from_queue(item, index, libvirtxml):
+                """
+                Convert a dict to queue tag and attributes
+                """
+                del index
+                del libvirtxml
+                if not isinstance(item, dict):
+                    raise xcepts.LibvirtXMLError(
+                        "Expected a dictionary of queue "
+                        "attributes, not a %s" % str(item)
+                    )
+                return ("queue", dict(item))
+
+            @staticmethod
+            def marshal_to_queue(tag, attr_dict, index, libvirtxml):
+                """
+                Convert a queue tag and attributes to a dict
+                """
+                del index
+                del libvirtxml
+                if tag != "queue":
+                    return None
+                return dict(attr_dict)
 
     class IOTune(base.base.LibvirtXMLBase):
 
