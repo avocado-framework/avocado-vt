@@ -18,6 +18,7 @@ Module for providing the interface of cluster for virt test.
 
 import os
 import pickle
+import uuid
 
 from virttest import data_dir
 
@@ -32,7 +33,17 @@ class _Partition(object):
     """The representation of the partition of the cluster."""
 
     def __init__(self):
+        self._uuid = uuid.uuid4().hex
+        self._pools = dict()
         self._nodes = set()
+
+    @property
+    def pools(self):
+        return self._pools
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     def add_node(self, node):
         """
@@ -200,6 +211,18 @@ class _Cluster(object):
         for partition in self._data["partitions"]:
             nodes = nodes - partition.nodes
         return list(nodes)
+
+    @property
+    def partition(self):
+        """
+        When the job starts a new process to run a case, the cluster object
+        will be re-constructed as a new one, it reads the dumped file to get
+        back all the information. Note the cluster here is a 'slice' because
+        this object only serves the current test case, when the process(test
+        case) is finished, the slice cluster is gone. So there is only one
+        partition object added in self._data["partition"]
+        """
+        return self._data["partitions"][0]
 
 
 cluster = _Cluster()
