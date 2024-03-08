@@ -18,6 +18,7 @@ Module for providing the interface of cluster for virt test.
 
 import os
 import pickle
+import uuid
 
 from virttest import data_dir
 
@@ -32,7 +33,17 @@ class _Partition(object):
     """The representation of the partition of the cluster."""
 
     def __init__(self):
+        self._uuid = uuid.uuid4().hex
+        self._pools = dict()
         self._nodes = set()
+
+    @property
+    def pools(self):
+        return self._pools
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     def add_node(self, node):
         """
@@ -200,6 +211,12 @@ class _Cluster(object):
         for partition in self._data["partitions"]:
             nodes = nodes - partition.nodes
         return list(nodes)
+
+    def get_partition(self, partition_id):
+        for partition in self._data["partitions"]:
+            if partition.uuid == partition_id:
+                return partition
+        return None
 
 
 cluster = _Cluster()

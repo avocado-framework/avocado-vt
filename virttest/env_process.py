@@ -60,6 +60,8 @@ from virttest.test_setup.requirement_checks import (
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.utils_version import VersionInterval
+from virttest.vt_imgr import vt_imgr
+
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
 virsh = lazy_import("virttest.virsh")
@@ -132,32 +134,56 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
                               only for keep it work with process_images()
     :note: Currently this function just creates an image if requested.
     """
+    # FIXME:
+    image_id = None
+    if params.get_boolean("multihost"):
+        image_config = vt_imgr.define_image_config(image_name, params)
+        image_id = vt_imgr.create_image_object(image_config)
+
+    params = params.object_params(image_name)
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
 
     if not storage.preprocess_image_backend(base_dir, params, image_name):
         LOG.error("Backend can't be prepared correctly.")
 
-    image_filename = storage.get_image_filename(params, base_dir)
+    image_filename = None
+    if not params.get_boolean("multihost"):
+        image_filename = storage.get_image_filename(params, base_dir)
 
     create_image = False
     if params.get("force_create_image") == "yes":
         create_image = True
-    elif params.get("create_image") == "yes" and not storage.file_exists(
-        params, image_filename
-    ):
-        create_image = True
+    elif params.get("create_image") == "yes":
+        # FIXME: check all volumes allocated
+        if params.get_boolean("multihost"):
+            volume = vt_imgr.query_image(
+                image_id,
+                request=f"spec.virt-images.{image_name}.spec.volume.meta"
+            )
+            create_image = True if not volume["meta"]["allocated"] else False
+        else:
+            create_image = True if not storage.file_exists(params, image_filename) else False
+    else:
+        # FIXME: sync all volumes configurations
+        if params.get_boolean("multihost"):
+            vt_imgr.query_image(image_id)
+        # TODO: check if file allocated
 
     if params.get("backup_image_before_testing", "no") == "yes":
+        # FIXME: add backup_image
         image = qemu_storage.QemuImg(params, base_dir, image_name)
         image.backup_image(params, base_dir, "backup", True, True)
     if create_image:
-        if storage.file_exists(params, image_filename):
-            # As rbd image can not be covered, so need remove it if we need
-            # force create a new image.
-            storage.file_remove(params, image_filename)
-        image = qemu_storage.QemuImg(params, base_dir, image_name)
-        LOG.info("Create image on %s." % image.storage_type)
-        image.create(params)
+        if params.get_boolean("multihost"):
+            vt_imgr.handle_image(image_id, {"create": {}})
+        else:
+            if storage.file_exists(params, image_filename):
+                # As rbd image can not be covered, so need remove it if we need
+                # force create a new image.
+                storage.file_remove(params, image_filename)
+            image = qemu_storage.QemuImg(params, base_dir, image_name)
+            LOG.info("Create image on %s." % image.storage_type)
+            image.create(params)
 
 
 def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
@@ -537,6 +563,16 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
         )
         return
 
+    # FIXME: multihost
+    image_id = None
+    if params.get_boolean("multihost"):
+        image_id = vt_imgr.get_image_by_tag(image_name)
+        if image_id is None:
+            LOG.warning(f"Cannot find image {image_name}")
+            image_config = vt_imgr.define_image_config(image_name, params)
+            image_id = vt_imgr.create_image_object(image_config)
+    params = params.object_params(image_name)
+
     restored, removed = (False, False)
     clone_master = params.get("clone_master", None)
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
@@ -594,10 +630,18 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
         )
         LOG.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
-            image.remove()
+            if params.get_boolean("multihost"):
+                vt_imgr.handle_image(image_id, {"destroy": {}})
+                vt_imgr.destroy_image_object(image_id)
+            else:
+                image.remove()
         elif clone_master == "yes":
             if image_name in params.get("master_images_clone").split():
-                image.remove()
+                if params.get_boolean("multihost"):
+                    vt_imgr.handle_image(image_id, {"destroy": {}})
+                    vt_imgr.destroy_image_object(image_id)
+                else:
+                    image.remove()
 
 
 def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
@@ -827,8 +871,9 @@ def _process_images_serial(
                               or None for no vm exist.
     """
     for image_name in images:
-        image_params = params.object_params(image_name)
-        image_func(test, image_params, image_name, vm_process_status)
+        #image_params = params.object_params(image_name)
+        #image_func(test, image_params, image_name, vm_process_status)
+        image_func(test, params, image_name, vm_process_status)
         if exit_event and exit_event.is_set():
             LOG.error("Received exit_event, stop processing of images.")
             break

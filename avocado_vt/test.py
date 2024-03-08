@@ -37,6 +37,7 @@ from virttest import (
 )
 from virttest._wrappers import load_source
 from virttest.vt_cluster import cluster, logger, selector
+from virttest.vt_resmgr import get_all_resource_pools
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
@@ -363,8 +364,15 @@ class VirtTest(test.Test, utils.TestUtils):
 
         return test_passed
 
+    @property
+    def partition_uuid(self):
+        return self._cluster_partition.uuid
+
     def _init_partition(self):
         self._cluster_partition = cluster.create_partition()
+        # Add partition uuid as a case-specific global param, which is the
+        # only way to get the case's running env easily
+        self.params["cluster_partition_uuid"] = self._cluster_partition.uuid
 
     def _setup_partition(self):
         for node in self.params.objects("nodes"):
@@ -378,6 +386,19 @@ class VirtTest(test.Test, utils.TestUtils):
             _node.tag = node
             self._cluster_partition.add_node(_node)
 
+        for pool_tag in self.params.objects("pools"):
+            pool_params = self.params.object_params(pool_tag)
+            pool_selectors = pool_params.get("pool_selectors")
+
+            pools = set(get_all_resource_pools()) - set(self._cluster_partition.pools.values())
+            pool_id = selector.select_resource_pool(list(pools), pool_selectors)
+            if not pool_id:
+                raise selector.SelectorError(
+                    f'No available pool for "{pool_tag}" with "{pool_selectors}"'
+                )
+            self._cluster_partition.pools[pool_tag] = pool_id
+
+
     def _clear_partition(self):
         cluster_dir = os.path.join(self.resultsdir, "cluster")
         if self._cluster_partition.nodes:
@@ -388,6 +409,7 @@ class VirtTest(test.Test, utils.TestUtils):
                 node.upload_logs(node_dir)
             cluster.clear_partition(self._cluster_partition)
         self._cluster_partition = None
+        self.params["cluster_partition_uuid"] = None
 
     def _start_logger_client(self):
         if self._cluster_partition.nodes:
