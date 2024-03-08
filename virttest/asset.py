@@ -1,8 +1,9 @@
+import glob
 import logging
 import os
 import re
-import glob
 import shutil
+
 from six import StringIO
 
 try:
@@ -10,15 +11,9 @@ try:
 except ImportError:
     import ConfigParser
 
-from avocado.utils import astring
-from avocado.utils import process
-from avocado.utils import genio
-from avocado.utils import crypto
-from avocado.utils import download
-from avocado.utils import git
-
-from six.moves import urllib
+from avocado.utils import astring, crypto, download, genio, git, process
 from six import string_types
+from six.moves import urllib
 
 from virttest import data_dir
 

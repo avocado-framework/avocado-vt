@@ -132,10 +132,10 @@ The base of the definitions come verbatim as follows:
 :copyright: Red Hat 2008-2013
 """
 
-import os
 import collections
-import optparse
 import logging
+import optparse
+import os
 import re
 import sys
 

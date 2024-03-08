@@ -2,14 +2,12 @@ import logging
 import os
 import re
 import time
+from tempfile import mktemp
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from tempfile import mktemp
-
-from virttest import utils_misc
-from virttest import virsh
+from virttest import utils_misc, virsh
 from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.nodedev_xml import NodedevXML
 from virttest.utils_test import libvirt

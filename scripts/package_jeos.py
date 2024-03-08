@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
-import os
-import sys
 import logging
+import os
 import shutil
+import sys
 
 from avocado.utils import process
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

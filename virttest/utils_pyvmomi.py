@@ -6,10 +6,9 @@ https://github.com/vmware/pyvmomi-community-samples
 """
 import datetime
 import logging
-
 from functools import wraps
 
-from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
+from pyVim.connect import Disconnect, SmartConnect, SmartConnectNoSSL
 from pyVim.task import WaitForTask
 from pyVmomi import vim
 

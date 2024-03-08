@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import sys
 import os
 import re
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

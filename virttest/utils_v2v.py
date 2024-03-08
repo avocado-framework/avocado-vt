@@ -11,33 +11,27 @@ import logging
 import os
 import pwd
 import random
-import uuid
 import re
 import shutil
 import tempfile
 import time
+import uuid
 
 import aexpect
-
 from aexpect import remote
-from avocado.utils import path
-from avocado.utils import process
-from avocado.utils.astring import to_text
 from avocado.core import exceptions
+from avocado.utils import path, process
+from avocado.utils.astring import to_text
 
-from virttest import libvirt_vm as lvirt
-from virttest import ovirt
-from virttest import virsh
-from virttest import ppm_utils
 from virttest import data_dir
+from virttest import libvirt_vm as lvirt
+from virttest import ovirt, ppm_utils
 from virttest import remote as remote_old
-from virttest import utils_misc
-from virttest import ssh_key
-from virttest.utils_test import libvirt
+from virttest import ssh_key, utils_misc, virsh
 from virttest.libvirt_xml import vm_xml
+from virttest.utils_misc import asterisk_passwd, compare_md5
+from virttest.utils_test import libvirt
 from virttest.utils_version import VersionInterval
-from virttest.utils_misc import asterisk_passwd
-from virttest.utils_misc import compare_md5
 
 try:
     V2V_EXEC = path.find_command("virt-v2v")

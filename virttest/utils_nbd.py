@@ -16,11 +16,8 @@ import shutil
 
 from avocado.utils import process
 
-from virttest import utils_config
-from virttest import utils_libvirtd
-from virttest import utils_net
-
-from virttest.utils_conn import build_server_key, build_CA, build_client_key
+from virttest import utils_config, utils_libvirtd, utils_net
+from virttest.utils_conn import build_CA, build_client_key, build_server_key
 
 LOG = logging.getLogger("avocado." + __name__)
 

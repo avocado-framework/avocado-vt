@@ -22,18 +22,17 @@ Required params:
         PhysicalVolume name eg, /dev/sdb or /dev/sdb1;
 """
 from __future__ import division
-import os
-import time
-import re
-import math
+
 import logging
+import math
+import os
+import re
+import time
 
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
-from virttest import utils_misc
-from virttest import data_dir
+from virttest import data_dir, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 

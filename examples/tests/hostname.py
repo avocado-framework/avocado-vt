@@ -10,7 +10,6 @@ import logging
 
 from avocado.utils import process
 
-
 LOG = logging.getLogger("avocado.vt.examples.hostname")
 
 

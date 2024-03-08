@@ -8,7 +8,6 @@ from avocado.utils import process
 
 from . import utils_net
 
-
 LOG = logging.getLogger("avocado." + __name__)
 
 

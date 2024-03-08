@@ -1,21 +1,16 @@
+import filecmp
+import json
 import logging
 import os
-import json
-import filecmp
-
 import xml.etree.ElementTree as ET
 
-from avocado.utils import process
 from avocado.core import exceptions
+from avocado.utils import process
 
-from virttest import utils_misc
-from virttest import virsh
-from virttest import libvirt_version
-from virttest import data_dir
+from virttest import data_dir, libvirt_version, utils_misc, virsh
 from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.backup_xml import BackupXML
 from virttest.libvirt_xml.checkpoint_xml import CheckpointXML
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

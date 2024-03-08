@@ -6,18 +6,13 @@ These classes can be, and usually are, inherited by subclasses that implement
 custom logic for each virtualization hypervisor/software.
 """
 
-import os
 import logging
+import os
 
 from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import path
-from avocado.utils import linux_modules
+from avocado.utils import linux_modules, path, process
 
-from . import build_helper
-from . import utils_misc
-from . import yumrepo
-from . import arch
+from . import arch, build_helper, utils_misc, yumrepo
 from .staging import utils_koji
 
 LOG = logging.getLogger("avocado." + __name__)

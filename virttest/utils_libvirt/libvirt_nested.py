@@ -3,9 +3,7 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import cpu
-from virttest import utils_package
-
+from virttest import cpu, utils_package
 
 LOG = logging.getLogger("avocado." + __name__)
 

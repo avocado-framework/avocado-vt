@@ -8,9 +8,7 @@ The most common use case is to simply call make_installer() inside your tests.
 
 from avocado.core import exceptions
 
-from . import base_installer
-from . import qemu_installer
-from . import libvirt_installer
+from . import base_installer, libvirt_installer, qemu_installer
 
 __all__ = [
     "InstallerRegistry",

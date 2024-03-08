@@ -8,17 +8,17 @@ Auxiliary script used to allocate memory on guests.
 """
 
 from __future__ import division
-import os
+
 import array
-import sys
-import random
 import copy
-import tempfile
 import datetime
 import math
+import os
+import random
+import sys
+import tempfile
 
 from six.moves import input
-
 
 PAGE_SIZE = 4096  # machine page size
 

@@ -8,10 +8,10 @@
 # LICENSE_GPL_v2 which accompany this distribution.
 #
 
-import os
-import struct
-import platform
 import optparse
+import os
+import platform
+import struct
 
 try:
     import hashlib

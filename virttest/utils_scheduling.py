@@ -3,8 +3,8 @@ Virtualization test utility functions.
 
 :copyright: 2008-2009 Red Hat Inc.
 """
-import multiprocessing.pool
 import functools
+import multiprocessing.pool
 
 
 def timeout(timeout):

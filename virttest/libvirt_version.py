@@ -2,14 +2,12 @@
 Shared code for tests that need to get the libvirt version
 """
 
-import re
 import logging
+import re
 
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 from avocado.utils.astring import to_text
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

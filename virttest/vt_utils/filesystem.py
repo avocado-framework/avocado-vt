@@ -16,6 +16,7 @@
 import re
 
 from avocado.utils import process
+
 from virttest import utils_numeric
 from virttest.vt_utils import block
 

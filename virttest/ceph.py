@@ -14,9 +14,7 @@ import re
 
 from avocado.utils import process
 
-from virttest import utils_numeric
-from virttest import error_context
-from virttest import utils_misc
+from virttest import error_context, utils_misc, utils_numeric
 
 LOG = logging.getLogger("avocado." + __name__)
 

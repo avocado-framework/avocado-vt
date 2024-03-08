@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import collections
 import re
 import sys
@@ -6,7 +7,6 @@ import sys
 import six
 from six import StringIO
 from six import string_types as basestring
-
 
 __author__ = "raphtee@google.com (Travis Miller)"
 

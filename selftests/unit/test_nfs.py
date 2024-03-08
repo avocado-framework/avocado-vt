@@ -1,21 +1,18 @@
 #!/usr/bin/python
-import unittest
 import os
 import sys
+import unittest
 
-from avocado.utils import path
-from avocado.utils import process
-
+from avocado.utils import path, process
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest.unittest_utils import mock
-from virttest import nfs
-from virttest import utils_misc
+from virttest import nfs, utils_misc
 from virttest.staging import service
+from virttest.unittest_utils import mock
 
 
 class FakeService(object):

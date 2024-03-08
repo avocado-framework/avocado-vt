@@ -11,11 +11,7 @@ import time
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import openvswitch
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import utils_sriov
-from virttest import utils_switchdev
+from virttest import openvswitch, utils_misc, utils_net, utils_sriov, utils_switchdev
 from virttest.utils_kernel_module import KernelModuleHandler
 from virttest.versionable_class import factory
 

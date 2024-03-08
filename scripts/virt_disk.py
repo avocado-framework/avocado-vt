@@ -8,9 +8,9 @@ The main use case for this tool is debugging guest installations with an
 disks just like they're created by the virt unattended test installation.
 """
 
-import sys
 import optparse
 import os
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

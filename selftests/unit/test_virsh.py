@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
-import unittest
 import logging
 import os
 import sys
+import unittest
 
 from avocado.utils import process
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

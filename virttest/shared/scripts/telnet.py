@@ -1,6 +1,6 @@
-import telnetlib
-import sys
 import os
+import sys
+import telnetlib
 
 if len(sys.argv) != 5:
     print("Usage: %s host_ip user password prompt" % sys.argv[0])

@@ -1,31 +1,23 @@
 from __future__ import division
-import logging
-import time
+
+import functools
 import glob
+import logging
 import os
 import re
 import socket
+import time
 import traceback
-import functools
-
-from aexpect import remote
-from aexpect.exceptions import ShellError
-from aexpect.exceptions import ExpectError
-
-from avocado.core import exceptions
 
 import six
+from aexpect import remote
+from aexpect.exceptions import ExpectError, ShellError
+from avocado.core import exceptions
 from six.moves import xrange
 
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import utils_net
+from virttest import data_dir, error_context, ppm_utils
 from virttest import remote as remote_old
-from virttest import ppm_utils
-from virttest import data_dir
-from virttest import error_context
-from virttest import vt_console
-
+from virttest import utils_logfile, utils_misc, utils_net, vt_console
 
 LOG = logging.getLogger("avocado." + __name__)
 

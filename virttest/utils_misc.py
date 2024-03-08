@@ -5,31 +5,32 @@ Virtualization test utility functions.
 """
 
 from __future__ import division
-import time
-import string
-import random
-import socket
-import os
-import stat
-import signal
-import re
-import logging
-import subprocess
-import fcntl
-import sys
-import inspect
-import tarfile
-import shutil
-import getpass
-import ctypes
-import threading
-import platform
-import traceback
-import math
-import select
-import aexpect
 
+import ctypes
+import fcntl
+import getpass
+import inspect
+import logging
+import math
+import os
+import platform
+import random
+import re
+import select
+import shutil
+import signal
+import socket
+import stat
+import string
+import subprocess
+import sys
+import tarfile
+import threading
+import time
+import traceback
 from hashlib import md5
+
+import aexpect
 
 try:
     from io import BytesIO
@@ -42,25 +43,18 @@ except NameError:
     basestring = (str, bytes)
 
 from avocado.core import exceptions
-from avocado.utils import distro
-from avocado.utils import git
+from avocado.utils import aurl, distro, download, genio, git, linux_modules, memory
 from avocado.utils import path as utils_path
 from avocado.utils import process
-from avocado.utils import genio
-from avocado.utils import aurl
-from avocado.utils import download
-from avocado.utils import linux_modules
-from avocado.utils import memory
 from avocado.utils.astring import to_text
 
+# pylint: disable=W0611
 # Symlink avocado implementation of process functions
-from avocado.utils.process import CmdResult
+from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
 from avocado.utils.process import pid_exists  # pylint: disable=W0611
 from avocado.utils.process import safe_kill  # pylint: disable=W0611
+from avocado.utils.process import CmdResult
 from avocado.utils.process import kill_process_tree as _kill_process_tree
-from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
-
-# pylint: disable=W0611
 from avocado.utils.process import (
     process_in_ptree_is_defunct as process_or_children_is_defunct,
 )
@@ -68,29 +62,28 @@ from avocado.utils.process import (
 # Symlink avocado implementation of port-related functions
 
 try:
-    from avocado.utils.network.ports import is_port_free  # pylint: disable=W0611
     from avocado.utils.network.ports import find_free_port  # pylint: disable=W0611
     from avocado.utils.network.ports import find_free_ports  # pylint: disable=W0611
+    from avocado.utils.network.ports import is_port_free  # pylint: disable=W0611
 except ImportError:
     from avocado.utils.network import is_port_free  # pylint: disable=W0611
     from avocado.utils.network import find_free_port  # pylint: disable=W0611
     from avocado.utils.network import find_free_ports  # pylint: disable=W0611
 
-from virttest import data_dir
-from virttest import error_context
-from virttest import utils_selinux
-from virttest import utils_disk
-from virttest import utils_logfile
-from virttest import logging_manager
-from virttest import kernel_interface
-
-from virttest.staging import utils_koji
-from virttest.staging import service
-from virttest.xml_utils import XMLTreeFile
-
-
 import six
 from six.moves import xrange
+
+from virttest import (
+    data_dir,
+    error_context,
+    kernel_interface,
+    logging_manager,
+    utils_disk,
+    utils_logfile,
+    utils_selinux,
+)
+from virttest.staging import service, utils_koji
+from virttest.xml_utils import XMLTreeFile
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -4481,6 +4474,7 @@ def get_sosreport(
     """
     from aexpect import remote
     from avocado.core import data_dir
+
     from virttest import utils_package
 
     if "ubuntu" in get_distro(session=session).lower():

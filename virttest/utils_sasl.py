@@ -6,13 +6,10 @@ import logging
 
 import aexpect
 from aexpect import remote
-
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
-from virttest import propcan
-from virttest import virsh
+from virttest import propcan, virsh
 
 LOG = logging.getLogger("avocado." + __name__)
 

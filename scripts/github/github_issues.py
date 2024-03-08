@@ -2,14 +2,13 @@
 Classes to cache and read specific items from github issues in a uniform way
 """
 
-from functools import partial as Partial
 import datetime
-import time
 import shelve
+import time
+from functools import partial as Partial
 
 # Requires PyGithub version >= 1.13 for access to raw_data attribute
 import github
-
 from six.moves import xrange
 
 

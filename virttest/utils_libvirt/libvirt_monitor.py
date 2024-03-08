@@ -4,8 +4,7 @@ import math
 
 from avocado.core import exceptions
 
-from virttest import libvirt_version
-from virttest import virsh
+from virttest import libvirt_version, virsh
 
 LOG = logging.getLogger("avocado." + __name__)
 

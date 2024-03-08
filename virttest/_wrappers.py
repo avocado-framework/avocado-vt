@@ -4,18 +4,17 @@
     Please, use this module ONLY from other virttest/avocado-vt modules.
 """
 
-import sys
 import importlib
 import importlib.util
+import sys
 from importlib.machinery import (
-    SourceFileLoader,
-    SOURCE_SUFFIXES,
-    SourcelessFileLoader,
     BYTECODE_SUFFIXES,
-    ExtensionFileLoader,
     EXTENSION_SUFFIXES,
+    SOURCE_SUFFIXES,
+    ExtensionFileLoader,
+    SourceFileLoader,
+    SourcelessFileLoader,
 )
-
 
 _LOADERS = (
     (SourceFileLoader, SOURCE_SUFFIXES),

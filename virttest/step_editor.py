@@ -6,11 +6,11 @@ Step file creator/editor.
 :author: mgoldish@redhat.com (Michael Goldish)
 """
 
-import os
 import glob
+import logging
+import os
 import shutil
 import sys
-import logging
 
 try:
     from gi import pygtkcompat as pygtk
@@ -22,7 +22,6 @@ if pygtk is not None:
 import gtk
 
 from virttest import ppm_utils
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

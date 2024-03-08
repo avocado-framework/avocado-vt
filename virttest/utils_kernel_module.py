@@ -16,8 +16,8 @@
 Handle Linux kernel modules
 """
 
-import os
 import logging
+import os
 
 from avocado.utils import process
 

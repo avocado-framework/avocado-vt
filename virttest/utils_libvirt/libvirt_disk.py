@@ -11,15 +11,10 @@ from avocado.utils import process
 
 from virttest import libvirt_storage
 from virttest import remote as remote_old
-from virttest import utils_misc
-from virttest import utils_disk
-from virttest import virsh
-from virttest import utils_package
-
+from virttest import utils_disk, utils_misc, utils_package, virsh
 from virttest.libvirt_xml import vm_xml
-from virttest.utils_test import libvirt
-
 from virttest.libvirt_xml.devices.disk import Disk
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 

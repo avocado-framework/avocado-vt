@@ -1,8 +1,8 @@
 import operator
 import re
-from distutils.version import (
+from distutils.version import (  # pylint: disable=no-name-in-module,import-error
     LooseVersion,
-)  # pylint: disable=no-name-in-module,import-error
+)
 
 
 class VersionInterval(object):

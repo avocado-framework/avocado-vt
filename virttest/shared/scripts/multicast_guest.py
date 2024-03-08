@@ -1,8 +1,8 @@
 #!/usr/bin/python
-import socket
-import struct
 import os
 import signal
+import socket
+import struct
 import sys
 
 # -*- coding: utf-8 -*-

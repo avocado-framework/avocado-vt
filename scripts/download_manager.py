@@ -18,24 +18,20 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
 
 :copyright: Red Hat 2012
 """
-import sys
-import os
 import logging
+import os
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import asset
-
 from avocado.core.output import TERM_SUPPORT
-
 from logging_config import LoggingConfig
+from six.moves import input, urllib
 
-
-from six.moves import input
-from six.moves import urllib
+from virttest import asset
 
 
 def download_assets():

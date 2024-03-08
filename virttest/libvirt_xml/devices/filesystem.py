@@ -4,8 +4,8 @@ filesystem device support class(es)
 https://libvirt.org/formatdomain.html#elementsFilesystem
 """
 
-from virttest.libvirt_xml.devices import base
 from virttest.libvirt_xml import accessors
+from virttest.libvirt_xml.devices import base
 
 
 class Filesystem(base.TypedDeviceBase):

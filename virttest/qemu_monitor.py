@@ -18,13 +18,9 @@ import time
 
 import six
 
-from . import utils_logfile
-from . import utils_misc
-from . import cartesian_config
-from . import data_dir
-
 from virttest.qemu_capabilities import Flags
 
+from . import cartesian_config, data_dir, utils_logfile, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 

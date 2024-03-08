@@ -1,5 +1,5 @@
-import re
 import logging
+import re
 
 try:
     import SocketServer as socketserver

@@ -8,12 +8,12 @@ Created on Dec 6, 2013
 """
 
 from __future__ import division
+
+import inspect
 import sys
 import time
-import inspect
 
-from virttest.remote_commander import remote_interface
-from virttest.remote_commander import messenger
+from virttest.remote_commander import messenger, remote_interface
 
 
 def getsource(obj):

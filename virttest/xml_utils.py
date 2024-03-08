@@ -37,14 +37,15 @@
 """
 
 import io
+import logging
 import os
 import shutil
-import tempfile
 import string
-import logging
-from six import StringIO
-from xml.parsers import expat
+import tempfile
 from xml.etree import ElementTree
+from xml.parsers import expat
+
+from six import StringIO
 
 # Also used by unittests
 TMPPFX = "xml_utils_temp_"

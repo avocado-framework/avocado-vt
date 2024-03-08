@@ -1,15 +1,11 @@
+import logging
 import ntpath
 import os
-import logging
 import re
 
 import aexpect
 from aexpect import remote
-
-from avocado.utils import download
-from avocado.utils import aurl
-from avocado.utils import wait
-
+from avocado.utils import aurl, download, wait
 from six.moves import xrange
 
 from . import data_dir

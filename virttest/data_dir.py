@@ -2,22 +2,20 @@
 """
 Library used to provide the appropriate data dir for virt test.
 """
+import glob
 import inspect
 import logging
 import os
-import glob
 import shutil
 import stat
 
 import pkg_resources
-
 from avocado.core import data_dir
 from avocado.utils import distro
 from avocado.utils import path as utils_path
+from six.moves import xrange
 
 from virttest.compat import get_settings_value
-
-from six.moves import xrange
 
 BASE_BACKEND_DIR = pkg_resources.resource_filename("virttest", "backends")
 TEST_PROVIDERS_DIR = pkg_resources.resource_filename("virttest", "test-providers.d")

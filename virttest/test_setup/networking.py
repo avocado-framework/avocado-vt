@@ -3,8 +3,8 @@
 import re
 import urllib.request
 
-from virttest.test_setup.core import Setuper
 from virttest.test_setup import PrivateBridgeConfig, PrivateOvsBridgeConfig
+from virttest.test_setup.core import Setuper
 
 
 class NetworkProxies(Setuper):

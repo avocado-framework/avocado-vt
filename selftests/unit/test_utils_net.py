@@ -1,31 +1,25 @@
 #!/usr/bin/python
 
 from __future__ import division
-import unittest
-import time
+
 import logging
-import sys
-import random
 import os
+import random
 import shelve
+import sys
+import time
+import unittest
 
 from avocado.utils import process
-
 from six.moves import xrange
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from virttest import cartesian_config, propcan, utils_misc, utils_net, utils_params
 from virttest.unittest_utils import mock
-from virttest import utils_net
-from virttest import utils_misc
-from virttest import cartesian_config
-from virttest import utils_params
-from virttest import propcan
-
 
 # Disable some pylint checks for selftests
 # pylint: disable=E1133,E1136

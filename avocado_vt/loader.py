@@ -22,10 +22,7 @@ import os
 
 from avocado.core import output
 
-from virttest import cartesian_config
-from virttest import data_dir
-from virttest import standalone_test
-from virttest import storage
+from virttest import cartesian_config, data_dir, standalone_test, storage
 from virttest.compat import get_opt, set_opt
 
 from .discovery import DiscoveryMixIn

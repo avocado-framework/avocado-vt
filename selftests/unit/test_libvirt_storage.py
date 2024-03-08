@@ -1,18 +1,18 @@
 #!/usr/bin/python
-import unittest
 import os
 import sys
+import unittest
 
 from avocado.utils.process import CmdResult
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import libvirt_storage
 from test_virsh import FakeVirshFactory
+
+from virttest import libvirt_storage
 
 # The output of virsh.pool_list with only default pool
 _DEFAULT_POOL = (

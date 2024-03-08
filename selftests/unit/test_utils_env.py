@@ -1,19 +1,17 @@
 #!/usr/bin/python
-import unittest
-import time
 import logging
 import os
-import threading
 import sys
+import threading
+import time
+import unittest
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import utils_env
-from virttest import utils_params
-from virttest import utils_misc
+from virttest import utils_env, utils_misc, utils_params
 
 
 class FakeVm(object):

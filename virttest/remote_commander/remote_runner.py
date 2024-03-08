@@ -7,21 +7,21 @@ Created on Dec 6, 2013
 :contact: Andrei Stepanov <astepano@redhat.com>
 """
 
-import os
-import sys
-import importlib
-import select
-import time
-import stat
 import gc
+import importlib
 import logging
-import traceback
-import subprocess
-import string
+import os
 import random
+import select
 import shutil
 import signal
+import stat
+import string
+import subprocess
+import sys
 import tempfile
+import time
+import traceback
 
 if __name__ == "__main__":
     remote_interface = importlib.import_module("remote_interface")
@@ -30,9 +30,7 @@ else:
     from virttest.remote_commander import remote_interface
     from virttest.remote_commander import messenger as ms
 
-
 from six.moves import input
-
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

@@ -1,8 +1,8 @@
 """
 QEMU related utility functions.
 """
-import re
 import json
+import re
 
 from avocado.utils import process
 

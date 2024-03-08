@@ -2,9 +2,9 @@
 IP sniffing facilities
 """
 
-import threading
 import logging
 import re
+import threading
 
 try:
     from collections import Iterable
@@ -12,11 +12,10 @@ except ImportError:
     from collections.abc import Iterable
 
 import aexpect
+import six
 from aexpect.remote import handle_prompts
 from avocado.utils import path as utils_path
 from avocado.utils import process
-
-import six
 
 from virttest.utils_logfile import log_line
 from virttest.utils_version import VersionInterval

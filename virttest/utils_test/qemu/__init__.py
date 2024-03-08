@@ -16,19 +16,17 @@ More specifically:
 :copyright: 2008-2013 Red Hat Inc.
 """
 
+import logging
 import os
 import re
-import six
 import time
-import logging
 from functools import reduce
 
+import six
 from avocado.core import exceptions
 from avocado.utils import cpu as cpuutil
 
-from virttest import error_context
-from virttest import utils_misc
-from virttest import qemu_monitor
+from virttest import error_context, qemu_monitor, utils_misc
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
 

@@ -1,5 +1,5 @@
-from virttest.test_setup.core import Setuper
 from virttest import test_setup
+from virttest.test_setup.core import Setuper
 
 
 class LibvirtdDebugLogConfig(Setuper):

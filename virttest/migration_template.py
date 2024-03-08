@@ -1,30 +1,27 @@
-import logging
 import functools
+import logging
 import os
-
 from enum import Enum
-
-from six import itervalues, iteritems, string_types
 
 from avocado.utils import distro
 from avocado.utils import path as utils_path
+from six import iteritems, itervalues, string_types
 
-from virttest import virsh, migration, remote
-from virttest import libvirt_version
-from virttest import utils_iptables, utils_selinux, utils_misc
-
-from virttest.libvirt_xml import vm_xml
-
+from virttest import (
+    libvirt_version,
+    migration,
+    remote,
+    utils_iptables,
+    utils_misc,
+    utils_selinux,
+    virsh,
+)
 from virttest.libvirt_vm import get_uri_with_transport as get_uri
-
-from virttest.utils_conn import TLSConnection, TCPConnection, SSHConnection
-
-from virttest.utils_test import libvirt
-
+from virttest.libvirt_xml import vm_xml
+from virttest.utils_conn import SSHConnection, TCPConnection, TLSConnection
 from virttest.utils_libvirt import libvirt_disk
-
 from virttest.utils_libvirt.libvirt_config import remove_key_for_modular_daemon
-
+from virttest.utils_test import libvirt
 
 # Migration flags
 VIR_MIGRATE_LIVE = 1 << 0

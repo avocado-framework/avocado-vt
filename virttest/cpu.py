@@ -15,25 +15,21 @@
 # Author: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
 
 
-import re
 import json
 import logging
-import platform
-import time
 import os
+import platform
+import re
+import time
 import uuid
 import xml.etree.ElementTree as ET
 
-
-from avocado.utils import cpu as utils
-from avocado.utils.software_manager import manager
-from avocado.utils import process
-from avocado.utils import path
 from avocado.core import exceptions
-from virttest import utils_misc
-from virttest import libvirt_version
-from virttest import data_dir
+from avocado.utils import cpu as utils
+from avocado.utils import path, process
+from avocado.utils.software_manager import manager
 
+from virttest import data_dir, libvirt_version, utils_misc
 
 # lazy imports for dependencies that are not needed in all modes of use
 # (as the cpu module is generic to qemu vm use only, libvirt is optional)

@@ -4,8 +4,8 @@ Installer code that implement KVM specific bits.
 See BaseInstaller class in base_installer.py for interface details.
 """
 
-import os
 import logging
+import os
 
 from avocado.core import exceptions
 from avocado.utils import process

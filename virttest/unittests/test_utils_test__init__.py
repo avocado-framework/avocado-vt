@@ -1,14 +1,15 @@
-import unittest
 import logging
+import unittest
 
 try:
     from unittest import mock
 except ImportError:
     import mock
 
-from virttest.utils_test import update_boot_option
-from virttest import utils_test
 from avocado.core import exceptions
+
+from virttest import utils_test
+from virttest.utils_test import update_boot_option
 
 check_kernel_cmdline_mock = mock.MagicMock(return_value=["3", None])
 

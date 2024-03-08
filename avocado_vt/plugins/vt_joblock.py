@@ -1,23 +1,21 @@
 import errno
 import logging
 import os
-import re
 import random
+import re
 import string
 import sys
 
 from avocado.core import exit_codes
+from avocado.core.plugin_interfaces import JobPostTests as Post
+from avocado.core.plugin_interfaces import JobPreTests as Pre
 from avocado.utils.process import pid_exists
 from avocado.utils.stacktrace import log_exc_info
-
-from avocado.core.plugin_interfaces import JobPreTests as Pre
-from avocado.core.plugin_interfaces import JobPostTests as Post
-
-from ..test import VirtTest
+from six.moves import xrange
 
 from virttest.compat import get_settings_value
 
-from six.moves import xrange
+from ..test import VirtTest
 
 
 class LockCreationError(Exception):

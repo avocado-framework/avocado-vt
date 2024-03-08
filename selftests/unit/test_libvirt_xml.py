@@ -1,15 +1,13 @@
 #!/usr/bin/python
 
-import unittest
+import logging
 import os
 import shutil
-import logging
 import sys
+import unittest
 
 import six
-
 from avocado.utils import process
-
 
 try:
     unicode
@@ -22,13 +20,20 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import xml_utils, utils_misc, data_dir
-from virttest.libvirt_xml import accessors, vm_xml, xcepts, network_xml, base
-from virttest.libvirt_xml import nodedev_xml
-from virttest.libvirt_xml.devices import librarian
-from virttest.libvirt_xml.devices import base as devices_base
-from virttest.libvirt_xml import capability_xml
 from test_virsh import FakeVirshFactory
+
+from virttest import data_dir, utils_misc, xml_utils
+from virttest.libvirt_xml import (
+    accessors,
+    base,
+    capability_xml,
+    network_xml,
+    nodedev_xml,
+    vm_xml,
+    xcepts,
+)
+from virttest.libvirt_xml.devices import base as devices_base
+from virttest.libvirt_xml.devices import librarian
 
 # save a copy
 ORIGINAL_DEVICE_TYPES = list(librarian.DEVICE_TYPES)

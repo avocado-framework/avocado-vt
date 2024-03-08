@@ -7,9 +7,8 @@ import logging
 import platform
 import re
 
-from .. import xml_utils
-from .. import utils_misc
-from ..libvirt_xml import base, accessors, xcepts
+from .. import utils_misc, xml_utils
+from ..libvirt_xml import accessors, base, xcepts
 from ..libvirt_xml.base import LibvirtXMLBase
 from ..libvirt_xml.devices import librarian
 

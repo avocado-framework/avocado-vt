@@ -17,27 +17,25 @@ Avocado VT plugin
 """
 
 import os
-import sys
 import shlex
+import sys
 
-from avocado.core import exceptions
-from avocado.core import test
-from avocado.utils import stacktrace
-from avocado.utils import process
-
-from virttest import error_event
-from virttest import data_dir
-from virttest import env_process
-from virttest import funcatexit
-from virttest import utils_env
-from virttest import utils_params
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest import version
-from virttest._wrappers import load_source
+from avocado.core import exceptions, test
+from avocado.utils import process, stacktrace
 
 from avocado_vt import utils
-
+from virttest import (
+    data_dir,
+    env_process,
+    error_event,
+    funcatexit,
+    utils_env,
+    utils_logfile,
+    utils_misc,
+    utils_params,
+    version,
+)
+from virttest._wrappers import load_source
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:

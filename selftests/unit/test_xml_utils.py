@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
-import unittest
-import tempfile
-import os
 import glob
 import logging
+import os
 import sys
+import tempfile
+import unittest
 from xml.etree import ElementTree
 
 # simple magic for using scripts within a source tree

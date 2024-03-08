@@ -5,15 +5,15 @@ script, avocado We must be launch with '--journal' option.
 """
 
 from __future__ import division
-import os
-import sys
-import sqlite3
-import argparse
 
-from avocado.core import data_dir
-from dateutil import parser as dateparser
+import argparse
+import os
+import sqlite3
+import sys
 
 import six
+from avocado.core import data_dir
+from dateutil import parser as dateparser
 from six.moves import xrange
 
 

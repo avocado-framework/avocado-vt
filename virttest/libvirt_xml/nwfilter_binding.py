@@ -3,7 +3,7 @@ Module simplifying manipulation of XML described at
 http://libvirt.org/formatnwfilter.html
 """
 
-from virttest.libvirt_xml import base, accessors
+from virttest.libvirt_xml import accessors, base
 from virttest.libvirt_xml.devices.filterref import Filterref
 
 

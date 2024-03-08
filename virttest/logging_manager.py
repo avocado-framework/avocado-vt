@@ -1,6 +1,5 @@
 import logging
 
-
 # implementation follows
 
 logger = logging.getLogger("avocado.vt")

@@ -9,14 +9,10 @@ import logging
 import os
 import re
 
+import six
 from six.moves import xrange
 
-from . import storage
-from . import data_dir
-from . import utils_misc
-from . import arch
-
-import six
+from . import arch, data_dir, storage, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 

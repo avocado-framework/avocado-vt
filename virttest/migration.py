@@ -1,28 +1,29 @@
-import time
-import threading
-import types
 import logging
 import re
 import signal
+import threading
+import time
+import types
 
-from avocado.utils import process
-from avocado.utils import path as utils_path
-from avocado.utils import distro
 from avocado.core import exceptions
+from avocado.utils import distro
+from avocado.utils import path as utils_path
+from avocado.utils import process
 
-from virttest import libvirt_version
-from virttest import remote
-from virttest import utils_disk
-from virttest import utils_misc
-from virttest import test_setup
-from virttest import utils_net
-from virttest import utils_iptables
-from virttest import utils_test
-from virttest.utils_test import libvirt
-
+from virttest import (
+    libvirt_version,
+    remote,
+    test_setup,
+    utils_disk,
+    utils_iptables,
+    utils_misc,
+    utils_net,
+    utils_test,
+)
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
+from virttest.utils_test import libvirt
 
 virsh = lazy_import("virttest.virsh")
 

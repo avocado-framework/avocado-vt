@@ -2,8 +2,9 @@
 Windows drive utilities
 """
 
-from . import wmic
 from virttest import utils_misc
+
+from . import wmic
 
 
 def _logical_disks(session, cond=None, props=None):

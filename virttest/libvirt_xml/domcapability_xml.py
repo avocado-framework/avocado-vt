@@ -5,7 +5,7 @@ http://libvirt.org/formatdomaincaps.html
 import logging
 
 from virttest import xml_utils
-from virttest.libvirt_xml import base, accessors, xcepts
+from virttest.libvirt_xml import accessors, base, xcepts
 
 LOG = logging.getLogger("avocado." + __name__)
 

@@ -8,17 +8,17 @@ Helpers for cgroup testing.
 """
 import logging
 import os
+import random
+import re
 import shutil
 import subprocess
 import time
-import re
-import random
-import six
 from tempfile import mkdtemp
 
+import six
 from avocado.core import exceptions
-from avocado.utils.software_manager import manager
 from avocado.utils import process
+from avocado.utils.software_manager import manager
 
 from . import service
 

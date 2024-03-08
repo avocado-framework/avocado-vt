@@ -2,8 +2,7 @@ import os
 
 from avocado.utils import path as utils_path
 
-from . import data_dir
-from . import cartesian_config
+from . import cartesian_config, data_dir
 from .compat import get_opt
 
 GUEST_NAME_LIST = None

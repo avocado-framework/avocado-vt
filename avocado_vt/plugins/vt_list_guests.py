@@ -1,5 +1,6 @@
 from avocado.core.plugin_interfaces import CLICmd
 from avocado.core.settings import settings
+
 from virttest.compat import add_option, is_registering_settings_required
 from virttest.standalone_test import get_guest_name_parser
 

@@ -10,8 +10,8 @@ Naive module that keeps tacks of some opened files and somehow manages them.
 import logging
 import os
 import re
-import time
 import threading
+import time
 
 from avocado.core import exceptions
 from avocado.utils import aurl

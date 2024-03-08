@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
+import optparse
 import os
 import socket
 import struct
-import optparse
 
 try:
     import hashlib

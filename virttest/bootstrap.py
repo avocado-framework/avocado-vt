@@ -1,26 +1,17 @@
-from distutils import dir_util  # virtualenv problem pylint: disable=E0611
+import glob
 import logging
 import os
-import glob
+import re
 import shutil
 import sys
-import re
+from distutils import dir_util  # virtualenv problem pylint: disable=E0611
 
-from avocado.utils import cpu
-from avocado.utils import distro
-from avocado.utils import genio
-from avocado.utils import linux_modules
+from avocado.utils import cpu, distro, genio, linux_modules
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
-from . import data_dir
-from . import asset
-from . import cartesian_config
-from . import utils_selinux
-from . import defaults
-from . import arch
+from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
-
 
 LOG = logging.getLogger("avocado.app")
 

@@ -9,23 +9,19 @@ interact with qemu qdev structure.
 import json
 import logging
 import os
-import time
 import re
+import time
 import traceback
 from collections import OrderedDict
 from pathlib import Path
 
 import aexpect
-
-from virttest import qemu_monitor, utils_numeric
-from virttest import utils_logfile
-from virttest import utils_misc
-from virttest.qemu_devices.utils import DeviceError
-from virttest.qemu_devices.utils import none_or_int
-from virttest.utils_version import VersionInterval
-
 import six
 from six.moves import xrange
+
+from virttest import qemu_monitor, utils_logfile, utils_misc, utils_numeric
+from virttest.qemu_devices.utils import DeviceError, none_or_int
+from virttest.utils_version import VersionInterval
 
 LOG = logging.getLogger("avocado." + __name__)
 

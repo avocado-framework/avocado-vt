@@ -1,12 +1,11 @@
-import os
-import re
 import hashlib
 import logging
+import os
+import re
 
 from aexpect import remote
 
 from virttest import data_dir
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

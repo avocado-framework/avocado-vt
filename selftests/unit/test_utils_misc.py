@@ -1,22 +1,19 @@
 #!/usr/bin/python
 
 import os
+import sys
 import tempfile
 import unittest
-import sys
 
 from avocado.utils import process
-
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from virttest import build_helper, cartesian_config, utils_misc
 from virttest.unittest_utils import mock
-from virttest import utils_misc
-from virttest import cartesian_config
-from virttest import build_helper
 
 
 class TestUtilsMisc(unittest.TestCase):

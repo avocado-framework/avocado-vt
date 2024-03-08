@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 import signal
 import threading
 
@@ -8,9 +8,10 @@ try:
 except ImportError:
     import Queue
 
+from enum import Enum
+
 import aexpect
 
-from enum import Enum
 from virttest import utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)

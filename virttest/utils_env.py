@@ -1,7 +1,7 @@
-import os
-import logging
-import threading
 import functools
+import logging
+import os
+import threading
 
 try:
     from collections import UserDict as IterableUserDict
@@ -13,11 +13,9 @@ except ImportError:
     import cPickle
 
 from aexpect import remote
-
 from avocado.core import exceptions
 
-from virttest import virt_vm
-from virttest import ip_sniffing
+from virttest import ip_sniffing, virt_vm
 
 ENV_VERSION = 1
 

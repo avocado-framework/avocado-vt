@@ -6,7 +6,6 @@ YUM repositories on the system.
 
 import os
 
-
 __all__ = ["REPO_DIR", "YumRepo"]
 
 

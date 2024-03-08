@@ -2,7 +2,6 @@
 
 import os
 
-
 mem_fd = open("/proc/meminfo", "r")
 contents = mem_fd.readlines()
 mem_fd.close()

@@ -2,23 +2,21 @@
 Functions and classes used for logging into guests and transferring files.
 """
 from __future__ import division
+
 import logging
-import time
-import re
 import os
+import re
 import shutil
 import tempfile
+import time
 
 import aexpect
 from aexpect.remote import *
-
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import data_dir
-from virttest import utils_logfile
-from virttest.remote_commander import remote_master
-from virttest.remote_commander import messenger
+from virttest import data_dir, utils_logfile
+from virttest.remote_commander import messenger, remote_master
 
 LOG = logging.getLogger("avocado." + __name__)
 

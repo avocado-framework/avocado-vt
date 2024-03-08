@@ -100,9 +100,9 @@ def main(resfiles):
 
 
 if __name__ == "__main__":
-    import sys
     import glob
     import os
+    import sys
 
     dirname = os.path.dirname(sys.modules[__name__].__file__)
     CLIENT_DIR = os.path.abspath(os.path.join(dirname, ".."))

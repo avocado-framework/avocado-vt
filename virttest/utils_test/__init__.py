@@ -17,50 +17,43 @@ More specifically:
 """
 
 from __future__ import division
+
+import ast
+import functools
 import glob
 import locale
 import logging
 import os
 import re
+import shutil
 import signal
+import subprocess
 import tempfile
 import threading
 import time
-import subprocess
-import shutil
-import ast
-import functools
 
 import aexpect
 from aexpect import remote
-
 from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import aurl
-from avocado.utils import download
-from avocado.utils import crypto
-from avocado.utils import path
-from avocado.utils import archive
-
+from avocado.utils import archive, aurl, crypto, download, path, process
 from six.moves import xrange
 
 # Import from the top level virttest namespace
-from virttest import asset
-from virttest import bootstrap
-from virttest import data_dir
-from virttest import error_context
-from virttest import qemu_virtio_port
+from virttest import asset, bootstrap, data_dir, error_context, qemu_virtio_port
 from virttest import remote as remote_old
-from virttest import scan_autotest_results
-from virttest import storage
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import virt_vm
-from virttest import utils_package
-from virttest.utils_iptables import Iptables
-from virttest import data_dir
+from virttest import (
+    scan_autotest_results,
+    storage,
+    utils_misc,
+    utils_net,
+    utils_package,
+    virt_vm,
+)
+
+# lazy imports for dependencies that are not needed in all modes of use
+from virttest._wrappers import import_module, lazy_import
 from virttest.staging import utils_memory
-from virttest._wrappers import import_module
+from virttest.utils_iptables import Iptables
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -70,9 +63,6 @@ from virttest._wrappers import import_module
 #
 # pylint: disable=unused-import
 from virttest.utils_test import qemu
-
-# lazy imports for dependencies that are not needed in all modes of use
-from virttest._wrappers import lazy_import
 
 libvirt = lazy_import("virttest.utils_test.libvirt")
 libguestfs = lazy_import("virttest.utils_test.libguestfs")

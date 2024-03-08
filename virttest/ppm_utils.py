@@ -5,21 +5,17 @@ Utility functions to deal with ppm (qemu screendump format) files.
 """
 
 from __future__ import division
-import os
-import struct
-import time
-import re
+
 import glob
 import logging
-
+import os
+import re
+import struct
+import time
 from functools import reduce
 
-
 try:
-    from PIL import Image
-    from PIL import ImageOps
-    from PIL import ImageDraw
-    from PIL import ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
 except ImportError:
     Image = None
     logging.getLogger("avocado.app").warning(

@@ -8,20 +8,15 @@ iscsi in localhost then access it.
 """
 
 from __future__ import division
-import re
-import os
+
 import logging
+import os
+import re
 
 from avocado.core import exceptions
-from avocado.utils import data_factory
-from avocado.utils import process
-from avocado.utils import path
-from avocado.utils import distro
+from avocado.utils import data_factory, distro, path, process
 
-from virttest import utils_selinux
-from virttest import utils_net
-from virttest import data_dir
-from virttest import utils_package
+from virttest import data_dir, utils_net, utils_package, utils_selinux
 from virttest.staging import service
 
 LOG = logging.getLogger("avocado." + __name__)

@@ -6,7 +6,6 @@ Simple hostname test (on guest)
 """
 import logging
 
-
 LOG = logging.getLogger("avocado.vt.examples.guest_hostname")
 
 

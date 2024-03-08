@@ -4,8 +4,8 @@ lease device support class(es)
 http://libvirt.org/formatdomain.html#elementsLease
 """
 
-from virttest.libvirt_xml.devices import base
 from virttest.libvirt_xml import accessors
+from virttest.libvirt_xml.devices import base
 
 
 class Lease(base.UntypedDeviceBase):

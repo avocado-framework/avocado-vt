@@ -2,9 +2,7 @@ import logging
 
 from six.moves import xrange
 
-from . import env_process
-from . import error_context
-from . import qemu_virtio_port
+from . import env_process, error_context, qemu_virtio_port
 
 LOG = logging.getLogger("avocado." + __name__)
 

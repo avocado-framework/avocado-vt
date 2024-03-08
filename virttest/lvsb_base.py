@@ -8,9 +8,7 @@ import logging
 import signal
 
 import aexpect
-
 from six.moves import xrange
-
 
 LOG = logging.getLogger("avocado." + __name__)
 

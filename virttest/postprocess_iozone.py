@@ -10,15 +10,15 @@ is not present, functionality degrates gracefully.
 """
 
 from __future__ import division
-import os
-import sys
-import optparse
+
 import logging
 import math
+import optparse
+import os
+import sys
 import time
 
-from avocado.utils import process
-from avocado.utils import path
+from avocado.utils import path, process
 
 from . import utils_misc
 
