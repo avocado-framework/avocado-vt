@@ -12,6 +12,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 
 from virttest.vt_cluster import cluster, node
+from virttest.vt_resmgr import setup_resmgr
 
 from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
@@ -895,6 +896,27 @@ def _register_hosts(hosts_configs):
             LOG.debug("Host %s registered", host)
 
 
+def _setup_managers(pools_params):
+    def _verify_pools_params():
+        # Check if the pools' params are set correctly
+        required_options = ["type", "access.nodes"]
+        for params in pools_params.values():
+            for pool_name, pool_params in params.items():
+                for option in required_options:
+                    opts = option.split('.')
+                    i, sub_params = 0, pool_params
+                    while i < len(opts):
+                        if opts[i] not in sub_params:
+                            raise ValueError(f"Missed '{opts[i]}' for '{pool_name}'")
+                        elif not sub_params[opts[i]]:
+                            raise ValueError(f"Missed a value for '{opts[i]}' for '{pool_name}'")
+                        sub_params = sub_params.get(opts[i])
+                        i += 1
+
+    _verify_pools_params()
+    setup_resmgr(pools_params)
+
+
 def _config_master_server(master_config):
     """Configure the master server."""
     if master_config:
@@ -1084,6 +1106,7 @@ def bootstrap(options, interactive=False):
         cluster_config = _load_cluster_config(vt_cluster_config)
         _register_hosts(cluster_config.get("hosts"))
         _config_master_server(cluster_config.get("master"))
+        _setup_managers(cluster_config.get("pools"))
 
     LOG.info("")
     LOG.info("VT-BOOTSTRAP FINISHED")

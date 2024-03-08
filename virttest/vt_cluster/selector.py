@@ -21,6 +21,8 @@ import logging
 import operator
 
 from . import ClusterError, cluster, node_metadata
+from virttest.vt_resmgr import query_resource_pool
+
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -150,6 +152,71 @@ class _Selector(object):
         return None
 
 
+class _PoolSelector(object):
+    """
+    nodes = node1 node2
+    pools = p1 p2
+    pool_selectors_p1 = [{"key": "type", "operator": "==", "values": "filesystem"},
+    pool_selectors_p1 += {"key": "access.nodes", "operator": "contains", values": "node1"},
+    pool_selectors_p2 = [{"key": "type", "operator": "==", "values": "filesystem"},
+    pool_selectors_p2 += {"key": "access.nodes", "operator": "contains", values": "node2"},
+    """
+
+    def __init__(self, pool_selectors):
+        self._pool_selectors = ast.literal_eval(pool_selectors)
+        self._match_expressions = []
+
+        for pool_selector in self._pool_selectors:
+            key, operator, values = self._convert(pool_selector)
+            self._match_expressions.append(
+                _MatchExpression(key, operator, values)
+            )
+
+    def _convert(self, pool_selector):
+        key = pool_selector.get("key")
+        operator = pool_selector.get("operator")
+        values = pool_selector.get("values")
+        if "access.nodes" in key:
+            if isinstance(values, str):
+                values = cluster.get_node_by_tag(values).name
+            elif isinstance(values, list):
+                values = [cluster.get_node_by_tag(tag).name for tag in values]
+            else:
+                raise ValueError(f"Unsupported values {values}")
+        return key, operator, values
+
+    def _get_values(self, keys, config):
+        for key in keys:
+            if key in config:
+                config = config[key]
+            else:
+                raise ValueError
+        return config
+
+    def match_pool(self, pools):
+        for pool_id in pools:
+            config = query_resource_pool(pool_id)
+            for match_expression in self._match_expressions:
+                keys = match_expression.key.split(".")
+                op = match_expression.operator
+                values = match_expression.values
+                config_values = None
+
+                try:
+                    config_values = self._get_values(keys, config["meta"])
+                except ValueError:
+                    try:
+                        config_values = self._get_values(keys, config["spec"])
+                    except ValueError:
+                        raise SelectorError(f"Cannot find {match_expression.key}")
+
+                if not _Operator.operate(op, config_values, values):
+                    break
+            else:
+                return pool_id
+        return None
+
+
 def select_node(candidates, selectors=None):
     """
     Select the node according to the node selectors.
@@ -164,3 +231,8 @@ def select_node(candidates, selectors=None):
         selector = _Selector(selectors)
         return selector.match_node(candidates)
     return candidates.pop() if candidates else None
+
+
+def select_resource_pool(pools, pool_selectors):
+    selector = _PoolSelector(pool_selectors)
+    return selector.match_pool(pools)
