@@ -37,6 +37,7 @@ from virttest import (
 )
 from virttest._wrappers import load_source
 from virttest.vt_cluster import cluster, logger, selector
+from virttest.vt_resmgr import resmgr
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
@@ -388,7 +389,21 @@ class VirtTest(test.Test, utils.TestUtils):
             _node.tag = node
             self._cluster_partition.add_node(_node)
 
+        # Select the pools when the user specifies the pools param
+        for pool_tag in self.params.objects("pools"):
+            pool_params = self.params.object_params(pool_tag)
+            pool_selectors = pool_params.get("pool_selectors")
+
+            pools = set(resmgr.pools.keys()) - set(cluster.partition.pools.values())
+            pool_id = selector.select_resource_pool(list(pools), pool_selectors)
+            if not pool_id:
+                raise selector.SelectorError(
+                    f"No pool selected for {pool_tag} with {pool_selectors}"
+                )
+            self._cluster_partition.pools[pool_tag] = pool_id
+
     def _clear_partition(self):
+        self._cluster_partition.pools.clear()
         cluster_dir = os.path.join(self.resultsdir, "cluster")
         if self._cluster_partition.nodes:
             for node in self._cluster_partition.nodes:
