@@ -26,7 +26,9 @@ class StorageConfig(Setuper):
             self.params["image_raw_device"] = "yes"
             self.env.register_lvmdev("lvm_%s" % self.params["main_vm"], lvmdev)
 
-        if self.params.get("storage_type") == "nfs":
+        if self.params.get("storage_type") == "nfs" and self.params.get_boolean(
+            "setup_local_nfs"
+        ):
             selinux_local = self.params.get("set_sebool_local", "yes") == "yes"
             selinux_remote = self.params.get("set_sebool_remote", "no") == "yes"
             image_nfs = Nfs(self.params)
@@ -89,7 +91,9 @@ class StorageConfig(Setuper):
             finally:
                 self.env.unregister_lvmdev("lvm_%s" % self.params["main_vm"])
 
-        if self.params.get("storage_type") == "nfs":
+        if self.params.get("storage_type") == "nfs" and self.params.get_boolean(
+            "setup_local_nfs"
+        ):
             migration_setup = self.params.get("migration_setup", "no") == "yes"
             image_nfs = Nfs(self.params)
             image_nfs.cleanup()

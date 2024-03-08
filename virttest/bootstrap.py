@@ -12,6 +12,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 
 from virttest.vt_cluster import cluster, node
+from virttest.vt_resmgr import resmgr
 
 from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
@@ -895,6 +896,10 @@ def _register_hosts(hosts_configs):
             LOG.debug("Host %s registered", host)
 
 
+def _initialize_managers(pools_params):
+    resmgr.setup(pools_params)
+
+
 def _config_master_server(master_config):
     """Configure the master server."""
     if master_config:
@@ -1084,6 +1089,7 @@ def bootstrap(options, interactive=False):
         cluster_config = _load_cluster_config(vt_cluster_config)
         _register_hosts(cluster_config.get("hosts"))
         _config_master_server(cluster_config.get("master"))
+        _initialize_managers(cluster_config.get("pools"))
 
     LOG.info("")
     LOG.info("VT-BOOTSTRAP FINISHED")

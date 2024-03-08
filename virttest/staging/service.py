@@ -604,7 +604,7 @@ class _SysVInitServiceManager(_GenericServiceManager):
     #     :param runlevel: sys_v runlevel to set as default in inittab
     #     :type runlevel: str
     #     """
-    #     raise NotImplemented
+    #     raise NotImplementedError
 
 
 def convert_sysv_runlevel(level):

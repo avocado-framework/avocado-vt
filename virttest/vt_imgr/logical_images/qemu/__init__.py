@@ -1,0 +1,1 @@
+from .qemu_logical_image import _QemuLogicalImage
