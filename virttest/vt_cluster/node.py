@@ -85,6 +85,7 @@ class Node(object):
         self._server_daemon_pid_file = None
         self._logger_server = None
         self._session_daemon = None
+        self.tag = None
 
     @property
     def name(self):

@@ -104,6 +104,12 @@ class _Cluster(object):
         del self._nodes[name]
         self._save()
 
+    def get_node_by_tag(self, tag):
+        for node in self.get_all_nodes():
+            if node.tag == tag:
+                return node
+        return None
+
     def get_node(self, name):
         """
         Get the node from the cluster.

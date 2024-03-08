@@ -8,6 +8,8 @@ from avocado.core.plugin_interfaces import JobPreTests as Pre
 from avocado.utils.stacktrace import log_exc_info
 
 from virttest.vt_cluster import cluster, node_metadata
+from virttest.vt_imgr import vt_imgr
+from virttest.vt_resmgr import startup_resmgr, teardown_resmgr
 
 
 class ClusterCreationError(Exception):
@@ -31,7 +33,10 @@ class VTCluster(Pre, Post):
             try:
                 for node in cluster.get_all_nodes():
                     node.start_agent_server()
+
                 node_metadata.load_metadata()
+                startup_resmgr()
+                vt_imgr.startup()
 
             except Exception as detail:
                 msg = "Failure trying to set Avocado-VT job env: %s" % detail
@@ -44,6 +49,8 @@ class VTCluster(Pre, Post):
             cluster_dir = os.path.join(job.logdir, "cluster")
             for node in cluster.get_all_nodes():
                 try:
+                    teardown_resmgr()
+                    vt_imgr.teardown()
                     node_dir = os.path.join(cluster_dir, node.name)
                     os.makedirs(node_dir)
                     node.upload_agent_log(node_dir)
