@@ -504,16 +504,25 @@ class HugePageConfig(object):
                 " exist" % self.pool_path
             )
 
-    def get_kernel_hugepages(self, pagesize):
+    def get_kernel_hugepages(self, pagesize, type="total"):
         """
         Get specific hugepages number allocated by kernel at runtime
         read page number from
         /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
+        or
+        /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/free_hugepages
 
         :param pagesize: string or int, page size in kB
+        :param type: total pages or free pages
         :return: page number
         """
-        pgfile = "%s/hugepages-%skB/nr_hugepages" % (self.pool_path, pagesize)
+        if type == 'total':
+            ptype = "nr_hugepages"
+        elif type == 'free':
+            ptype = "free_hugepages"
+        else:
+            raise ValueError("The 'type' argument only accepts 'total' and 'free'")
+        pgfile = "%s/hugepages-%skB/%s" % (self.pool_path, pagesize, ptype)
 
         obj = kernel_interface.SysFS(pgfile)
         return obj.sys_fs_value
