@@ -516,9 +516,9 @@ class HugePageConfig(object):
         :param type: total pages or free pages
         :return: page number
         """
-        if type == 'total':
+        if type == "total":
             ptype = "nr_hugepages"
-        elif type == 'free':
+        elif type == "free":
             ptype = "free_hugepages"
         else:
             raise ValueError("The 'type' argument only accepts 'total' and 'free'")
