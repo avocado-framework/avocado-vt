@@ -594,6 +594,7 @@ class QemuImg(storage.QemuImg):
                 "extent_size_hint",
                 ("qcow2", "raw", "luks"),
             ),
+            "image_compression_type": (None, "compression_type", ("qcow2",)),
         }
         image_format = params.get("image_format", "qcow2")
         options = []
@@ -840,6 +841,9 @@ class QemuImg(storage.QemuImg):
                preallocated(optional)
                    if preallocation when create image, allowed values: off,
                    metadata. Default is "off"
+               image_compression_type(optional)
+                   if image_compression_type when create image, allowed
+                   values: zlib, zstd
 
         :return: tuple (path to the image created, process.CmdResult object
                  containing the result of the creation command).
@@ -976,6 +980,8 @@ class QemuImg(storage.QemuImg):
                 the convert target image tag
             compressed
                 indicates that target image must be compressed
+            image_compression_type
+                indicates the type of the compression is zlib or zstd
             sparse_size
                 indicate the consecutive number of bytes contains zeros to
                 create sparse image during conversion
