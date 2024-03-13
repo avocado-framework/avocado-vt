@@ -2492,16 +2492,21 @@ def get_vm_device(vmxml, dev_tag, index=0):
     return (dev_obj, xml_devices)
 
 
-def add_vm_device(vmxml, new_device, virsh_instance=virsh):
+def add_vm_device(vmxml, new_device, virsh_instance=virsh, need_sync=True):
     """
     Add device in vmxml
 
     :param vmxml: domain VMXML instance
     :param new_device: device instance
+    :param virsh_instance: virsh instance
+    :param need_sync: boolean, True to execute sync, otherwise not
+    :return: VMXML instance updated
     """
     vmxml.add_device(new_device)
     vmxml.xmltreefile.write()
-    vmxml.sync(virsh_instance=virsh_instance)
+    if need_sync:
+        vmxml.sync(virsh_instance=virsh_instance)
+    return vmxml
 
 
 def set_guest_agent(vm):
