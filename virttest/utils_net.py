@@ -4064,7 +4064,7 @@ def get_default_gateway(
         _, output = utils_misc.cmd_status_output(cmd, shell=True, session=session)
         matches = [x for x in output.split("\n") if re.match(regex, x)]
         if not matches:
-            raise aexpect.ShellError
+            raise aexpect.ShellError(cmd, output)
         if ip_ver == "ipv6" and any("fe80:" not in m for m in matches):
             LOG.error("Multipath ipv6 router can not be recognized!")
             return None
