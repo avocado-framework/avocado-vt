@@ -63,14 +63,14 @@ class StorageConfig(Setuper):
                 seLinuxBool = SELinuxBoolean(self.params)
                 seLinuxBool.setup()
 
-        image_name_only = os.path.basename(self.params["image_name"])
-        for image_name in self.params.objects("images"):
-            name_tag = "image_name_%s" % image_name
-            if self.params.get(name_tag):
-                image_name_only = os.path.basename(self.params[name_tag])
-                self.params[name_tag] = os.path.join(
-                    image_nfs.mount_dir, image_name_only
-                )
+            image_name_only = os.path.basename(self.params["image_name"])
+            for image_name in self.params.objects("images"):
+                name_tag = "image_name_%s" % image_name
+                if self.params.get(name_tag):
+                    image_name_only = os.path.basename(self.params[name_tag])
+                    self.params[name_tag] = os.path.join(
+                        image_nfs.mount_dir, image_name_only
+                    )
 
     def cleanup(self):
         base_dir = data_dir.get_data_dir()
