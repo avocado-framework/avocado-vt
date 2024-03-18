@@ -6,7 +6,6 @@ from six.moves import xrange
 
 
 class ParallelError(Exception):
-
     def __init__(self, out, errors):
         self.out = out
         self.errors = errors
@@ -14,7 +13,6 @@ class ParallelError(Exception):
 
 
 class ParallelExecute(object):
-
     def __init__(self, functions, max_simultaneous_procs=20):
         """
         This takes in a dictionary of functions which map to a set of
@@ -87,13 +85,13 @@ class ParallelExecute(object):
 
         if len(errors) > 0:
             msg = "Errors occurred during execution:"
-            msg = '\n'.join([msg] + errors)
+            msg = "\n".join([msg] + errors)
             raise ParallelError(msg, errors)
 
 
-def redirect_io(log_file='/dev/null'):
+def redirect_io(log_file="/dev/null"):
     # Always redirect stdin.
-    in_fd = os.open('/dev/null', os.O_RDONLY)
+    in_fd = os.open("/dev/null", os.O_RDONLY)
     try:
         os.dup2(in_fd, 0)
     finally:
@@ -106,6 +104,6 @@ def redirect_io(log_file='/dev/null'):
     finally:
         os.close(out_fd)
 
-    sys.stdin = os.fdopen(0, 'r')
-    sys.stdout = os.fdopen(1, 'w')
-    sys.stderr = os.fdopen(2, 'w')
+    sys.stdin = os.fdopen(0, "r")
+    sys.stdout = os.fdopen(1, "w")
+    sys.stderr = os.fdopen(2, "w")

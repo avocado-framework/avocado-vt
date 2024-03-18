@@ -21,6 +21,7 @@ def check_kernel_config(config_name, session=None):
     :return: Config status in running kernel (NOT_SET, BUILTIN, MODULE)
     :rtype: :class:`ModuleConfig`
     """
+
     def check_session_kernel_config(config_name, session):
         """
         Reports the configuration of $config_name of session's kernel
@@ -33,12 +34,14 @@ def check_kernel_config(config_name, session=None):
         :return: Config status in running kernel (NOT_SET, BUILTIN, MODULE)
         :rtype: :class:`ModuleConfig`
         """
-        config_file = '/boot/config-' + session.cmd_output('uname -r').strip()
-        config_info = session.cmd_output(f'grep ^"{config_name}"= \
-                                         {config_file}').strip()
+        config_file = "/boot/config-" + session.cmd_output("uname -r").strip()
+        config_info = session.cmd_output(
+            f'grep ^"{config_name}"= \
+                                         {config_file}'
+        ).strip()
 
         LOG.debug("Get config info %s", config_info)
-        line = config_info.split('=')
+        line = config_info.split("=")
         if len(line) != 2:
             return linux_modules.ModuleConfig.NOT_SET
 
@@ -50,8 +53,11 @@ def check_kernel_config(config_name, session=None):
                 return linux_modules.ModuleConfig.BUILTIN
         return linux_modules.ModuleConfig.NOT_SET
 
-    return linux_modules.check_kernel_config(config_name) if session is None \
+    return (
+        linux_modules.check_kernel_config(config_name)
+        if session is None
         else check_session_kernel_config(config_name, session)
+    )
 
 
 def kconfig_is_builtin(config_name, session=None):
@@ -67,8 +73,9 @@ def kconfig_is_builtin(config_name, session=None):
     :return: Return True if kernel config is BUILTIN, otherwise False.
     :rtype: Bool
     """
-    return check_kernel_config(config_name, session) is \
-        linux_modules.ModuleConfig.BUILTIN
+    return (
+        check_kernel_config(config_name, session) is linux_modules.ModuleConfig.BUILTIN
+    )
 
 
 def kconfig_is_module(config_name, session=None):
@@ -84,8 +91,9 @@ def kconfig_is_module(config_name, session=None):
     :return: Return True if kernel config is MODULE, otherwise False.
     :rtype: Bool
     """
-    return check_kernel_config(config_name, session) is \
-        linux_modules.ModuleConfig.MODULE
+    return (
+        check_kernel_config(config_name, session) is linux_modules.ModuleConfig.MODULE
+    )
 
 
 def kconfig_is_not_set(config_name, session=None):
@@ -100,5 +108,6 @@ def kconfig_is_not_set(config_name, session=None):
     :return: Return True if kernel config is NOT_SET, otherwise False.
     :rtype: Bool
     """
-    return check_kernel_config(config_name, session) is \
-        linux_modules.ModuleConfig.NOT_SET
+    return (
+        check_kernel_config(config_name, session) is linux_modules.ModuleConfig.NOT_SET
+    )

@@ -1,11 +1,10 @@
 import logging
 
 import aexpect
-from virttest import libvirt_vm
-from virttest import remote
-from virttest import utils_params
 
-LOG = logging.getLogger('avocado.' + __name__)
+from virttest import libvirt_vm, remote, utils_params
+
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_unprivileged_vm(vm_name, user, passwd, **args):
@@ -19,17 +18,17 @@ def get_unprivileged_vm(vm_name, user, passwd, **args):
     :return: instance of the unprivileged vm
     """
 
-    host_session = aexpect.ShellSession('su')
-    remote.VMManager.set_ssh_auth(host_session, 'localhost', user, passwd)
+    host_session = aexpect.ShellSession("su")
+    remote.VMManager.set_ssh_auth(host_session, "localhost", user, passwd)
     host_session.close()
 
     params = utils_params.Params()
-    params['connect_uri'] = f'qemu+ssh://{user}@localhost/session'
-    params['serials'] = args.get('serials', 'serial0')
-    params['status_test_command'] = args.get('status_test_command', 'echo $?')
+    params["connect_uri"] = f"qemu+ssh://{user}@localhost/session"
+    params["serials"] = args.get("serials", "serial0")
+    params["status_test_command"] = args.get("status_test_command", "echo $?")
     params.update(args)
-    root_dir = args.get('root_dir', f'/home/{user}/')
-    addr_cache = args.get('address_cache', {})
+    root_dir = args.get("root_dir", f"/home/{user}/")
+    addr_cache = args.get("address_cache", {})
     uvm = libvirt_vm.VM(vm_name, params, root_dir, addr_cache)
 
     return uvm

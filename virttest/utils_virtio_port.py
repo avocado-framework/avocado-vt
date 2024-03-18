@@ -2,23 +2,21 @@ import logging
 
 from six.moves import xrange
 
-from . import env_process
-from . import error_context
-from . import qemu_virtio_port
+from . import env_process, error_context, qemu_virtio_port
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtioPortTest(object):
-
     def __init__(self, test, env, params):
         self.test = test
         self.env = env
         self.params = params
 
     @error_context.context_aware
-    def get_vm_with_ports(self, no_consoles=0, no_serialports=0, spread=None,
-                          quiet=False, strict=False):
+    def get_vm_with_ports(
+        self, no_consoles=0, no_serialports=0, spread=None, quiet=False, strict=False
+    ):
         """
         Checks whether existing 'main_vm' fits the requirements, modifies
         it if needed and returns the VM object.
@@ -31,7 +29,7 @@ class VirtioPortTest(object):
         :return: vm object matching the requirements.
         """
         params = self.params.copy()
-        main_vm = self.params['main_vm']
+        main_vm = self.params["main_vm"]
         # check the number of running VM's consoles
         vm = self.env.get_vm(main_vm)
 
@@ -46,18 +44,19 @@ class VirtioPortTest(object):
                     _no_serialports += 1
                 else:
                     _no_consoles += 1
-        _spread = int(params.get('virtio_port_spread', 2))
+        _spread = int(params.get("virtio_port_spread", 2))
         if spread is None:
             spread = _spread
         if strict:
-            if (_no_serialports != no_serialports or
-                    _no_consoles != no_consoles):
+            if _no_serialports != no_serialports or _no_consoles != no_consoles:
                 _no_serialports = -1
                 _no_consoles = -1
         # If not enough ports, modify params and recreate VM
-        if (_no_serialports < no_serialports or
-                _no_consoles < no_consoles or
-                spread != _spread):
+        if (
+            _no_serialports < no_serialports
+            or _no_consoles < no_consoles
+            or spread != _spread
+        ):
             if not quiet:
                 out = "tests requirements are different from cfg: "
                 if _no_serialports < no_serialports:
@@ -68,21 +67,21 @@ class VirtioPortTest(object):
                     out += "spread(%s), " % spread
                 LOG.warning(out[:-2] + ". Modify config to speedup tests.")
 
-            params['serials'] = params.objects('serials')[0]
+            params["serials"] = params.objects("serials")[0]
             if spread:
-                params['virtio_port_spread'] = spread
+                params["virtio_port_spread"] = spread
             else:
-                params['virtio_port_spread'] = 0
+                params["virtio_port_spread"] = 0
 
             for i in xrange(max(no_consoles, _no_consoles)):
                 name = "console-%d" % i
-                params['serials'] += " %s" % name
-                params['serial_type_%s' % name] = "virtconsole"
+                params["serials"] += " %s" % name
+                params["serial_type_%s" % name] = "virtconsole"
 
             for i in xrange(max(no_serialports, _no_serialports)):
                 name = "serialport-%d" % i
-                params['serials'] += " %s" % name
-                params['serial_type_%s' % name] = "virtserialport"
+                params["serials"] += " %s" % name
+                params["serial_type_%s" % name] = "virtserialport"
 
             if quiet:
                 LOG.debug("Recreating VM with more virtio ports.")
@@ -95,8 +94,9 @@ class VirtioPortTest(object):
         return vm
 
     @error_context.context_aware
-    def get_vm_with_worker(self, no_consoles=0, no_serialports=0, spread=None,
-                           quiet=False):
+    def get_vm_with_worker(
+        self, no_consoles=0, no_serialports=0, spread=None, quiet=False
+    ):
         """
         Checks whether existing 'main_vm' fits the requirements, modifies
         it if needed and returns the VM object and guest_worker.
@@ -114,7 +114,7 @@ class VirtioPortTest(object):
         return vm, guest_worker
 
     @error_context.context_aware
-    def get_vm_with_single_port(self, port_type='serialport'):
+    def get_vm_with_single_port(self, port_type="serialport"):
         """
         Wrapper which returns vm, guest_worker and virtio_ports with at lest
         one port of the type specified by function parameter.
@@ -124,7 +124,7 @@ class VirtioPortTest(object):
                         initialized GuestWorker of the vm,
                         list of virtio_ports of the port_type type)
         """
-        if port_type == 'serialport':
+        if port_type == "serialport":
             vm, guest_worker = self.get_vm_with_worker(no_serialports=1)
             virtio_ports = self.get_virtio_ports(vm)[1][0]
         else:

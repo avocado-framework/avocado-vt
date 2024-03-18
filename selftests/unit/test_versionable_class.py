@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-import unittest
 import os
 import sys
+import unittest
+
 try:
     import pickle as cPickle
 except ImportError:
@@ -10,11 +11,11 @@ except ImportError:
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest.unittest_utils import mock
-from virttest.versionable_class import Manager, factory, VersionableClass
+from virttest.versionable_class import Manager, VersionableClass, factory
 
 man = Manager(__name__)
 
@@ -34,7 +35,7 @@ class VM(object):
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "qemu_version" in kargs:
-            ver = kargs['qemu_version']
+            ver = kargs["qemu_version"]
         else:
             ver = qemu_version()
         if ver < 1:
@@ -66,7 +67,7 @@ class VM1(VM):
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "qemu_version" in kargs:
-            ver = kargs['qemu_version']
+            ver = kargs["qemu_version"]
         else:
             ver = qemu_version()
         if ver > 1:
@@ -117,12 +118,11 @@ def system_version():
 
 
 class System(object):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "system_version" in kargs:
-            ver = kargs['system_version']
+            ver = kargs["system_version"]
         else:
             ver = system_version()
         if ver < 1:
@@ -139,12 +139,11 @@ class System(object):
 
 
 class System1(System):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "system_version" in kargs:
-            ver = kargs['system_version']
+            ver = kargs["system_version"]
         else:
             ver = system_version()
         if ver > 1:
@@ -168,12 +167,11 @@ class System_Container(VersionableClass):
 
 
 class Q(object):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "q_version" in kargs:
-            ver = kargs['q_version']
+            ver = kargs["q_version"]
         else:
             ver = system_version()
         if ver < 1:
@@ -190,12 +188,11 @@ class Q(object):
 
 
 class Q1(Q):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "q_version" in kargs:
-            ver = kargs['q_version']
+            ver = kargs["q_version"]
         else:
             ver = system_version()
         if ver > 1:
@@ -216,12 +213,11 @@ class Q_Container(VersionableClass):
 
 
 class Sys(Q_Container):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "system_version" in kargs:
-            ver = kargs['system_version']
+            ver = kargs["system_version"]
         else:
             ver = system_version()
         if ver < 1:
@@ -238,12 +234,11 @@ class Sys(Q_Container):
 
 
 class Sys1(Sys):
-
     @classmethod
     def _is_right_ver(cls, *args, **kargs):
         ver = None
         if "system_version" in kargs:
-            ver = kargs['system_version']
+            ver = kargs["system_version"]
         else:
             ver = system_version()
         if ver > 1:
@@ -267,13 +262,11 @@ class Sys_Container(VersionableClass):
 
 
 class AA(Sys_Container, BB, System_Container):
-
     def __new__(cls, *args, **kargs):
         return super(man[cls, AA], cls).__new__(cls, *args, **kargs)
 
 
 class TestVersionableClass(unittest.TestCase):
-
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.version = 1
@@ -291,8 +284,8 @@ class TestVersionableClass(unittest.TestCase):
         mm = factory(BB)()
         # check class name.
         self.assertEqual(str(mm), "managed_BB_VM1")
-        mm.func2()   # call BB.func2(m) -> VM1.func2
-        mm.func1()   # call VM1.func1(m) -> VM.func1
+        mm.func2()  # call BB.func2(m) -> VM1.func2
+        mm.func1()  # call VM1.func1(m) -> VM.func1
 
         self.god.check_playback()
 
@@ -308,7 +301,7 @@ class TestVersionableClass(unittest.TestCase):
         mm = factory(BB, qemu_version=0)()
         # check class name.
         self.assertEqual(str(mm), "managed_BB_VM")
-        mm.func3()   # call VM1.func1(m) -> VM.func1
+        mm.func3()  # call VM1.func1(m) -> VM.func1
         self.assertRaises(AttributeError, wrap, mm)
 
         self.god.check_playback()
@@ -322,7 +315,7 @@ class TestVersionableClass(unittest.TestCase):
         mm = factory(BB, qemu_version=2)()
         # check class name.
         self.assertEqual(str(mm), "managed_BB_VM1")
-        mm.func3()   # call VM1.func1(m) -> VM.func1
+        mm.func3()  # call VM1.func1(m) -> VM.func1
         self.assertEqual(mm.VM1_cls, "VM1")
 
         self.god.check_playback()
@@ -337,17 +330,13 @@ class TestVersionableClass(unittest.TestCase):
         man[bb.__class__, BB].test_class_bb = 2
         man[cc.__class__, BB].test_class_bb = 3
         # check class name.
-        self.assertEqual(bb.__class__.test_class_vm1,
-                         mm.__class__.test_class_vm1)
-        self.assertEqual(bb.__class__.test_class_bb,
-                         mm.__class__.test_class_bb)
+        self.assertEqual(bb.__class__.test_class_vm1, mm.__class__.test_class_vm1)
+        self.assertEqual(bb.__class__.test_class_bb, mm.__class__.test_class_bb)
 
         # In class hierarchy is class which don't have to be versioned
         # because that first value should be equal and second one shouldn't.
-        self.assertEqual(bb.__class__.test_class_vm1,
-                         cc.__class__.test_class_vm1)
-        self.assertNotEqual(bb.__class__.test_class_bb,
-                            cc.__class__.test_class_bb)
+        self.assertEqual(bb.__class__.test_class_vm1, cc.__class__.test_class_vm1)
+        self.assertNotEqual(bb.__class__.test_class_bb, cc.__class__.test_class_bb)
 
     def test_complicated_versioning(self):
         self.god.stub_function(VM, "func3")
@@ -358,7 +347,7 @@ class TestVersionableClass(unittest.TestCase):
         mm = factory(AA)()
         # check class name.
         self.assertEqual(str(mm), "managed_AA_Sys1_Q1_VM1_System1")
-        mm.func3()   # call VM1.func1(m) -> VM.func1
+        mm.func3()  # call VM1.func1(m) -> VM.func1
 
         self.god.check_playback()
 
@@ -371,7 +360,7 @@ class TestVersionableClass(unittest.TestCase):
         mm = factory(AA, qemu_version=0, system_version=2, q_version=0)()
         # check class name.
         self.assertEqual(str(mm), "managed_AA_Sys1_Q_VM_System1")
-        mm.func3()   # call VM1.func1(m) -> VM.func1
+        mm.func3()  # call VM1.func1(m) -> VM.func1
 
         self.god.check_playback()
 

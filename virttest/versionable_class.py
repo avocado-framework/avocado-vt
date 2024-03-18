@@ -1,4 +1,5 @@
 import sys
+
 try:
     from types import ClassType
 except ImportError:
@@ -213,8 +214,9 @@ class ModuleWrapper(object):
             if name.startswith("managed"):
                 cls_name = name.split("_")
                 cls = self.wrapped.__dict__[cls_name[1]]
-                m_cls, _ = Manager(self.wrapped.__name__, self).factory(cls,
-                                                                        _class_names=cls_name)
+                m_cls, _ = Manager(self.wrapped.__name__, self).factory(
+                    cls, _class_names=cls_name
+                )
                 return m_cls
         cls = getattr(self.wrapped, name)
         return cls
@@ -225,18 +227,20 @@ class VersionableClass(object):
     """
     Class used for marking of mutable class.
     """
+
     def __new__(cls, *args, **kargs):
         """
         If this method is invoked it means that something went wrong because
         this class should be replaced by :class:`Manager` factory.
         """
-        raise Exception("Class %s is not prepared for usage. "
-                        "You have to call versionable_class.factory(cls) "
-                        "before you can use it" % (cls))
+        raise Exception(
+            "Class %s is not prepared for usage. "
+            "You have to call versionable_class.factory(cls) "
+            "before you can use it" % (cls)
+        )
 
 
 class Manager(object):
-
     def __init__(self, name, wrapper=None):
         """
         Manager for module.
@@ -266,6 +270,7 @@ class Manager(object):
         :param args: Params for _is_right_ver function.
         :params kargs: Params for _is_right_ver function.
         """
+
         def add_to_structure(cl, new_bases):
             if VersionableClass in cl.__mro__:
                 cls, cls_vn = self.factory(cl, *args, **kargs)
@@ -278,15 +283,16 @@ class Manager(object):
         _class_names = None
         if "_class_names" in kargs:
             _class_names = kargs["_class_names"]
-        if (_class.__name__.startswith("managed") and
-                hasattr(_class, "__original_class__")):
+        if _class.__name__.startswith("managed") and hasattr(
+            _class, "__original_class__"
+        ):
             _class = _class.__original_class__
         new_bases = []
         cls_ver_name = ""
         if VersionableClass in _class.__bases__:  # parent is VersionableClass
             for m_cls in _class.__bases__:
                 if m_cls is VersionableClass:
-                    mro = _class.__master__.__mro__    # Find good version.
+                    mro = _class.__master__.__mro__  # Find good version.
                     if _class_names:
                         for cl in mro[:-1]:
                             if cl.__name__ in _class_names:
@@ -303,8 +309,9 @@ class Manager(object):
                     cls_ver_name += add_to_structure(m_cls, new_bases)
         else:
             for m_cls in _class.__bases__:
-                if (VersionableClass in m_cls.__mro__ or
-                        hasattr(m_cls, "__original_class__")):
+                if VersionableClass in m_cls.__mro__ or hasattr(
+                    m_cls, "__original_class__"
+                ):
                     cls, cls_vn = self.factory(m_cls, *args, **kargs)
                     new_bases.append(cls)
                     cls_ver_name += cls_vn
@@ -344,8 +351,10 @@ class Manager(object):
                     return m_cls
             elif m_cls is orig_class:
                 return m_cls
-        raise Exception("Couldn't find derived alternative in %s for"
-                        " class %s" % (cls, orig_class))
+        raise Exception(
+            "Couldn't find derived alternative in %s for"
+            " class %s" % (cls, orig_class)
+        )
 
 
 def factory(orig_cls, *args, **kargs):

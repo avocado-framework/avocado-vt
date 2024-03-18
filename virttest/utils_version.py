@@ -1,6 +1,8 @@
 import operator
 import re
-from distutils.version import LooseVersion  # pylint: disable=no-name-in-module,import-error
+from distutils.version import (  # pylint: disable=no-name-in-module,import-error
+    LooseVersion,
+)
 
 
 class VersionInterval(object):
@@ -38,20 +40,29 @@ class VersionInterval(object):
             return
         if self.lower_bound < self.upper_bound:
             return
-        if (self.lower_bound == self.upper_bound and self.opening == '[' and
-                self.closing == ']'):
+        if (
+            self.lower_bound == self.upper_bound
+            and self.opening == "["
+            and self.closing == "]"
+        ):
             return
         raise ValueError("Invalid interval")
 
     def __repr__(self):
-        return '<version interval %s%s, %s%s>' % (self.opening,
-                                                  self.lower_bound,
-                                                  self.upper_bound,
-                                                  self.closing)
+        return "<version interval %s%s, %s%s>" % (
+            self.opening,
+            self.lower_bound,
+            self.upper_bound,
+            self.closing,
+        )
 
     def __contains__(self, version):
-        op_mapping = {"(": operator.lt, "[": operator.le,
-                      ")": operator.gt, "]": operator.ge}
+        op_mapping = {
+            "(": operator.lt,
+            "[": operator.le,
+            ")": operator.gt,
+            "]": operator.ge,
+        }
         in_interval = True
         version = LooseVersion(version)
         if self.lower_bound:

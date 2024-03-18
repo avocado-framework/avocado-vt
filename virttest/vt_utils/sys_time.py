@@ -30,7 +30,7 @@ def get_timezone():
              on the platform.
     """
     timezone_cmd = 'timedatectl | grep "Time zone"'
-    timezone_re = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
+    timezone_re = "^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$"
 
     timezone = process.run(timezone_cmd, shell=True).stdout_text
     timezone_set = re.match(timezone_re, timezone).groups()

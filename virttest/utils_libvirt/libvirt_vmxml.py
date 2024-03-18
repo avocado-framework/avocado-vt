@@ -14,7 +14,7 @@ from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.devices import librarian
 from virttest.utils_test import libvirt
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def set_vm_attrs(vmxml, vm_attrs):
@@ -26,14 +26,14 @@ def set_vm_attrs(vmxml, vm_attrs):
     :return the updated vmxml
     """
     for attr, value in list(vm_attrs.items()):
-        LOG.debug('Set %s = %s', attr, value)
+        LOG.debug("Set %s = %s", attr, value)
         setattr(vmxml, attr, int(value) if value.isdigit() else value)
     vmxml.xmltreefile.write()
     vmxml.sync()
     return vmxml
 
 
-def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
+def check_guest_xml(vm_name, pat_in_dumpxml, option="", status_error=False):
     """
     Check the given pattern in the vm dumpxml
 
@@ -46,8 +46,11 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
     ret_stdout = virsh.dumpxml(vm_name, extra=option).stdout.strip()
     match = re.search(pat_in_dumpxml, ret_stdout)
     found = True if match else False
-    prefix_found = '' if found else 'not '
-    msg = "The pattern '%s' is %sfound in the vm dumpxml" % (pat_in_dumpxml, prefix_found)
+    prefix_found = "" if found else "not "
+    msg = "The pattern '%s' is %sfound in the vm dumpxml" % (
+        pat_in_dumpxml,
+        prefix_found,
+    )
     if found ^ status_error:
         LOG.debug(msg)
     else:
@@ -71,24 +74,28 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
     :return: boolean, True when matched, False when not matched
     """
     for xpath_text in xpaths_text:
-        elem_attrs_list = xpath_text['element_attrs']
-        elem_text = xpath_text.get('text', '')
+        elem_attrs_list = xpath_text["element_attrs"]
+        elem_text = xpath_text.get("text", "")
         for one_elem_attr in elem_attrs_list:
             matches = vmxml.xmltreefile.findall(one_elem_attr)
             if not matches:
                 if ignore_status:
                     return False
                 else:
-                    raise exceptions.TestFail("XML did not match xpath: %s" % one_elem_attr)
+                    raise exceptions.TestFail(
+                        "XML did not match xpath: %s" % one_elem_attr
+                    )
             if elem_text and any([True for x in matches if x.text != elem_text]):
                 if ignore_status:
                     return False
                 else:
-                    raise exceptions.TestFail("XML did not match text '%s' "
-                                              "for the xpath '%s'" % (elem_text,
-                                                                      one_elem_attr))
-        LOG.debug("Matched the xpaths '%s' with text '%s'" % (elem_attrs_list,
-                                                              elem_text))
+                    raise exceptions.TestFail(
+                        "XML did not match text '%s' "
+                        "for the xpath '%s'" % (elem_text, one_elem_attr)
+                    )
+        LOG.debug(
+            "Matched the xpaths '%s' with text '%s'" % (elem_attrs_list, elem_text)
+        )
     return True
 
 
@@ -123,8 +130,7 @@ def create_vm_device_by_type(dev_type, dev_dict):
     return dev_obj
 
 
-def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0,
-                     virsh_instance=virsh):
+def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0, virsh_instance=virsh):
     """
      Get specified device , update it with given dev_dict if the device exists,
      Create the device if it does not exist
@@ -147,5 +153,5 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0,
         dev_obj = create_vm_device_by_type(dev_type, dev_dict)
         libvirt.add_vm_device(vmxml, dev_obj, virsh_instance=virsh_instance)
 
-    LOG.debug(f'XML of {dev_type} device is:\n{dev_obj}')
+    LOG.debug(f"XML of {dev_type} device is:\n{dev_obj}")
     return dev_obj

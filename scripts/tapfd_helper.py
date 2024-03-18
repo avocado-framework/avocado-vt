@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-import sys
 import os
 import re
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import utils_net
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         sys.exit(255)
 
     brname = sys.argv[1]
-    cmd_line = ' '.join(sys.argv[2:])
+    cmd_line = " ".join(sys.argv[2:])
 
     if re.findall("-netdev\s", cmd_line):
         # so we get the new qemu cli with netdev parameter.

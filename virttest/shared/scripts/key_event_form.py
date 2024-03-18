@@ -2,7 +2,6 @@ import gtk
 
 
 class TestForm(gtk.Window):
-
     def __init__(self):
         super(TestForm, self).__init__()
 

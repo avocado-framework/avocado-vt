@@ -2,8 +2,7 @@
 
 import os
 
-
-mem_fd = open("/proc/meminfo", 'r')
+mem_fd = open("/proc/meminfo", "r")
 contents = mem_fd.readlines()
 mem_fd.close()
 freemem = 0
@@ -39,9 +38,12 @@ main()
   munlock(p, count*size);
   free(p);
 }
-""" % (int_count, int_size)
+""" % (
+    int_count,
+    int_size,
+)
 
-occupy_fd = open("/tmp/duplicate_pages.c", 'w')
+occupy_fd = open("/tmp/duplicate_pages.c", "w")
 occupy_fd.write(occupy_script)
 occupy_fd.close()
 

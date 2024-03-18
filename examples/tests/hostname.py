@@ -10,8 +10,7 @@ import logging
 
 from avocado.utils import process
 
-
-LOG = logging.getLogger('avocado.vt.examples.hostname')
+LOG = logging.getLogger("avocado.vt.examples.hostname")
 
 
 def run(test, params, env):
@@ -23,5 +22,4 @@ def run(test, params, env):
     :param env: Dictionary with test environment.
     """
     result = process.run("hostname")
-    LOG.info("Output of 'hostname' cmd is '%s'",
-             result.stdout_text)
+    LOG.info("Output of 'hostname' cmd is '%s'", result.stdout_text)

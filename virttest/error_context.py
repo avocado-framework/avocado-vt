@@ -5,8 +5,13 @@ from traceback import format_exception
 # Add names you want to be imported by 'from errors import *' to this list.
 # This must be list not a tuple as we modify it to include all of our
 # the Exception classes we define below at the end of this file.
-__all__ = ['format_error', 'context_aware', 'context', 'get_context',
-           'exception_context']
+__all__ = [
+    "format_error",
+    "context_aware",
+    "context",
+    "get_context",
+    "exception_context",
+]
 
 
 def format_error():
@@ -14,9 +19,9 @@ def format_error():
     trace = format_exception(t, o, tb)
     # Clear the backtrace to prevent a circular reference
     # in the heap -- as per tutorial
-    tb = ''
+    tb = ""
 
-    return ''.join(trace)
+    return "".join(trace)
 
 
 # Exception context information:
@@ -127,6 +132,7 @@ def join_contexts(s1, s2):
 
 def context_aware(fn):
     """A decorator that must be applied to functions that call context()."""
+
     def new_fn(*args, **kwargs):
         _new_context()
         _new_context("(%s)" % fn.__name__)
@@ -140,6 +146,7 @@ def context_aware(fn):
         finally:
             _pop_context()
             _pop_context()
+
     new_fn.__name__ = fn.__name__
     new_fn.__doc__ = fn.__doc__
     new_fn.__dict__.update(fn.__dict__)

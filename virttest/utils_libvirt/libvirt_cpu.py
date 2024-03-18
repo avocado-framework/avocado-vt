@@ -9,7 +9,7 @@ import logging
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_libvirt import libvirt_vmxml
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def add_cpu_settings(vmxml, params):
@@ -34,13 +34,13 @@ def add_cpu_settings(vmxml, params):
     :return the updated vmxml
     """
     feature_list = None
-    if vmxml.xmltreefile.find('cpu'):
+    if vmxml.xmltreefile.find("cpu"):
         cpu_xml = vmxml.cpu
         feature_list = cpu_xml.get_feature_list()
     else:
         cpu_xml = vm_xml.VMCPUXML()
 
-    if cpu_xml.xmltreefile.getroot().get('mode'):
+    if cpu_xml.xmltreefile.getroot().get("mode"):
         cpu_mode = cpu_xml.mode
     else:
         cpu_mode = params.get("cpuxml_cpu_mode", "host-model")
@@ -65,15 +65,15 @@ def add_cpu_settings(vmxml, params):
     feature_policy_add = params.get("cpu_feature_policy", None)
     if feature_list:
         for i in range(0, len(feature_list)):
-            feature_name = cpu_xml.get_feature(i).get('name')
+            feature_name = cpu_xml.get_feature(i).get("name")
             if feature_name == feature_name_add:
                 feature_name_add = ""
-            feature_policy = cpu_xml.get_feature(i).get('policy')
+            feature_policy = cpu_xml.get_feature(i).get("policy")
             cpu_xml_new.add_feature(feature_name, feature_policy)
     if feature_name_add and feature_policy_add:
         cpu_xml_new.add_feature(feature_name_add, feature_policy_add)
 
-    if cpu_xml.xmltreefile.find('numa'):
+    if cpu_xml.xmltreefile.find("numa"):
         cpu_xml_new.numa_cell = cpu_xml.numa_cell
     else:
         cells = eval(params.get("cpuxml_numa_cell", "[]"))
@@ -82,8 +82,9 @@ def add_cpu_settings(vmxml, params):
 
         # Update the vcpu and memory values to match the cell config
         # otherwise, the vm may fail to define
-        vm_attrs = {k.replace('setvm_', ''): params[k] for k in params
-                    if k.startswith('setvm_')}
+        vm_attrs = {
+            k.replace("setvm_", ""): params[k] for k in params if k.startswith("setvm_")
+        }
         LOG.debug(vm_attrs)
         libvirt_vmxml.set_vm_attrs(vmxml, vm_attrs)
     vmxml.xmltreefile.write()

@@ -1,40 +1,41 @@
 import os
+import random
 import sys
 import unittest
-import random
-from string import ascii_lowercase as ascii_lc
-
-from time import sleep
-from copy import deepcopy
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, wait
+from copy import deepcopy
+from string import ascii_lowercase as ascii_lc
+from time import sleep
 
 from virttest import _wrappers
 
 
-def create_module(name, inner_val, path=''):
-    """ Creates a module with a variable in it named inner_variable whose
-        value is equal to the one set
-        :param name: name of the module
-        :type name: String
-        :param inner_val: value that will be assigned to inner_variable
-        :type inner_val: Int
-        :param path: path to the module
-        :type path: String
+def create_module(name, inner_val, path=""):
+    """Creates a module with a variable in it named inner_variable whose
+    value is equal to the one set
+    :param name: name of the module
+    :type name: String
+    :param inner_val: value that will be assigned to inner_variable
+    :type inner_val: Int
+    :param path: path to the module
+    :type path: String
     """
-    module_code = """# This is a file created during virttest._wrappers tests
+    module_code = (
+        """# This is a file created during virttest._wrappers tests
 # This file should be deleted once the tests are finished
 inner_variable = %s
-""" % inner_val
-    if path != '' and not os.path.isdir(path):
+"""
+        % inner_val
+    )
+    if path != "" and not os.path.isdir(path):
         os.makedirs(path)
-    with open(os.path.join(path, f"{name}.py"), 'w') as new_module:
+    with open(os.path.join(path, f"{name}.py"), "w") as new_module:
         new_module.write(module_code)
 
 
 def check_imported_module(testcase, name, module, value):
-    """ Wraps general checks that are repeated across almost all tests.
-    """
+    """Wraps general checks that are repeated across almost all tests."""
     testcase.assertIsNotNone(module)
     testcase.assertEqual(module.inner_variable, value)
     testcase.assertTrue(module in sys.modules.values())
@@ -52,8 +53,9 @@ class baseImportTests(ABC):
     @classmethod
     def setUpClass(cls):
         create_module(cls._tmp_in_module_name, cls._indir_inner_val)
-        create_module(cls._tmp_sub_module_name, cls._subdir_inner_val,
-                      cls._tmp_sub_module_dir)
+        create_module(
+            cls._tmp_sub_module_name, cls._subdir_inner_val, cls._tmp_sub_module_dir
+        )
         os.makedirs(cls._aux_sub_mod_dir)
         # Wait a bit so the import mechanism cache can be refreshed
         sleep(2)
@@ -83,15 +85,16 @@ class baseImportTests(ABC):
         self.assertEqual(one.__spec__.origin, other.__spec__.origin)
 
     def test_import_from_subdir(self):
-        """ Imports a module that's in another directory """
+        """Imports a module that's in another directory"""
         pre_sys_path = deepcopy(sys.path)
-        self._check_import(self._tmp_sub_module_name, self._subdir_inner_val,
-                           self._tmp_sub_module_dir)
+        self._check_import(
+            self._tmp_sub_module_name, self._subdir_inner_val, self._tmp_sub_module_dir
+        )
         self.assertEqual(pre_sys_path, sys.path)
 
     def test_import_just_created(self):
-        """ Creates modules repeatedly and checks it can import them
-            without waiting any time
+        """Creates modules repeatedly and checks it can import them
+        without waiting any time
         """
         n_repeats = 10
         for i in range(n_repeats):
@@ -102,42 +105,44 @@ class baseImportTests(ABC):
             self._check_import(mod_name, i, self._tmp_sub_module_dir)
 
     def test_import_from_dir(self):
-        """ Imports a module that's in the same directory """
+        """Imports a module that's in the same directory"""
         pre_sys_path = deepcopy(sys.path)
         self._check_import(self._tmp_in_module_name, self._indir_inner_val)
         self.assertEqual(pre_sys_path, sys.path)
 
 
 class ImportModuleTest(baseImportTests, unittest.TestCase):
-
-    def _check_import(self, name, value, path=''):
-        """ Wraps the import checking workflow used in some tests """
+    def _check_import(self, name, value, path=""):
+        """Wraps the import checking workflow used in some tests"""
         module = _wrappers.import_module(name, path)
         check_imported_module(self, name, module, value)
 
     def test_import_from_pythonpath(self):
-        """ Imports a module that's in the python path """
+        """Imports a module that's in the python path"""
         # Import os which is also being used in the other tests
-        module = _wrappers.import_module('os')
+        module = _wrappers.import_module("os")
         self.assertIsNotNone(module)
         self._compare_mods(module, os)
 
     def test_import_from_builtins(self):
-        """ Imports a module that's in the python path """
+        """Imports a module that's in the python path"""
         # Import os which is also being used in the other tests
         import pwd
-        module = _wrappers.import_module('pwd')
+
+        module = _wrappers.import_module("pwd")
         self.assertIsNotNone(module)
         self._compare_mods(module, pwd)
 
     def test_thread_safety(self):
-        """ Create 5 pairs of modules. Each pair consists of two equally named
-            files with a different inner value, and saved in different
-            directories.
+        """Create 5 pairs of modules. Each pair consists of two equally named
+        files with a different inner value, and saved in different
+        directories.
         """
+
         def check_routine(module_check_data):
-            module = _wrappers.import_module(module_check_data["name"],
-                                             module_check_data["path"])
+            module = _wrappers.import_module(
+                module_check_data["name"], module_check_data["path"]
+            )
             val = module.inner_variable
             return val
 
@@ -152,12 +157,14 @@ class ImportModuleTest(baseImportTests, unittest.TestCase):
         for mod_name in check_mod_names:
             value = random.randint(0, 100)
             create_module(mod_name, value, self._aux_sub_mod_dir)
-            in_dir = {"name": mod_name, "value": value,
-                      "path": self._aux_sub_mod_dir}
+            in_dir = {"name": mod_name, "value": value, "path": self._aux_sub_mod_dir}
             value = random.randint(0, 100)
             create_module(mod_name, value, self._tmp_sub_module_dir)
-            sub_dir = {"name": mod_name, "value": value,
-                       "path": self._tmp_sub_module_dir}
+            sub_dir = {
+                "name": mod_name,
+                "value": value,
+                "path": self._tmp_sub_module_dir,
+            }
             # We don't want to test if two modules with the same name
             # are imported safely in the same execution.
             # We want to test that sys.path priorities are not mixed up
@@ -173,8 +180,7 @@ class ImportModuleTest(baseImportTests, unittest.TestCase):
 
 
 class LoadSourceTest(baseImportTests, unittest.TestCase):
-
-    def _check_import(self, name, value, path=''):
+    def _check_import(self, name, value, path=""):
         path = os.path.join(path, f"{name}.py")
         module = _wrappers.load_source(name, path)
         check_imported_module(self, name, module, value)
@@ -187,4 +193,4 @@ class LoadSourceTest(baseImportTests, unittest.TestCase):
     def test_no_existing_file(self):
         # Assert an error is launched if a non existing file is imported
         with self.assertRaises(FileNotFoundError):
-            self._check_import('os', None, 'os.py')
+            self._check_import("os", None, "os.py")

@@ -6,7 +6,7 @@ import os
 
 from avocado.utils import process
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class ProtectedKeyHelper(object):
@@ -25,8 +25,9 @@ class ProtectedKeyHelper(object):
 
         :return: If there were errors loading the module
         """
-        error, output = cmd_status_output(cmd="modprobe %s" % self.module_name,
-                                          session=self.session)
+        error, output = cmd_status_output(
+            cmd="modprobe %s" % self.module_name, session=self.session
+        )
         if error:
             LOG.debug("Error loading module 'pkey': %s", output)
             return False
@@ -40,8 +41,9 @@ class ProtectedKeyHelper(object):
         """
         some_key_attribute = "protkey_aes_128"
         attr_path = os.path.join(self.sysfs, some_key_attribute)
-        error, output = cmd_status_output(cmd="hexdump %s" % attr_path,
-                                          session=self.session)
+        error, output = cmd_status_output(
+            cmd="hexdump %s" % attr_path, session=self.session
+        )
         if error or "No such device" in output:
             LOG.debug("Error reading from %s: %s", attr_path, output)
             return None
@@ -61,8 +63,9 @@ def cmd_status_output(cmd, session=None, timeout=60):
     if session:
         status, stdout = session.cmd_status_output(cmd, timeout=timeout)
     else:
-        result = process.run(cmd, shell=False, ignore_status=True,
-                             verbose=True, timeout=timeout)
+        result = process.run(
+            cmd, shell=False, ignore_status=True, verbose=True, timeout=timeout
+        )
         status = result.exit_status
         stdout = result.stdout
     return status, stdout

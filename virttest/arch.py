@@ -4,7 +4,7 @@ from avocado.utils import cpu
 
 ARCH = platform.machine()
 
-if ARCH in ('ppc64', 'ppc64le'):
+if ARCH in ("ppc64", "ppc64le"):
     # From include/linux/sockios.h
     SIOCSIFHWADDR = 0x8924
     SIOCGIFHWADDR = 0x8927
@@ -17,15 +17,15 @@ if ARCH in ('ppc64', 'ppc64le'):
     SIOCGIFMTU = 0x8921
     SIOCSIFMTU = 0x8922
     SIOCGIFINDEX = 0x8933
-    SIOCBRADDIF = 0x89a2
-    SIOCBRDELIF = 0x89a3
-    SIOCBRADDBR = 0x89a0
-    SIOCBRDELBR = 0x89a1
+    SIOCBRADDIF = 0x89A2
+    SIOCBRDELIF = 0x89A3
+    SIOCBRADDBR = 0x89A0
+    SIOCBRDELBR = 0x89A1
     # From linux/include/linux/if_tun.h
-    TUNSETIFF = 0x800454ca
-    TUNGETIFF = 0x400454d2
-    TUNGETFEATURES = 0x400454cf
-    TUNSETQUEUE = 0x800454d9
+    TUNSETIFF = 0x800454CA
+    TUNGETIFF = 0x400454D2
+    TUNGETFEATURES = 0x400454CF
+    TUNSETQUEUE = 0x800454D9
     IFF_MULTI_QUEUE = 0x0100
     IFF_TAP = 0x2
     IFF_NO_PI = 0x1000
@@ -42,7 +42,7 @@ if ARCH in ('ppc64', 'ppc64le'):
     # From linux/socket.h
     AF_PACKET = 17
     # From linux/vhost.h
-    VHOST_VSOCK_SET_GUEST_CID = 0x8008af60
+    VHOST_VSOCK_SET_GUEST_CID = 0x8008AF60
 else:
     # From include/linux/sockios.h
     SIOCSIFHWADDR = 0x8924
@@ -56,15 +56,15 @@ else:
     SIOCGIFMTU = 0x8921
     SIOCSIFMTU = 0x8922
     SIOCGIFINDEX = 0x8933
-    SIOCBRADDIF = 0x89a2
-    SIOCBRDELIF = 0x89a3
-    SIOCBRADDBR = 0x89a0
-    SIOCBRDELBR = 0x89a1
+    SIOCBRADDIF = 0x89A2
+    SIOCBRDELIF = 0x89A3
+    SIOCBRADDBR = 0x89A0
+    SIOCBRDELBR = 0x89A1
     # From linux/include/linux/if_tun.h
-    TUNSETIFF = 0x400454ca
-    TUNGETIFF = 0x800454d2
-    TUNGETFEATURES = 0x800454cf
-    TUNSETQUEUE = 0x400454d9
+    TUNSETIFF = 0x400454CA
+    TUNGETIFF = 0x800454D2
+    TUNGETFEATURES = 0x800454CF
+    TUNSETQUEUE = 0x400454D9
     IFF_MULTI_QUEUE = 0x0100
     IFF_TAP = 0x0002
     IFF_NO_PI = 0x1000
@@ -81,17 +81,21 @@ else:
     # From linux/socket.h
     AF_PACKET = 17
     # From linux/vhost.h
-    VHOST_VSOCK_SET_GUEST_CID = 0x4008af60
+    VHOST_VSOCK_SET_GUEST_CID = 0x4008AF60
 
 
 def get_kvm_module_list():
-    if ARCH == 'x86_64':
-        vendor = cpu.get_vendor() if hasattr(cpu, 'get_vendor') else cpu.get_cpu_vendor_name()
+    if ARCH == "x86_64":
+        vendor = (
+            cpu.get_vendor()
+            if hasattr(cpu, "get_vendor")
+            else cpu.get_cpu_vendor_name()
+        )
         return ["kvm", "kvm-%s" % vendor]
-    elif ARCH in ('ppc64', 'ppc64le'):
+    elif ARCH in ("ppc64", "ppc64le"):
         # FIXME: Please correct it if anyone still want to use KVM-PR mode
         return ["kvm", "kvm-hv"]
-    elif ARCH in ('s390', 's390x'):
+    elif ARCH in ("s390", "s390x"):
         return ["kvm"]
     elif ARCH == "aarch64":
         return []

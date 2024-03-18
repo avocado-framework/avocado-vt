@@ -17,17 +17,17 @@ Avocado plugin that extends the settings path of our config paths
 """
 
 import os
-from pkg_resources import resource_filename
-from pkg_resources import resource_listdir
 
 from avocado.core.plugin_interfaces import Settings
+from pkg_resources import resource_filename, resource_listdir
 
 
 class VTSettings(Settings):
-
     def adjust_settings_paths(self, paths):
-        base = resource_filename('avocado_vt', 'conf.d')
-        for path in [os.path.join(base, conf)
-                     for conf in resource_listdir('avocado_vt', 'conf.d')
-                     if conf.endswith('.conf')]:
+        base = resource_filename("avocado_vt", "conf.d")
+        for path in [
+            os.path.join(base, conf)
+            for conf in resource_listdir("avocado_vt", "conf.d")
+            if conf.endswith(".conf")
+        ]:
             paths.insert(0, path)

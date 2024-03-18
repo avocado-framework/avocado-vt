@@ -9,7 +9,7 @@ import re
 
 from virttest import virsh
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def clean_up_nwfilter_binding(ignore_status=False):
@@ -50,6 +50,6 @@ def get_nwfilter_list():
     """
     cmd_result = virsh.nwfilter_list(debug=True)
     nwfilter_list = re.findall(r"(\S+)\ +(\S+)", cmd_result.stdout_text.strip())
-    index = nwfilter_list.index(('UUID', 'Name'))
-    nwfilter_list = nwfilter_list[index+1:]
+    index = nwfilter_list.index(("UUID", "Name"))
+    nwfilter_list = nwfilter_list[index + 1 :]
     return nwfilter_list

@@ -4,7 +4,7 @@ from virttest.libvirt_xml import network_xml
 
 # TODO: The current test doesn't cover all attributes of a network xml.
 #  It needs update later
-XML = '''
+XML = """
     <network>
       <name>testnet</name>
       <forward mode='bridge'/>
@@ -39,52 +39,70 @@ XML = '''
         </bandwidth>
       </portgroup>
     </network>
-'''
+"""
 
 network_attrs = {
-    'bridge': {'name': 'br0'},
-    'forward': {'mode': 'bridge'},
-    'ips': [{'address': '192.168.122.1',
-             'dhcp_ranges': {'attrs': {'end': '192.168.122.254',
-                                       'start': '192.168.122.2'}},
-             'netmask': '255.255.255.0'},
-            {'address': '2001:db8:ca2:2::1',
-             'family': 'ipv6',
-             'hosts': [{'attrs': {'ip': '2001:db8:ca2:2:3::1', 'name': 'paul'}},
-                       {'attrs': {'id': '0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66',
-                                  'ip': '2001:db8:ca2:2:3::2'}},
-                       {'attrs': {'id': '0:3:0:1:0:16:3e:11:22:33',
-                                  'ip': '2001:db8:ca2:2:3::3',
-                                  'name': 'ralph'}},
-                       {'attrs': {'id': '0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63',
-                                  'ip': '2001:db8:ca2:2:3::4',
-                                  'name': 'badbob'}}],
-             'netmask': '255.255.255.0',
-             'prefix': '64'}],
-    'name': 'testnet',
-    'port': {'isolated': 'yes'},
-    'portgroups': [{'bandwidth_inbound': {'average': '1000',
-                                          'burst': '5120',
-                                          'peak': '5000'},
-                    'bandwidth_outbound': {'average': '1000',
-                                           'burst': '5120',
-                                           'peak': '5000'},
-                    'default': 'yes',
-                    'name': 'engineering',
-                    'virtualport_type': '802.1Qbh'},
-                   {'bandwidth_inbound': {'average': '500',
-                                          'burst': '2560',
-                                          'peak': '2000'},
-                    'bandwidth_outbound': {'average': '128',
-                                           'burst': '256',
-                                           'peak': '256'},
-                    'name': 'sales',
-                    'virtualport_type': '802.1Qbh'}]
+    "bridge": {"name": "br0"},
+    "forward": {"mode": "bridge"},
+    "ips": [
+        {
+            "address": "192.168.122.1",
+            "dhcp_ranges": {
+                "attrs": {"end": "192.168.122.254", "start": "192.168.122.2"}
+            },
+            "netmask": "255.255.255.0",
+        },
+        {
+            "address": "2001:db8:ca2:2::1",
+            "family": "ipv6",
+            "hosts": [
+                {"attrs": {"ip": "2001:db8:ca2:2:3::1", "name": "paul"}},
+                {
+                    "attrs": {
+                        "id": "0:1:0:1:18:aa:62:fe:0:16:3e:44:55:66",
+                        "ip": "2001:db8:ca2:2:3::2",
+                    }
+                },
+                {
+                    "attrs": {
+                        "id": "0:3:0:1:0:16:3e:11:22:33",
+                        "ip": "2001:db8:ca2:2:3::3",
+                        "name": "ralph",
+                    }
+                },
+                {
+                    "attrs": {
+                        "id": "0:4:7e:7d:f0:7d:a8:bc:c5:d2:13:32:11:ed:16:ea:84:63",
+                        "ip": "2001:db8:ca2:2:3::4",
+                        "name": "badbob",
+                    }
+                },
+            ],
+            "netmask": "255.255.255.0",
+            "prefix": "64",
+        },
+    ],
+    "name": "testnet",
+    "port": {"isolated": "yes"},
+    "portgroups": [
+        {
+            "bandwidth_inbound": {"average": "1000", "burst": "5120", "peak": "5000"},
+            "bandwidth_outbound": {"average": "1000", "burst": "5120", "peak": "5000"},
+            "default": "yes",
+            "name": "engineering",
+            "virtualport_type": "802.1Qbh",
+        },
+        {
+            "bandwidth_inbound": {"average": "500", "burst": "2560", "peak": "2000"},
+            "bandwidth_outbound": {"average": "128", "burst": "256", "peak": "256"},
+            "name": "sales",
+            "virtualport_type": "802.1Qbh",
+        },
+    ],
 }
 
 
 class TestNetworkXML(unittest.TestCase):
-
     def test_setup_network_default(self):
         network = network_xml.NetworkXML()
         network.setup_attrs(**network_attrs)
@@ -100,5 +118,5 @@ class TestNetworkXML(unittest.TestCase):
         self.assertEqual(network_attrs, fetched_attrs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

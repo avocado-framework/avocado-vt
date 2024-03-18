@@ -1,9 +1,9 @@
-'''
+"""
 Created on Dec 11, 2013
 
 :author: jzupka, astepano
 :contact: Andrei Stepanov <astepano@redhat.com>
-'''
+"""
 import copy
 
 
@@ -53,13 +53,14 @@ class CmdMessage(object):
     """
     Base cmd message class
     """
+
     __slots__ = ["cmd_id"]
 
     def __init__(self, cmd_id):
         self.cmd_id = cmd_id
 
     def __getstate__(self):
-        return (self.cmd_id)
+        return self.cmd_id
 
     def __setstate__(self, state):
         self.cmd_id = state[0]
@@ -76,6 +77,7 @@ class StdStream(CmdMessage):
     """
     Represent message string data from remote client
     """
+
     __slots__ = ["msg"]
 
     def __init__(self, msg, cmd_id=None):
@@ -83,7 +85,7 @@ class StdStream(CmdMessage):
         self.msg = msg
 
     def __str__(self):
-        return (self.msg)
+        return self.msg
 
     def __getstate__(self):
         return (self.cmd_id, self.msg)
@@ -98,6 +100,7 @@ class StdOut(StdStream):
     """
     Represent message from stdout string data from remote client
     """
+
     __slots__ = ["cmd_id", "msg"]
 
     def __init__(self, msg, cmd_id=None):
@@ -116,6 +119,7 @@ class StdErr(StdStream):
     """
     Represent message from stderr string data from remote client
     """
+
     __slots__ = ["cmd_id", "msg"]
 
     def __init__(self, msg, cmd_id=None):
@@ -130,8 +134,7 @@ class StdErr(StdStream):
 
 
 class CmdQuery(object):
-    """Command-msg-request from VM to avocado-vt test.
-    """
+    """Command-msg-request from VM to avocado-vt test."""
 
     def __init__(self, *args, **kargs):
         """
@@ -145,8 +148,7 @@ class CmdQuery(object):
 
 
 class CmdRespond(object):
-    """Command-msg-answer from avocado-test to VM.
-    """
+    """Command-msg-answer from avocado-test to VM."""
 
     def __init__(self, respond):
         """
@@ -162,8 +164,19 @@ class BaseCmd(CmdMessage):
     """
     Class used for moving information about commands between master and slave.
     """
-    __slots__ = ["func", "args", "kargs", "results", "_async", "_finished",
-                 "nh_stdin", "nh_stdout", "nh_stderr", "cmd_hash"]
+
+    __slots__ = [
+        "func",
+        "args",
+        "kargs",
+        "results",
+        "_async",
+        "_finished",
+        "nh_stdin",
+        "nh_stdout",
+        "nh_stderr",
+        "cmd_hash",
+    ]
 
     single_cmd_id = 0
 
@@ -184,9 +197,19 @@ class BaseCmd(CmdMessage):
         self.cmd_hash = None
 
     def __getstate__(self):
-        return (self.cmd_id, self.func, self.args, self.kargs, self.results,
-                self._async, self._finished, self.nh_stdin, self.nh_stdout,
-                self.nh_stderr, self.cmd_hash)
+        return (
+            self.cmd_id,
+            self.func,
+            self.args,
+            self.kargs,
+            self.results,
+            self._async,
+            self._finished,
+            self.nh_stdin,
+            self.nh_stdout,
+            self.nh_stderr,
+            self.cmd_hash,
+        )
 
     def __setstate__(self, state):
         self.cmd_id = state[0]
@@ -205,20 +228,21 @@ class BaseCmd(CmdMessage):
         str_args = []
         for a in self.args:  # Format str value in args to "val"
             if type(a) is str:
-                str_args.append("\"%s\"" % a)
+                str_args.append('"%s"' % a)
             else:
                 str_args.append(a)
 
         str_kargs = {}
-        for key, val in self.kargs:   # Format str value in kargs to "val"
+        for key, val in self.kargs:  # Format str value in kargs to "val"
             if type(val) is str:
-                str_kargs[key] = "\"%s\"" % val
+                str_kargs[key] = '"%s"' % val
             else:
                 str_kargs[key] = val
 
-        return ("base_cmd: %s(%s)" % (".".join(self.func),
-                                      ", ".join(str_args) +
-                                      ",".join(list(str_kargs.items()))))
+        return "base_cmd: %s(%s)" % (
+            ".".join(self.func),
+            ", ".join(str_args) + ",".join(list(str_kargs.items())),
+        )
 
     def is_async(self):
         """

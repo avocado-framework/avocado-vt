@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
 import os
-import unittest
-import tempfile
 import sys
+import tempfile
+import unittest
 
 from avocado.core import exceptions
 
-
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest.staging import utils_cgroup
@@ -122,19 +121,20 @@ mount_points_2 = [
 ]
 
 mount_cases = [
-    {"mount_txt": mount_1,
-     "controllers": controllers_1,
-     "mount_points": mount_points_1,
-     },
-    {"mount_txt": mount_2,
-     "controllers": controllers_2,
-     "mount_points": mount_points_2,
-     },
+    {
+        "mount_txt": mount_1,
+        "controllers": controllers_1,
+        "mount_points": mount_points_1,
+    },
+    {
+        "mount_txt": mount_2,
+        "controllers": controllers_2,
+        "mount_points": mount_points_2,
+    },
 ]
 
 
 class CgroupTest(unittest.TestCase):
-
     def test_get_cgroup_mountpoint(self):
         for case in mount_cases:
             # Let's work around the fact that NamedTemporaryFile
@@ -144,23 +144,25 @@ class CgroupTest(unittest.TestCase):
             mount_file.close()
 
             # Now let's do our own management of the file
-            mount_file = open(mount_file_path, 'w')
+            mount_file = open(mount_file_path, "w")
             mount_file.write(case["mount_txt"])
             mount_file.close()
 
             try:
                 for idx, controller in enumerate(case["controllers"]):
                     res = utils_cgroup.get_cgroup_mountpoint(
-                        controller, mount_file_path)
+                        controller, mount_file_path
+                    )
                     self.assertEqual(case["mount_points"][idx], res)
                 self.assertRaises(
                     exceptions.TestError,
                     utils_cgroup.get_cgroup_mountpoint,
                     "non_exit_ctlr",
-                    mount_file_path)
+                    mount_file_path,
+                )
             finally:
                 os.remove(mount_file_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

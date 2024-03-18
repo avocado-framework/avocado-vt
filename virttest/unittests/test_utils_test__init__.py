@@ -1,22 +1,23 @@
-import unittest
 import logging
+import unittest
 
 try:
     from unittest import mock
 except ImportError:
     import mock
 
-from virttest.utils_test import update_boot_option
-from virttest import utils_test
 from avocado.core import exceptions
+
+from virttest import utils_test
+from virttest.utils_test import update_boot_option
 
 check_kernel_cmdline_mock = mock.MagicMock(return_value=["3", None])
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-@mock.patch('virttest.utils_package.package_install')
-@mock.patch.object(utils_test, 'check_kernel_cmdline', check_kernel_cmdline_mock)
+@mock.patch("virttest.utils_package.package_install")
+@mock.patch.object(utils_test, "check_kernel_cmdline", check_kernel_cmdline_mock)
 class TestUpdateBootOptionZipl(unittest.TestCase):
     vm = mock.MagicMock()
     session = mock.MagicMock()
@@ -38,14 +39,16 @@ class TestUpdateBootOptionZipl(unittest.TestCase):
         self.session.cmd_status_output.assert_called_once()
 
     def test_args_zipl(self, *mocks):
-        update_boot_option(self.vm, args_added="3", need_reboot=False, guest_arch_name="s390x")
+        update_boot_option(
+            self.vm, args_added="3", need_reboot=False, guest_arch_name="s390x"
+        )
         utils_test.check_kernel_cmdline.assert_called_once()
         self.assertEqual(2, self.session.cmd_status_output.call_count)
 
     # Test error handling for session.cmd_status_output
     some_error_message = "some error"
 
-    @mock.patch.object(utils_test.logging, 'error')
+    @mock.patch.object(utils_test.logging, "error")
     def test_cmd_fail(self, *mocks):
         self.session.cmd_status_output.return_value = [1, self.some_error_message]
 
@@ -55,5 +58,5 @@ class TestUpdateBootOptionZipl(unittest.TestCase):
         LOG.error.assert_called_with(self.some_error_message)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -5,31 +5,28 @@ Utility functions to deal with ppm (qemu screendump format) files.
 """
 
 from __future__ import division
-import os
-import struct
-import time
-import re
+
 import glob
 import logging
-
+import os
+import re
+import struct
+import time
 from functools import reduce
 
-
 try:
-    from PIL import Image
-    from PIL import ImageOps
-    from PIL import ImageDraw
-    from PIL import ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
 except ImportError:
     Image = None
-    logging.getLogger('avocado.app').warning(
-        'No python imaging library installed. Screendump and Windows guest BSOD'
-        ' detection are disabled. In order to enable it, please install '
-        'python-imaging or the equivalent for your distro.')
+    logging.getLogger("avocado.app").warning(
+        "No python imaging library installed. Screendump and Windows guest BSOD"
+        " detection are disabled. In order to enable it, please install "
+        "python-imaging or the equivalent for your distro."
+    )
 # Prevent logs pollution
 if Image is not None:
     for _logger_name in logging.root.manager.loggerDict:
-        if _logger_name.split('.', 1)[0] == 'PIL':
+        if _logger_name.split(".", 1)[0] == "PIL":
             _pil_logger = logging.getLogger(_logger_name)
             _pil_logger.setLevel(logging.CRITICAL)
 
@@ -41,7 +38,7 @@ except ImportError:
 
 # Some directory/filename utils, for consistency
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def _md5eval(data):
@@ -53,7 +50,7 @@ def _md5eval(data):
     :param data: Optional input string that will be used to update the object.
     """
     try:
-        hsh = hashlib.new('md5')
+        hsh = hashlib.new("md5")
     except NameError:
         hsh = md5.new()
     if data:
@@ -99,11 +96,13 @@ def get_data_dir(steps_filename):
     Return the data dir of the given steps filename.
     """
     filename = os.path.basename(steps_filename)
-    return os.path.join(os.path.dirname(steps_filename), "..", "steps_data",
-                        filename + "_data")
+    return os.path.join(
+        os.path.dirname(steps_filename), "..", "steps_data", filename + "_data"
+    )
 
 
 # Functions for working with PPM files
+
 
 def image_read_from_ppm_file(filename):
     """
@@ -162,7 +161,7 @@ def image_crop(width, height, data, x1, y1, dx, dy):
     newdata = b""
     index = (x1 + y1 * width) * 3
     for _ in range(dy):
-        newdata += data[index:(index + dx * 3)]
+        newdata += data[index : (index + dx * 3)]
         index += width * 3
     return (dx, dy, newdata)
 
@@ -181,8 +180,7 @@ def image_md5sum(width, height, data):
     return hsh.hexdigest()
 
 
-def get_region_md5sum(width, height, data, x1, y1, dx, dy,
-                      cropped_image_filename=None):
+def get_region_md5sum(width, height, data, x1, y1, dx, dy, cropped_image_filename=None):
     """
     Return the md5sum of a cropped region.
 
@@ -215,12 +213,12 @@ def image_verify_ppm_file(filename):
     try:
         size = os.path.getsize(filename)
         with open(filename, "rb") as fin:
-            assert (fin.readline().strip() == b"P6")
+            assert fin.readline().strip() == b"P6"
             (width, height) = map(int, fin.readline().split())
-            assert (width > 0 and height > 0)
-            assert (fin.readline().strip() == b"255")
+            assert width > 0 and height > 0
+            assert fin.readline().strip() == b"255"
             size_read = fin.tell()
-        assert (size - size_read == width * height * 3)
+        assert size - size_read == width * height * 3
         return True
     except Exception:
         return False
@@ -243,11 +241,11 @@ def image_comparison(width, height, data1, data2):
     i = 0
     while i < width * height * 3:
         # Compute monochromatic value of current pixel in data1
-        pixel1_str = data1[i:i + 3]
+        pixel1_str = data1[i : i + 3]
         temp = struct.unpack("BBB", pixel1_str)
         value1 = int((temp[0] + temp[1] + temp[2]) / 3)
         # Compute monochromatic value of current pixel in data2
-        pixel2_str = data2[i:i + 3]
+        pixel2_str = data2[i : i + 3]
         temp = struct.unpack("BBB", pixel2_str)
         value2 = int((temp[0] + temp[1] + temp[2]) / 3)
         # Compute average of the two values
@@ -261,8 +259,7 @@ def image_comparison(width, height, data1, data2):
         else:
             # Not equal -- give the pixel a reddish hue
             newpixel = [value, 0, 0]
-        newdata += struct.pack("BBB", newpixel[0],
-                               newpixel[1], newpixel[2])
+        newdata += struct.pack("BBB", newpixel[0], newpixel[1], newpixel[2])
         i += 3
     return (width, height, newdata)
 
@@ -283,8 +280,8 @@ def image_fuzzy_compare(width, height, data1, data2):
     different = 0.0
     i = 0
     while i < width * height * 3:
-        pixel1_str = data1[i:i + 3]
-        pixel2_str = data2[i:i + 3]
+        pixel1_str = data1[i : i + 3]
+        pixel2_str = data2[i : i + 3]
         # Compare pixels
         if pixel1_str == pixel2_str:
             equal += 1.0
@@ -302,7 +299,7 @@ def image_average_hash(image, img_wd=8, img_ht=8):
     """
     if not isinstance(image, Image.Image):
         image = Image.open(image)
-    image = image.resize((img_wd, img_ht), Image.ANTIALIAS).convert('L')
+    image = image.resize((img_wd, img_ht), Image.ANTIALIAS).convert("L")
     avg = reduce(lambda x, y: x + y, image.getdata()) / (img_wd * img_ht)
 
     def _hta(i):
@@ -310,8 +307,10 @@ def image_average_hash(image, img_wd=8, img_ht=8):
             return 0
         else:
             return 1
-    return reduce(lambda x, y_z: x | (y_z[1] << y_z[0]),
-                  enumerate(map(_hta, image.getdata())), 0)
+
+    return reduce(
+        lambda x, y_z: x | (y_z[1] << y_z[0]), enumerate(map(_hta, image.getdata())), 0
+    )
 
 
 def cal_hamming_distance(h1, h2):
@@ -353,12 +352,16 @@ def have_similar_img(base_img, comp_img_path, threshold=10):
     """
     Check whether comp_img_path have a image looks like base_img.
     """
-    support_img_format = ['jpg', 'jpeg', 'gif', 'png', 'pmp']
+    support_img_format = ["jpg", "jpeg", "gif", "png", "pmp"]
     comp_images = []
     if os.path.isdir(comp_img_path):
         for ext in support_img_format:
-            comp_images.extend([os.path.join(comp_img_path, x) for x in
-                                glob.glob1(comp_img_path, '*.%s' % ext)])
+            comp_images.extend(
+                [
+                    os.path.join(comp_img_path, x)
+                    for x in glob.glob1(comp_img_path, "*.%s" % ext)
+                ]
+            )
     else:
         comp_images.append(comp_img_path)
 
@@ -380,7 +383,7 @@ def image_crop_save(image, new_image, box=None):
     img = Image.open(image)
     if not box:
         x, y = img.size
-        box = (x/4, y/4, x*3/4, y*3/4)
+        box = (x / 4, y / 4, x * 3 / 4, y * 3 / 4)
     try:
         img.crop(box).save(new_image)
     except (KeyError, SystemError) as e:
@@ -401,14 +404,14 @@ def image_histogram_compare(image_a, image_b, size=(0, 0)):
     img_b = Image.open(image_b)
     if not any(size):
         size = tuple(map(max, img_a.size, img_b.size))
-    img_a_h = img_a.resize(size).convert('RGB').histogram()
-    img_b_h = img_b.resize(size).convert('RGB').histogram()
+    img_a_h = img_a.resize(size).convert("RGB").histogram()
+    img_b_h = img_b.resize(size).convert("RGB").histogram()
     s = 0
     for i, j in list(zip(img_a_h, img_b_h)):
         if i == j:
             s += 1
         else:
-            s += 1 - float(abs(i - j))/max(i, j)
+            s += 1 - float(abs(i - j)) / max(i, j)
     return s / len(img_a_h)
 
 
@@ -422,20 +425,19 @@ def add_timestamp(image, timestamp, margin=2):
     """
     width, height = image.size
     font = ImageFont.load_default()
-    watermark = time.strftime('%c', time.localtime(timestamp))
+    watermark = time.strftime("%c", time.localtime(timestamp))
     # bar height = text height + top margin + bottom margin
-    if hasattr(font, 'getbbox'):
+    if hasattr(font, "getbbox"):
         bar_height = font.getbbox(watermark)[3] + 2 * margin
     else:
         bar_height = font.getsize(watermark)[1] + 2 * margin
 
     # place bar at the bottom
-    new_image = ImageOps.expand(image, border=(0, 0, 0, bar_height),
-                                fill='lightgrey')
+    new_image = ImageOps.expand(image, border=(0, 0, 0, bar_height), fill="lightgrey")
     draw = ImageDraw.Draw(new_image)
     # place timestamp at the left side of the bar
     x, y = margin, height + margin
-    draw.text((x, y), watermark, font=font, fill='black')
+    draw.text((x, y), watermark, font=font, fill="black")
     return new_image
 
 
