@@ -3374,7 +3374,7 @@ def __get_kernel_messages(level_check=3, session=None):
             output: multi-line string containing all read messages
             status: exit code of read command
     """
-    cmd = "dmesg -T -l %s|grep . --color never" % ",".join(
+    cmd = "dmesg -T -l %s|grep . --color=never" % ",".join(
         map(str, xrange(0, int(level_check)))
     )
     if session:
