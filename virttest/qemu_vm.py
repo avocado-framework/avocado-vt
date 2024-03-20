@@ -46,6 +46,7 @@ from virttest import (
     utils_vdpa,
     utils_vsock,
     virt_vm,
+    vt_iothread,
 )
 from virttest.qemu_capabilities import Flags
 from virttest.qemu_devices import qcontainer, qdevices
@@ -1677,6 +1678,36 @@ class VM(virt_vm.BaseVM):
             for k, v in backend_props.get(sectype, {}):
                 machine_dev.set_param(k, v)
 
+        def __iothread_conflict_check(params):
+            """
+            Based on the params, check if it's a conflict.
+
+            :param params: A dict containing VM params
+            :type params: dict
+            """
+            iothread_scheme = params.get("iothread_scheme")
+            image_iothread_vq_mapping = params.get("image_iothread_vq_mapping")
+            iothreads_lst = params.objects("iothreads")
+            # The legacy 'iothread_scheme' does NOT support the
+            # parameter 'iothread_vqs_mapping'. If you're going to use the legacy
+            # 'iothread_scheme', the 'iothread_vqs_mapping' must NOT be set.
+            if (iothread_scheme and image_iothread_vq_mapping) or (
+                iothread_scheme in ("multipeerroundrobin", "full") and iothreads_lst
+            ):
+                raise ValueError(
+                    "There's a conflict in the configuration! Once "
+                    "'iothread_scheme' is set, 'image_iothread_vq_mapping' or"
+                    " 'iothreads' can NOT be set!"
+                )
+            for image_name in params.objects("images"):
+                image_params = params.object_params(image_name)
+                if image_params.get("image_iothread_vq_mapping") and iothread_scheme:
+                    raise ValueError(
+                        "There's a conflict in the configuration! Once "
+                        "'iothread_scheme' is set, "
+                        "'image_iothread_vq_mapping' can NOT be set!"
+                    )
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
@@ -2408,6 +2439,7 @@ class VM(virt_vm.BaseVM):
             devices.insert(dev_usb)
 
         # initialize iothread manager
+        __iothread_conflict_check(params)
         devices.initialize_iothread_manager(
             params, self.cpuinfo, self._get_cmdline_format_cfg()
         )
@@ -2419,6 +2451,7 @@ class VM(virt_vm.BaseVM):
             set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "images")
             devices.insert(dev)
 
+        image_devs = []
         # Add images (harddrives)
         for image_name in params.objects("images"):
             # FIXME: Use qemu_devices for handling indexes
@@ -2466,6 +2499,28 @@ class VM(virt_vm.BaseVM):
             for _ in devs:
                 set_cmdline_format_by_cfg(_, self._get_cmdline_format_cfg(), "images")
                 devices.insert(_)
+            image_devs.extend(devs)
+        # FIXME: Here's a workaround solution about allocating the iothreads.
+        #  Due to adapting the multipeerroundrobin iothread scheme,
+        #  allocating the iothreads has to be executed after all the related
+        #  image devices are created completely.
+        iothread_lst = []
+        img_pci_mapping = []
+        for dev in devices:
+            if isinstance(dev, qdevices.QIOThread):
+                iothread_lst.append(dev)
+        for dev in image_devs:
+            if dev and devices.is_dev_iothread_vq_supported(dev):
+                img_pci_mapping.append(dev)
+
+        if len(img_pci_mapping) > 0:
+            if isinstance(
+                devices.iothread_manager, vt_iothread.MultiPeerRoundRobinManager
+            ):
+                for i in range(max(len(iothread_lst), len(img_pci_mapping))):
+                    dev = img_pci_mapping[i % len(img_pci_mapping)]
+                    iothread_assigned = devices.allocate_iothread_vq("auto", dev)
+                    iothread_assigned.iothread_vq_bus.insert(dev)
 
         # Add filesystems
         for fs_name in params.objects("filesystems"):
