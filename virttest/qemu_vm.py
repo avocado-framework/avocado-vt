@@ -545,17 +545,21 @@ class VM(virt_vm.BaseVM):
                 return sandbox_option
             if action == "add":
                 sandbox_option = " -sandbox on"
+                _params = {
+                    "elevateprivileges": params.get(
+                        "qemu_sandbox_elevateprivileges", "deny"
+                    ),
+                    "obsolete": params.get("qemu_sandbox_obsolete", "deny"),
+                    "resourcecontrol": params.get(
+                        "qemu_sandbox_resourcecontrol", "deny"
+                    ),
+                    "spawn": params.get("qemu_sandbox_spawn", "deny"),
+                }
+                for opt, val in _params.items():
+                    if val is not None:
+                        sandbox_option += f",{opt}={val}"
             elif action == "rem":
                 sandbox_option = " -sandbox off"
-            _params = {
-                "elevateprivileges": params.get("qemu_sandbox_elevateprivileges"),
-                "obsolete": params.get("qemu_sandbox_obsolete"),
-                "resourcecontrol": params.get("qemu_sandbox_resourcecontrol"),
-                "spawn": params.get("qemu_sandbox_spawn"),
-            }
-            for opt, val in _params.items():
-                if val is not None:
-                    sandbox_option += f",{opt}={val}"
             return sandbox_option
 
         def add_human_monitor(devices, monitor_name, filename):
