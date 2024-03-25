@@ -9,6 +9,8 @@ import re
 
 from avocado.utils import process
 
+from virttest.utils_misc import cmd_status_output
+
 LOG = logging.getLogger("avocado." + __name__)
 
 
@@ -40,3 +42,20 @@ def check_dmesg_output(pattern, expect=True, session=None):
     else:
         LOG.info("Dmesg output met expectation")
         return True
+
+
+def get_host_bridge_id(session=None):
+    """
+    Get host bridge or root complex on a host
+
+    :param session: vm session object, if none use host pci info
+    :return: list of host bridge pci ids
+    """
+    cmd = "lspci -t"
+    hostbridge_regex = r"\[(\d+:\d+)\]"
+    status, output = cmd_status_output(cmd, shell=True, session=session)
+    if status != 0 or not output:
+        return []
+
+    host_bridges = re.findall(hostbridge_regex, output)
+    return host_bridges if host_bridges else []
