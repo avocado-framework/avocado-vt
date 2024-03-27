@@ -37,7 +37,7 @@ def get_non_root_disk_name(session):
     return get_non_root_disk_names(session)[0]
 
 
-def get_non_root_disk_names(session):
+def get_non_root_disk_names(session, ignore_status=False):
     """
     Returns the disk names under /dev whose device doesn't have any
     partitions or volumes or itself mounting "/".
@@ -56,6 +56,7 @@ def get_non_root_disk_names(session):
 
     :param session: If given the command will be executed in this VM or
                     remote session.
+    :param ignore_status: boolean, True to return, False to raise an exception
     :return (name, mount_point): A tuple containing the device name and the mount
                     point. If the information doesn't exist it's returned as empty
                     string.
@@ -105,7 +106,10 @@ def get_non_root_disk_names(session):
         raise exceptions.TestError("'/' not mounted in\n%s" % o)
     non_root_disks = [x for x in lines if x != root_disk and disk_pattern.match(x)]
     if not non_root_disks:
-        raise exceptions.TestError("No non root disks found in\n%s" % o)
+        if ignore_status:
+            return []
+        else:
+            raise exceptions.TestError("No non root disks found in\n%s" % o)
     else:
         LOG.debug("Identified non_root_disks %s in\n%s", non_root_disks, o)
         names_mpoints = [
