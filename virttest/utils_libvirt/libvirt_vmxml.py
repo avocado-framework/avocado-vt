@@ -130,7 +130,12 @@ def create_vm_device_by_type(dev_type, dev_dict):
     return dev_obj
 
 
-def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0, virsh_instance=virsh):
+def modify_vm_device(vmxml,
+                     dev_type,
+                     dev_dict=None,
+                     index=0,
+                     virsh_instance=virsh,
+                     need_sync=True):
     """
      Get specified device , update it with given dev_dict if the device exists,
      Create the device if it does not exist
@@ -139,7 +144,9 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0, virsh_instance=vir
     :param dev_type: device type
     :param dev_dict: dict to create device
     :param index: device index
-    :return: device object
+    :param virsh_instance: virsh instance
+    :param need_sync: boolean, True to execute sync, otherwise not
+    :return: tuple, (device object, VMXML instance updated)
     """
     dev_obj = None
     try:
@@ -148,10 +155,13 @@ def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0, virsh_instance=vir
 
         vmxml.devices = xml_devices
         vmxml.xmltreefile.write()
-        vmxml.sync(virsh_instance=virsh_instance)
+        if need_sync:
+            vmxml.sync(virsh_instance=virsh_instance)
     except IndexError:
         dev_obj = create_vm_device_by_type(dev_type, dev_dict)
-        libvirt.add_vm_device(vmxml, dev_obj, virsh_instance=virsh_instance)
+        vmxml = libvirt.add_vm_device(vmxml, dev_obj,
+                                      virsh_instance=virsh_instance,
+                                      need_sync=need_sync)
 
     LOG.debug(f"XML of {dev_type} device is:\n{dev_obj}")
-    return dev_obj
+    return dev_obj, vmxml
