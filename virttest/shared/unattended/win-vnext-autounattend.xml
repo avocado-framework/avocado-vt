@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+	<settings pass="windowsPE">
+		<component name="Microsoft-Windows-International-Core-WinPE"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<SetupUILanguage>
+				<UILanguage>en-GB</UILanguage>
+			</SetupUILanguage>
+			<InputLocale>0409:00000409</InputLocale>
+			<SystemLocale>en-GB</SystemLocale>
+			<UILanguage>en-GB</UILanguage>
+			<UILanguageFallback>en-GB</UILanguageFallback>
+			<UserLocale>en-GB</UserLocale>
+		</component>
+		<component name="Microsoft-Windows-PnpCustomizationsWinPE"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<DriverPaths>
+				<PathAndCredentials wcm:keyValue="1" wcm:action="add">
+					<Path>KVM_TEST_SCSI_DRIVER_PATH</Path>
+				</PathAndCredentials>
+				<PathAndCredentials wcm:keyValue="2" wcm:action="add">
+					<Path>KVM_TEST_STORAGE_DRIVER_PATH</Path>
+				</PathAndCredentials>
+				<PathAndCredentials wcm:keyValue="3" wcm:action="add">
+					<Path>KVM_TEST_NETWORK_DRIVER_PATH</Path>
+				</PathAndCredentials>
+			</DriverPaths>
+		</component>
+		<component name="Microsoft-Windows-Setup"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<DiskConfiguration>
+				<WillShowUI>OnError</WillShowUI>
+				<Disk wcm:action="add">
+					<CreatePartitions>
+						<CreatePartition wcm:action="add">
+							<Order>1</Order>
+							<Size>30000</Size>
+							<Type>Primary</Type>
+						</CreatePartition>
+					</CreatePartitions>
+					<ModifyPartitions>
+						<ModifyPartition wcm:action="add">
+							<Active>true</Active>
+							<Extend>false</Extend>
+							<Format>NTFS</Format>
+							<Label>OS_Install</Label>
+							<Letter>C</Letter>
+							<Order>1</Order>
+							<PartitionID>1</PartitionID>
+						</ModifyPartition>
+					</ModifyPartitions>
+					<DiskID>0</DiskID>
+					<WillWipeDisk>true</WillWipeDisk>
+				</Disk>
+			</DiskConfiguration>
+			<ImageInstall>
+				<OSImage>
+					<InstallTo>
+						<DiskID>0</DiskID>
+						<PartitionID>1</PartitionID>
+					</InstallTo>
+				</OSImage>
+			</ImageInstall>
+			<UserData>
+				<ProductKey>
+					<Key>KVM_TEST_CDKEY</Key>
+					<WillShowUI>OnError</WillShowUI>
+				</ProductKey>
+				<AcceptEula>true</AcceptEula>
+			</UserData>
+		</component>
+	</settings>
+	<settings pass="specialize">
+		<component name="Microsoft-Windows-Deployment"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<RunSynchronous>
+				<RunSynchronousCommand wcm:action="add">
+					<Description>EnableAdmin</Description>
+					<Order>1</Order>
+					<Path>cmd /c net user Administrator /active:yes</Path>
+				</RunSynchronousCommand>
+				<RunSynchronousCommand wcm:action="add">
+					<Description>UnfilterAdministratorToken</Description>
+					<Order>2</Order>
+					<Path>cmd /c reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v FilterAdministratorToken /t REG_DWORD /d 0 /f</Path>
+				</RunSynchronousCommand>
+			</RunSynchronous>
+		</component>
+		<component name="Microsoft-Windows-International-Core"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<InputLocale>0409:00000409</InputLocale>
+			<SystemLocale>en-GB</SystemLocale>
+			<UILanguage>en-GB</UILanguage>
+			<UserLocale>en-GB</UserLocale>
+		</component>
+	</settings>
+	<settings pass="oobeSystem">
+		<component name="Microsoft-Windows-Shell-Setup"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<UserAccounts>
+				<AdministratorPassword>
+					<Value>1q2w3eP</Value>
+					<PlainText>true</PlainText>
+				</AdministratorPassword>
+			</UserAccounts>
+			<OOBE>
+				<HideEULAPage>true</HideEULAPage>
+				<NetworkLocation>Work</NetworkLocation>
+				<ProtectYourPC>1</ProtectYourPC>
+				<SkipUserOOBE>true</SkipUserOOBE>
+				<SkipMachineOOBE>true</SkipMachineOOBE>
+			</OOBE>
+			<AutoLogon>
+				<Password>
+					<Value>1q2w3eP</Value>
+					<PlainText>true</PlainText>
+				</Password>
+				<Enabled>true</Enabled>
+				<LogonCount>1000</LogonCount>
+				<Username>Administrator</Username>
+			</AutoLogon>
+			<FirstLogonCommands>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c echo OS install is completed > COM1</CommandLine>
+					<Order>1</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\NewNetworks" /v NetworkList /t REG_MULTI_SZ /d "" /f</CommandLine>
+					<Order>2</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER</CommandLine>
+					<Order>3</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c sc config TlntSvr start= auto</CommandLine>
+					<Order>5</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c netsh firewall set opmode disable</CommandLine>
+					<Order>6</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
+					<Order>7</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c E:\autoit3.exe  E:\git\git.au3</CommandLine>
+					<Order>8</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c bcdedit /set {current} USEPLATFORMCLOCK yes</CommandLine>
+					<Order>9</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c bcdedit /set {current} bootstatuspolicy ignoreallfailures</CommandLine>
+					<Order>10</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
+					<Order>11</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_BALLOON_INSTALLER</CommandLine>
+					<Order>12</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_QXL_INSTALLER</CommandLine>
+					<Order>13</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
+					<Order>14</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\Dism /online /enable-feature /featurename:NetFx3 /All /Source:D:\sources\sxs /LimitAccess</CommandLine>
+					<Order>15</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c E:\setupsp.bat</CommandLine>
+					<Order>16</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c E:\software_install_64.bat</CommandLine>
+					<Order>17</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c wmic datafile where "filename='finish' and extension='bat'" call copy "c:\\finish.bat" &amp;&amp; c:\finish.bat PROCESS_CHECK</CommandLine>
+					<Order>18</Order>
+				</SynchronousCommand>
+			</FirstLogonCommands>
+		</component>
+	</settings>
+	<cpi:offlineImage cpi:source="wim:c:/install.wim#Windows Longhorn SERVERSTANDARD"
+		xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+</unattend>
