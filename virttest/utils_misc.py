@@ -1770,7 +1770,8 @@ class NumaNode(object):
         siblings_path = topology_path + "thread_siblings_list"
         socket_id_path = topology_path + "physical_package_id"
         die_id_path = topology_path + "die_id"
-        key_list = ["core_id", "siblings", "socket_id", "die_id"]
+        cluster_id_path = topology_path + "cluster_id"
+        key_list = ["core_id", "siblings", "socket_id", "die_id", "cluster_id"]
         for key in key_list:
             try:
                 key_path = eval(key + "_path")
