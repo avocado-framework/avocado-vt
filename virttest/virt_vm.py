@@ -59,6 +59,16 @@ class VMCreateError(VMError):
         )
 
 
+class VMDefineError(VMError):
+    def __init__(self, name, reason):
+        VMError.__init__(self, name, reason)
+        self.name = name
+        self.reason = reason
+
+    def __str__(self):
+        return f"VM {self.name} failed to define: {self.reason}"
+
+
 class VMStartError(VMError):
     def __init__(self, name, reason=None, status=None):
         VMError.__init__(self, name, reason, status)
@@ -920,6 +930,7 @@ class BaseVM(object):
         """
         Wait for a nic to acquire an IP address, then return it.
         """
+
         # Don't let VMIPAddressMissingError/VMAddressVerificationError through
         def _get_address():
             try:
