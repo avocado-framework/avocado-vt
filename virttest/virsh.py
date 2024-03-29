@@ -3329,6 +3329,36 @@ def snapshot_list(name, options=None, **dargs):
     return ret
 
 
+def snapshot_status(name, options=None, **dargs):
+    """
+    Get list of snapshots status of domain.
+
+    :param name: name of domain
+    :param options: options of snapshot_list
+    :param dargs: standardized virsh function API keywords
+    :return: dict of snapshot names and snapshot status, e.g.:
+    get {'s1': 'running', 's2': 'running'} for below result
+    # virsh snapshot-list avocado-vt-vm1
+     Name   Creation Time               State
+    ---------------------------------------------
+     s1     2024-04-01 08:50:53 -0400   running
+     s2     2024-04-01 08:50:53 -0400   running
+    """
+    dargs["ignore_status"] = False
+    status_dict = {}
+
+    cmd = "snapshot-list %s" % name
+    if options is not None:
+        cmd += " %s" % options
+    sc_output = command(cmd, **dargs)
+    slist = re.findall("(\S*) *\d+.* \d*:\d*:\d* .\d* *(\S*)", sc_output.stdout_text)
+    for snap in slist:
+        status_dict[snap[0]] = snap[1]
+    LOG.debug("Get snap name and status dict is :%s", status_dict)
+
+    return status_dict
+
+
 def snapshot_dumpxml(name, snapshot, options=None, to_file=None, **dargs):
     """
     Get dumpxml of snapshot
