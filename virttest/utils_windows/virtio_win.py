@@ -15,6 +15,14 @@ ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}
 LOG = logging.getLogger("avocado." + __name__)
 
 
+DRIVER_SVC_MAP = {
+    "viorng": "VirtRng",
+    "vioser": "VirtioSerial",
+    "viofs": "VirtioFsDrv",
+    "vioinput": "VirtioInput",
+}
+
+
 def arch_dirname_iso(session):
     """
     Get architecture directory's name - iso media version.
