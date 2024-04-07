@@ -208,6 +208,7 @@ class VMXMLBase(LibvirtXMLBase):
         "idmap",
         "clock",
         "description",
+        "genid",
     )
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
@@ -236,6 +237,13 @@ class VMXMLBase(LibvirtXMLBase):
             forbidden=None,
             parent_xpath="/",
             tag_name="uuid",
+        )
+        accessors.XMLElementText(
+            property_name="genid",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="genid",
         )
         accessors.XMLElementText(
             property_name="title",
