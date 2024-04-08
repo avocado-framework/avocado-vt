@@ -1377,14 +1377,16 @@ def check_exit_status(result, expect_error=False):
         )
 
 
-def get_interface_details(vm_name):
+def get_interface_details(vm_name, virsh_instance=virsh):
     """
     Get the interface details from virsh domiflist command output
 
+    :param vm_name: vm's name
+    :param virsh_instance: virsh instance object
     :return: list of all interfaces details
     """
     # Parse the domif-list command output
-    domiflist_out = virsh.domiflist(vm_name).stdout_text
+    domiflist_out = virsh_instance.domiflist(vm_name).stdout_text
     # Regular expression for the below output
     #   vnet0    bridge    virbr0   virtio  52:54:00:b2:b3:b4
     rg = re.compile(r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+" "(([a-fA-F0-9]{2}:?){6})")
