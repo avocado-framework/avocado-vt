@@ -2846,9 +2846,24 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         If disk_src_name is given, replace current source file
         Otherwise, use current source file with update params.
         """
-        if disk_src_name:
-            blk_source = disk_src_name
-        disk_params_src = {"source_file": blk_source}
+        if disk_type == "block":
+            src_lv_name = params.get("src_lv_name")
+            src_vg_name = params.get("src_vg_name")
+            slice_offset = params.get("slice_offset")
+            slice_size = params.get("slice_size")
+            block_path = "/dev/%s/%s" % (src_vg_name, src_lv_name)
+            disk_params_src = {
+                "source_file": block_path,
+                "slices": {
+                    "slice_type": "storage",
+                    "slice_offset": slice_offset,
+                    "slice_size": str(slice_size),
+                },
+            }
+        else:
+            if disk_src_name:
+                blk_source = disk_src_name
+            disk_params_src = {"source_file": blk_source}
 
     # Delete disk elements
     disk_deleted = False
