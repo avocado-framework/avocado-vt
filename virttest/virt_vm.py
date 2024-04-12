@@ -1130,19 +1130,23 @@ class BaseVM(object):
         )
         log_filename = utils_logfile.get_log_filename(log_filename)
         log_function = utils_logfile.log_line
-        session = remote.remote_login(
-            client,
-            address,
-            port,
-            username,
-            password,
-            prompt,
-            linesep,
-            log_filename,
-            log_function,
-            timeout,
-            neigh_attach_if,
-        )
+        try:
+            session = remote.remote_login(
+                client,
+                address,
+                port,
+                username,
+                password,
+                prompt,
+                linesep,
+                log_filename,
+                log_function,
+                timeout,
+                neigh_attach_if,
+            )
+        except Exception:
+            utils_logfile.close_log_file(log_filename)
+            raise
         session.close_hooks += [utils_logfile.close_own_log_file(log_filename)]
         session.set_status_test_command(self.params.get("status_test_command", ""))
         self.remote_sessions.append(session)
