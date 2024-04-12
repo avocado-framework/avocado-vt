@@ -9,7 +9,15 @@ from virttest.libvirt_xml.devices import base, librarian
 
 
 class Input(base.TypedDeviceBase):
-    __slots__ = ("input_bus", "model", "address", "source_evdev", "driver", "alias")
+    __slots__ = (
+        "input_bus",
+        "input_type",
+        "model",
+        "address",
+        "source_evdev",
+        "driver",
+        "alias",
+    )
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Input, self).__init__(
@@ -22,6 +30,14 @@ class Input(base.TypedDeviceBase):
             parent_xpath="/",
             tag_name="input",
             attribute="bus",
+        )
+        accessors.XMLAttribute(
+            property_name="input_type",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="input",
+            attribute="type",
         )
         accessors.XMLAttribute(
             property_name="model",
