@@ -3498,6 +3498,7 @@ class DevContainer(object):
                     supported = [
                         "any_layout",
                         "block-size",
+                        "dynamic-memslots",
                         "event_idx",
                         "indirect_desc",
                         "iommu_platform",
