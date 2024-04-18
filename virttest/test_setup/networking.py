@@ -3,6 +3,10 @@
 import re
 import urllib.request
 
+from avocado.utils import distro
+
+from virttest import utils_iptables
+from virttest.staging import service
 from virttest.test_setup import PrivateBridgeConfig, PrivateOvsBridgeConfig
 from virttest.test_setup.core import Setuper
 
@@ -70,3 +74,34 @@ class BridgeConfig(Setuper):
             else:
                 brcfg = PrivateBridgeConfig(params_pb)
             brcfg.cleanup()
+
+
+class FirewalldService(Setuper):
+    def setup(self):
+        firewalld_service = self.params.get("firewalld_service")
+        if firewalld_service == "disable":
+            firewalld = service.Service("firewalld")
+            if firewalld.status():
+                firewalld.stop()
+                if firewalld.status():
+                    self.test.log.warning("Failed to stop firewalld")
+        else:
+            if firewalld_service == "enable":
+                firewalld = service.Service("firewalld")
+                if not firewalld.status():
+                    firewalld.start()
+                    if not firewalld.status():
+                        self.test.log.warning("Failed to start firewalld")
+
+            if distro.detect().name == "Ubuntu":
+                self.params["firewalld_dhcp_workaround"] = "no"
+
+            # Workaround know issue where firewall blocks dhcp from guest
+            # through virbr0
+            if self.params.get("firewalld_dhcp_workaround", "no") == "yes":
+                firewall_cmd = utils_iptables.Firewall_cmd()
+                if not firewall_cmd.add_service("dhcp", permanent=True):
+                    self.test.log.warning("Failed to add dhcp service to be permitted")
+
+    def cleanup(self):
+        pass
