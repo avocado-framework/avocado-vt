@@ -1696,7 +1696,7 @@ class VM(virt_vm.BaseVM):
             sev_mach_props = {}
             tdx_mach_props = {"kvm-type": "tdx"}
             backend_props = {"sev": sev_mach_props, "tdx": tdx_mach_props}
-            for k, v in backend_props.get(sectype, {}):
+            for k, v in backend_props.get(sectype, {}).items():
                 machine_dev.set_param(k, v)
 
         def __iothread_conflict_check(params):
