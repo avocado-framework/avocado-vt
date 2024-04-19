@@ -203,8 +203,9 @@ class VDPAOvsTest(object):
 
 
 class VDPASimulatorTest(object):
-    def __init__(self, sim_dev_module="vdpa_sim_net"):
+    def __init__(self, sim_dev_module="vdpa_sim_net", mgmtdev="vdpasim_net"):
         self.sim_dev_module = sim_dev_module
+        self.mgmtdev = mgmtdev
 
     def __del__(self):
         self.cleanup()
@@ -214,7 +215,7 @@ class VDPASimulatorTest(object):
         Load modules
         """
         self.unload_modules()
-        modules = ["vdpa", "vhost_vdpa", "vdpa_sim", self.sim_dev_module]
+        modules = ["vhost_vdpa", self.sim_dev_module]
         for module_name in modules:
             KernelModuleHandler(module_name).reload_module(True)
 
@@ -222,7 +223,7 @@ class VDPASimulatorTest(object):
         """
         Unload modules
         """
-        modules = [self.sim_dev_module, "vdpa_sim", "vhost_vdpa", "vdpa"]
+        modules = [self.sim_dev_module, "vhost_vdpa"]
         for module_name in modules:
             KernelModuleHandler(module_name).unload_module()
 
@@ -236,14 +237,17 @@ class VDPASimulatorTest(object):
         cmd = "vdpa dev add name vdpa{} mgmtdev {}".format(idx, dev)
         process.run(cmd, shell=True)
 
-    def setup(self):
+    def setup(self, dev_num=1):
         """
         Setup vDPA Simulator environment
+
+        :param dev_num: vdpa device number
         """
         LOG.debug("Loading vDPA Kernel modules...")
         self.load_modules()
         LOG.debug("Adding vDPA device...")
-        self.add_vdpa_dev()
+        for idx in range(dev_num):
+            self.add_vdpa_dev(idx=idx, dev=self.mgmtdev)
         LOG.info("vDPA Simulator environment setup successfully.")
 
     def cleanup(self):
