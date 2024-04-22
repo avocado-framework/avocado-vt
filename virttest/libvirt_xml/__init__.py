@@ -40,8 +40,7 @@ from virttest.libvirt_xml.network_xml import IPXML, NetworkXML, RangeList
 from virttest.libvirt_xml.nwfilter_xml import NwfilterXML
 from virttest.libvirt_xml.pool_xml import PoolXML, SourceXML
 from virttest.libvirt_xml.snapshot_xml import SnapshotXML
-from virttest.libvirt_xml.sysinfo_xml import SysinfoXML
-from virttest.libvirt_xml.vm_xml import VMXML
+from virttest.libvirt_xml.vm_xml import VMXML, VMSysinfoXML
 from virttest.libvirt_xml.vol_xml import VolXML
 
 # all exceptions are siblings of LibvirtXMLError

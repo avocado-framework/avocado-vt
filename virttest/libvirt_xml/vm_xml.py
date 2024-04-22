@@ -11,6 +11,7 @@ from .. import utils_misc, xml_utils
 from ..libvirt_xml import accessors, base, xcepts
 from ..libvirt_xml.base import LibvirtXMLBase
 from ..libvirt_xml.devices import librarian
+from ..libvirt_xml.other.idmap_xml import VMIDMapXML
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -938,6 +939,7 @@ class VMXML(VMXMLBase):
         update_numa=True,
         numa_number=None,
         virsh_instance=base.virsh,
+        vmxml=None,
     ):
         """
         Convenience method for updating 'vcpu', 'current' and
@@ -953,9 +955,17 @@ class VMXML(VMXMLBase):
         :param topology_correction: Correct topology if wrong already
         :param update_numa: Update numa
         :param numa_number: number of numa node
-        :parma virsh_instance: virsh instance
+        :param virsh_instance: virsh instance
+        :param vmxml: if given, just update this instance and don't sync; this is
+                      useful when the XML needs several updates outside of this
+                      function
         """
-        vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
+        sync = True
+        if vmxml:
+            sync = False
+        else:
+            vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
+
         if vcpus is not None:
             if current is not None:
                 try:
@@ -1071,7 +1081,9 @@ class VMXML(VMXMLBase):
             vmxml["vcpu"] = vcpus  # call accessor method to change XML
         else:  # value is None
             del vmxml.vcpu
-        vmxml.sync()
+
+        if sync:
+            vmxml.sync(virsh_instance=virsh_instance)
         # Temporary files for vmxml cleaned up automatically
         # when it goes out of scope here.
 
@@ -1906,9 +1918,21 @@ class VMXML(VMXMLBase):
         virsh_instance=base.virsh,
         access_mode=None,
         memfd=False,
+        vmxml=None,
     ):
         """
-        let the guest using hugepages.
+        Set up <memoryBacking> on the VMXML
+
+        :param vm_name: the VM name
+        :param hgps: if backed by hugepages
+        :param nosp: nosharepages, if request hypervisor not to share pages
+        :param locked: if request hypervisor to lock in host memory (can't be swapped)
+        :param virsh_instance: to run virsh commands if vmxml is not given
+        :param access_mode: memory access mode, e.g. "shared"
+        :param memfd: if backed by memfd
+        :param vmxml: if given, just update this instance and don't sync; this is
+                      useful when the XML needs several updates outside of this
+                      function
         """
         # Create a new memoryBacking tag
         mb_xml = VMMemBackingXML()
@@ -1922,9 +1946,14 @@ class VMXML(VMXMLBase):
         if access_mode is not None:
             mb_xml.access_mode = access_mode
         # Set memoryBacking to the new instance.
-        vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
+        sync = True
+        if vmxml:
+            sync = False
+        else:
+            vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
         vmxml.mb = mb_xml
-        vmxml.sync()
+        if sync:
+            vmxml.sync(virsh_instance=virsh_instance)
 
     @staticmethod
     def del_memoryBacking_tag(vm_name, virsh_instance=base.virsh):
@@ -4736,6 +4765,26 @@ class VMSysinfoXML(base.LibvirtXMLBase):
         newone.xmltreefile = new_treefile
         return newone
 
+    def get_all_processors(self):
+        """
+        Get all processors dict with entry name as key.
+
+        :return: all processors dict with entry name as key
+        """
+        processor_dict = {}
+        processor_nodes = self.xmltreefile.findall("processor")
+        for i in range(len(processor_nodes)):
+            temp_dict = {}
+            entry_nodes = list(processor_nodes[i])
+            if entry_nodes:
+                for entry in entry_nodes:
+                    entry_attr = dict(list(entry.items()))
+                    if "name" in entry_attr:
+                        temp_dict[entry_attr["name"]] = entry.text
+                processor_dict[i] = temp_dict
+
+        return processor_dict
+
     class SysinfoEntryXML(base.LibvirtXMLBase):
         """
         xml of entry
@@ -4755,38 +4804,6 @@ class VMSysinfoXML(base.LibvirtXMLBase):
                 virsh_instance=virsh_instance
             )
             self.xml = "<entry/>"
-
-
-class VMIDMapXML(base.LibvirtXMLBase):
-    """
-    idmap xml class of vmxml
-
-    Example:
-      <idmap>
-        <uid start='0' target='1000' count='10'/>
-        <gid start='0' target='1000' count='10'/>
-      </idmap>
-    """
-
-    __slots__ = ("uid", "gid")
-
-    def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLElementDict(
-            property_name="uid",
-            libvirtxml=self,
-            forbidden=None,
-            parent_xpath="/",
-            tag_name="uid",
-        )
-        accessors.XMLElementDict(
-            property_name="gid",
-            libvirtxml=self,
-            forbidden=None,
-            parent_xpath="/",
-            tag_name="gid",
-        )
-        super(VMIDMapXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = "<idmap/>"
 
 
 # Sub-element of OS XML
