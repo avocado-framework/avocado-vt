@@ -1390,8 +1390,12 @@ class DevContainer(object):
                 ),
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
             )
-            pflash_devices = pflash_handler("ovmf", machine_params)
-            devices.extend(pflash_devices)
+
+            # FIXME: Use -bios option to set firmware for a tdx vm
+            if params.get("vm_secure_guest_type") != "tdx":
+                pflash_devices = pflash_handler("ovmf", machine_params)
+                devices.extend(pflash_devices)
+
             devices.append(
                 qdevices.QMachine(params=machine_params, child_bus=bus, aobject="pci.0")
             )
