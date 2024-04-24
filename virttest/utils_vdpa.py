@@ -4,6 +4,7 @@ Virtualization test - vDPA related utilities
 :copyright: Red Hat Inc.
 """
 import glob
+import json
 import logging
 import os
 import time
@@ -236,6 +237,17 @@ class VDPASimulatorTest(object):
         """
         cmd = "vdpa dev add name vdpa{} mgmtdev {}".format(idx, dev)
         process.run(cmd, shell=True)
+
+    def get_vdpa_dev_info(self, dev="dev"):
+        """
+        Get vDPA devices' infomation
+
+        :param dev: device type, dev(vdpa device) or mgmtdev(vdpa management device)
+        :return: devices' information
+        """
+        cmd = "vdpa {} show -j".format(dev)
+        res = process.run(cmd, shell=True, verbose=True).stdout_text
+        return json.loads(res)
 
     def setup(self, dev_num=1):
         """
