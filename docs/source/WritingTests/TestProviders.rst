@@ -79,7 +79,7 @@ test provider file:
     uri: git://git-provider.com/repo.git
     #uri: /path-to-my-git-dir/repo.git
     #uri: http://bla.com/repo.git
-    #uri: file://usr/share/tests
+    #uri: file:///usr/share/tests
 
     # Optional git branch (for git repo type)
     branch: master
@@ -123,7 +123,7 @@ Let's say you want to use a directory in your file system
 ::
 
     [provider]
-    uri: file://usr/share/tests/
+    uri: file:///usr/share/tests/
     [generic]
     subdir: virt-test/generic/
     [qemu]
