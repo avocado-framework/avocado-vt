@@ -144,7 +144,7 @@ class SnapshotXML(SnapshotXMLBase):
                 string, operates on disk name under disk tag
         """
 
-        __slots__ = Disk.__slots__ + ("disk_name", "disk_snapshot")
+        __slots__ = Disk.__slots__ + ("disk_name", "disk_snapshot", "source")
 
         def __init__(self, virsh_instance=base.virsh):
             """
@@ -159,6 +159,14 @@ class SnapshotXML(SnapshotXMLBase):
                 parent_xpath="/",
                 tag_name="disk",
                 attribute="snapshot",
+            )
+            accessors.XMLElementNest(
+                "source",
+                self,
+                parent_xpath="/",
+                tag_name="source",
+                subclass=self.DiskSource,
+                subclass_dargs={"virsh_instance": virsh_instance},
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<disk></disk>"
