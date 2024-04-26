@@ -318,6 +318,25 @@ class PCIXML(CAPXML):
         super(PCIXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = " <capability type='pci'></capability>"
 
+
+class VDPAXML(CAPXML):
+
+    """
+    class for capability whose type is vdpa.
+    """
+
+    # Example:
+    # <capability type='vdpa'>
+    #     <chardev>/dev/vhost-vdpa-0</chardev>
+    # </capability>
+
+    __slots__ = "chardev"
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementText("chardev", self, parent_xpath="/", tag_name="chardev")
+        super(VDPAXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = " <capability type='vdpa'></capability>"
+
     class Address(base.LibvirtXMLBase):
 
         """
@@ -479,6 +498,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         "scsi_host": "SCSIHostXML",
         "scsi": "SCSIXML",
         "storage": "StorageXML",
+        "vdpa": "VDPAXML",
     }
 
     def __init__(self, virsh_instance=base.virsh):
