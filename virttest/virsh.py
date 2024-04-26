@@ -1842,8 +1842,17 @@ def _adu_device(
     return command(cmd, **dargs)
 
 
+@EventTracker.wait_event
 def attach_device(
-    domainarg=None, filearg=None, domain_opt=None, file_opt=None, flagstr=None, **dargs
+    domainarg=None,
+    filearg=None,
+    domain_opt=None,
+    file_opt=None,
+    flagstr=None,
+    wait_for_event=False,
+    event_type="device-added",
+    event_timeout=7,
+    **dargs,
 ):
     """
     Attach a device using full parameter/argument set.
@@ -1853,6 +1862,9 @@ def attach_device(
     :param domain_opt: Option to --domain parameter
     :param file_opt: Option to --file parameter
     :param flagstr: string of "--force, --persistent, etc."
+    :param wait_for_event: wait until device_added event comes
+    :param event_type: type of the event
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
