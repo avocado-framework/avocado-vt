@@ -30,6 +30,7 @@ from avocado.utils import cpu as cpuutil
 from virttest import error_context, qemu_monitor, utils_misc
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
+from virttest.utils_windows import virtio_win
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -204,10 +205,15 @@ def windrv_verify_running(session, test, driver, timeout=300):
 
     for drv in driver.split():
         error_context.context("Check %s driver state." % drv, LOG.info)
+        driver_svc_map = virtio_win.DRIVER_SVC_MAP
+        driver_svc = driver_svc_map[drv] if drv in driver_svc_map.keys() else drv
+
         driver_check_cmd = (
-            r'wmic sysdriver where PathName="C:\\Windows\\System32'
-            r'\\drivers\\%s.sys" get State /value'
-        ) % drv
+            r"powershell -command"
+            r' "Get-WmiObject Win32_SystemDriver | Where-Object'
+            r" { $_.Name -eq '%s' }"
+            r' | Select-Object state,pathname"'
+        ) % driver_svc
 
         if not utils_misc.wait_for(_check_driver_stat, timeout, 0, 5):
             test.error("%s driver is not running" % drv)
