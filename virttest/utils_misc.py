@@ -621,16 +621,20 @@ def display_attributes(instance):
             LOG.debug("    %s: %s", name, value)
 
 
-def get_full_pci_id(pci_id):
+def get_full_pci_id(pci_id, session=None):
     """
     Get full PCI ID of pci_id.
 
     :param pci_id: PCI ID of a device.
+    :param session: vm session object, if none use host pci info
     """
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
     try:
-        return process.run(cmd, shell=True).stdout_text.strip()
-    except process.CmdError:
+        if session:
+            return session.cmd_output(cmd).strip()
+        else:
+            return process.run(cmd, shell=True).stdout_text.strip()
+    except (process.CmdError, aexpect.ShellError):
         return None
 
 
@@ -3517,13 +3521,19 @@ def get_pci_group_by_id(pci_id, device_type=""):
     return []
 
 
-def get_pci_vendor_device(pci_id):
+def get_pci_vendor_device(pci_id, session=None):
     """
     Get vendor and device number by pci id.
 
+    :param pci_id: pci id of a device
+    :param session: ShellSession object of VM or remote host
     :return: a 'vendor device' list include all matched devices
     """
-    matched_pci = process.run("lspci -n -s %s" % pci_id, ignore_status=True).stdout_text
+    cmd = "lspci -n -s %s" % pci_id
+    if session:
+        matched_pci = session.cmd_output(cmd)
+    else:
+        matched_pci = process.run(cmd, ignore_status=True).stdout_text
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
@@ -3550,13 +3560,15 @@ def get_pci_path(pci_id, session=None):
     return pci_path.strip()
 
 
-def bind_device_driver(pci_id, driver_type):
+def bind_device_driver(pci_id, driver_type, session=None):
     """
     Bind device driver.
 
+    :param pci_id: pci id of a device
+    :param session: ShellSession object of VM or remote host
     :param driver_type: Supported drivers: igb, lpfc, vfio-pci
     """
-    vd_list = get_pci_vendor_device(pci_id)
+    vd_list = get_pci_vendor_device(pci_id, session=session)
     if len(vd_list) == 0:
         LOG.error("Can't find device matched.")
         return False
@@ -3564,20 +3576,31 @@ def bind_device_driver(pci_id, driver_type):
     vendor = vd_list[0].split(":")[0]
     device = vd_list[0].split(":")[1]
     bind_cmd = "echo %s %s > %s" % (vendor, device, bind_file)
-    return process.run(bind_cmd, ignore_status=True, shell=True).exit_status == 0
+    status, output = cmd_status_output(bind_cmd, shell=True, session=session)
+    if status != 0:
+        LOG.error("Failed to unbind driver: {}".format(output))
+        return False
+    return True
 
 
-def unbind_device_driver(pci_id):
+def unbind_device_driver(pci_id, session=None):
     """
     Unbind device current driver.
+
+    :param pci_id: pci id of a device
+    :param session: ShellSession object of VM or remote host
     """
-    vd_list = get_pci_vendor_device(pci_id)
+    vd_list = get_pci_vendor_device(pci_id, session=session)
     if len(vd_list) == 0:
         LOG.error("Can't find device matched.")
         return False
     unbind_file = "/sys/bus/pci/devices/%s/driver/unbind" % pci_id
     unbind_cmd = "echo %s > %s" % (pci_id, unbind_file)
-    return process.run(unbind_cmd, ignore_status=True, shell=True).exit_status == 0
+    status, output = cmd_status_output(unbind_cmd, shell=True, session=session)
+    if status != 0:
+        LOG.error("Failed to unbind driver: {}".format(output))
+        return False
+    return True
 
 
 def check_device_driver(pci_id, driver_type):
