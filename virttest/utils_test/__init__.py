@@ -64,7 +64,6 @@ from virttest.utils_iptables import Iptables
 # pylint: disable=unused-import
 from virttest.utils_test import qemu
 
-libvirt = lazy_import("virttest.utils_test.libvirt")
 libguestfs = lazy_import("virttest.utils_test.libguestfs")
 
 
