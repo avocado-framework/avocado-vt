@@ -17,7 +17,7 @@ from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import archive
 from avocado.utils import cpu as cpu_utils
-from avocado.utils import crypto, distro, path
+from avocado.utils import crypto, path
 from avocado.utils import process as a_process
 from six.moves import xrange
 
@@ -32,7 +32,6 @@ from virttest import (
     qemu_storage,
     storage,
     test_setup,
-    utils_iptables,
     utils_kernel_module,
     utils_libguestfs,
     utils_logfile,
@@ -46,10 +45,13 @@ from virttest import (
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
-from virttest.staging import service
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
-from virttest.test_setup.networking import BridgeConfig, NetworkProxies
+from virttest.test_setup.networking import (
+    BridgeConfig,
+    FirewalldService,
+    NetworkProxies,
+)
 from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.storage import StorageConfig
 from virttest.utils_conn import SSHConnection
@@ -1098,36 +1100,12 @@ def preprocess(test, params, env):
     _setup_manager.register(LibvirtdDebugLogConfig)
     _setup_manager.register(BridgeConfig)
     _setup_manager.register(StorageConfig)
+    _setup_manager.register(FirewalldService)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    firewalld_service = params.get("firewalld_service")
-    if firewalld_service == "disable":
-        firewalld = service.Service("firewalld")
-        if firewalld.status():
-            firewalld.stop()
-            if firewalld.status():
-                test.log.warning("Failed to stop firewalld")
-    else:
-        if firewalld_service == "enable":
-            firewalld = service.Service("firewalld")
-            if not firewalld.status():
-                firewalld.start()
-                if not firewalld.status():
-                    test.log.warning("Failed to start firewalld")
-
-        if distro.detect().name == "Ubuntu":
-            params["firewalld_dhcp_workaround"] = "no"
-
-        # Workaround know issue where firewall blocks dhcp from guest
-        # through virbr0
-        if params.get("firewalld_dhcp_workaround", "no") == "yes":
-            firewall_cmd = utils_iptables.Firewall_cmd()
-            if not firewall_cmd.add_service("dhcp", permanent=True):
-                test.log.warning("Failed to add dhcp service to be permitted")
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params
