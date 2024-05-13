@@ -45,7 +45,7 @@ class ConfigLoader:
         # File is already a file like object
         if hasattr(cfg, "read"):
             self.cfg = cfg
-            self.parser.readfp(self.cfg)
+            self.parser.read_file(self.cfg)
         elif isinstance(cfg, string_types):
             # Config file is a URL. Download it to a temp dir
             if cfg.startswith("http") or cfg.startswith("ftp"):
@@ -64,7 +64,7 @@ class ConfigLoader:
             # object using StringIO
             else:
                 self.cfg = StringIO(cfg)
-                self.parser.readfp(self.cfg)
+                self.parser.read_file(self.cfg)
 
     def get(self, section, option, default=None):
         """

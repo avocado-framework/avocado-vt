@@ -97,7 +97,7 @@ class SectionlessConfig(object):
         self.parser.optionxform = str
         self.backup_content = open(path, "r").read()
         read_fp = StringIO("[root]\n" + self.backup_content)
-        self.parser.readfp(read_fp)
+        self.parser.read_file(read_fp)
 
     def __sync_file(self):
         out_file = open(self.path, "w")
