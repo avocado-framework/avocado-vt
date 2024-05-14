@@ -4716,7 +4716,7 @@ def check_filter_rules(ifname, bandwidth, expect_none=False):
     LOG.debug("Bandwidth filter output: %s", filter_output)
     if expect_none:
         return not filter_output.strip()
-    if not filter_output.count("filter protocol all pref"):
+    if not re.search(r"filter.*protocol all pref", filter_output, re.M):
         LOG.error("Can't find 'protocol all' settings in filter rules")
         return False
     filter_pattern = r".*police.*rate (\d+)(K?M?)bit burst (\d+)(K?M?)b.*"
