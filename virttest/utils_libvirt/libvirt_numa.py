@@ -7,8 +7,6 @@ http://libvirt.org/formatdomain.html
 import ast
 import logging
 
-from avocado.core import exceptions
-
 from virttest.libvirt_xml import vm_xml
 
 LOG = logging.getLogger("avocado." + __name__)
