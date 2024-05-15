@@ -118,5 +118,3 @@ def convert_all_nodes_to_string(node_list):
     converted_numa_nodes = ",".join(node_ranges)
     LOG.debug("Convert output for all online numa nodes: '%s'", converted_numa_nodes)
     return converted_numa_nodes
-
-
