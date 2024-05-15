@@ -120,16 +120,3 @@ def convert_all_nodes_to_string(node_list):
     return converted_numa_nodes
 
 
-def parse_numa_nodeset_to_str(numa_nodeset, node_list, ignore_error=False):
-    """
-    Parse numa nodeset to a string. 
-    The effect is the same as convert_all_nodes_to_string function.
-
-    :param numa_nodeset: str, formats supported are 'x', 'x,y', 'x-y', 'x-y,^y'
-    :param node_list: list, host numa nodes
-    :param ignore_error: no exception raised if True
-    :return: str, parsed numa nodeset
-    """
-
-    numa_nodeset = convert_all_nodes_to_string(node_list)
-    return numa_nodeset
