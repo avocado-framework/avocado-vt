@@ -50,6 +50,7 @@ from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.networking import (
     BridgeConfig,
     FirewalldService,
+    IPSniffer,
     NetworkProxies,
 )
 from virttest.test_setup.os_posix import UlimitConfig
@@ -1101,16 +1102,12 @@ def preprocess(test, params, env):
     _setup_manager.register(BridgeConfig)
     _setup_manager.register(StorageConfig)
     _setup_manager.register(FirewalldService)
+    _setup_manager.register(IPSniffer)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Start ip sniffing if it isn't already running
-    # The fact it has to be started here is so that the test params
-    # have to be honored.
-    env.start_ip_sniffing(params)
 
     # Add migrate_vms to vms
     migrate_vms = params.objects("migrate_vms")
@@ -1776,9 +1773,6 @@ def postprocess(test, params, env):
         if destroy and not vm.is_dead():
             LOG.debug("Image of VM %s was removed, destroying it.", vm.name)
             vm.destroy()
-
-    # Terminate the ip sniffer thread
-    env.stop_ip_sniffing()
 
     # Kill all aexpect tail threads
     aexpect.kill_tail_threads()
