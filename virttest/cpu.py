@@ -1050,6 +1050,42 @@ def get_host_cpu_models():
     return cpu_support_model
 
 
+def parse_qemu_cpu_models_modern(help_text):
+    """
+    Get all cpu models from qemu -cpu help text.
+
+    Note: not completely supported for qemu version prior to v9.0.0
+          due to not all the hardware architectures printed cpu model
+          descriptions with using the pattern below.
+
+          Available CPUs:
+          ...
+
+    :param help_text: Text produced by <qemu> -cpu '?'.
+    :return: List of cpu models.
+    """
+    header_words = ("Available", "CPUs:")
+
+    model_list = []
+    search = False
+    for line in help_text.splitlines():
+        columns = re.split(r"\s+", line)
+        if tuple(columns) == header_words:
+            search = True
+            continue
+        if search:
+            if len(columns) == 1 and not columns[0]:
+                continue
+            elif columns[0] in ("", "x86", "PowerPC", "s390"):
+                model_list.append(columns[1])
+                continue
+            else:
+                # assumed the target section only contains
+                # either model descriptions or empty lines
+                break
+    return model_list
+
+
 def extract_qemu_cpu_models(qemu_cpu_help_text):
     """
     Get all cpu models from qemu -cpu help text.
@@ -1057,6 +1093,9 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
     :param qemu_cpu_help_text: text produced by <qemu> -cpu '?'
     :return: list of cpu models
     """
+
+    if qemu_cpu_help_text.startswith("Available CPUs"):
+        return parse_qemu_cpu_models_modern(qemu_cpu_help_text)
 
     def check_model_list(pattern):
         cpu_re = re.compile(pattern)
