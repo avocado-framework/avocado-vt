@@ -105,3 +105,15 @@ class FirewalldService(Setuper):
 
     def cleanup(self):
         pass
+
+
+class IPSniffer(Setuper):
+    def setup(self):
+        # Start ip sniffing if it isn't already running
+        # The fact it has to be started here is so that the test params
+        # have to be honored.
+        self.env.start_ip_sniffing(self.params)
+
+    def cleanup(self):
+        # Terminate the ip sniffer thread
+        self.env.stop_ip_sniffing()
