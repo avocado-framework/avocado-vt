@@ -5,6 +5,8 @@ import threading
 import time
 import types
 
+from datetime import datetime
+
 from avocado.core import exceptions
 from avocado.utils import distro
 from avocado.utils import path as utils_path
@@ -19,6 +21,7 @@ from virttest import (
     utils_misc,
     utils_net,
     utils_test,
+    utils_sys
 )
 
 # lazy imports for dependencies that are not needed in all modes of use
@@ -73,6 +76,7 @@ class MigrationTest(object):
         """
         vm_state_dest = params.get("virsh_migrate_dest_state", "running")
         vm_state_src = params.get("virsh_migrate_src_state", "shut off")
+        vm_last_reboot_time = params.get("vm_last_reboot_time", [])
         for vm in vms:
             if dest_uri:
                 if not libvirt.check_vm_state(vm.name, vm_state_dest, uri=dest_uri):
@@ -93,46 +97,63 @@ class MigrationTest(object):
             if "offline" not in params.get(
                 "migrate_options", params.get("virsh_migrate_options", "")
             ):
-                if uptime:
-                    if vm.serial_console is None:
-                        vm.create_serial_console()
-                    vm_uptime = vm.uptime(connect_uri=dest_uri)
-                    LOG.info("uptime of migrated VM %s: %s", vm.name, vm_uptime)
-                    if vm_uptime < uptime[vm.name]:
-                        raise exceptions.TestFail(
-                            "vm went for a reboot during " "migration"
-                        )
+                vm.cleanup_serial_console()
+                vm.create_serial_console()
+                backup_uri = vm.connect_uri
+                try:
 
-                    # update vm uptime to check when migrating back
-                    uptime[vm.name] = vm_uptime
-                    vm.verify_dmesg(connect_uri=dest_uri)
-                if params.get("check_network_accessibility_after_mig", "no") == "yes":
-                    ping_count = int(params.get("ping_count", 10))
-                    self.ping_vm(vm, params, uri=dest_uri, ping_count=ping_count)
-                if params.get("simple_disk_check_after_mig", "yes") == "yes":
-                    check_disk_on_dest = "yes" == params.get(
-                        "check_disk_on_dest", "yes"
-                    )
-                    if check_disk_on_dest:
-                        backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
-                    vm.cleanup_serial_console()
-                    vm.create_serial_console()
-                    vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
-                    vm_session_after_mig.cmd(
-                        "echo libvirt_simple_disk_check >> /tmp/libvirt_simple_disk_check"
-                    )
-                    vm_session_after_mig.close()
-                    if check_disk_on_dest:
+                    if vm_last_reboot_time[vm.name]:
+                        vm.connect_uri = dest_uri
+                        vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
+                        # The time format is like "May 27 14:54:05 2024"
+                        last_reboot_time = utils_sys.get_last_reboot_time(vm_session_after_mig)
+                        # datetime.datetime(2024, 5, 27, 14, 54, 5)
+                        des_vm_reboot_time = datetime.strptime(last_reboot_time, "%b %d %H:%M:%S %Y")
+                        src_vm_reboot_time = datetime.strptime(vm_last_reboot_time[vm.name], "%b %d %H:%M:%S %Y")
+                        LOG.debug("The vm reboot time: %s (before migration),"
+                                  " %s (after migration)" % (vm_last_reboot_time[vm.name],
+                                                             last_reboot_time))
+                        if des_vm_reboot_time != src_vm_reboot_time:
+                            raise exceptions.TestFail(
+                                "vm went for a reboot during migration because the last reboot time is changed"
+                            )
+                        vm_session_after_mig.close()
                         vm.connect_uri = backup_uri
-                if params.get("check_disk_after_mig", "no") == "yes":
-                    disk_kname = params.get("check_disk_kname_after_mig", "vdb")
-                    backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
-                    vm.cleanup_serial_console()
-                    vm.create_serial_console()
-                    vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
-                    utils_disk.linux_disk_check(vm_session_after_mig, disk_kname)
-                    vm_session_after_mig.close()
-                    vm.connect_uri = backup_uri
+                    if uptime:
+                        vm_uptime = vm.uptime(connect_uri=dest_uri)
+                        LOG.info("uptime of migrated VM %s: %s", vm.name, vm_uptime)
+                        if vm_uptime < uptime[vm.name]:
+                            raise exceptions.TestFail(
+                                "vm went for a reboot during " "migration"
+                            )
+
+                        # update vm uptime to check when migrating back
+                        uptime[vm.name] = vm_uptime
+                        vm.verify_dmesg(connect_uri=dest_uri)
+                    if params.get("check_network_accessibility_after_mig", "no") == "yes":
+                        ping_count = int(params.get("ping_count", 10))
+                        self.ping_vm(vm, params, uri=dest_uri, ping_count=ping_count)
+                    if params.get("simple_disk_check_after_mig", "yes") == "yes":
+                        check_disk_on_dest = "yes" == params.get(
+                            "check_disk_on_dest", "yes"
+                        )
+                        if check_disk_on_dest:
+                            vm.connect_uri = dest_uri
+                        vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
+                        vm_session_after_mig.cmd(
+                            "echo libvirt_simple_disk_check >> /tmp/libvirt_simple_disk_check"
+                        )
+                        vm_session_after_mig.close()
+                    if params.get("check_disk_after_mig", "no") == "yes":
+                        disk_kname = params.get("check_disk_kname_after_mig", "vdb")
+                        vm.connect_uri = dest_uri
+                        vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
+                        utils_disk.linux_disk_check(vm_session_after_mig, disk_kname)
+                        vm_session_after_mig.close()
+                finally:
+                    if vm.connect_uri != backup_uri:
+                        vm.connect_uri = backup_uri
+
         return uptime
 
     def ping_vm(self, vm, params, uri=None, ping_count=10, ping_timeout=60):
