@@ -53,7 +53,7 @@ class WinBufferedReadFile(object):
                     frags.append(self._bufs.pop(0))
                     frags_length += len(frags[-1])
                 self._n -= n
-                whole = "".join(frags)
+                whole = b"".join(frags)
                 ret = whole[:n]
                 rest = whole[n:]
                 if len(rest) > 0:
