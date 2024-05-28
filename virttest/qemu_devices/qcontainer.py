@@ -1689,19 +1689,16 @@ class DevContainer(object):
             bus = (
                 qdevices.QNoAddrCustomBus(
                     "bus",
-                    [["addr"], [64]],
-                    "virtio-blk-ccw",
-                    "virtio-bus",
-                    "virtio-blk-ccw",
-                ),
-                qdevices.QNoAddrCustomBus(
-                    "bus", [["addr"], [32]], "virtual-css", "virtual-css", "virtual-css"
+                    [["addr"], [32]],
+                    "virtual-css",
+                    "virtual-css",
+                    "virtual-css",
                 ),
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
             )
             devices.append(
                 qdevices.QMachine(
-                    params=machine_params, child_bus=bus, aobject="virtio-blk-ccw"
+                    params=machine_params, child_bus=bus, aobject="virtual-css"
                 )
             )
             return devices
@@ -3572,7 +3569,7 @@ class DevContainer(object):
                 qbus_type = "virtio-bus"
             elif machine_type.startswith("s390"):
                 driver += "-ccw"
-                qbus_type = "virtio-bus"
+                qbus_type = "virtual-css"
             else:
                 driver += "-pci"
 
@@ -3676,7 +3673,7 @@ class DevContainer(object):
                 qbus_type = "virtio-bus"
             elif machine_type.startswith("s390"):
                 qdriver += "-ccw"
-                qbus_type = "virtio-bus"
+                qbus_type = "virtual-css"
             else:
                 qdriver += "-pci"
 
