@@ -4035,8 +4035,70 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_default_gateway(
+def get_default_gateway_json(
     iface_name=False, session=None, ip_ver="ipv4", force_dhcp=False, target_iface=None
+):
+    """
+    Get the Default Gateway or Interface of host or guest with "ip -j".
+
+    :param iface_name: Whether default interface (True), or default gateway
+                        (False) is returned, defaults to False
+    :param session: shell/console session if any, defaults to None
+    :param ip_ver: ip version, defaults to 'ipv4'
+    :param target_iface: if given, get default gateway only for this device
+    :return: default gateway of target iface
+    """
+    ip_cmd = "ip -j"
+    if ip_ver == "ipv4":
+        cmd = f"{ip_cmd} route"
+    elif ip_ver == "ipv6":
+        cmd = f"{ip_cmd} -6 route"
+    else:
+        raise ValueError(f"Unrecognized IP version {ip_ver}")
+    run_func = session.cmd_output if session else process.getoutput
+
+    try:
+        ip_output_str = run_func(cmd).strip()
+        LOG.debug(f"ip route output:\n{ip_output_str}")
+        ip_route = json.loads(ip_output_str)
+    except Exception as why:
+        LOG.error(f'Failed to get output of "{cmd}" command. Reason: {str(why)}')
+        return None
+
+    default_route_list = [x for x in ip_route if x["dst"] == "default"]
+    if force_dhcp:
+        default_route_list = [x for x in default_route_list if x["protocol"] == "dhcp"]
+    if target_iface:
+        LOG.debug(f"Get default gateway only for: {target_iface}")
+        non_multi = [x for x in default_route_list if x.get("dev") == target_iface]
+        multi = [
+            p
+            for x in default_route_list
+            if "nexthops" in x
+            for p in x["nexthops"]
+            if p.get("dev") == target_iface
+        ]
+        default_route_list = non_multi + multi
+    LOG.debug(f"default_route_list: {default_route_list}")
+
+    if len(default_route_list) == 0:
+        raise exceptions.TestError("Cannot get default gateway with given condition")
+    elif len(default_route_list) == 1:
+        default_route = default_route_list[0]
+        if "gateway" in default_route:
+            return default_route["gateway"]
+    else:
+        gw = [path["gateway"] for path in default_route_list]
+        return gw
+
+
+def get_default_gateway(
+    iface_name=False,
+    session=None,
+    ip_ver="ipv4",
+    force_dhcp=False,
+    target_iface=None,
+    json=False,
 ):
     """
     Get the Default Gateway or Interface of host or guest.
@@ -4046,8 +4108,14 @@ def get_default_gateway(
     :param session: shell/console session if any, defaults to None
     :param ip_ver: ip version, defaults to 'ipv4'
     :param target_iface: if given, get default gateway only for this device
+    :param json: True to call get_default_gateway_json, defaults to False
     :return: default gateway of target iface
     """
+    if json:
+        return get_default_gateway_json(
+            iface_name, session, ip_ver, force_dhcp, target_iface
+        )
+
     if ip_ver == "ipv4":
         cmd = "ip route"
     elif ip_ver == "ipv6":
