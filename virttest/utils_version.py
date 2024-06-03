@@ -1,8 +1,7 @@
 import operator
 import re
-from distutils.version import (  # pylint: disable=no-name-in-module,import-error
-    LooseVersion,
-)
+
+from packaging.version import parse
 
 
 class VersionInterval(object):
@@ -31,8 +30,8 @@ class VersionInterval(object):
             raise ValueError("Invalid string representation of an interval")
         self.opening, lower, upper, self.closing = match.groups()
 
-        self.lower_bound = LooseVersion(lower) if lower else None
-        self.upper_bound = LooseVersion(upper) if upper else None
+        self.lower_bound = parse(lower) if lower else None
+        self.upper_bound = parse(upper) if upper else None
         self._check_interval()
 
     def _check_interval(self):
@@ -64,7 +63,7 @@ class VersionInterval(object):
             "]": operator.ge,
         }
         in_interval = True
-        version = LooseVersion(version)
+        version = parse(version)
         if self.lower_bound:
             opt = op_mapping.get(self.opening)
             in_interval = opt(self.lower_bound, version)
