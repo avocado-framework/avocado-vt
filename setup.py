@@ -12,24 +12,27 @@
 # Copyright: Red Hat Inc. 2013-2014
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
-# pylint: disable=E0611
-import os
 import shutil
-from distutils.command.clean import clean
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import Command, find_packages, setup
 
 VERSION = open("VERSION", "r").read().strip()
 
 
-class Clean(clean):
-    """Our custom command to get rid of scratch files after build."""
+class CleanCommand(Command):
+    """Custom command to clean up build and scratch files."""
 
-    description = "Get rid of scratch, byte files and build stuff."
+    description = "Custom clean command to tidy up the project root"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
 
     def run(self):
-        super().run()
         cleaning_list = [
             "MANIFEST",
             "BUILD",
@@ -46,12 +49,12 @@ class Clean(clean):
         cleaning_list += list(Path(".").rglob("__pycache__"))
 
         for e in cleaning_list:
-            if not os.path.exists(e):
-                continue
-            if os.path.isfile(e):
-                os.remove(e)
-            if os.path.isdir(e):
-                shutil.rmtree(e)
+            e_path = Path(e)
+            if e_path.exists():
+                if e_path.is_file():
+                    e_path.unlink()
+                elif e_path.is_dir():
+                    shutil.rmtree(e_path)
 
 
 if __name__ == "__main__":
@@ -61,7 +64,7 @@ if __name__ == "__main__":
         description="Avocado Plugin for Virtualization Testing",
         author="Avocado Developers",
         author_email="avocado-devel@redhat.com",
-        url="http://github.com/avocado-framework/avocado-vt",
+        url="https://github.com/avocado-framework/avocado-vt",
         packages=find_packages(exclude=("selftests*",)),
         include_package_data=True,
         entry_points={
@@ -96,6 +99,12 @@ if __name__ == "__main__":
                 "avocado-vt = avocado_vt.plugins.vt_runner:VTTestRunner",
             ],
         },
-        install_requires=["netifaces", "six", "aexpect", "avocado-framework>=82.1"],
-        cmdclass={"clean": Clean},
+        install_requires=[
+            "netifaces",
+            "packaging",
+            "six",
+            "aexpect",
+            "avocado-framework>=82.1",
+        ],
+        cmdclass={"clean": CleanCommand},
     )
