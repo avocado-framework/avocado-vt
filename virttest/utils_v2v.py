@@ -25,7 +25,10 @@ from avocado.utils.astring import to_text
 
 from virttest import data_dir
 from virttest import libvirt_vm as lvirt
-from virttest import ovirt, ppm_utils
+try:
+    from virttest import ovirt
+except ModuleNotFoundError:
+    ovirt = None
 from virttest import remote as remote_old
 from virttest import ssh_key, utils_misc, virsh
 from virttest.libvirt_xml import vm_xml
@@ -1010,168 +1013,6 @@ class WindowsVMCheck(VMCheck):
     This class handles all basic Windows VM check operations.
     """
 
-    def send_win32_key(self, keycode):
-        """
-        Send key to Windows VM
-        """
-        options = "--codeset win32 %s" % keycode
-        virsh.sendkey(self.name, options, session_id=self.virsh_session_id)
-        time.sleep(1)
-
-    def move_mouse(self, coordinate):
-        """
-        Move VM mouse.
-        """
-        virsh.move_mouse(self.name, coordinate, session_id=self.virsh_session_id)
-
-    def click_left_button(self):
-        """
-        Click left button of VM mouse.
-        """
-        virsh.click_button(self.name, session_id=self.virsh_session_id)
-
-    def click_tab_enter(self):
-        """
-        Send TAB and ENTER to VM.
-        """
-        self.send_win32_key("VK_TAB")
-        self.send_win32_key("VK_RETURN")
-
-    def click_install_driver(self):
-        """
-        Move mouse and click button to install driver for new
-        device(Ethernet controller)
-        """
-        # Get window focus by click left button
-        self.move_mouse((0, -80))
-        self.click_left_button()
-        self.move_mouse((0, 30))
-        self.click_left_button()
-
-    def get_screenshot(self):
-        """
-        Do virsh screenshot of the vm and fetch the image if the VM in
-        remote host.
-        """
-        sshot_file = os.path.join(data_dir.get_tmp_dir(), "vm_screenshot.ppm")
-        if self.target == "ovirt":
-            # Note: This is a screenshot path on a remote host
-            vm_sshot = os.path.join("/tmp", "vm_screenshot.ppm")
-        else:
-            vm_sshot = sshot_file
-        virsh.screenshot(self.name, vm_sshot, session_id=self.virsh_session_id)
-        if self.target == "ovirt":
-            remote_ip = self.params.get("remote_ip")
-            remote_user = self.params.get("remote_user")
-            remote_pwd = self.params.get("remote_pwd")
-            remote.scp_from_remote(
-                remote_ip, "22", remote_user, remote_pwd, vm_sshot, sshot_file
-            )
-            r_runner = remote_old.RemoteRunner(
-                host=remote_ip, username=remote_user, password=remote_pwd
-            )
-            r_runner.run("rm -f %s" % vm_sshot)
-        return sshot_file
-
-    def wait_for_match(self, images, similar_degree=0.98, timeout=300):
-        """
-        Compare VM screenshot with given images, if any image in the list
-        matched, then return the image index, or return -1.
-        """
-        end_time = time.time() + timeout
-        image_matched = False
-        cropped_image = os.path.join(data_dir.get_tmp_dir(), "croped.ppm")
-        while time.time() < end_time:
-            vm_screenshot = self.get_screenshot()
-            ppm_utils.image_crop_save(vm_screenshot, vm_screenshot)
-            img_index = 0
-            for image in images:
-                LOG.debug("Compare vm screenshot with image %s", image)
-                ppm_utils.image_crop_save(image, cropped_image)
-                h_degree = ppm_utils.image_histogram_compare(
-                    cropped_image, vm_screenshot
-                )
-                if h_degree >= similar_degree:
-                    LOG.debug("Image %s matched", image)
-                    image_matched = True
-                    break
-                img_index += 1
-            if image_matched:
-                break
-            time.sleep(1)
-        if os.path.exists(cropped_image):
-            os.unlink(cropped_image)
-        if os.path.exists(vm_screenshot):
-            os.unlink(vm_screenshot)
-        if image_matched:
-            return img_index
-        else:
-            return -1
-
-    def boot_windows(self, timeout=300):
-        """
-        Click buttons to activate windows and install ethernet controller driver
-        to boot windows.
-        """
-        LOG.info("Booting Windows in %s seconds", timeout)
-        compare_screenshot_vms = ["win2003"]
-        timeout_msg = "No matching screenshots found after %s seconds" % timeout
-        timeout_msg += ", trying to log into the VM directly"
-        match_image_list = []
-        if self.os_version in compare_screenshot_vms:
-            image_name_list = self.params.get("screenshots_for_match", "").split(",")
-            for image_name in image_name_list:
-                match_image = os.path.join(data_dir.get_data_dir(), image_name)
-                if not os.path.exists(match_image):
-                    LOG.error("Screenshot '%s' does not exist", match_image)
-                    return
-                match_image_list.append(match_image)
-            img_match_ret = self.wait_for_match(match_image_list, timeout=timeout)
-            if img_match_ret < 0:
-                LOG.error(timeout_msg)
-            else:
-                if self.os_version == "win2003":
-                    if img_match_ret == 0:
-                        self.click_left_button()
-                        # VM may have no response for a while
-                        time.sleep(20)
-                        self.click_left_button()
-                        self.click_tab_enter()
-                    elif img_match_ret == 1:
-                        self.click_left_button()
-                        time.sleep(20)
-                        self.click_left_button()
-                        self.click_tab_enter()
-                        self.click_left_button()
-                        self.send_win32_key("VK_RETURN")
-                    else:
-                        pass
-                elif self.os_version in ["win7", "win2008r2"]:
-                    if img_match_ret in [0, 1]:
-                        self.click_left_button()
-                        self.click_left_button()
-                        self.send_win32_key("VK_TAB")
-                        self.click_tab_enter()
-                elif self.os_version == "win2008":
-                    if img_match_ret in [0, 1]:
-                        self.click_tab_enter()
-                        self.click_install_driver()
-                        self.move_mouse((0, -50))
-                        self.click_left_button()
-                        self.click_tab_enter()
-                    else:
-                        self.click_install_driver()
-        else:
-            # No need sendkey/click button for any os except Win2003
-            LOG.info("%s is booting up without program intervention", self.os_version)
-
-    def reboot_windows(self):
-        """
-        Reboot Windows immediately
-        """
-        cmd = "shutdown -t 0 -r -f"
-        self.run_cmd(cmd)
-
     def get_viostor_info(self):
         """
         Get viostor info.
@@ -1224,40 +1065,6 @@ class WindowsVMCheck(VMCheck):
         if not output:
             LOG.error("Fail to get cpu status")
         return output
-
-    def get_windows_event_info(self):
-        """
-        Get windows event log info about WSH.
-        """
-        cmd = 'wevtutil qe application | find "WSH"'
-        status, output = self.run_cmd(cmd)
-        if status != 0:
-            # For win2003 and winXP, use following cmd
-            cmd = r"CSCRIPT %s\system32\eventquery.vbs " % self.windows_root
-            cmd += '/l application /Fi "Source eq WSH"'
-            output = self.run_cmd(cmd)[1]
-        return output
-
-    def get_network_restart(self):
-        """
-        Get windows network restart.
-        """
-        cmd = "ipconfig /renew"
-        return self.run_cmd(cmd)[1]
-
-    def copy_windows_file(self):
-        """
-        Copy a widnows file
-        """
-        cmd = "COPY /y C:\\rss.reg C:\\rss.reg.bak"
-        return self.run_cmd(cmd)[0]
-
-    def delete_windows_file(self):
-        """
-        Delete a widnows file
-        """
-        cmd = "DEL C:\rss.reg.bak"
-        return self.run_cmd(cmd)[0]
 
     def is_uefi_guest(self):
         """
