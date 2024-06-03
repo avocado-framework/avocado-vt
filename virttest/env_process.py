@@ -17,7 +17,7 @@ from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import archive
 from avocado.utils import cpu as cpu_utils
-from avocado.utils import crypto, path
+from avocado.utils import crypto
 from avocado.utils import process as a_process
 from six.moves import xrange
 
@@ -54,6 +54,7 @@ from virttest.test_setup.networking import (
     NetworkProxies,
 )
 from virttest.test_setup.os_posix import UlimitConfig
+from virttest.test_setup.requirement_checks import CheckInstalledCMDs
 from virttest.test_setup.storage import StorageConfig
 from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
@@ -1086,16 +1087,8 @@ def preprocess(test, params, env):
     if params.get("requires_root", "no") == "yes":
         utils_misc.verify_running_as_root()
 
-    # throw a TestSkipError exception if command requested by test is not
-    # installed.
-    if params.get("cmds_installed_host"):
-        for cmd in params.get("cmds_installed_host").split():
-            try:
-                path.find_command(cmd)
-            except path.CmdNotFoundError as msg:
-                raise exceptions.TestSkipError(msg)
-
     _setup_manager.initialize(test, params, env)
+    _setup_manager.register(CheckInstalledCMDs)
     _setup_manager.register(UlimitConfig)
     _setup_manager.register(NetworkProxies)
     _setup_manager.register(LibvirtdDebugLogConfig)
