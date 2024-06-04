@@ -3821,6 +3821,7 @@ class VM(virt_vm.BaseVM):
                         # fd numbers are not always predictable and
                         # vm instance must support cloning.
                         del nic["tapfds"]
+                        del nic["tapfd_ids"]
                     # File descriptor is already closed
                     except OSError:
                         pass
