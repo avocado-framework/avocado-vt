@@ -4852,7 +4852,7 @@ class VM(virt_vm.BaseVM):
         if not verify:
             LOG.error(self.monitor.info("network", debug=False))
             raise virt_vm.VMDelNetDevError("Fail to remove netdev %s" % netdev_id)
-        if "tapfd_ids" in nic:
+        if "tapfd_ids" in nic and "tapfds" in nic:
             for fd_id in nic.tapfd_ids:
                 self.monitor.closefd(fd_id)
         if nic.nettype == "macvtap":
