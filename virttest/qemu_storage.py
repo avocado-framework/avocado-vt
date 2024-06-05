@@ -13,6 +13,12 @@ import re
 import string
 
 import six
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+
 from avocado.core import exceptions
 from avocado.utils import process
 
@@ -329,7 +335,7 @@ def get_image_opts(image, params, root_dir):
                     prefix.pop()
                 stack.pop()
                 continue
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, Mapping):
                 prefix.append(key)
                 stack.append(six.iteritems(value))
             else:
