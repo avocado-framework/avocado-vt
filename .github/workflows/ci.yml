@@ -93,6 +93,4 @@ jobs:
         pip install build
     - name: Build package
       run: python -m build
-    - name: Build eggs
-      run: python setup.py bdist_egg
     - run: echo "🥑 This job's status is ${{ job.status }}."
