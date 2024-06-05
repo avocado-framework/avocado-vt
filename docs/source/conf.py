@@ -17,6 +17,8 @@
 import os
 import sys
 
+from setuptools_scm import get_version
+
 
 def getstatusoutput(cmd):
     """Return (status, output) of executing cmd in a shell."""
@@ -59,8 +61,7 @@ master_doc = "index"
 project = "Avocado VT"
 copyright = "2014, Red Hat"
 
-version_file = os.path.join(root_path, "VERSION")
-VERSION = open(version_file, "r").read().strip()
+VERSION = get_version(root="../..", relative_to=__file__)
 version = VERSION
 release = VERSION
 
