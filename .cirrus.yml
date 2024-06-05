@@ -15,7 +15,7 @@ fedora_35_task:
       # Latest LTS release is 103.x
       - AVOCADO_SRC: avocado-framework<104.0
     matrix:
-      - SETUP: setup.py develop --user
+      - SETUP: -m pip install --user -e .
       - SETUP: -m pip install .
       - SETUP: -m pip install PYPI_UPLOAD/*.whl
     matrix:
@@ -25,6 +25,7 @@ fedora_35_task:
     - (echo $SETUP | grep -v PYPI_UPLOAD) || make pypi
   setup_script: &setup_scr
     - python3 --version
+    - python3 -m pip install --upgrade pip
     - test -z $AVOCADO_SRC || python3 -m pip install $AVOCADO_SRC
     - python3 $SETUP
   bootstrap_script: &bootstrap_scr
@@ -60,7 +61,7 @@ avocado_devel_task:
       # 103lts tree (from where new 103.x releases will come)
       - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@103lts#egg=avocado_framework
     matrix:
-      - SETUP: setup.py develop --user
+      - SETUP: -m pip install --user -e .
       - SETUP: -m pip install .
       - SETUP: -m pip install PYPI_UPLOAD/*.whl
     matrix:
