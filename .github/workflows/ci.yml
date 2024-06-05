@@ -81,7 +81,4 @@ jobs:
         pip install build setuptools wheel
     - name: Build package
       run: python -m build
-    - name: Build eggs (legacy)
-      if: ${{ contains(fromJSON('["3.9","3.10","3.11"]'), matrix.python-version) }}
-      run: python setup.py bdist_egg
     - run: echo "🥑 This job's status is ${{ job.status }}."
