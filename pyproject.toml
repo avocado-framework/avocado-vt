@@ -50,6 +50,37 @@ packages = [
     "virttest",
 ]
 
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["black==22.3.0", "isort==5.10.1", "pylint==2.15.10", "pyenchant==3.2.2"]
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = [
+    "black --check --diff --color {args:.}",
+    "isort --check-only --diff {args:.}",
+]
+format-fix = [
+    "isort {args:.}",
+    "black {args:.}",
+]
+lint-check = [
+    "pylint --errors-only {args:.}"
+]
+lint-fix = "lint-check"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint."messages control"]
+disable = ["all"]
+enable = ["spelling"]
+
+[tool.pylint.spelling]
+spelling-dict = "en_US"
+spelling-private-dict-file = "spell.ignore"
+
 [project.scripts]
 avocado-runner-avocado-vt = "avocado_vt.plugins.vt_runner:main"
 
