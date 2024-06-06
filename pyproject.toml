@@ -55,6 +55,20 @@ virttest = [
     "shared/**",
 ]
 
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint."messages control"]
+disable = ["all"]
+enable = ["spelling"]
+
+[tool.pylint.spelling]
+spelling-dict = "en_US"
+spelling-private-dict-file = "spell.ignore"
+
 [project.scripts]
 avocado-runner-avocado-vt = "avocado_vt.plugins.vt_runner:main"
 
