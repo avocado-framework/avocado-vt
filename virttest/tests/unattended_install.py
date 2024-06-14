@@ -211,6 +211,7 @@ class UnattendedInstallConfig(object):
             "virtio_vioinput_path",
             "virtio_viofs_path",
             "virtio_fwcfg_path",
+            "virtio_viomem_path",
             "virtio_oemsetup_id",
             "virtio_network_installer_path",
             "virtio_balloon_installer_path",
@@ -621,6 +622,7 @@ class UnattendedInstallConfig(object):
                 self.virtio_vioinput_path,
                 self.virtio_viofs_path,
                 self.virtio_fwcfg_path,
+                self.virtio_viomem_path,
             ]
 
             # XXX: Force to replace the drive letter which loaded the
