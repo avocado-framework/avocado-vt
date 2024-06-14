@@ -59,6 +59,17 @@ class VMCreateError(VMError):
         )
 
 
+class VMStateError(VMError):
+    def __init__(self, name, state, reason):
+        VMError.__init__(self, name, state, reason)
+        self.name = name
+        self.state = state
+        self.reason = reason
+
+    def __str__(self):
+        return f"VM {self.name} unable to enter {self.state} state: {self.reason}"
+
+
 class VMStartError(VMError):
     def __init__(self, name, reason=None, status=None):
         VMError.__init__(self, name, reason, status)
