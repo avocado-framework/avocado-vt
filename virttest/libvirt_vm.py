@@ -3223,6 +3223,7 @@ class VM(virt_vm.BaseVM):
 
         def _start_ga():
             if not _is_ga_running():
+                self.install_package("qemu-guest-agent")
                 cmd = "service qemu-guest-agent start"
                 status, output = session.cmd_status_output(cmd)
                 # Sometimes the binary of the guest agent was corrupted on the
