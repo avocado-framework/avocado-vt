@@ -168,6 +168,8 @@ class NetperfPackage(remote_old.Remote_Package):
         np_build = build_type.get(build_arch, build_arch).strip()
         setup_cmd = (
             "./autogen.sh > /dev/null 2>&1 &&"
+            # Workaround for gcc >= 14.0
+            " CFLAGS=-Wno-implicit-function-declaration"
             " ./configure --build=%s %s > /dev/null 2>&1" % (np_build, compile_option)
         )
         setup_cmd += " && make > /dev/null 2>&1"
