@@ -3629,16 +3629,18 @@ class VM(virt_vm.BaseVM):
                     else:
                         self._del_port_from_bridge(nic)
 
+                    tapfds = ""
                     if nic.nettype in ["bridge", "network", "macvtap"]:
                         self._nic_tap_add_helper(nic)
                         if bool(nic.tapfds):
+                            tapfds = nic.tapfds
                             for fd in nic.tapfds.split(":"):
                                 pass_fds.append(int(fd))
 
+                    vhostfds = []
                     if (nic_params.get("vhost") in ["on", "force", "vhost=on"]) and (
                         nic_params.get("enable_vhostfd", "yes") == "yes"
                     ):
-                        vhostfds = []
                         for i in xrange(int(nic.queues)):
                             vhostfds.append(str(os.open("/dev/vhost-net", os.O_RDWR)))
                         nic.vhostfds = ":".join(vhostfds)
@@ -3649,15 +3651,26 @@ class VM(virt_vm.BaseVM):
                             "Assuming dependencies met for "
                             "user mode nic %s, and ready to go" % nic.nic_name
                         )
-                    # Update the fd and vhostfd for nic devices
+                    # XXX: Update the fd and vhostfd for nic devices, assuming
+                    # in the VM.clone context
                     if self.devices is not None:
                         dev = self.devices.get_by_params({"id": nic.netdev_id})[0]
                         net_params = {
-                            "vhostfd": nic.vhostfds.split(":")[0],
-                            "vhostfds": nic.vhostfds,
-                            "fd": nic.tapfds.split(":")[0],
-                            "fds": nic.tapfds,
+                            "vhostfd": None,
+                            "vhostfds": None,
+                            "fd": None,
+                            "fds": None,
                         }
+                        if tapfds:
+                            if ":" in tapfds:
+                                net_params["fds"] = tapfds
+                            else:
+                                net_params["fd"] = tapfds
+                        if vhostfds:
+                            if len(vhostfds) > 1:
+                                net_params["vhostfds"] = ":".join(vhostfds)
+                            else:
+                                net_params["vhostfd"] = vhostfds[0]
                         for k, v in net_params.items():
                             if k in dev.params:
                                 dev.set_param(k, v)
