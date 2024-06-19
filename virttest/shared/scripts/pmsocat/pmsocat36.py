@@ -29,8 +29,8 @@ async def handle_tcp_conn(reader1, writer1):
     """
     Call back function of tcp2unix
     """
-    loop = asyncio.get_event_loop()
-    reader2, writer2 = await asyncio.open_unix_connection(_args.socket_path, loop=loop)
+    loop = asyncio.get_running_loop()
+    reader2, writer2 = await asyncio.open_unix_connection(_args.socket_path)
     loop.create_task(forward(reader1, writer2, ">"))
     loop.create_task(forward(reader2, writer1, "<"))
 
@@ -39,23 +39,21 @@ async def handle_unix_conn(reader1, writer1):
     """
     Call back function of unix2tcp
     """
-    loop = asyncio.get_event_loop()
-    reader2, writer2 = await asyncio.open_connection(
-        _args.host, _args.port, loop=asyncio.get_event_loop()
-    )
+    loop = asyncio.get_running_loop()
+    reader2, writer2 = await asyncio.open_connection(_args.host, _args.port)
     loop.create_task(forward(reader1, writer2, ">"))
     loop.create_task(forward(reader2, writer1, "<"))
 
 
-def tcp2unix(loop):
+def tcp2unix():
     """
     A wrapper function to start a service that listens on network and
     connects to UNIX socket
     """
-    return asyncio.start_server(handle_tcp_conn, _args.address, _args.port, loop=loop)
+    return asyncio.start_server(handle_tcp_conn, _args.address, _args.port)
 
 
-def unix2tcp(loop):
+def unix2tcp():
     """
     A wrapper function to start a server that listens on UNIX socket and
     connects to network
@@ -69,7 +67,7 @@ def unix2tcp(loop):
         os.unlink(_args.socket_path)
     except FileNotFoundError:
         pass
-    ret = asyncio.start_unix_server(handle_unix_conn, _args.socket_path, loop=loop)
+    ret = asyncio.start_unix_server(handle_unix_conn, _args.socket_path)
     if _args.selinux_context:
         selinux.setsockcreatecon(None)
     return ret
@@ -124,12 +122,20 @@ def main(loop):
     if _args.func is None:
         parser.print_help()
         sys.exit(1)
-    coro = _args.func(loop)
+    coro = _args.func()
     return loop.run_until_complete(coro)
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+    if sys.version_info < (3, 10):
+        loop = asyncio.get_event_loop()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+
+    asyncio.set_event_loop(loop)
     coro = main(loop)
 
     try:
