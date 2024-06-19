@@ -1003,6 +1003,12 @@ def preprocess(test, params, env):
     if callable(preprocess_vm_off_hook):
         preprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
 
+    # Add migrate_vms to vms
+    migrate_vms = params.objects("migrate_vms")
+    if migrate_vms:
+        vms = list(set(params.objects("vms") + migrate_vms))
+        params["vms"] = " ".join(vms)
+
     # Check if code coverage for qemu is enabled and
     # if coverage reset is enabled too, reset coverage report
     gcov_qemu = params.get("gcov_qemu", "no") == "yes"
@@ -1101,12 +1107,6 @@ def preprocess(test, params, env):
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Add migrate_vms to vms
-    migrate_vms = params.objects("migrate_vms")
-    if migrate_vms:
-        vms = list(set(params.objects("vms") + migrate_vms))
-        params["vms"] = " ".join(vms)
 
     # Permit iptables to permit 49152-49216 ports to libvirt for
     # migration and if arch is ppc with power8 then switch off smt
