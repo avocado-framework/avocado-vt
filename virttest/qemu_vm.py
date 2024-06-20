@@ -3876,9 +3876,15 @@ class VM(virt_vm.BaseVM):
                         self, m_name, m_params, timeout
                     )
                 except qemu_monitor.MonitorConnectError as detail:
-                    LOG.error(detail)
-                    self.destroy()
-                    raise
+                    if self.process.is_alive():
+                        LOG.error(detail)
+                        self.destroy()
+                        raise
+                    else:
+                        stat = self.process.get_status()
+                        output = self.process.get_output().strip()
+                        self.destroy()
+                        raise virt_vm.VMCreateError(qemu_command, stat, output)
 
                 # Add this monitor to the list
                 self.monitors.append(monitor)
