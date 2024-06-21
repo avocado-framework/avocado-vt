@@ -1434,7 +1434,7 @@ def get_net_if(runner=local_runner, state=".*", qdisc=".*", optional=".*"):
     :param optional: optional match for interface find
     :return: List of network interfaces.
     """
-    cmd = "ip link"
+    cmd = "ip -c=never link"
     # As the runner converts stdout to unicode on Python2,
     # it has to be converted to string for struct.pack().
     result = str(runner(cmd))
@@ -1476,7 +1476,7 @@ def get_remote_host_net_ifs(session, state=None):
     """
     phy_interfaces = []
     vir_interfaces = []
-    cmd = "ip link"
+    cmd = "ip -c=never link"
     if not state:
         state = ".*"
     cmd_output = session.cmd_status_output(cmd)
@@ -1511,7 +1511,7 @@ def get_net_if_addrs(if_name, runner=None):
     """
     if runner is None:
         runner = local_runner
-    cmd = "ip addr show %s" % (if_name)
+    cmd = "ip -c=never addr show %s" % (if_name)
     result = runner(cmd)
     return {
         "ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
@@ -1645,8 +1645,12 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
             else:
                 if "." in netmask:
                     netmask = convert_netmask(netmask)
-                info_cmd = "ip addr show; ethtool -s %s" % nic_ifname
-                cmd = "ip addr add %s/%s dev %s" % (ip_addr, netmask, nic_ifname)
+                info_cmd = "ip -c=never addr show; ethtool -s %s" % nic_ifname
+                cmd = "ip -c=never addr add %s/%s dev %s" % (
+                    ip_addr,
+                    netmask,
+                    nic_ifname,
+                )
             session.cmd(cmd, timeout=360)
         elif os_type == "windows":
             info_cmd = "ipconfig /all"
@@ -1943,7 +1947,7 @@ def get_neighbours_info(
     func = process.getoutput
     if session:
         func = session.cmd_output
-    cmd = "ip -6 neigh show nud reachable"
+    cmd = "ip -c=never -6 neigh show nud reachable"
     if neigh_address:
         cmd += " %s" % neigh_address
     output = func(cmd, timeout=timeout, **dargs)
@@ -3708,7 +3712,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip
     :return: Local corespond IP.
     """
-    result = process.run("ip route get %s" % (remote_ip)).stdout_text
+    result = process.run("ip -c=never route get %s" % (remote_ip)).stdout_text
     local_ip = re.search("src (.+)", result)
     if local_ip is not None:
         local_ip = local_ip.groups()[0]
@@ -3728,7 +3732,7 @@ def get_linux_mac(session, nic):
     else:
         pattern = "(ether|HWaddr) %s" % pattern
         mac_index = 2
-        show_mac_cmd = "ifconfig %s || ip link show %s" % (nic, nic)
+        show_mac_cmd = "ifconfig %s || ip -c=never link show %s" % (nic, nic)
         out = session.cmd_output(show_mac_cmd)
     try:
         return str(re.search(pattern, out, re.M | re.I).group(mac_index))
@@ -3741,7 +3745,7 @@ def get_linux_ipaddr(session, nic):
     Get IP addresses by nic name
     """
     rex = r"inet6?\s+(addr:)?\s*(\S+)\s+"
-    cmd = "ifconfig %s || ip address show %s" % (nic, nic)
+    cmd = "ifconfig %s || ip -c=never address show %s" % (nic, nic)
     out = session.cmd_output_safe(cmd)
     addrs = re.findall(rex, out, re.M)
     addrs = map(lambda x: x[1].split("/")[0], addrs)
@@ -3847,7 +3851,7 @@ def get_linux_ifname(session, mac_address=""):
 
     # No luck, try ip link
     i = _process_output(
-        "ip link | grep -B1 '%s' -i" % mac_address, r"\d+:\s+(\w+):\s+.*"
+        "ip -c=never link | grep -B1 '%s' -i" % mac_address, r"\d+:\s+(\w+):\s+.*"
     )
     if i is not None:
         return i
@@ -3874,7 +3878,7 @@ def get_linux_iface_info(iface="", mac=None, session=None):
     :param session: session of given vm, defaults to None
     :return: dict-type info of interface, None if not get any
     """
-    ip_cmd = f"ip -json addr show {iface}"
+    ip_cmd = f"ip -c=never -json addr show {iface}"
     run_func = session.cmd_output if session else process.getoutput
 
     try:
@@ -4048,7 +4052,7 @@ def get_default_gateway_json(
     :param target_iface: if given, get default gateway only for this device
     :return: default gateway of target iface
     """
-    ip_cmd = "ip -j"
+    ip_cmd = "ip -c=never -j"
     if ip_ver == "ipv4":
         cmd = f"{ip_cmd} route"
     elif ip_ver == "ipv6":
@@ -4059,7 +4063,7 @@ def get_default_gateway_json(
 
     try:
         ip_output_str = run_func(cmd).strip()
-        LOG.debug(f"ip route output:\n{ip_output_str}")
+        LOG.debug(f"ip -c=never route output:\n{ip_output_str}")
         ip_route = json.loads(ip_output_str)
     except Exception as why:
         LOG.error(f'Failed to get output of "{cmd}" command. Reason: {str(why)}')
@@ -4117,9 +4121,9 @@ def get_default_gateway(
         )
 
     if ip_ver == "ipv4":
-        cmd = "ip route"
+        cmd = "ip -c=never route"
     elif ip_ver == "ipv6":
-        cmd = "ip -6 route"
+        cmd = "ip -c=never -6 route"
     else:
         raise ValueError(f"Unrecognized IP version {ip_ver}")
     if target_iface:
@@ -4723,8 +4727,8 @@ def create_linux_bridge_tmux(
             )
     if iface_name:
         shell_cmd = (
-            "ip link add name {0} type bridge; ip link set {1} up; "
-            "ip link set {1} master {0}; ip link set {0} up; "
+            "ip -c=never link add name {0} type bridge; ip -c=never link set {1} up; "
+            "ip -c=never link set {1} master {0}; ip -c=never link set {0} up; "
             "pkill dhclient; sleep 6; "
             "dhclient {0};".format(linux_bridge_name, iface_name)
         )
@@ -4732,7 +4736,7 @@ def create_linux_bridge_tmux(
             shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
         cmd = 'tmux -c "%s"' % shell_cmd
     else:
-        cmd = "ip link add %s type bridge" % linux_bridge_name
+        cmd = "ip -c=never link add %s type bridge" % linux_bridge_name
     return utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, ignore_status=ignore_status
     )
@@ -4759,11 +4763,11 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
         return
     if iface_name:
         cmd = (
-            'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; '
+            'tmux -c "ip -c=never link set {1} nomaster; ip -c=never link delete {0}; pkill dhclient; '
             'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
         )
     else:
-        cmd = "ip link delete %s" % linux_bridge_name
+        cmd = "ip -c=never link delete %s" % linux_bridge_name
     return utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, ignore_status=ignore_status
     )
