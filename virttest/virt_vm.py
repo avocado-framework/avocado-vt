@@ -935,10 +935,11 @@ class BaseVM(object):
 
         ipaddr = utils_misc.wait_for(_get_address, timeout, step=interval)
         if not ipaddr:
-            # Read guest address via serial console and update VM address
-            # cache to avoid get out-dated address.
-            utils_net.update_mac_ip_address(self, timeout)
-            ipaddr = self.get_address(nic_index, ip_version)
+            # obatining ip address from virsh-net-dhcp-leases command
+            mac = self.get_mac_address(nic_index).lower()
+            ipaddr = utils_net.obtain_guest_ip_from_dhcp_leases(mac)
+            # updating cache with the latest ip address value
+            self.address_cache[mac] = ipaddr
         msg = "Found/Verified IP %s for VM %s NIC %s" % (ipaddr, self.name, nic_index)
         LOG.debug(msg)
         return ipaddr
