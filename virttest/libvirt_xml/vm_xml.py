@@ -3834,6 +3834,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         "ioapic",
         "kvm_dirty_ring_state",
         "kvm_dirty_ring_size",
+        "ras",
     )
 
     def __init__(self, virsh_instance=base.virsh):
@@ -3926,6 +3927,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
             parent_xpath="/kvm",
             tag_name="dirty-ring",
             attribute="size",
+        )
+        accessors.XMLAttribute(
+            property_name="ras",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="ras",
+            attribute="state",
         )
         accessors.AllForbidden(property_name="feature_list", libvirtxml=self)
         super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
