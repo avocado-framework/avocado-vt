@@ -3035,6 +3035,16 @@ class VM(virt_vm.BaseVM):
                 set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "tpm")
             devices.insert(devs)
 
+        # Add host devices
+        # XXX: This is a temporary solution for adding host devices, it may be
+        # implemented in a better way in the future after qemu_vm splits create
+        # to define and start.
+        for hostdev in params.objects("vm_hostdevs"):
+            hostdev_params = params.object_params(hostdev)
+            dev = devices.hostdev_define_by_params(hostdev, hostdev_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "hostdev")
+            devices.insert(dev)
+
         disable_kvm_option = ""
         if devices.has_option("no-kvm"):
             disable_kvm_option = "-no-kvm"
