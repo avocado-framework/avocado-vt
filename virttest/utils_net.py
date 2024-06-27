@@ -4817,18 +4817,22 @@ def check_filter_rules(ifname, bandwidth, expect_none=False):
     return True
 
 
-def check_class_rules(ifname, rule_id, bandwidth):
+def check_class_rules(ifname, rule_id, bandwidth, expect_none=False):
     """
     Check bandwidth outbound settings via 'tc class' output
 
     :param ifname: the interface name
     :param rule_id: child class id
     :param bandwidth: the settings in the xml
+    :param expect_none: whether or not expect nothing in output,
+                        default to be False
     :return: return True if get expected result, else return False
     """
     cmd = "tc class show dev %s" % ifname
     class_output = process.run(cmd, shell=True).stdout_text
     LOG.debug("Bandwidth class output: %s", class_output)
+    if expect_none:
+        return not class_output.strip()
     class_pattern = (
         r"class htb %s.*rate (\d+)(K?M?)bit ceil (\d+)(K?M?)bit burst (\d+)(K?M?)b.*"
         % rule_id
