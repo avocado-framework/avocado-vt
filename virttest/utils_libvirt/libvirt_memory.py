@@ -9,6 +9,7 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
+from virttest import utils_package
 from virttest.staging import utils_memory
 
 LOG = logging.getLogger("avocado." + __name__)
@@ -79,6 +80,10 @@ def consume_vm_freememory(vm_session, consume_value=100000):
     """
     vm_session.cmd_status("swapoff -a")
     free_mem = utils_memory.freememtotal(vm_session)
+    if not utils_package.package_install("numactl", vm_session):
+        raise exceptions.TestError(
+            "Fail to install package 'numactl' which provides command 'memhog'"
+        )
     cmd = "memhog %dk" % (free_mem - consume_value)
     status, stdout = vm_session.cmd_status_output(cmd, timeout=60)
     return (status, stdout)
