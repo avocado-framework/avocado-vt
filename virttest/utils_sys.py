@@ -7,6 +7,7 @@ Virtualization test utility functions.
 import logging
 import re
 
+from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest.utils_misc import cmd_status_output
@@ -42,6 +43,20 @@ def check_dmesg_output(pattern, expect=True, session=None):
     else:
         LOG.info("Dmesg output met expectation")
         return True
+
+
+def get_last_reboot_time(session):
+    cmd = "last reboot -F |head -1"
+
+    status, output = cmd_status_output(cmd, shell=True, session=session)
+    if status:
+        raise exceptions.TestError("Fail to execute the "
+                                    "command '%s': error %d: %s" % (cmd,
+                                                                    status,
+                                                                    output))
+    # reboot   system boot  5.14.0-452.el9.a Mon May 27 14:54:05 2024   still running
+    match = re.search("\s+(\w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s", output)
+    return match[0].strip() if match else None
 
 
 def get_host_bridge_id(session=None):
