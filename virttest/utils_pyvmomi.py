@@ -8,7 +8,7 @@ import datetime
 import logging
 from functools import wraps
 
-from pyVim.connect import Disconnect, SmartConnect, SmartConnectNoSSL
+from pyVim.connect import Disconnect, SmartConnect
 from pyVim.task import WaitForTask
 from pyVmomi import vim
 
@@ -241,9 +241,8 @@ class VSphere(object):
         kwargs = self.kwargs
 
         if self.insecure:
-            self.service_instance = SmartConnectNoSSL(**kwargs)
-        else:
-            self.service_instance = SmartConnect(**kwargs)
+            kwargs["disableSslCertValidation"] = True
+        self.service_instance = SmartConnect(**kwargs)
 
         if self.service_instance:
             LOG.debug(
