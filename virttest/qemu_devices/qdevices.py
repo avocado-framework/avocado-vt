@@ -10,13 +10,17 @@ import json
 import logging
 import os
 import re
+import shutil
+import signal
 import time
 import traceback
 from collections import OrderedDict
 from pathlib import Path
+from uuid import uuid4
 
 import aexpect
 import six
+from avocado.utils import process
 from six.moves import xrange
 
 from virttest import qemu_monitor, utils_logfile, utils_misc, utils_numeric
@@ -2354,6 +2358,125 @@ class QSwtpmDev(QDaemonDev):
         return False
 
 
+class QPasstDev(QDaemonDev):
+    """
+    Passt pseudo device.
+    """
+
+    def __init__(self, aobject, binary, sock_path, rules, mtu=None):
+        """
+        :param aobject: `aobject` of the daemon.
+        :type aobject: str
+        :param binary: Binary path of the daemon.
+        :type binary: str
+        :param sock_path: Socket path of the daemon.
+        :type sock_path: str
+        :param rules: Port forwarding rules.
+        :type rules: str
+        :param mtu: MTU size.
+        :type mtu: str
+        """
+        super().__init__(
+            "passt",
+            aobject=aobject,
+            child_bus=QUnixSocketBus(sock_path, aobject),
+        )
+        self.set_param("binary", binary)
+        self.set_param("sock_path", sock_path)
+        self.set_param("rules", rules)
+        self.set_param("mtu", mtu)
+
+        uuid = uuid4()
+        # let's place the pid file within the same dir
+        self._pid_file = os.path.join(os.path.dirname(sock_path), f"passt-{uuid}.pid")
+        log_filename = f"passt-{uuid}.log"
+        # deal with the permission issue against selinux
+        self._tmp_log_file = os.path.join(
+            "/var/run/user", f"{os.getuid()}", log_filename
+        )
+        self._log_file = utils_logfile.get_log_filename(log_filename)
+
+    def _get_pid(self):
+        try:
+            with open(self._pid_file) as pid_f:
+                return int(pid_f.read().strip())
+        except FileNotFoundError:
+            return None
+
+    def _remove_pid_file(self):
+        if not os.path.exists(self._pid_file):
+            return
+        try:
+            os.remove(self._pid_file)
+        except FileNotFoundError:
+            pass
+
+    def _save_log_file(self):
+        if not os.path.exists(self._tmp_log_file):
+            return
+        try:
+            shutil.move(self._tmp_log_file, self._log_file)
+        except:
+            pass
+
+    def is_daemon_alive(self):
+        pid = self._get_pid()
+        if pid is None:
+            return False
+        return process.pid_exists(pid)
+
+    def _render_rules(self):
+        cmd = ""
+        for rule in self.get_param("rules", "").split():
+            # skip empty
+            if not rule:
+                continue
+            proto, _, spec = rule.rpartition("@")
+            if proto.lower() in ("tcp", "t", ""):
+                cmd += f" --tcp-ports {spec}"
+            elif proto.lower() in ("udp", "u"):
+                cmd += f" --udp-ports {spec}"
+            else:
+                raise ValueError(f"unsupported protocol {proto}")
+        return cmd
+
+    def start_daemon(self):
+        """Start the passt daemon."""
+        cmd = "%s --one-off --socket %s" % (
+            self.get_param("binary"),
+            self.get_param("sock_path"),
+        )
+        cmd += f" --pid {self._pid_file} --log-file {self._tmp_log_file}"
+        mtu = self.get_param("mtu")
+        if mtu:
+            cmd += f" --mtu {mtu}"
+        cmd += self._render_rules()
+        self.set_param("cmd", cmd)
+        self.set_param("run_bg_kwargs", {"auto_close": False})
+        super().start_daemon()
+        if not self.is_daemon_alive():
+            output = self.daemon_process.get_output()
+            raise DeviceError(f"Failed to start passt daemon: {output}")
+        LOG.info("Created passt daemon process with PID %d.", self._get_pid())
+
+    def stop_daemon(self):
+        try:
+            pid = self._get_pid()
+            if pid is not None and self.is_daemon_alive():
+                if not process.safe_kill(pid, signal.SIGKILL):
+                    raise DeviceError(f"Failed to stop passt daemon {pid}")
+            self._remove_pid_file()
+        finally:
+            self._save_log_file()
+            if self._daemon_process is not None:
+                self.close_daemon_process()
+
+    def __eq__(self, other):
+        if super().__eq__(other):
+            return self.get_param("sock_path") == other.get_param("sock_path")
+        return False
+
+
 class QNetdev(QCustomDevice):
     def __init__(self, nettype, params=None):
         """
@@ -2418,7 +2541,18 @@ class QNetdev(QCustomDevice):
                     value = True
                 elif value in ("off", "no", "false"):
                     value = False
-            new_args[key] = value
+
+            subs = key.split(".")
+            curr = new_args
+            for subk in subs[:-1]:
+                try:
+                    int(subk)
+                    subv = list()
+                except ValueError:
+                    subv = dict()
+                curr.setdefault(subk, subv)
+                curr = curr[subk]
+            curr[subs[-1]] = value
 
         return new_args
 
