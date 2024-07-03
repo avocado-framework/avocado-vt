@@ -968,6 +968,7 @@ class MigrationTest(object):
         """
         stress_package = params.get("stress_package", "stress")
         try:
+            params.update({"stress_dependency_packages_list": "['gcc', 'make']"})
             vm_stress = utils_test.VMStress(vm, stress_package, params)
             vm_stress.load_stress_tool()
         except utils_test.StressError as info:
