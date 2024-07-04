@@ -2415,7 +2415,7 @@ class Stress(object):
             # Install the stress package from existing repos
             # If succeed, no need to download stress src any more
             if not utils_package.package_install(
-                self.stress_package, session=self.session
+                self.stress_package, session=self.session, timeout=60
             ):
                 self.stress_install_from_repo = False
                 LOG.debug(
