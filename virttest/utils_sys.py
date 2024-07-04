@@ -10,6 +10,7 @@ import re
 from avocado.utils import process
 
 from virttest.utils_misc import cmd_status_output
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -42,6 +43,18 @@ def check_dmesg_output(pattern, expect=True, session=None):
     else:
         LOG.info("Dmesg output met expectation")
         return True
+
+
+def check_audit_log(audit_cmd, match_pattern):
+    """
+    Check expected match pattern in audit log.
+
+    :param audit_cmd, the executing audit log cmd
+    :param match_pattern, the pattern to be checked in audit log.
+    """
+    ausearch_result = process.run(audit_cmd, shell=True)
+    libvirt.check_result(ausearch_result, expected_match=match_pattern)
+    LOG.debug("Check audit log %s successfully." % match_pattern)
 
 
 def get_host_bridge_id(session=None):

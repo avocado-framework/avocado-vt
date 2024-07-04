@@ -57,6 +57,30 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option="", status_error=False):
         raise exceptions.TestFail(msg)
 
 
+def check_guest_machine_type(vmxml, expected_version="9.4.0"):
+    """
+    Check guest machine type version
+
+    :param vmxml: the guest xml.
+    :param expected_version: expected guest machine version, eg
+    if <type arch='x86_64' machine='pc-q35-rhel8.2.0'>hvm</type> exists,
+    which means expected_version is 8.2.0
+    :return: True or False, the flag of checking successfully or not.
+    """
+    actual_version = re.sub(r"[a-zA-Z]", "", vmxml.os.machine.split("-")[-1])
+    LOG.debug("Got guest config machine is rhel{}, ".format(actual_version))
+
+    actual_list = actual_version.split(".")
+    expected_list = expected_version.split(".")
+
+    for index in range(len(actual_list)):
+        if int(actual_list[index]) > int(expected_list[index]):
+            return True
+        elif int(actual_list[index]) < int(expected_list[index]):
+            return False
+    return True
+
+
 def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
     """
     Check if the xml has elements/attributes/texts that match all xpaths and texts
