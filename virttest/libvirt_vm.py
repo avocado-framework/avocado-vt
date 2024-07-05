@@ -1544,7 +1544,7 @@ class VM(virt_vm.BaseVM):
             # Because qemu-kvm hard-codes this
             output_filename = self.get_serial_console_filename(port)
             output_params = (output_filename,)
-            prompt = self.params.get("shell_prompt", "[\#\$]")
+            prompt = self.params.get("shell_prompt", r"[\#\$]")
             LOG.debug("Command used to create serial console: %s", cmd)
             self.serial_console = aexpect.ShellSession(
                 command=cmd,
@@ -1660,8 +1660,8 @@ class VM(virt_vm.BaseVM):
                         new_string = "%s=%s" % (parameter, value)
 
                 patts = [
-                    "\s+(%s=\S*)(\s|$)" % parameter,
-                    "\s+(%s)(\s|$)" % parameter,
+                    r"\s+(%s=\S*)(\s|$)" % parameter,
+                    r"\s+(%s)(\s|$)" % parameter,
                 ]
                 old_string = ""
                 for patt in patts:
@@ -1675,7 +1675,7 @@ class VM(virt_vm.BaseVM):
                 else:
                     new_line = " ".join((line, new_string))
 
-                line_patt = "\s*".join(line.split())
+                line_patt = r"\s*".join(line.split())
                 LOG.debug("Substituting grub line '%s' to '%s'." % (line, new_line))
                 stat_sed, output = session.cmd_status_output(
                     'sed -i --follow-symlinks -e "s@%s@%s@g" %s'
@@ -2577,7 +2577,7 @@ class VM(virt_vm.BaseVM):
             LOG.error("Fail to get VM pid")
         else:
             cmdline = open("/proc/%d/cmdline" % vm_pid).read()
-            values = re.findall("sockets=(\d+),cores=(\d+),threads=(\d+)", cmdline)[0]
+            values = re.findall(r"sockets=(\d+),cores=(\d+),threads=(\d+)", cmdline)[0]
             cpu_topology = dict(zip(["sockets", "cores", "threads"], values))
         return cpu_topology
 
