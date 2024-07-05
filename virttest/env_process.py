@@ -54,7 +54,10 @@ from virttest.test_setup.networking import (
     NetworkProxies,
 )
 from virttest.test_setup.os_posix import UlimitConfig
-from virttest.test_setup.requirement_checks import CheckInstalledCMDs
+from virttest.test_setup.requirement_checks import (
+    CheckInstalledCMDs,
+    CheckRunningAsRoot,
+)
 from virttest.test_setup.storage import StorageConfig
 from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
@@ -1087,13 +1090,9 @@ def preprocess(test, params, env):
                     pvr,
                     remote_pvr,
                 )
-    # First, let's verify if this test does require root or not. If it
-    # does and the test suite is running as a regular user, we shall just
-    # throw a TestSkipError exception, which will skip the test.
-    if params.get("requires_root", "no") == "yes":
-        utils_misc.verify_running_as_root()
 
     _setup_manager.initialize(test, params, env)
+    _setup_manager.register(CheckRunningAsRoot)
     _setup_manager.register(CheckInstalledCMDs)
     _setup_manager.register(UlimitConfig)
     _setup_manager.register(NetworkProxies)
