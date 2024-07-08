@@ -100,6 +100,7 @@ class DevContainer(object):
     SMP_BOOKS_VERSION_SCOPE = "[8.2.0, )"
     SMP_DRAWERS_VERSION_SCOPE = "[8.2.0, )"
     FLOPPY_DEVICE_VERSION_SCOPE = "[5.1.0, )"
+    BLOCKJOB_BACKING_MASK_PROTOCOL_VERSION_SCOPE = "[9.0.0, )"
 
     MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = "[5.1.0, )"
     MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = "[5.1.0, )"
@@ -434,6 +435,14 @@ class DevContainer(object):
         # -device floppy,drive=$drive
         if self.__qemu_ver in VersionInterval(self.FLOPPY_DEVICE_VERSION_SCOPE):
             self.caps.set_flag(Flags.FLOPPY_DEVICE)
+
+        # QMP: block-stream/block-commit @backing-mask-protocol
+        # TODO: probe cap via using the qmp command `query-qmp-schema`
+        #       instead of hardcoding the version range
+        if self.__qemu_ver in VersionInterval(
+            self.BLOCKJOB_BACKING_MASK_PROTOCOL_VERSION_SCOPE
+        ):
+            self.caps.set_flag(Flags.BLOCKJOB_BACKING_MASK_PROTOCOL)
 
         if self.has_qmp_cmd("migrate-set-parameters") and self.has_hmp_cmd(
             "migrate_set_parameter"
