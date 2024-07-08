@@ -728,6 +728,7 @@ class QBlockdevNode(QCustomDevice):
         self._is_root = is_root
         self._set_root(is_root)
         self.set_param("driver", self.TYPE)
+        self.__hook_drive_bus = None
 
     def _set_root(self, flag):
         self._is_root = flag
@@ -852,6 +853,28 @@ class QBlockdevNode(QCustomDevice):
         """
         return len(out) == 0
 
+    def unplug_hook(self):
+        """
+        Devices from this bus are not removed, only 'drive' is set to None.
+        """
+        for bus in self.child_bus:
+            if isinstance(bus, QDriveBus):
+                for dev in bus:
+                    self.__hook_drive_bus = dev.get_param("drive")
+                    dev["drive"] = None
+                break
+
+    def unplug_unhook(self):
+        """
+        Set back the previous 'drive' (unsafe, using the last value).
+        """
+        if self.__hook_drive_bus is not None:
+            for bus in self.child_bus:
+                if isinstance(bus, QDriveBus):
+                    for dev in bus:
+                        dev["drive"] = self.__hook_drive_bus
+                    break
+
     def set_param(self, option, value, option_type=None):
         """
         Set device param using qemu notation ("on", "off" instead of bool...)
@@ -882,47 +905,37 @@ class QBlockdevNode(QCustomDevice):
         new_args = self._convert_blkdev_args(params)
         return out + "'" + json.dumps(new_args) + "'"
 
-
-class QBlockdevFormatNode(QBlockdevNode):
-    """New a format type blockdev node."""
-
-    def __init__(self, aobject):
-        child_bus = QDriveBus("drive_%s" % aobject, aobject)
-        super(QBlockdevFormatNode, self).__init__(aobject, child_bus)
-        self.__hook_drive_bus = None
-
     def get_children(self):
         """Device bus should be removed too."""
+        drive_bus = None
         for bus in self.child_bus:
             if isinstance(bus, QDriveBus):
                 drive_bus = bus
                 self.rm_child_bus(bus)
                 break
-        devices = super(QBlockdevFormatNode, self).get_children()
-        self.add_child_bus(drive_bus)
+        devices = super(QBlockdevNode, self).get_children()
+        if drive_bus is not None:
+            self.add_child_bus(drive_bus)
         return devices
 
-    def unplug_hook(self):
-        """
-        Devices from this bus are not removed, only 'drive' is set to None.
-        """
-        for bus in self.child_bus:
-            if isinstance(bus, QDriveBus):
-                for dev in bus:
-                    self.__hook_drive_bus = dev.get_param("drive")
-                    dev["drive"] = None
-                break
 
-    def unplug_unhook(self):
-        """
-        Set back the previous 'drive' (unsafe, using the last value).
-        """
-        if self.__hook_drive_bus is not None:
-            for bus in self.child_bus:
-                if isinstance(bus, QDriveBus):
-                    for dev in bus:
-                        dev["drive"] = self.__hook_drive_bus
-                    break
+class QBlockdevFormatNode(QBlockdevNode):
+    """New a format type blockdev node."""
+
+    def __init__(self, aobject):
+        super(QBlockdevFormatNode, self).__init__(aobject, None)
+
+    def add_child_node(self, node):
+        super(QBlockdevFormatNode, self).add_child_node(node)
+        # steal QDriveBus from child
+        drive_bus = None
+        for bus in node.child_bus:
+            if isinstance(bus, QDriveBus):
+                drive_bus = bus
+                break
+        if drive_bus is not None:
+            node.rm_child_bus(drive_bus)
+            self.add_child_bus(drive_bus)
 
 
 class QBlockdevFormatQcow2(QBlockdevFormatNode):
@@ -954,7 +967,8 @@ class QBlockdevProtocol(QBlockdevNode):
     """New a protocol blockdev node."""
 
     def __init__(self, aobject):
-        super(QBlockdevProtocol, self).__init__(aobject, None, False)
+        child_bus = QDriveBus("drive_%s" % aobject, aobject)
+        super(QBlockdevProtocol, self).__init__(aobject, child_bus)
 
 
 class QBlockdevProtocolVirtioBlkVhostVdpa(QBlockdevProtocol):
