@@ -1418,13 +1418,15 @@ class HumanMonitor(Monitor):
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
-    def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=None, incremental_copy=None, wait=False):
         """
         Migrate.
 
         :param uri: destination URI
         :param full_copy: If true, migrate with full disk copy
+                          (removed since qemu 9.1, don't use).
         :param incremental_copy: If true, migrate with incremental disk copy
+                                 (removed since qemu 9.1, don't use).
         :param wait: If true, wait for completion
         :return: The command's output
         """
@@ -2419,17 +2421,23 @@ class QMPMonitor(Monitor):
         """
         return self.human_monitor_cmd("sendkey %s %s" % (keystr, hold_time))
 
-    def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=None, incremental_copy=None, wait=False):
         """
         Migrate.
 
         :param uri: destination URI
         :param full_copy: If true, migrate with full disk copy
+                          (removed since qemu 9.1, don't use).
         :param incremental_copy: If true, migrate with incremental disk copy
+                                 (removed since qemu 9.1, don't use).
         :param wait: If true, wait for completion
         :return: The response to the command
         """
-        args = {"uri": uri, "blk": full_copy, "inc": incremental_copy}
+        args = {"uri": uri}
+        if full_copy is not None:
+            args["blk"] = full_copy
+        if incremental_copy is not None:
+            args["inc"] = incremental_copy
         args["uri"] = re.sub('"', "", args["uri"])
         try:
             return self.cmd("migrate", args)
