@@ -1,6 +1,7 @@
 from avocado.core import exceptions
 from avocado.utils import path
 
+from virttest import utils_misc
 from virttest.test_setup.core import Setuper
 
 
@@ -14,6 +15,18 @@ class CheckInstalledCMDs(Setuper):
                     path.find_command(cmd)
                 except path.CmdNotFoundError as msg:
                     raise exceptions.TestSkipError(msg)
+
+    def cleanup(self):
+        pass
+
+
+class CheckRunningAsRoot(Setuper):
+    def setup(self):
+        # Verify if this test does require root or not. If it does and the
+        # test suite is running as a regular user, we shall just throw a
+        # TestSkipError exception, which will skip the test.
+        if self.params.get("requires_root", "no") == "yes":
+            utils_misc.verify_running_as_root()
 
     def cleanup(self):
         pass
