@@ -818,7 +818,11 @@ class PrivateBridgeConfig(object):
             u_port = params.get("guest_port_unattended_install", "13323")
             if u_port not in ports:
                 ports.append(u_port)
-            self.iptables_rules = self._assemble_iptables_rules(ports)
+            self.firewall_tool = self._check_firewall_tool()
+            if self.firewall_tool == "iptables":
+                self.iptables_rules = self._assemble_iptables_rules(ports)
+            else:
+                self.iptables_rules = self._assemble_nftables_rules(ports)
             self.physical_nic = params.get("physical_nic")
             if self.physical_nic:
                 if self.physical_nic.split(":", 1)[0] == "shell":
@@ -833,6 +837,14 @@ class PrivateBridgeConfig(object):
             if params.get("bridge_force_create", "no") == "yes":
                 self.force_create = True
         self.bridge_manager = utils_net.Bridge()
+
+    def _check_firewall_tool(self):
+        cmd = "find /usr/lib/modules/ -name iptable_filter.ko.xz"
+        result = process.system_output(cmd)
+        if result:
+            return "iptables"
+        else:
+            return "nft"
 
     def _assemble_iptables_rules(self, port_list):
         rules = []
@@ -859,6 +871,38 @@ class PrivateBridgeConfig(object):
         rules.append("FORWARD 4 -i %s -o %s -j ACCEPT" % (self.brname, self.brname))
         return rules
 
+    def _assemble_nftables_rules(self, port_list):
+        rules = []
+        rules.append("table ip filter")
+        rules.append(
+            "chain ip filter INPUT { type filter hook input priority 0 \; policy accept \;}"
+        )
+        for port in port_list:
+            rules.append(
+                "rule ip filter INPUT iifname %s tcp dport %s counter accept"
+                % (self.brname, port)
+            )
+            rules.append(
+                "rule ip filter INPUT iifname %s udp dport %s counter accept"
+                % (self.brname, port)
+            )
+        rules.append(
+            "chain ip filter FORWARD { type filter hook forward priority filter \; policy accept \;}"
+        )
+        rules.append(
+            "rule ip filter FORWARD oifname %s ip daddr %s.0/24 ct state related,established counter accept"
+            % (self.brname, self.subnet)
+        )
+        rules.append(
+            "rule ip filter FORWARD iifname %s ip saddr %s.0/24 counter accept"
+            % (self.brname, self.subnet)
+        )
+        rules.append(
+            "rule ip filter FORWARD iifname %s oifname %s counter accept"
+            % (self.brname, self.brname)
+        )
+        return rules
+
     def _add_bridge(self):
         self.bridge_manager.add_bridge(self.brname)
         setbr_cmd = (
@@ -876,10 +920,16 @@ class PrivateBridgeConfig(object):
         utils_net.bring_up_ifname(self.brname)
 
     def _iptables_add(self, cmd):
-        return process.system("iptables -I %s" % cmd)
+        if self.firewall_tool == "iptables":
+            return process.system("iptables -I %s" % cmd)
+        else:
+            return process.system("nft add %s" % cmd)
 
     def _iptables_del(self, cmd):
         return process.system("iptables -D %s" % cmd)
+
+    def _nftables_del(self):
+        return process.system("nft delete table ip filter")
 
     def _enable_nat(self):
         for rule in self.iptables_rules:
@@ -986,12 +1036,15 @@ class PrivateBridgeConfig(object):
         utils_net.bring_down_ifname(self.brname)
 
     def _disable_nat(self):
-        for rule in self.iptables_rules:
-            split_list = rule.split(" ")
-            # We need to remove numbering here
-            split_list.pop(1)
-            rule = " ".join(split_list)
-            self._iptables_del(rule)
+        if self.firewall_tool == "iptables":
+            for rule in self.iptables_rules:
+                split_list = rule.split(" ")
+                # We need to remove numbering here
+                split_list.pop(1)
+                rule = " ".join(split_list)
+                self._iptables_del(rule)
+        elif self.firewall_tool == "nft":
+            self._nftables_del()
 
     def _remove_bridge(self):
         try:
