@@ -28,6 +28,7 @@ import shutil
 import string
 import sys
 import time
+import uuid
 
 import aexpect
 import six
@@ -1881,7 +1882,6 @@ def create_disk_xml(params):
         diskxml.xmltreefile.write()
     except Exception as detail:
         LOG.error("Fail to create disk XML:\n%s", detail)
-    LOG.debug("Disk XML %s:\n%s", diskxml.xml, str(diskxml))
 
     # Wait for file completed
     def file_exists():
@@ -1892,7 +1892,13 @@ def create_disk_xml(params):
 
     # Wait for file write over with '</disk>' keyword at the file end
     wait_for_file_over("</disk>", diskxml.xml)
-    return diskxml.xml
+
+    tmp_dir = data_dir.get_tmp_dir(public=False)
+    path = tmp_dir + "/" + "disk_xml_" + str(uuid.uuid4()) + ".xml"
+    shutil.copy(src=diskxml.xml, dst=path)
+    LOG.debug("Disk XML %s:\n%s", path, str(diskxml))
+
+    return path
 
 
 def set_disk_attr(vmxml, target, tag, attr):
