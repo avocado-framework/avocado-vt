@@ -728,7 +728,7 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
     log = ""
     console_cmd = "cat /proc/cpuinfo"
     try:
-        virsh_console_login(session, user, passwd, timeout, debug=debug)
+        remote.handle_prompts(session, user, passwd, timeout=timeout, debug=debug)
         status, output = session.cmd_status_output(console_cmd)
         LOG.info("output of command:\n%s", output)
         session.close()
