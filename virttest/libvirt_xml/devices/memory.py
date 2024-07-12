@@ -91,6 +91,7 @@ class Memory(base.UntypedDeviceBase):
             "block_unit",
             "readonly",
             "address",
+            "attrs",
         )
 
         def __init__(self, virsh_instance=base.base.virsh):
@@ -156,6 +157,7 @@ class Memory(base.UntypedDeviceBase):
                 subclass=Memory.Address,
                 subclass_dargs={"type_name": "pci", "virsh_instance": virsh_instance},
             )
+            accessors.XMLElementDict("attrs", self, parent_xpath="/", tag_name="target")
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<target/>"
 
