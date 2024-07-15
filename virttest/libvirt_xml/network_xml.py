@@ -434,6 +434,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
             dict, operates on outbound under bandwidth.
         portgroup:
             PortgroupXML instance to access portgroup tag.
+        domain:
+            dict, operates on domain attributes
         domain_name:
             string, operates on name attribute of domain tag
         dns:
@@ -491,6 +493,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         "bandwidth_outbound",
         "portgroups",
         "dns",
+        "domain",
         "domain_name",
         "nat_port",
         "forward_interface",
@@ -570,6 +573,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         accessors.XMLAttribute(
             "mtu", self, parent_xpath="/", tag_name="mtu", attribute="size"
         )
+        accessors.XMLElementDict("domain", self, parent_xpath="/", tag_name="domain")
+        # TODO: Remove domain_name and redirect it's reference to domain
         accessors.XMLAttribute(
             "domain_name", self, parent_xpath="/", tag_name="domain", attribute="name"
         )
