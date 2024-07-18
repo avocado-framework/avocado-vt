@@ -1697,20 +1697,36 @@ def restart_guest_network(
     :param timeout: timeout value for command.
     """
     if os_type == "linux":
+        dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
+        dhcp_cmd = None
+        release_cmd = None
+
+        for client, release_arg in dhcp_clients:
+            try:
+                session.cmd("which %s" % client)
+            except aexpect.ShellCmdError:
+                continue
+            dhcp_cmd = client
+            release_cmd = "%s %s" % (client, release_arg)
+            break
+
+        if dhcp_cmd is None:
+            raise LookupError("No DHCP client found")
+
         if mac_addr:
             nic_ifname = get_linux_ifname(session, mac_addr)
             restart_cmd = "ifconfig %s up; " % nic_ifname
-            restart_cmd += "dhclient -r; "
+            restart_cmd += "%s; " % release_cmd
             if ip_version == "ipv6":
-                restart_cmd += "dhclient -6 %s" % nic_ifname
+                restart_cmd += "%s -6 %s" % (dhcp_cmd, nic_ifname)
             else:
-                restart_cmd += "dhclient %s" % nic_ifname
+                restart_cmd += "%s %s" % (dhcp_cmd, nic_ifname)
         else:
-            restart_cmd = "dhclient -r; "
+            restart_cmd = "%s; " % release_cmd
             if ip_version == "ipv6":
-                restart_cmd += "dhclient -6"
+                restart_cmd += "%s -6" % dhcp_cmd
             else:
-                restart_cmd += "dhclient"
+                restart_cmd += "%s" % dhcp_cmd
     elif os_type == "windows":
         if ip_version == "ipv6":
             restart_cmd = "ipconfig /renew6"
