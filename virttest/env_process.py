@@ -1059,37 +1059,6 @@ def preprocess(test, params, env):
             test_setup.switch_indep_threads_mode(state="N")
             test_setup.switch_smt(state="off")
 
-        # Perform the above configuration in remote Power8 and Power9 hosts
-        if migration_setup:
-            power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
-            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            remote_host = {
-                "server_ip": params.get("remote_ip"),
-                "server_pwd": params.get("remote_pwd"),
-                "server_user": params.get("remote_user", "root"),
-            }
-            server_session = test_setup.remote_session(remote_host)
-            cmd_output = server_session.cmd_status_output(cpu_cmd)
-            if cmd_output[0] == 0:
-                remote_cpu = cmd_output[1].strip().lower()
-            cmd_output = server_session.cmd_status_output(pvr_cmd)
-            if cmd_output[0] == 0:
-                remote_pvr = float(cmd_output[1].strip())
-            server_session.close()
-            if "power8" in remote_cpu:
-                test_setup.switch_smt(state="off", params=params)
-            elif "power9" in remote_cpu and power9_compat_remote and remote_pvr < 2.2:
-                test_setup.switch_indep_threads_mode(state="N", params=params)
-                test_setup.switch_smt(state="off", params=params)
-            if pvr != remote_pvr:
-                LOG.warning(
-                    "Source and destinations system PVR "
-                    "does not match\n PVR:\nSource: %s"
-                    "\nDestination: %s",
-                    pvr,
-                    remote_pvr,
-                )
-
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(CheckRunningAsRoot)
     _setup_manager.register(CheckInstalledCMDs)
@@ -1795,21 +1764,6 @@ def postprocess(test, params, env):
             if "power9" in cpu_family and power9_compat and pvr < 2.2:
                 test_setup.switch_indep_threads_mode(state="Y")
                 test_setup.switch_smt(state="on")
-
-        if migration_setup:
-            power9_compat_remote = params.get("power9_compat_remote", "no") == "yes"
-            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            server_session = test_setup.remote_session(params)
-            cmd_output = server_session.cmd_status_output(cpu_cmd)
-            if cmd_output[0] == 0:
-                remote_cpu = cmd_output[1].strip().lower()
-            cmd_output = server_session.cmd_status_output(pvr_cmd)
-            if cmd_output[0] == 0:
-                remote_pvr = float(cmd_output[1].strip())
-            server_session.close()
-            if ("power9" in remote_cpu) and power9_compat_remote and remote_pvr < 2.2:
-                test_setup.switch_indep_threads_mode(state="Y", params=params)
-                test_setup.switch_smt(state="on", params=params)
 
     if params.get("setup_hugepages") == "yes":
         global _post_hugepages_surp
