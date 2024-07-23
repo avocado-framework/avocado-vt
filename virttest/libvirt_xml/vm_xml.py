@@ -813,10 +813,11 @@ class VMXML(VMXMLBase):
         os_attrs = self.os.fetch_attrs()
         nvram = any([os_attrs.get("os_firmware") == "efi", os_attrs.get("nvram")])
         if nvram:
+            nvram_option = "--keep-nvram"
             if options is None:
-                options = "--nvram"
-            if "--nvram" not in options:
-                options += " --nvram"
+                options = nvram_option
+            if not re.search(f"--nvram|{nvram_option}", options):
+                options += " %s" % nvram_option
 
         return virsh_instance.remove_domain(self.vm_name, options)
 
