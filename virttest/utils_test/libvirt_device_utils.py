@@ -30,8 +30,6 @@ def create_fs_xml(fsdev_dict, launched_mode="auto"):
         path = binary_dict.get("path", "/usr/libexec/virtiofsd")
         cache_mode = binary_dict.get("cache_mode", "none")
         xattr = binary_dict.get("xattr", "on")
-        lock_posix = binary_dict.get("lock_posix", "on")
-        flock = binary_dict.get("flock", "on")
         thread_pool_size = binary_dict.get("thread_pool_size")
         if cache_mode != "auto":
             binary_xml.cache_mode = cache_mode
@@ -40,8 +38,6 @@ def create_fs_xml(fsdev_dict, launched_mode="auto"):
         if thread_pool_size:
             binary_xml.thread_pool_size = thread_pool_size
         binary_xml.path = path
-        binary_xml.lock_posix = lock_posix
-        binary_xml.flock = flock
         fs_dev.binary = binary_xml
 
     return fs_dev
