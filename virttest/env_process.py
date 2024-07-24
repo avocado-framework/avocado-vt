@@ -26,7 +26,6 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
-    migration,
     ppm_utils,
     qemu_monitor,
     qemu_storage,
@@ -47,6 +46,7 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
+from virttest.test_setup.migration import MigrationEnvSetup
 from virttest.test_setup.networking import (
     BridgeConfig,
     FirewalldService,
@@ -59,7 +59,6 @@ from virttest.test_setup.requirement_checks import (
     CheckRunningAsRoot,
 )
 from virttest.test_setup.storage import StorageConfig
-from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
@@ -1060,37 +1059,6 @@ def preprocess(test, params, env):
             test_setup.switch_indep_threads_mode(state="N")
             test_setup.switch_smt(state="off")
 
-        # Perform the above configuration in remote Power8 and Power9 hosts
-        if migration_setup:
-            power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
-            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            remote_host = {
-                "server_ip": params.get("remote_ip"),
-                "server_pwd": params.get("remote_pwd"),
-                "server_user": params.get("remote_user", "root"),
-            }
-            server_session = test_setup.remote_session(remote_host)
-            cmd_output = server_session.cmd_status_output(cpu_cmd)
-            if cmd_output[0] == 0:
-                remote_cpu = cmd_output[1].strip().lower()
-            cmd_output = server_session.cmd_status_output(pvr_cmd)
-            if cmd_output[0] == 0:
-                remote_pvr = float(cmd_output[1].strip())
-            server_session.close()
-            if "power8" in remote_cpu:
-                test_setup.switch_smt(state="off", params=params)
-            elif "power9" in remote_cpu and power9_compat_remote and remote_pvr < 2.2:
-                test_setup.switch_indep_threads_mode(state="N", params=params)
-                test_setup.switch_smt(state="off", params=params)
-            if pvr != remote_pvr:
-                LOG.warning(
-                    "Source and destinations system PVR "
-                    "does not match\n PVR:\nSource: %s"
-                    "\nDestination: %s",
-                    pvr,
-                    remote_pvr,
-                )
-
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(CheckRunningAsRoot)
     _setup_manager.register(CheckInstalledCMDs)
@@ -1101,38 +1069,12 @@ def preprocess(test, params, env):
     _setup_manager.register(StorageConfig)
     _setup_manager.register(FirewalldService)
     _setup_manager.register(IPSniffer)
+    _setup_manager.register(MigrationEnvSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Permit iptables to permit 49152-49216 ports to libvirt for
-    # migration and if arch is ppc with power8 then switch off smt
-    # will be taken care in remote machine for migration to succeed
-    if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(
-            params.get("server_ip", params.get("remote_ip"))
-        )
-        migrate_setup = migration.MigrationTest()
-        migrate_setup.migrate_pre_setup(dest_uri, params)
-        # Map hostname and IP address of the hosts to avoid virsh
-        # to error out of resolving
-        hostname_ip = {str(virsh.hostname()): params["local_ip"]}
-        session = test_setup.remote_session(params)
-        _, remote_hostname = session.cmd_status_output("hostname")
-        hostname_ip[str(remote_hostname.strip())] = params["remote_ip"]
-        if not utils_net.map_hostname_ipaddress(hostname_ip):
-            test.cancel("Failed to map hostname and ipaddress of source host")
-        if not utils_net.map_hostname_ipaddress(hostname_ip, session=session):
-            session.close()
-            test.cancel("Failed to map hostname and ipaddress of target host")
-        session.close()
-        if params.get("setup_ssh") == "yes":
-            ssh_conn_obj = SSHConnection(params)
-            ssh_conn_obj.conn_setup()
-            ssh_conn_obj.auto_recover = True
-            params.update({"ssh_conn_obj": ssh_conn_obj})
 
     # Destroy and remove VMs that are no longer needed in the environment or
     # leave them untouched if they have to be disregarded only for this test
@@ -1823,21 +1765,6 @@ def postprocess(test, params, env):
                 test_setup.switch_indep_threads_mode(state="Y")
                 test_setup.switch_smt(state="on")
 
-        if migration_setup:
-            power9_compat_remote = params.get("power9_compat_remote", "no") == "yes"
-            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            server_session = test_setup.remote_session(params)
-            cmd_output = server_session.cmd_status_output(cpu_cmd)
-            if cmd_output[0] == 0:
-                remote_cpu = cmd_output[1].strip().lower()
-            cmd_output = server_session.cmd_status_output(pvr_cmd)
-            if cmd_output[0] == 0:
-                remote_pvr = float(cmd_output[1].strip())
-            server_session.close()
-            if ("power9" in remote_cpu) and power9_compat_remote and remote_pvr < 2.2:
-                test_setup.switch_indep_threads_mode(state="Y", params=params)
-                test_setup.switch_smt(state="on", params=params)
-
     if params.get("setup_hugepages") == "yes":
         global _post_hugepages_surp
         try:
@@ -1909,16 +1836,6 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nPostprocess command: %s" % str(details).replace("\n", "\n  ")
             LOG.error(details)
-
-    # cleanup migration presetup in post process
-    if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(
-            params.get("server_ip", params.get("remote_ip"))
-        )
-        migrate_setup = migration.MigrationTest()
-        migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
-        if params.get("setup_ssh") == "yes" and params.get("ssh_conn_obj"):
-            del params["ssh_conn_obj"]
 
     if params.get("verify_host_dmesg", "yes") == "yes":
         dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
