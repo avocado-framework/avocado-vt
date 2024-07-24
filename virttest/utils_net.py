@@ -1646,7 +1646,7 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
                 if "." in netmask:
                     netmask = convert_netmask(netmask)
                 info_cmd = "ip -c=never addr show; ethtool -s %s" % nic_ifname
-                cmd = "ip -c=never addr add %s/%s dev %s" % (
+                cmd = "ip addr add %s/%s dev %s" % (
                     ip_addr,
                     netmask,
                     nic_ifname,
@@ -4729,8 +4729,8 @@ def create_linux_bridge_tmux(
             )
     if iface_name:
         shell_cmd = (
-            "ip -c=never link add name {0} type bridge; ip -c=never link set {1} up; "
-            "ip -c=never link set {1} master {0}; ip -c=never link set {0} up; "
+            "ip link add name {0} type bridge; ip link set {1} up; "
+            "ip link set {1} master {0}; ip link set {0} up; "
             "pkill dhclient; sleep 6; "
             "dhclient {0};".format(linux_bridge_name, iface_name)
         )
@@ -4738,7 +4738,7 @@ def create_linux_bridge_tmux(
             shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
         cmd = 'tmux -c "%s"' % shell_cmd
     else:
-        cmd = "ip -c=never link add %s type bridge" % linux_bridge_name
+        cmd = "ip link add %s type bridge" % linux_bridge_name
     return utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, ignore_status=ignore_status
     )
@@ -4765,11 +4765,11 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
         return
     if iface_name:
         cmd = (
-            'tmux -c "ip -c=never link set {1} nomaster; ip -c=never link delete {0}; pkill dhclient; '
+            'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; '
             'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
         )
     else:
-        cmd = "ip -c=never link delete %s" % linux_bridge_name
+        cmd = "ip link delete %s" % linux_bridge_name
     return utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, ignore_status=ignore_status
     )
