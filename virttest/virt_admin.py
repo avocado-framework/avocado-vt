@@ -153,8 +153,7 @@ class VirtadminSession(aexpect.ShellSession):
 
             * session = VirtadminSession(virtadmin.VIRSH_EXEC, auto_close=True)
         """
-
-        self.uri = uri
+        self.uri = "virtqemud:///system"
         self.remote_ip = remote_ip
         self.remote_user = remote_user
         self.remote_pwd = remote_pwd
@@ -209,6 +208,7 @@ class VirtadminSession(aexpect.ShellSession):
 
         # fail if libvirtd is not running
         if check_libvirtd:
+            uri = "virtqemud:///system"
             if self.cmd_status("uri", timeout=60) != 0:
                 LOG.debug(
                     "Persistent virt-admin session is not responding, "
@@ -680,7 +680,7 @@ def command(cmd, **dargs):
     """
 
     virtadmin_exec = dargs.get("virtadmin_exec", VIRTADMIN_EXEC)
-    uri = dargs.get("uri", None)
+    uri = dargs.get("uri", "virtqemud:///system")
     debug = dargs.get("debug", False)
     # Caller deals with errors
     ignore_status = dargs.get("ignore_status", True)
