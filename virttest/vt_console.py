@@ -1,7 +1,10 @@
+import logging
 import threading
 import time
 
 from aexpect import remote
+
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class ConsoleError(Exception):
@@ -73,14 +76,29 @@ class ConsoleManager(object):
         self._console.set_linesep(linesep)
         self._console.set_status_test_command(status_test_command)
 
-        is_responsive = False
+        reset_str = "Press any key to stop system reset"
         end_time = time.time() + timeout
         while time.time() < end_time:
-            if self._console.is_responsive():
-                is_responsive = True
-                break
-        if not is_responsive:
-            raise ConsoleNotResponsiveError("Console is not responsive.")
+            self._console.read_nonblocking()
+            latest_output = "\n".join(self._console.get_output().splitlines()[-50:])
+
+            # If system is waiting for any key to stop reset, we'll wait after
+            # timeout(usually 5s) to avoid entering interactive screen
+            if reset_str in latest_output:
+                time.sleep(1)
+                continue
+            else:
+                # If the "Press any key to stop system reset" screen is passed,
+                # we don't need to wait anymore
+                if reset_str in self._console.get_output():
+                    break
+                else:
+                    # Only check output of the first 500 lines since the
+                    # "system reset" screen appears at the beginning of
+                    # system booting. If there's no such string in console
+                    # within 500 lines, there shouldn't be any at all
+                    if len(self._console.get_output().strip()) > 500:
+                        break
 
         remote.handle_prompts(self._console, username, password, prompt, timeout)
 
