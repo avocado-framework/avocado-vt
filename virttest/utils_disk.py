@@ -87,7 +87,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
     if session:
         mount_result = session.cmd_output_safe(mount_list_cmd)
     else:
-        mount_result = process.run(mount_list_cmd, shell=True).stdout_text
+        mount_result = process.run(mount_list_cmd, shell=True, ignore_bg_processes=True).stdout_text
     if verbose:
         LOG.debug("/proc/mounts contents:\n%s", mount_result)
 
