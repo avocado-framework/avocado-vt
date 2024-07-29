@@ -1641,7 +1641,7 @@ def get_authorized_keys_file(server_type=None):
     return authorized_keys
 
 
-def v2v_mount(src, dst="v2v_mount_point", fstype="nfs"):
+def v2v_mount(src, dst="v2v_mount_point", fstype="nfs", options="nolock"):
     """
     Mount nfs src to dst
 
@@ -1652,7 +1652,7 @@ def v2v_mount(src, dst="v2v_mount_point", fstype="nfs"):
     if not os.path.exists(mount_point):
         os.makedirs(mount_point)
 
-    if not utils_misc.mount(src, mount_point, fstype, verbose=True):
+    if not utils_misc.mount(src, mount_point, fstype, options, verbose=True):
         raise exceptions.TestError("Mount %s for %s failed" % (src, mount_point))
 
     return mount_point
