@@ -90,8 +90,6 @@ class StorageConfig(Setuper):
 
         if self.params.get("storage_type") == "nfs":
             migration_setup = self.params.get("migration_setup", "no") == "yes"
-            image_nfs = Nfs(self.params)
-            image_nfs.cleanup()
             if migration_setup:
                 # Cleanup NFS client on remote host
                 nfs_client = NFSClient(self.params)
@@ -99,3 +97,5 @@ class StorageConfig(Setuper):
                 # Cleanup selinux on remote host
                 seLinuxBool = SELinuxBoolean(self.params)
                 seLinuxBool.cleanup(keep_authorized_keys=True)
+            image_nfs = Nfs(self.params)
+            image_nfs.cleanup()
