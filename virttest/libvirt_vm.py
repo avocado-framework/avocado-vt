@@ -302,13 +302,14 @@ class VM(virt_vm.BaseVM):
         """
         Undefine the VM.
         """
-        # If the current machine contains nvram, we have to set --nvram
+        # If the current machine contains nvram, we'll set --keep-nvram
         if self.params.get("vir_domain_undefine_nvram") == "yes":
+            nvram_option = "--keep-nvram"
             if options is None:
-                options = "--nvram"
+                options = nvram_option
             else:
-                if "--nvram" not in options:
-                    options += " --nvram"
+                if not re.search(f"--nvram|{nvram_option}", options):
+                    options += " %s" % nvram_option
         try:
             virsh.undefine(
                 self.name, options=options, uri=self.connect_uri, ignore_status=False
