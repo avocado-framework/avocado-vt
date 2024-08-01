@@ -1047,7 +1047,6 @@ def preprocess(test, params, env):
         )
     except Exception:
         LOG.warning("Could not get host cpu family")
-    migration_setup = params.get("migration_setup", "no") == "yes"
     if cpu_family is not None and "power" in str(cpu_family):
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
@@ -1518,7 +1517,6 @@ def postprocess(test, params, env):
             )
             LOG.error(details)
 
-    migration_setup = params.get("migration_setup", "no") == "yes"
     if (
         params.get("verify_guest_dmesg", "yes") == "yes"
         and params.get("start_vm", "no") == "yes"
