@@ -1,0 +1,58 @@
+# This Dockerfile creates a Fedora image with avocado-vt framework installed
+#
+# VERSION 0.1
+
+ARG FEDORA_VERSION=32
+FROM fedora:${FEDORA_VERSION}
+
+ARG AVOCADO_VERSION
+ENV AVOCADO_VERSION=${AVOCADO_VERSION:-80.0}
+
+MAINTAINER Oksana Voshchana, ovoshcha@redhat.com
+
+RUN curl https://avocado-project.org/data/repos/avocado-fedora.repo -o /etc/yum.repos.d/avocado.repo
+
+RUN dnf -y install python3-aexpect
+RUN dnf -y module disable avocado
+
+RUN dnf install -y \
+    python3-avocado-$AVOCADO_VERSION \
+    python3-avocado-plugins-vt-$AVOCADO_VERSION \
+    tcpdump \
+    xz \
+    iproute \
+    iputils\
+    nc \
+    seabios \
+    psutils \
+    libcacard \
+    usbredir \
+    librdmacm \
+    libibumad \
+    libaio \
+    libepoxy \
+    libdrm \
+    libslirp \
+    libgbm \
+    pixman \
+    libpng \
+    lzo \
+    snappy \
+    spice-server \
+    libpmem \
+    xen-libs \
+    virglrenderer \
+    brlapi \
+    libfdt \
+    capstone \
+    seavgabios-bin \
+    libvirt-client \
+    genisoimage \
+    gcc \
+    git
+
+RUN dnf clean all && rm /etc/yum.repos.d/avocado.repo
+
+RUN avocado vt-bootstrap --yes-to-all  --vt-skip-verify-download-assets
+
+CMD avocado
