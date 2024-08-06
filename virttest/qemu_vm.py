@@ -2366,22 +2366,40 @@ class VM(virt_vm.BaseVM):
             else:
                 # TODO: Use QDevices for this and set the addresses properly
                 for sound_device in soundhw.split(","):
+                    devs = []
                     if "hda" in sound_device:
                         intel_hda = QDevice("intel-hda", parent_bus=parent_bus)
-                        set_cmdline_format_by_cfg(
-                            intel_hda, self._get_cmdline_format_cfg(), "soundcards"
-                        )
-                        devices.insert(intel_hda)
-                        dev = QDevice("hda-duplex")
+                        devs.append(intel_hda)
+                        # FIXME, dummy audiodev backend driver at current stage, and hardcode the id to audiodev1
+                        if Flags.AUDIODEV in devices.caps:
+                            audiodev_id = "audiodev1"
+                            audiodev = StrDev(
+                                "audiodev",
+                                cmdline='-audiodev \'{"id":"%s","driver":"none"}\''
+                                % audiodev_id,
+                            )
+                            devs.append(audiodev)
+                            hda_duplex = QDevice(
+                                "hda-duplex", params={"audiodev": "%s" % audiodev_id}
+                            )
+                            devs.append(hda_duplex)
+                        else:
+                            hda_duplex = QDevice("hda-duplex")
+                            devs.append(hda_duplex)
                     elif sound_device in ["es1370", "ac97"]:
-                        dev = QDevice(sound_device.upper(), parent_bus=parent_bus)
+                        devs.append(
+                            QDevice(sound_device.upper(), parent_bus=parent_bus)
+                        )
                     else:
-                        dev = QDevice(sound_device, parent_bus=parent_bus)
+                        devs.append(QDevice(sound_device, parent_bus=parent_bus))
 
-                    set_cmdline_format_by_cfg(
-                        dev, self._get_cmdline_format_cfg(), "soundcards"
-                    )
-                    devices.insert(dev)
+                    for dev in devs:
+                        if dev.type != "audiodev":
+                            set_cmdline_format_by_cfg(
+                                dev, self._get_cmdline_format_cfg(), "soundcards"
+                            )
+                        devices.insert(dev)
+                    del devs
 
         # Add monitors
         catch_monitor = params.get("catch_monitor")
