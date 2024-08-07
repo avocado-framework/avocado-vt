@@ -429,6 +429,9 @@ class DevContainer(object):
         # -object sev-guest
         if self.has_object("sev-guest"):
             self.caps.set_flag(Flags.SEV_GUEST)
+        # -object sev-snp-guest
+        if self.has_object('sev-snp-guest'):
+            self.caps.set_flag(Flags.SNP_GUEST)
         # -object tdx-guest
         if self.has_object("tdx-guest"):
             self.caps.set_flag(Flags.TDX_GUEST)
@@ -1400,8 +1403,8 @@ class DevContainer(object):
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
             )
 
-            # FIXME: Use -bios option to set firmware for a tdx vm
-            if params.get("vm_secure_guest_type") != "tdx":
+            # FIXME: Use -bios option to set firmware for a tdx/snp vm
+            if params.get("vm_secure_guest_type") not in ["snp", "tdx"]:
                 pflash_devices = pflash_handler("ovmf", machine_params)
                 devices.extend(pflash_devices)
 
@@ -3976,6 +3979,52 @@ class DevContainer(object):
 
             return backend, sev_obj_props
 
+        def _gen_snp_obj_props(obj_id, params):
+            """
+            Generate the properties of the sev-snp-guest object.
+
+            Required:
+              policy, cbitpos and reduced-phys-bits
+            Optional:
+
+            :return: a tuple of (backend, sev-snp-guest QObject properties dict)
+            """
+            if Flags.SNP_GUEST not in self.caps:
+                raise ValueError('Unsupported sev-snp-guest object')
+
+            backend, snp_obj_props = 'sev-snp-guest', {'id': obj_id}
+
+            # FIXME: Set the following two options from sev capabilities
+            snp_obj_props["cbitpos"] = int(params["vm_sev_cbitpos"])
+            snp_obj_props["reduced-phys-bits"] = int(params["vm_sev_reduced_phys_bits"])
+
+            # Set policy=0x30000 if vm_snp_policy is not set
+            if params.get('vm_snp_policy'):
+                snp_obj_props['policy'] = int(params['vm_snp_policy'])
+            if params.get('vm_snp_init_flags'):
+                snp_obj_props['init-flags'] = int(params['vm_snp_init_flags'])
+            if params.get('vm_snp_guest_visible_workarounds'):
+                snp_obj_props['guest-visible-workarounds'] = params['vm_snp_guest_visible_workarounds']
+            if params.get('vm_snp_id_block'):
+                snp_obj_props['id-block'] = params['vm_snp_id_block']
+            if params.get('vm_snp_id_auth'):
+                snp_obj_props['id-auth'] = params['vm_snp_id_auth']
+            if params.get('vm_snp_auth_key_enabled'):
+                snp_obj_props['auth-key-enabled'] = params.get_boolean(
+                    'vm_snp_auth_key_enabled'
+                )
+            if params.get('vm_snp_host_data'):
+                snp_obj_props['host-data'] = params['vm_snp_host_data']
+
+            # FIXME: coconut qemu only, if we use it, its default value
+            # should be 'on'
+            if params.get('vm_snp_svsm_enabled'):
+                snp_obj_props['svsm'] = params.get_boolean(
+                    'vm_snp_svsm_enabled'
+                )
+
+            return backend, snp_obj_props
+
         def _gen_tdx_obj_props(obj_id, params):
             """
             Generate the properties of the tdx-guest object.
@@ -3988,13 +4037,17 @@ class DevContainer(object):
             backend, tdx_obj_props = "tdx-guest", {"id": obj_id}
             return backend, tdx_obj_props
 
-        obj_props_handlers = {"sev": _gen_sev_obj_props, "tdx": _gen_tdx_obj_props}
+        obj_props_handlers = {
+            "sev": _gen_sev_obj_props,
+            "snp": _gen_snp_obj_props,
+            "tdx": _gen_tdx_obj_props
+        }
 
         sectype = params["vm_secure_guest_type"]
         if sectype in obj_props_handlers:
             backend, properties = obj_props_handlers[sectype](obj_id, params)
         else:
-            raise ValueError("Unsupported secure guest: %s" % sectype)
+            raise ValueError(f"Unsupported secure guest: {sectype}")
 
         return qdevices.QObject(backend, properties)
 
