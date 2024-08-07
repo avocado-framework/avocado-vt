@@ -729,6 +729,10 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
     log = ""
     console_cmd = "cat /proc/cpuinfo"
     try:
+        # Do not use remote.handle_prompts here because it will inhibit the
+        # login failure.
+        # Sometimes kernel will continue printing more kernel infos after
+        # login prompts. We should do a check to determin if it's correct.
         virsh_console_login(session, user, passwd, timeout, debug=debug)
         status, output = session.cmd_status_output(console_cmd)
         LOG.info("output of command:\n%s", output)
