@@ -153,6 +153,7 @@ class CryptoDeviceInfoEntry(object):
         self.qdepth = None
         self.functions = None
         self.driver = None
+        self.sestat = None
 
     @property
     def id(self):
@@ -196,6 +197,13 @@ class CryptoDeviceInfoEntry(object):
         :return: device info entry
         """
         r = CryptoDeviceInfoEntry()
+        crypto_dev_info = line.split()
+        crypto_dev_act_attr_num = len(crypto_dev_info)
+        crypto_dev_exp_attr_num = len(vars(r)) - 1
+        if crypto_dev_act_attr_num < crypto_dev_exp_attr_num:
+            crypto_dev_info.extend(
+                [None] * (crypto_dev_exp_attr_num - crypto_dev_act_attr_num)
+            )
         (
             r.id,
             r.type,
@@ -207,7 +215,8 @@ class CryptoDeviceInfoEntry(object):
             r.qdepth,
             r.functions,
             r.driver,
-        ) = line.split()
+            r.sestat,
+        ) = crypto_dev_info
         return r
 
 
