@@ -100,6 +100,7 @@ class DevContainer(object):
     SMP_BOOKS_VERSION_SCOPE = "[8.2.0, )"
     SMP_DRAWERS_VERSION_SCOPE = "[8.2.0, )"
     FLOPPY_DEVICE_VERSION_SCOPE = "[5.1.0, )"
+    BLOCKJOB_BACKING_MASK_PROTOCOL_VERSION_SCOPE = "[9.0.0, )"
 
     MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = "[5.1.0, )"
     MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = "[5.1.0, )"
@@ -434,6 +435,14 @@ class DevContainer(object):
         # -device floppy,drive=$drive
         if self.__qemu_ver in VersionInterval(self.FLOPPY_DEVICE_VERSION_SCOPE):
             self.caps.set_flag(Flags.FLOPPY_DEVICE)
+
+        # QMP: block-stream/block-commit @backing-mask-protocol
+        # TODO: probe cap via using the qmp command `query-qmp-schema`
+        #       instead of hardcoding the version range
+        if self.__qemu_ver in VersionInterval(
+            self.BLOCKJOB_BACKING_MASK_PROTOCOL_VERSION_SCOPE
+        ):
+            self.caps.set_flag(Flags.BLOCKJOB_BACKING_MASK_PROTOCOL)
 
         if self.has_qmp_cmd("migrate-set-parameters") and self.has_hmp_cmd(
             "migrate_set_parameter"
@@ -2553,26 +2562,32 @@ class DevContainer(object):
                 # use RAW type as the default
                 format_cls = qdevices.QBlockdevFormatRaw
 
-            format_node = format_cls(name)
             protocol_node = protocol_cls(name)
-            format_node.add_child_node(protocol_node)
             devices.append(protocol_node)
-            devices.append(format_node)
+            top_node = protocol_node
+
+            need_format_node = format_cls is not qdevices.QBlockdevFormatRaw
+            need_format_node |= Flags.BLOCKJOB_BACKING_MASK_PROTOCOL not in self.caps
+            format_node = None
+            if need_format_node:
+                format_node = format_cls(name)
+                format_node.add_child_node(protocol_node)
+                devices.append(format_node)
+                top_node = format_node
             # Add filter node
             if image_copy_on_read in ("yes", "on", "true"):
                 filter_node = qdevices.QBlockdevFilterCOR(name)
-                filter_node.add_child_node(format_node)
+                filter_node.add_child_node(top_node)
                 devices.append(filter_node)
-                filter_node.set_param("file", format_node.get_qid())
+                filter_node.set_param("file", top_node.get_qid())
 
             if image_throttle_group:
                 filter_node = qdevices.QBlockdevFilterThrottle(
                     name, image_throttle_group
                 )
-                filter_node.add_child_node(format_node)
+                filter_node.add_child_node(top_node)
                 devices.append(filter_node)
-                filter_node.set_param("file", format_node.get_qid())
-                format_node.set_param("file", protocol_node.get_qid())
+                filter_node.set_param("file", top_node.get_qid())
         else:
             if self.has_hmp_cmd("__com.redhat_drive_add") and use_device:
                 devices.append(qdevices.QRHDrive(name))
@@ -2592,9 +2607,10 @@ class DevContainer(object):
                     )
             if media == "cdrom":
                 readonly = "on"
-            format_node.set_param("read-only", readonly, bool)
+            top_node.set_param("read-only", readonly, bool)
 
-            protocol_node.set_param("auto-read-only", image_auto_readonly, bool)
+            if top_node is not protocol_node:
+                protocol_node.set_param("auto-read-only", image_auto_readonly, bool)
             protocol_node.set_param("discard", image_discard)
 
             if secret_obj:
@@ -2697,6 +2713,8 @@ class DevContainer(object):
                 protocol_node.set_param(key, value)
 
             for dev in (format_node, protocol_node):
+                if dev is None:
+                    continue
                 if not cache:
                     direct, no_flush = (None, None)
                 else:
@@ -2706,7 +2724,8 @@ class DevContainer(object):
                     )
                 dev.set_param("cache.direct", direct)
                 dev.set_param("cache.no-flush", no_flush)
-            format_node.set_param("file", protocol_node.get_qid())
+            if top_node is not protocol_node:
+                top_node.set_param("file", protocol_node.get_qid())
         else:
             devices[-1].set_param("cache", cache)
             devices[-1].set_param("media", media)
@@ -2755,14 +2774,15 @@ class DevContainer(object):
                 if Flags.BLOCKDEV in self.caps:
                     if key == "discard":
                         value = re.sub("on", "unmap", re.sub("off", "ignore", value))
-                    if key in (
-                        "cache-size",
-                        "detect-zeroes",
-                    ):
+                    if key in ("cache-size",):
                         protocol_node.set_param(key, None)
                     else:
                         protocol_node.set_param(key, value)
-                    format_node.set_param(key, value)
+                    if format_node is not None:
+                        format_node.set_param(key, value)
+                        # suppress key if format_node presents
+                        if key in ("detect-zeroes",):
+                            protocol_node.set_param(key, None)
                 else:
                     devices[-1].set_param(key, value)
         if not use_device:
@@ -2872,7 +2892,7 @@ class DevContainer(object):
         devices[-1].set_param("opt_io_size", opt_io_size)
         devices[-1].set_param("bootindex", bootindex)
         if Flags.BLOCKDEV in self.caps:
-            if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
+            if isinstance(protocol_node, qdevices.QBlockdevProtocolHostDevice):
                 self.cache_map[cache]["write-cache"] = None
             write_cache = None if not cache else self.cache_map[cache]["write-cache"]
             devices[-1].set_param("write-cache", write_cache)

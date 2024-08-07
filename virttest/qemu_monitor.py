@@ -2525,7 +2525,14 @@ class QMPMonitor(Monitor):
         return self.cmd("blockdev-snapshot-sync", kwargs)
 
     def block_stream(
-        self, device, speed=None, base=None, cmd="block-stream", correct=True, **kwargs
+        self,
+        device,
+        speed=None,
+        base=None,
+        cmd="block-stream",
+        correct=True,
+        backing_mask_protocol=None,
+        **kwargs
     ):
         """
         Start block-stream job;
@@ -2534,6 +2541,9 @@ class QMPMonitor(Monitor):
         :param speed: int type, limited speed(B/s)
         :param base: base file
         :param correct: auto correct command, correct by default
+        :param backing_mask_protocol: If true, replace any protocol mentioned
+                                      in the 'backing file format' with 'raw'
+                                      (supported since qemu 9.0).
         :param kwargs: optional keyword arguments
         :return: The command's output
         """
@@ -2545,11 +2555,20 @@ class QMPMonitor(Monitor):
             args["speed"] = speed
         if base:
             args["base"] = base
+        if backing_mask_protocol is not None:
+            args["backing-mask-protocol"] = backing_mask_protocol
         kwargs.update(args)
         return self.cmd(cmd, kwargs)
 
     def block_commit(
-        self, device, speed=None, base=None, top=None, cmd="block-commit", correct=True
+        self,
+        device,
+        speed=None,
+        base=None,
+        top=None,
+        cmd="block-commit",
+        correct=True,
+        backing_mask_protocol=None,
     ):
         """
         Start block-commit job
@@ -2560,6 +2579,9 @@ class QMPMonitor(Monitor):
         :param top: top file
         :param cmd: block commit job command
         :param correct: auto correct command, correct by default
+        :param backing_mask_protocol: If true, replace any protocol mentioned
+                                      in the 'backing file format' with 'raw'
+                                      (supported since qemu 9.0).
 
         :return: The command's output
         """
@@ -2573,6 +2595,8 @@ class QMPMonitor(Monitor):
             args["base"] = base
         if top:
             args["top"] = top
+        if backing_mask_protocol is not None:
+            args["backing-mask-protocol"] = backing_mask_protocol
         return self.cmd(cmd, args)
 
     def set_block_job_speed(
