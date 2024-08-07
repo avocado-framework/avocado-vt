@@ -1127,7 +1127,6 @@ class QDevice(QCustomDevice):
         )
         if driver:
             self.set_param("driver", driver)
-        self.hook_drive_bus = None
 
     def _get_alternative_name(self):
         """:return: alternative object name"""
@@ -1173,13 +1172,6 @@ class QDevice(QCustomDevice):
         for key in self.dynamic_params:
             params[key] = "DYN"
         return "device_add", params
-
-    def get_children(self):
-        """Device bus should be removed too"""
-        devices = super(QDevice, self).get_children()
-        if self.hook_drive_bus:
-            devices.append(self.hook_drive_bus)
-        return devices
 
     def unplug_hmp(self):
         """:return: the unplug monitor command"""
@@ -1381,13 +1373,6 @@ class QObject(QCustomDevice):
         super(QObject, self).__init__(**kwargs)
         self.set_param("backend", backend)
 
-    def get_children(self):
-        """Device bus should be removed too"""
-        devices = super(QObject, self).get_children()
-        if getattr(self, "hook_drive_bus", None):
-            devices.append(self.hook_drive_bus)
-        return devices
-
     def _get_alternative_name(self):
         """:return: alternative object name"""
         if self.get_param("backend"):
@@ -1581,7 +1566,6 @@ class QThrottleGroup(QObject):
         self.throttle_group_bus = QThrottleGroupBus(group_id)
         self.add_child_bus(self.throttle_group_bus)
         self.set_aid(group_id)
-        self.hook_drive_bus = None
 
     @staticmethod
     def _map_key(params):
@@ -1702,7 +1686,6 @@ class Memory(QObject):
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
-        self.hook_drive_bus = None
 
     def _refresh_hotplug_props(self, params):
         convert_size = utils_misc.normalize_data_size
@@ -1836,7 +1819,6 @@ class Dimm(QDevice):
         kwargs = {"driver": dimm_type, "params": params}
         super(Dimm, self).__init__(**kwargs)
         self.set_param("driver", dimm_type)
-        self.hook_drive_bus = None
 
     def verify_hotplug(self, out, monitor):
         out = monitor.info("memory-devices", debug=False)
@@ -3184,8 +3166,6 @@ class QDriveBus(QSparseBus):
         store this bus device into hook variable of the device.
         """
         self._set_device_props(device, addr)
-        if hasattr(device, "hook_drive_bus"):
-            device.hook_drive_bus = self.get_device()
 
 
 class QDenseBus(QSparseBus):

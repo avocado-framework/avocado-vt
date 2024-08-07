@@ -1062,6 +1062,7 @@ class DevContainer(object):
         try:
             device.unplug_hook()
             drive = device.get_param("drive")
+            self.remove(device, True)
             if drive:
                 if Flags.BLOCKDEV in self.caps:
                     # top node
@@ -1085,7 +1086,6 @@ class DevContainer(object):
                             parent_node.del_child_node(node)
                 else:
                     self.remove(drive)
-            self.remove(device, True)
             if ver_out is True:
                 self.set_clean()
             elif out is False:
