@@ -4891,12 +4891,13 @@ def check_class_rules(ifname, rule_id, bandwidth, expect_none=False):
         return False
     return True
 
+
 def obtain_guest_ip_from_dhcp_leases(mac):
     """
     Obtaining the guest ip address from virsh-net-dhcp-leases command
 
     :param: Mac address of the guest
-    :return: return ip-address if found for given mac in the 
+    :return: return ip-address if found for given mac in the
              virsh-net-dhcp-leases default table, else return None
     """
     output = virsh.net_dhcp_leases("default")
@@ -4905,6 +4906,6 @@ def obtain_guest_ip_from_dhcp_leases(mac):
         if mac in line:
             parts = line.split()
             for part in parts:
-                if '/' in part:
-                    return part.split('/')[0]
+                if "/" in part:
+                    return part.split("/")[0]
     return None
