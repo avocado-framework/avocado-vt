@@ -28,6 +28,7 @@ from virttest import (
     lvm,
     nbd,
     nvme,
+    propcan,
     storage_ssh,
     utils_misc,
     utils_numeric,
@@ -800,6 +801,49 @@ class ImageEncryption(object):
         if self.key_secret:
             return self.base_key_secrets + [self.key_secret]
         return self.base_key_secrets
+
+
+class ImageSlicesInfo:
+
+    """Slices information associated with images."""
+
+    def __init__(self, image, slices):
+        """
+        Initialize image slices information.
+
+        :param image: Image tag name.
+        :param slices: List of slice properties.
+        """
+        self.image = image
+        self.slices = slices
+
+    @classmethod
+    def slices_info_define_by_params(cls, image, params):
+        """
+        Get slices information from image parameters.
+
+        :param image: Image tag name.
+        :param params: Image parameters.
+
+        :return: ImageSlicesInfo instance to the specified image.
+        """
+        slices = []
+        slice_tags = params.objects("image_slices")
+        for tag in slice_tags:
+            slice_params = params.object_params(tag)
+            offset = slice_params.get("image_slice_offset")
+            size = slice_params.get("image_slice_size")
+            if size is not None:
+                size = utils_numeric.normalize_data_size(size, order_magnitude="B")
+            slices.append(SliceProperties(offset=offset, size=size))
+        return cls(image, slices)
+
+
+class SliceProperties(propcan.PropCan):
+
+    """Properties of a single slice associated with images."""
+
+    __slots__ = ["offset", "size"]
 
 
 def copy_nfs_image(params, root_dir, basename=False):

@@ -792,12 +792,16 @@ class QBlockdevNode(QCustomDevice):
         """
         new_args = dict()
         keep_original_type = ("detect-zeroes",)
+        int_opts = ("offset", "size")
         for key, value in six.iteritems(args):
             if key not in keep_original_type:
                 if value in ("on", "yes"):
                     value = True
                 elif value in ("off", "no"):
                     value = False
+
+            if key in int_opts:
+                value = int(value)
 
             parts = key.split(".")
             d = new_args

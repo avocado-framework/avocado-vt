@@ -2066,6 +2066,7 @@ class DevContainer(object):
         image_discard=None,
         image_copy_on_read=None,
         image_iothread_vq_mapping=None,
+        slices_info=None,
     ):
         """
         Creates related devices by variables
@@ -2113,6 +2114,7 @@ class DevContainer(object):
         :param image_copy_on_read: if support copy-on-read filter
         :param image_iothread_vq_mapping: the mapping between iothread
                                           and virt-queues
+        :param slices_info: Slices information of disk image
         """
 
         def _get_access_tls_creds(image_access):
@@ -2568,6 +2570,7 @@ class DevContainer(object):
 
             need_format_node = format_cls is not qdevices.QBlockdevFormatRaw
             need_format_node |= Flags.BLOCKJOB_BACKING_MASK_PROTOCOL not in self.caps
+            need_format_node |= slices_info is not None and bool(slices_info.slices)
             format_node = None
             if need_format_node:
                 format_node = format_cls(name)
@@ -2612,6 +2615,10 @@ class DevContainer(object):
             if top_node is not protocol_node:
                 protocol_node.set_param("auto-read-only", image_auto_readonly, bool)
             protocol_node.set_param("discard", image_discard)
+
+            if slices_info is not None and len(slices_info.slices) > 0:
+                format_node.set_param("offset", slices_info.slices[0].offset)
+                format_node.set_param("size", slices_info.slices[0].size)
 
             if secret_obj:
                 if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
@@ -3036,6 +3043,10 @@ class DevContainer(object):
             image_params, data_root, name
         )
 
+        slices_info = storage.ImageSlicesInfo.slices_info_define_by_params(
+            name, image_params
+        )
+
         return self.images_define_by_variables(
             name,
             image_filename,
@@ -3082,6 +3093,7 @@ class DevContainer(object):
             image_params.get("image_discard"),
             image_params.get("image_copy_on_read"),
             image_params.get("image_iothread_vq_mapping"),
+            slices_info,
         )
 
     def serials_define_by_variables(
