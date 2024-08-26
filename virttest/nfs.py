@@ -171,6 +171,7 @@ class Nfs(object):
         self.export_dir = params.get("export_dir") or self.mount_src.split(":")[-1]
         self.export_ip = params.get("export_ip", "*")
         self.export_options = params.get("export_options", "").strip()
+        self.run_mount = params.get("run_mount", True)
 
         if params.get("setup_remote_nfs") == "yes":
             self.nfs_setup = True
@@ -262,7 +263,8 @@ class Nfs(object):
         if not utils_misc.check_isdir(self.mount_dir, session=self.session):
             utils_misc.make_dirs(self.mount_dir, session=self.session)
             self.rm_mount_dir = True
-        self.mount()
+        if self.run_mount:
+            self.mount()
 
     def cleanup(self):
         """
@@ -271,7 +273,8 @@ class Nfs(object):
         Umount NFS from the mount point. If there has some change for exported
         file system in host when setup, also clean up that.
         """
-        self.umount()
+        if self.run_mount:
+            self.umount()
         if self.nfs_setup and self.unexportfs_in_clean:
             self.exportfs.reset_export()
             if self.rm_export_dir and utils_misc.check_isdir(
