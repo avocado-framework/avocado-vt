@@ -60,6 +60,7 @@ from virttest.test_setup.requirement_checks import (
     CheckRunningAsRoot,
 )
 from virttest.test_setup.storage import StorageConfig
+from virttest.test_setup.vms import UnrequestedVMHandler
 from virttest.utils_version import VersionInterval
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
@@ -1046,33 +1047,12 @@ def preprocess(test, params, env):
     _setup_manager.register(FirewalldService)
     _setup_manager.register(IPSniffer)
     _setup_manager.register(MigrationEnvSetup)
+    _setup_manager.register(UnrequestedVMHandler)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Destroy and remove VMs that are no longer needed in the environment or
-    # leave them untouched if they have to be disregarded only for this test
-    requested_vms = params.objects("vms")
-    keep_unrequested_vms = params.get_boolean("keep_unrequested_vms", False)
-    kill_unrequested_vms_gracefully = params.get_boolean(
-        "kill_unrequested_vms_gracefully", True
-    )
-    for key in list(env.keys()):
-        vm = env[key]
-        if not isinstance(vm, virt_vm.BaseVM):
-            continue
-        if vm.name not in requested_vms:
-            if keep_unrequested_vms:
-                LOG.debug(
-                    "The vm %s is registered in the env and disregarded "
-                    "in the current test",
-                    vm.name,
-                )
-            else:
-                vm.destroy(gracefully=kill_unrequested_vms_gracefully)
-                del env[key]
 
     global KVM_MODULE_HANDLERS
     kvm_modules = arch.get_kvm_module_list()
