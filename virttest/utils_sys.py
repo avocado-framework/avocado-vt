@@ -72,3 +72,33 @@ def get_host_bridge_id(session=None):
 
     host_bridges = re.findall(hostbridge_regex, output)
     return host_bridges if host_bridges else []
+
+
+def get_pids_for(process_names, sort_pids=True, session=None):
+    """
+    Given a list of names, retrieve the PIDs for
+    matching processes. Sort of equivalent
+    to: 'ps aux | grep name'
+
+    :param process_names: List of process names to look for
+    """
+
+    status, ps_cmd = cmd_status_output("ps aux", shell=True, session=session)
+    if status != 0 or not ps_cmd:
+        return []
+
+    ps_output = ps_cmd.split("\n")
+    relevant_procs = [
+        proc
+        for proc in ps_output
+        for wanted_name in process_names
+        if wanted_name in proc
+    ]
+
+    relevant_procs = [line.split() for line in relevant_procs]
+    relevant_pids = [int(proc[1]) for proc in relevant_procs]
+
+    if sort_pids:
+        relevant_pids.sort()
+
+    return relevant_pids
