@@ -1439,11 +1439,24 @@ def get_net_if(runner=local_runner, state=".*", qdisc=".*", optional=".*"):
     # As the runner converts stdout to unicode on Python2,
     # it has to be converted to string for struct.pack().
     result = str(runner(cmd))
-    return re.findall(
+    ifaces_up = re.findall(
         r"^\d+: (\S+?)[@:].*%s.*%s.*state %s.*$" % (optional, qdisc, state),
         result,
         re.MULTILINE,
     )
+    LOG.debug("The ifaces up on host: %s" % ifaces_up)
+    ifaces_with_ip = []
+    for iface in ifaces_up:
+        cmd = "ip -c=never addr show %s" % iface
+        ret = runner(cmd)
+        ipv4_addr = re.findall("inet (.+?)/..?", ret, re.MULTILINE)
+        if ipv4_addr:
+            ifaces_with_ip.append(iface)
+    LOG.debug("The ifaces up with ip on host: %s" % ifaces_with_ip)
+    if not ifaces_with_ip:
+        LOG.error("No up ifaces with ip on host!")
+    else:
+        return ifaces_with_ip
 
 
 def get_sorted_net_if():
