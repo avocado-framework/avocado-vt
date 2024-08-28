@@ -209,13 +209,14 @@ class VirtadminSession(aexpect.ShellSession):
 
         # fail if libvirtd is not running
         if check_libvirtd:
-            if self.cmd_status("uri", timeout=60) != 0:
+            status, out = self.cmd_status_output("uri", timeout=60)
+            if status != 0:
                 LOG.debug(
                     "Persistent virt-admin session is not responding, "
                     "libvirtd may be dead."
                 )
                 self.auto_close = True
-                raise aexpect.ShellStatusError(virtadmin_exec, "uri")
+                raise aexpect.ShellStatusError(virtadmin_exec, out)
 
     def cmd_status_output(
         self, cmd, timeout=60, internal_timeout=None, print_func=None, safe=False
