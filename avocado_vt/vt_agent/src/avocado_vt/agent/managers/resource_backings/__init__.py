@@ -12,6 +12,7 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
+from .network import TapNetworkConnection, TapPortBacking
 from .storage import (
     DirPoolConnection,
     DirVolumeBacking,
@@ -23,6 +24,7 @@ from .storage import (
 _pool_conn_classes = {
     DirPoolConnection.POOL_TYPE: DirPoolConnection,
     NfsPoolConnection.POOL_TYPE: NfsPoolConnection,
+    TapNetworkConnection.POOL_TYPE: TapNetworkConnection,
 }
 
 # {binding resource pool type: {binding resource type: resource backing class object, }}
@@ -32,6 +34,9 @@ _backing_classes = {
     },
     NfsPoolConnection.POOL_TYPE: {
         NfsVolumeBacking.RESOURCE_TYPE: NfsVolumeBacking,
+    },
+    TapNetworkConnection.POOL_TYPE: {
+        TapPortBacking.RESOURCE_TYPE: TapPortBacking,
     },
 }
 

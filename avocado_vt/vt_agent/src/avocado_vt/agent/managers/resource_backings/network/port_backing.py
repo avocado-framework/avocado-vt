@@ -10,20 +10,15 @@
 # See LICENSE for more details.
 #
 # Copyright: Red Hat Inc. 2025
-# Authors: Zhenchao Liu <zhencliu@redhat.com>
+# Authors: Houqi (Nick) Zuo <hzuo@redhat.com>
 
-from .network import LinuxBridgeNetwork
-from .storage import DirPool, NfsPool
-
-_pool_classes = {
-    DirPool.TYPE: DirPool,
-    NfsPool.TYPE: NfsPool,
-    LinuxBridgeNetwork.TYPE: LinuxBridgeNetwork,
-}
+from ..backing import ResourceBacking
 
 
-def get_pool_class(pool_type):
-    return _pool_classes.get(pool_type)
+class PortBacking(ResourceBacking):
+    RESOURCE_TYPE = "port"
+    RESOURCE_POOL_TYPE = None
+    PORT_TYPE = None
 
-
-__all__ = ["get_pool_class"]
+    def __init__(self, backing_config, network_connection):
+        super().__init__(backing_config, network_connection)
