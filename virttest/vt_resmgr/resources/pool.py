@@ -34,6 +34,9 @@ class _ResourcePool(ABC):
     def pool_config(self):
         return self._config
 
+    def customize_pool_config(self, node_name):
+        return self._config
+
     @property
     def pool_meta(self):
         return self._config["meta"]

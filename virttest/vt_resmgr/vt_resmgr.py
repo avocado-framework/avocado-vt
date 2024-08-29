@@ -260,7 +260,7 @@ class _VTResourceManager(object):
         Attach a pool to a specific node
         """
         LOG.info(f"Attach resource pool ({pool.pool_name}) to {node.name}")
-        r, o = node.proxy.resource.connect_pool(pool.pool_id, pool.pool_config)
+        r, o = node.proxy.resource.connect_pool(pool.pool_id, pool.customize_pool_config(node.name))
         if r != 0:
             raise Exception(o["out"])
 
