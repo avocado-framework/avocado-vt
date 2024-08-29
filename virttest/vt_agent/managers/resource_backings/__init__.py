@@ -4,10 +4,15 @@ from .storage import (
     _NfsPoolConnection,
     _NfsVolumeBacking,
 )
+from .network import (
+    _TapPortBacking,
+    _TapNetworkConnection,
+)
 
 _pool_conn_classes = dict()
 _pool_conn_classes[_DirPoolConnection.get_pool_type()] = _DirPoolConnection
 _pool_conn_classes[_NfsPoolConnection.get_pool_type()] = _NfsPoolConnection
+_pool_conn_classes[_TapNetworkConnection.get_pool_type()] = _TapNetworkConnection
 
 _backing_classes = dict()
 _backing_classes[_DirVolumeBacking.get_pool_type()] = {
@@ -15,6 +20,9 @@ _backing_classes[_DirVolumeBacking.get_pool_type()] = {
 }
 _backing_classes[_NfsVolumeBacking.get_pool_type()] = {
     _NfsVolumeBacking.get_resource_type(): _NfsVolumeBacking,
+}
+_backing_classes[_TapPortBacking.get_pool_type()] = {
+    _TapPortBacking.get_resource_type(): _TapPortBacking,
 }
 
 
