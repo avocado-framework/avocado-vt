@@ -3381,6 +3381,7 @@ def snapshot_info(name, snapshot, **dargs):
         "Domain",
         "Current",
         "State",
+        "Location",
         "Parent",
         "Children",
         "Descendants",
