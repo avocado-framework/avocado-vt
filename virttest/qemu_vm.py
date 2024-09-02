@@ -594,7 +594,7 @@ class VM(virt_vm.BaseVM):
 
         def add_qmp_monitor(devices, monitor_name, filename):
             if not devices.has_option("qmp"):
-                LOG.warn("Fallback to human monitor since qmp is" " unsupported")
+                LOG.warning("Fallback to human monitor since qmp is" " unsupported")
                 return add_human_monitor(devices, monitor_name, filename)
 
             if not devices.has_option("chardev"):
@@ -843,7 +843,7 @@ class VM(virt_vm.BaseVM):
                             else:
                                 txt += " qemu do not support vhostfd."
                             if txt:
-                                LOG.warn(txt)
+                                LOG.warning(txt)
                         # For negative test
                         if add_vhostfd:
                             dev.set_param("vhostfd", vhostfds.split(":")[0])
@@ -1006,7 +1006,7 @@ class VM(virt_vm.BaseVM):
                         device.set_param(key, val, vtype, False)
                 devices.insert(device)
             else:
-                LOG.warn("option '-%s' not supportted" % name)
+                LOG.warning("option '-%s' not supportted" % name)
 
         def add_pcidevice(
             devices, host, params, device_driver="pci-assign", pci_bus="pci.0"
@@ -1037,7 +1037,7 @@ class VM(virt_vm.BaseVM):
                     " It only support following parameter:\n %s"
                     % (", ".join(fail_param), pcidevice_help)
                 )
-                LOG.warn(msg)
+                LOG.warning(msg)
             devices.insert(dev)
 
         def add_virtio_rng(devices, rng_params, parent_bus="pci.0"):
@@ -1502,13 +1502,13 @@ class VM(virt_vm.BaseVM):
         def add_boot(devices, opts):
             machine_type = params.get("machine_type", "")
             if machine_type.startswith("arm") or machine_type.startswith("riscv"):
-                LOG.warn(
+                LOG.warning(
                     "-boot on %s is usually not supported, use " "bootindex instead.",
                     machine_type,
                 )
                 return ""
             if machine_type.startswith("s390"):
-                LOG.warn("-boot on s390x only support boot strict=on")
+                LOG.warning("-boot on s390x only support boot strict=on")
                 return "-boot strict=on"
             cmd = " -boot"
             options = []
@@ -2046,7 +2046,7 @@ class VM(virt_vm.BaseVM):
             ) != "yes" and not cpu_model.startswith("EPYC"):
                 vcpu_threads = 1
                 txt = "Set vcpu_threads to 1 for AMD non-EPYC cpu."
-                LOG.warn(txt)
+                LOG.warning(txt)
 
         smp_err = ""
         SMP_PREFER_CORES_VERSION_SCOPE = "[6.2.0, )"
@@ -2413,7 +2413,7 @@ class VM(virt_vm.BaseVM):
             else:
                 pvpanic = "pvpanic"
             if not devices.has_device(pvpanic):
-                LOG.warn("%s device is not supported", pvpanic)
+                LOG.warning("%s device is not supported", pvpanic)
             else:
                 if pvpanic == "pvpanic-pci":
                     pvpanic_dev = qdevices.QDevice(
@@ -2439,7 +2439,7 @@ class VM(virt_vm.BaseVM):
         # Add vmcoreinfo device
         if params.get("vmcoreinfo") == "yes":
             if not devices.has_device("vmcoreinfo"):
-                LOG.warn("vmcoreinfo device is not supported")
+                LOG.warning("vmcoreinfo device is not supported")
             else:
                 vmcoreinfo_dev = qdevices.QDevice("vmcoreinfo")
                 set_cmdline_format_by_cfg(
@@ -4192,9 +4192,9 @@ class VM(virt_vm.BaseVM):
                 try:
                     self.monitor.quit()
                 except Exception as e:
-                    LOG.warn(e)
+                    LOG.warning(e)
                     if self.is_dead():
-                        LOG.warn(
+                        LOG.warning(
                             "VM %s down during try to kill it " "by monitor", self.name
                         )
                         return
@@ -5308,7 +5308,7 @@ class VM(virt_vm.BaseVM):
                         except qemu_monitor.MonitorNotSupportedError:
                             # x-multifd-page-count was dropped without
                             # replacement, ignore this param
-                            LOG.warn(
+                            LOG.warning(
                                 "Parameter x-multifd-page-count "
                                 "not supported on src, probably "
                                 "newer qemu, not setting it."
@@ -5346,7 +5346,7 @@ class VM(virt_vm.BaseVM):
                                 parameter, value, True, False
                             )
                         except qemu_monitor.MonitorNotSupportedError:
-                            LOG.warn(
+                            LOG.warning(
                                 "Parameter x-multifd-page-count "
                                 "not supported on dst, probably "
                                 "newer qemu, not setting it."
@@ -5571,7 +5571,7 @@ class VM(virt_vm.BaseVM):
             try:
                 return bool(self.monitor.get_event("RESET"))
             except (qemu_monitor.MonitorSocketError, AttributeError):
-                LOG.warn(
+                LOG.warning(
                     "MonitorSocketError while querying for RESET QMP "
                     "event, it might get lost."
                 )
@@ -5667,7 +5667,7 @@ class VM(virt_vm.BaseVM):
             if self.catch_monitor:
                 self.catch_monitor.screendump(filename=filename, debug=debug)
         except qemu_monitor.MonitorError as e:
-            LOG.warn(e)
+            LOG.warning(e)
 
     def save_to_file(self, path):
         """

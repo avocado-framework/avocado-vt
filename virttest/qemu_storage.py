@@ -1506,7 +1506,7 @@ class QemuImg(storage.QemuImg):
             if "--backing-chain" in self.help_text:
                 cmd += " --backing-chain"
             else:
-                LOG.warn("'--backing-chain' option is not supported")
+                LOG.warning("'--backing-chain' option is not supported")
 
         if force_share:
             cmd += " -U"
@@ -1569,7 +1569,7 @@ class QemuImg(storage.QemuImg):
         compare_images = self.support_cmd("compare")
         force_share &= self.cap_force_share
         if not compare_images:
-            LOG.warn("sub-command compare not supported by qemu-img")
+            LOG.warning("sub-command compare not supported by qemu-img")
             return None
         else:
             LOG.info("Comparing images %s and %s", image1, image2)
@@ -1612,7 +1612,7 @@ class QemuImg(storage.QemuImg):
         :return: compare result [process.CmdResult]
         """
         if not self.support_cmd("compare"):
-            LOG.warn("qemu-img subcommand compare not supported")
+            LOG.warning("qemu-img subcommand compare not supported")
             return
         force_share &= self.cap_force_share
         LOG.info(
@@ -2118,7 +2118,7 @@ class Iscsidev(storage.Iscsidev):
         Access the iscsi target. And return the local raw device name.
         """
         if self.iscsidevice.logged_in():
-            LOG.warn("Session already present. Don't need to login again")
+            LOG.warning("Session already present. Don't need to login again")
         else:
             self.iscsidevice.login()
 

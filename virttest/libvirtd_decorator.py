@@ -65,15 +65,17 @@ def get_libvirt_version_compare(major, minor, update, session=None):
         func = session.cmd_output
 
     if LIBVIRTD is None:
-        LOG.warn("Can not find command to dertermin libvirt version")
+        LOG.warning("Can not find command to dertermin libvirt version")
         return False
     libvirt_ver_cmd = "%s -V" % LIBVIRTD
-    LOG.warn(libvirt_ver_cmd)
+    LOG.warning(libvirt_ver_cmd)
     try:
         regex = r"%s\s*.*[Ll]ibvirt.*\s*" % LIBVIRTD
         regex += r"(\d+)\.(\d+)\.(\d+)"
         lines = astring.to_text(func(libvirt_ver_cmd)).splitlines()
-        LOG.warn("libvirt version value by libvirtd or virtqemud command: %s" % lines)
+        LOG.warning(
+            "libvirt version value by libvirtd or virtqemud command: %s" % lines
+        )
         for line in lines:
             match = re.search(regex, line.strip())
             if match:
@@ -84,7 +86,7 @@ def get_libvirt_version_compare(major, minor, update, session=None):
                 )
                 break
     except (ValueError, TypeError, AttributeError):
-        LOG.warn("Error determining libvirt version")
+        LOG.warning("Error determining libvirt version")
         return False
 
     compare_version = major * 1000000 + minor * 1000 + update
@@ -122,13 +124,13 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
         """
         check_libvirt_version()
         if not IS_LIBVIRTD_SPLIT_VERSION or not LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn(
+            LOG.warning(
                 "legacy start libvirtd daemon NORMALLY with function name: %s"
                 % fn.__name__
             )
             return fn(*args, **kwargs)
         else:
-            LOG.warn(
+            LOG.warning(
                 "legacy start libvirtd daemon IGNORED with function name: %s"
                 % fn.__name__
             )
@@ -153,13 +155,13 @@ def libvirt_version_context_aware_libvirtd_split(fn):
         """
         check_libvirt_version()
         if IS_LIBVIRTD_SPLIT_VERSION and LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn(
+            LOG.warning(
                 "Split start libvirtd daemon NORMALLY with function name: %s"
                 % fn.__name__
             )
             return fn(*args, **kwargs)
         else:
-            LOG.warn(
+            LOG.warning(
                 "Split start libvirtd daemon IGNORED with function name: %s"
                 % fn.__name__
             )

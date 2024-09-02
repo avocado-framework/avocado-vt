@@ -1569,7 +1569,7 @@ class NumaInfo(object):
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
-            LOG.warn("Get unexpect information from numctl")
+            LOG.warning("Get unexpect information from numctl")
             numa_sys_path = self.numa_sys_path
             distance_path = get_path(numa_sys_path, "node%s/distance" % node_id)
             if not check_isfile(distance_path, session=self.session):
@@ -1732,7 +1732,7 @@ class NumaNode(object):
                 )
                 cpus = str(numa_sys.sys_fs_value)
             except Exception as info:
-                LOG.warn(
+                LOG.warning(
                     "Can not find the cpu list information from both"
                     " numactl and sysfs. Please check your system.\n"
                     " Error: %s",
@@ -1753,7 +1753,9 @@ class NumaNode(object):
                             _ += "%s " % str(n)
                         cpus = re.sub(cstr, _, cpus)
                 except (IndexError, ValueError):
-                    LOG.warn("The format of cpu list is not the same as" " expected.")
+                    LOG.warning(
+                        "The format of cpu list is not the same as" " expected."
+                    )
                     break_flag = False
             if break_flag:
                 cpus = ""
@@ -1785,7 +1787,7 @@ class NumaNode(object):
                 key_val = str(numa_sys.sys_fs_value).rstrip("\n")
                 cpu_topo[key] = key_val
             except IOError:
-                LOG.warn(
+                LOG.warning(
                     "Can not find file %s from sysfs. Please check "
                     "your system." % key_path
                 )
@@ -4409,7 +4411,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
         if bg_job.result.exit_status is not None:
             continue
 
-        LOG.warn("run process timeout (%s) fired on: %s", timeout, bg_job.command)
+        LOG.warning("run process timeout (%s) fired on: %s", timeout, bg_job.command)
         nuke_subprocess(bg_job.sp)
         bg_job.result.exit_status = bg_job.sp.poll()
         bg_job.result.duration = time.time() - start_time

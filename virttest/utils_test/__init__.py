@@ -706,12 +706,12 @@ def run_file_transfer(test, params, env):
         try:
             os.remove(host_path)
         except OSError as detail:
-            LOG.warn("Could not remove temp files in host: '%s'", detail)
+            LOG.warning("Could not remove temp files in host: '%s'", detail)
         LOG.info("Cleaning temp file on guest")
         try:
             session.cmd("%s %s" % (clean_cmd, guest_path))
         except aexpect.ShellError as detail:
-            LOG.warn("Could not remove temp files in guest: '%s'", detail)
+            LOG.warning("Could not remove temp files in guest: '%s'", detail)
         finally:
             session.close()
 
@@ -762,7 +762,7 @@ def run_virtio_serial_file_transfer(
                         if md5_check:
                             raise exceptions.TestFail(err)
                         else:
-                            LOG.warn(err)
+                            LOG.warning(err)
                 else:
                     md5_re = "md5_sum = (\w{32})"
                     try:
@@ -782,7 +782,7 @@ def run_virtio_serial_file_transfer(
                             if md5_check:
                                 raise exceptions.TestFail(err)
                             else:
-                                LOG.warn(err)
+                                LOG.warning(err)
                     else:
                         md5_re = "md5_sum = (\w{32})"
                         try:
@@ -798,7 +798,7 @@ def run_virtio_serial_file_transfer(
                     if md5_check:
                         raise exceptions.TestFail(err)
                     else:
-                        LOG.warn(err)
+                        LOG.warning(err)
 
     env["serial_file_transfer_start"] = False
     vm = env.get_vm(params["main_vm"])
@@ -1828,7 +1828,7 @@ def get_loss_ratio(output):
     try:
         return float(re.findall(r"(\d*\.?\d+)%.*loss", output)[0])
     except IndexError:
-        LOG.warn("Invalid output of ping command: %s" % output)
+        LOG.warning("Invalid output of ping command: %s" % output)
     return -1
 
 

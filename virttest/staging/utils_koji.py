@@ -255,7 +255,7 @@ class KojiClient(object):
             koji_command_ok = False
 
         if not os.access(self.command, os.X_OK):
-            LOG.warn(
+            LOG.warning(
                 'Koji command "%s" is not executable: this is '
                 "not fatal but indicates an unexpected situation",
                 self.command,

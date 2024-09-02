@@ -924,7 +924,7 @@ def bootstrap(options, interactive=False):
         asset.download_all_test_providers(get_opt(options, "vt_update_providers"))
     else:
         if not_downloaded:
-            LOG.warn(
+            LOG.warning(
                 "The following test providers have not been downloaded: %s",
                 ", ".join(not_downloaded),
             )

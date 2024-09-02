@@ -1606,7 +1606,7 @@ class DevContainer(object):
             aarch64 (arm64) doesn't support PCI bus, only MMIO transports.
             Also it requires pflash for EFI boot.
             """
-            LOG.warn("Support for aarch64 is highly experimental!")
+            LOG.warning("Support for aarch64 is highly experimental!")
             devices = []
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
@@ -1633,7 +1633,7 @@ class DevContainer(object):
             """
             Experimental support for pci-based aarch64
             """
-            LOG.warn("Support for aarch64 is highly experimental!")
+            LOG.warning("Support for aarch64 is highly experimental!")
             devices = []
 
             bus = (
@@ -1694,7 +1694,7 @@ class DevContainer(object):
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completely different and
             # can't be used.
-            LOG.warn("Support for s390x is highly experimental!")
+            LOG.warning("Support for s390x is highly experimental!")
             bus = (
                 qdevices.QNoAddrCustomBus(
                     "bus",
@@ -1716,7 +1716,7 @@ class DevContainer(object):
             """
             riscv doesn't support PCI bus, only MMIO transports.
             """
-            LOG.warn(
+            LOG.warning(
                 "Support for riscv64 is highly experimental. See "
                 "https://avocado-vt.readthedocs.io"
                 "/en/latest/Experimental.html#riscv64 for "
@@ -1747,7 +1747,7 @@ class DevContainer(object):
             isapc or unknown machine type. This type doesn't add any default
             buses or devices, only sets the cmdline.
             """
-            LOG.warn(
+            LOG.warning(
                 "Machine type isa/unknown is not supported by "
                 "avocado-vt. False errors might occur"
             )
@@ -1811,7 +1811,7 @@ class DevContainer(object):
         elif avocado_machine == "riscv64-mmio":
             devices = machine_riscv64_mmio(machine_params)
         else:
-            LOG.warn(
+            LOG.warning(
                 "Machine type '%s' is not supported "
                 "by avocado-vt, errors might occur",
                 machine_type,
@@ -2346,7 +2346,7 @@ class DevContainer(object):
 
         use_device = self.has_option("device")
         if fmt == "scsi":  # fmt=scsi force the old version of devices
-            LOG.warn(
+            LOG.warning(
                 "'scsi' drive_format is deprecated, please use the "
                 "new lsi_scsi type for disk %s",
                 name,
@@ -2382,18 +2382,18 @@ class DevContainer(object):
         port = none_or_int(port)  # Third level
         # Compatibility with old params - scsiid, lun
         if scsiid is not None:
-            LOG.warn(
+            LOG.warning(
                 "drive_scsiid param is obsolete, use drive_unit " "instead (disk %s)",
                 name,
             )
             unit = none_or_int(scsiid)
         if lun is not None:
-            LOG.warn(
+            LOG.warning(
                 "drive_lun param is obsolete, use drive_port instead " "(disk %s)", name
             )
             port = none_or_int(lun)
         if pci_addr is not None and fmt == "virtio":
-            LOG.warn(
+            LOG.warning(
                 "drive_pci_addr is obsolete, use drive_bus instead " "(disk %s)", name
             )
             bus = none_or_int(pci_addr)
@@ -2413,7 +2413,7 @@ class DevContainer(object):
                 )
             ):
                 if not (bus is None and unit is None and port is None):
-                    LOG.warn(
+                    LOG.warning(
                         "Using scsi interface without -device "
                         "support; ignoring bus/unit/port. (%s)",
                         name,
@@ -2447,7 +2447,7 @@ class DevContainer(object):
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
-                LOG.warn(
+                LOG.warning(
                     "ide supports only 1 hba, use drive_unit to set"
                     "ide.* for disk %s",
                     name,
@@ -2492,7 +2492,7 @@ class DevContainer(object):
             devices.extend(_)
         elif fmt in ("usb1", "usb2", "usb3"):
             if bus:
-                LOG.warn(
+                LOG.warning(
                     "Manual setting of drive_bus is not yet supported"
                     " for usb disk %s",
                     name,
@@ -2604,7 +2604,7 @@ class DevContainer(object):
         if Flags.BLOCKDEV in self.caps:
             for opt, val in zip(("serial", "boot"), (serial, boot)):
                 if val is not None:
-                    LOG.warn(
+                    LOG.warning(
                         "The command line option %s is not supported "
                         "on %s by -blockdev." % (opt, name)
                     )
@@ -2656,7 +2656,7 @@ class DevContainer(object):
 
         if "aio" in self.get_help_text():
             if aio == "native" and snapshot == "yes":
-                LOG.warn("snapshot is on, fallback aio to threads.")
+                LOG.warning("snapshot is on, fallback aio to threads.")
                 aio = "threads"
             if Flags.BLOCKDEV in self.caps:
                 if isinstance(
@@ -2823,7 +2823,7 @@ class DevContainer(object):
                 devices[-1].set_param("addr", pci_addr)
                 devices[-1].parent_bus = (pci_bus,)
             if not media == "cdrom":
-                LOG.warn(
+                LOG.warning(
                     "Using -drive fmt=xxx for %s is unsupported "
                     "method, false errors might occur.",
                     name,
@@ -2883,7 +2883,7 @@ class DevContainer(object):
                     ({"busid": "drive_%s" % name}, {"type": fmt}),
                 )
         else:
-            LOG.warn("Using default device handling (disk %s)", name)
+            LOG.warning("Using default device handling (disk %s)", name)
             devices[-1].set_param("driver", fmt)
         if force_fmt:
             LOG.info("Force to use %s for the device" % force_fmt)
@@ -3334,7 +3334,7 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-ccw"
         if cd_format in (None, "ide"):
             if not self.get_buses({"atype": "ide"}):
-                LOG.warn("cd_format IDE not available, using AHCI instead.")
+                LOG.warning("cd_format IDE not available, using AHCI instead.")
                 cd_format = "ahci"
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
@@ -3613,7 +3613,7 @@ class DevContainer(object):
             dev.set_param("id", "input_%s" % name)
             devices.append(dev)
         else:
-            LOG.warn("'%s' is not supported by your qemu", driver)
+            LOG.warning("'%s' is not supported by your qemu", driver)
 
         return devices
 
@@ -3747,7 +3747,7 @@ class DevContainer(object):
             try:
                 utils_logfile.log_line("%s_swtpm_setup.log" % name, line)
             except Exception as e:
-                LOG.warn("Can't log %s_swtpm_setup output: %s.", name, e)
+                LOG.warning("Can't log %s_swtpm_setup output: %s.", name, e)
 
         def _emulator_setup(binary, extra_options=None):
             setup_cmd = binary

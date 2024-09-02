@@ -79,7 +79,7 @@ class _VirtioPort(object):
         """
         # TODO: add port cleanup into qemu_vm.py
         if self.is_open():
-            LOG.warn(
+            LOG.warning(
                 "Force closing virtio_port socket, FIX the code to "
                 " close the socket prior this to avoid possible err."
             )
@@ -405,7 +405,7 @@ class GuestWorker(object):
             "virt.exit_threads()", 3, ("^PASS: All threads" " finished",)
         )
         if match is None:
-            LOG.warn("Workaround the stuck thread on guest")
+            LOG.warning("Workaround the stuck thread on guest")
             # Thread is stuck in read/write
             for send_pt in send_pts:
                 timeout = None
@@ -505,7 +505,7 @@ class GuestWorker(object):
             self.session.close()
             # On windows it dies with the connection
             if match != 0 and self.os_linux:
-                LOG.warn(
+                LOG.warning(
                     "guest_worker stuck during cleanup:\n%s\n," " killing python...",
                     tmp,
                 )

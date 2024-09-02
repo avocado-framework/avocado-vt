@@ -78,21 +78,21 @@ class Env(IterableUserDict):
                     if env.get("version", 0) >= version:
                         self.data = env
                     else:
-                        LOG.warn("Incompatible env file found. Not using it.")
+                        LOG.warning("Incompatible env file found. Not using it.")
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
-                    LOG.warn("Creating new, empty env file")
+                    LOG.warning("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
             except Exception as e:
-                LOG.warn("Exception thrown while loading env")
-                LOG.warn(e)
-                LOG.warn("Creating new, empty env file")
+                LOG.warning("Exception thrown while loading env")
+                LOG.warning(e)
+                LOG.warning("Creating new, empty env file")
                 self.data = empty
         else:
-            LOG.warn("Creating new, empty env file")
+            LOG.warning("Creating new, empty env file")
             self.data = empty
 
     def save(self, filename=None):

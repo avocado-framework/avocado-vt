@@ -866,6 +866,6 @@ class GuestfishTools(lgf.GuestfishPersistent):
             if is_need.stdout.strip() == b"false":
                 cp_result = self.cp(bak_file, ifcfg_file)
                 if cp_result.exit_status:
-                    LOG.warn("Recover ifcfg file failed:%s", cp_result)
+                    LOG.warning("Recover ifcfg file failed:%s", cp_result)
                     return False
         return True

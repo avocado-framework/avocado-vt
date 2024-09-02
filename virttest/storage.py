@@ -258,7 +258,7 @@ def get_image_filename(params, root_dir, basename=False):
             )
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
-        LOG.warn("image_name parameter not set.")
+        LOG.warning("image_name parameter not set.")
 
 
 def get_image_filename_filesytem(params, root_dir, basename=False):

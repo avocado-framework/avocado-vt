@@ -1015,7 +1015,7 @@ def get_macvtap_base_iface(base_interface=None):
         if base_interface:
             warn_msg = "Can not use '%s' as macvtap base interface, "
             warn_msg += "will choice automatically"
-            LOG.warn(warn_msg % base_interface)
+            LOG.warning(warn_msg % base_interface)
         for interface in dev_int:
             base_inter = Interface(interface)
             if base_inter.is_brport():
@@ -3934,11 +3934,11 @@ def update_mac_ip_address(vm, timeout=240):
         addr_map = get_guest_address_map(session)
         session.close()
         if not addr_map:
-            LOG.warn("No VM's NIC got IP address")
+            LOG.warning("No VM's NIC got IP address")
             return
         vm.address_cache.update(addr_map)
     except Exception as e:
-        LOG.warn("Error occur when update VM address cache: %s", str(e))
+        LOG.warning("Error occur when update VM address cache: %s", str(e))
 
 
 def get_windows_nic_attribute(
