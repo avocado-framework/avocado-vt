@@ -1027,7 +1027,7 @@ class WindowsVMCheck(VMCheck):
 
         :param name: an optional service name
         """
-        cmd = r"sc query"
+        cmd = r"powershell get-service"
         if name:
             cmd += " " + name
         return self.run_cmd(cmd)[1]
@@ -1039,8 +1039,8 @@ class WindowsVMCheck(VMCheck):
         cmd = "DRIVERQUERY"
         if signed:
             cmd += " /SI"
-        # Try 5 times to get driver info
-        output, count = "", 5
+        # Try 10 times to get driver info
+        output, count = "", 10
         while count > 0:
             LOG.debug("%d times remaining for getting driver info" % count)
             try:
