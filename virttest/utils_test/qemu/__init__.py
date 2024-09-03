@@ -260,7 +260,7 @@ def setup_runlevel(params, session):
         tmp_runlevel = session.cmd(cmd)
         tmp_runlevel = tmp_runlevel.split()[-1]
         if tmp_runlevel != expect_runlevel:
-            LOG.warn(
+            LOG.warning(
                 "Changing runlevel from %s to %s failed (%s)!",
                 ori_runlevel,
                 expect_runlevel,
@@ -350,7 +350,7 @@ class GuestSuspend(object):
             session = self._get_session()
             self._session_cmd_close(session, suspend_bg_program_kill_cmd)
         except Exception as e:
-            LOG.warn("Could not stop background program: '%s'", e)
+            LOG.warning("Could not stop background program: '%s'", e)
             pass
 
     @error_context.context_aware
@@ -712,7 +712,7 @@ class MemoryHotplugTest(MemoryBaseTest):
                 self._device_unplug(device, qid, devices, vm)
                 break
         else:
-            LOG.warn("'%s' is not used by any memory devices" % qid_mem)
+            LOG.warning("'%s' is not used by any memory devices" % qid_mem)
 
         step = "Unplug memory object '%s'" % qid_mem
         error_context.context(step, LOG.info)

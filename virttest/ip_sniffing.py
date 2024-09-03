@@ -176,7 +176,7 @@ class Sniffer(object):
         try:
             log_line(self._logfile, line)
         except Exception as e:
-            LOG.warn("Can't log ip sniffer output: '%s'", e)
+            LOG.warning("Can't log ip sniffer output: '%s'", e)
         if self._output_handler(line):
             return
         # We can check whether the process is terminated unexpectedly
@@ -349,7 +349,7 @@ class TSharkSniffer(Sniffer):
         if re.match(r"[0-9a-fA-F]{1,4}:\S+", packet[0]):
             # TODO: support DHCPv6
             if not self.__dict__.setdefault("_ip6_warned", False):
-                LOG.warn(
+                LOG.warning(
                     "IPv6 address sniffing is not supported yet by "
                     "using TShark, please fallback to use other "
                     "sniffers by uninstalling TShark when testing "

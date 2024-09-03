@@ -50,7 +50,7 @@ def normalize_data_size(size):
 def cmd_output(cmd, res="[\w/]+"):
     result = process.run(cmd, ignore_status=True)
     if result.exit_status != 0:
-        LOG.warn(result)
+        LOG.warning(result)
         return None
     output = result.stdout_text
     for line in output.splitlines():
@@ -563,7 +563,9 @@ class LVM(object):
             LOG.info("LogicalVolume(%s) really exists " % lv_name + "skip to create it")
         if lv.size != lv_size:
             lv.display()
-            LOG.warn("lv size(%s) mismath," % lv.size + "required size %s;" % lv_size)
+            LOG.warning(
+                "lv size(%s) mismath," % lv.size + "required size %s;" % lv_size
+            )
             lv.resize(lv_size)
         return lv
 
@@ -670,7 +672,9 @@ class EmulatedLVM(LVM):
             self.register(pv)
             self.pvs.append(pv)
         else:
-            LOG.warn("PhysicalVolume(%s) really exists" % pv_name + "skip to create it")
+            LOG.warning(
+                "PhysicalVolume(%s) really exists" % pv_name + "skip to create it"
+            )
         pv.set_vg(vg)
         pvs.append(pv)
         return pvs

@@ -744,7 +744,7 @@ class BaseVM(object):
         """
         log_path = None
         if not self.params["os_type"] == "linux":
-            LOG.warn("sosreport not applicable for %s", self.params["os_type"])
+            LOG.warning("sosreport not applicable for %s", self.params["os_type"])
             return None
         try:
             pkg = "sos"
@@ -997,7 +997,7 @@ class BaseVM(object):
                 continue
             elif nic.mac == mac:
                 return index
-        LOG.warn("Not find nic by '%s'", mac)
+        LOG.warning("Not find nic by '%s'", mac)
         return -1
 
     def verify_kernel_crash(self):
@@ -1014,7 +1014,7 @@ class BaseVM(object):
         if self.serial_console:
             data = self.serial_console.get_output()
             if data is None:
-                LOG.warn("Unable to read serial console")
+                LOG.warning("Unable to read serial console")
                 return
             match = re.search(panic_re, data, re.DOTALL | re.MULTILINE | re.I)
             if match:
@@ -1075,7 +1075,7 @@ class BaseVM(object):
         if self.serial_console is not None:
             data = self.serial_console.get_output()
             if data is None:
-                LOG.warn("Unable to read serial console")
+                LOG.warning("Unable to read serial console")
                 return
             match = re.findall(r".*trap invalid opcode.*\n", data, re.MULTILINE)
 

@@ -554,7 +554,7 @@ class QOldDrive(QDrive):
         Ignore addr parameters as they are not supported by old qemus
         """
         if option == "addr":
-            LOG.warn(
+            LOG.warning(
                 "Ignoring 'addr=%s' parameter of %s due of old qemu"
                 ", PCI addresses might be messed up.",
                 value,
@@ -2138,7 +2138,7 @@ class QDaemonDev(QBaseDevice):
         start_until_timeout = self.get_param("start_until_timeout", 1)
 
         if cmd is None:
-            LOG.warn("No provided command to start %s daemon.", name)
+            LOG.warning("No provided command to start %s daemon.", name)
             self._daemon_process = None
 
         if self.is_daemon_alive():
@@ -2255,7 +2255,7 @@ class QVirtioFSDev(QDaemonDev):
         try:
             utils_logfile.log_line("%s-%s.log" % (self.get_qid(), name), line)
         except Exception as e:
-            LOG.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
+            LOG.warning("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
 
     def start_daemon(self):
         """Start the virtiofs daemon in background."""

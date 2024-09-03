@@ -87,7 +87,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                             continue
                         feature_list.append(item)
         except AttributeError as elem_attr:
-            LOG.warn("Failed to find attribute %s" % elem_attr)
+            LOG.warning("Failed to find attribute %s" % elem_attr)
             feature_list = []
         finally:
             return feature_list
@@ -138,7 +138,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                 if mode_node.get("name") == "host-model":
                     return mode_node.find("model").text
         except AttributeError as elem_attr:
-            LOG.warn("Failed to find attribute %s" % elem_attr)
+            LOG.warning("Failed to find attribute %s" % elem_attr)
             return ""
 
 

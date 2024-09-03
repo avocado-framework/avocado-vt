@@ -108,7 +108,7 @@ class VTJobLock(Pre, Post):
                     try:
                         os.unlink(path)
                     except OSError:
-                        self.log.warn("Unable to remove stale lock: %s", path)
+                        self.log.warning("Unable to remove stale lock: %s", path)
 
     @staticmethod
     def _get_klass_or_none(test_factory):

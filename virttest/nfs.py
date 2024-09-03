@@ -107,7 +107,7 @@ class Exportfs(object):
             unexport_cmd = "exportfs -u %s:%s" % (self.client, self.path)
             self.func(unexport_cmd)
         else:
-            LOG.warn(
+            LOG.warning(
                 "Target %s %s is not exported yet."
                 "Can not unexport it." % (self.client, self.path)
             )
@@ -135,7 +135,7 @@ class Exportfs(object):
                 self.unexport()
             else:
                 self.already_exported = True
-                LOG.warn("Already exported target. Don't need export it again")
+                LOG.warning("Already exported target. Don't need export it again")
                 return True
         export_cmd = "exportfs"
         if self.options:

@@ -785,13 +785,13 @@ class Grubby(object):
         """
         current_version = self.get_grubby_version()
         if current_version is None:
-            self.log.warn(
+            self.log.warning(
                 "Could not detect current grubby version. It may "
                 "be that you are running an unsupported version "
                 "of grubby"
             )
         elif current_version < GRUBBY_REQ_VERSION:
-            self.log.warn(
+            self.log.warning(
                 "version %s.%s being used is not guaranteed to "
                 "work properly. Mininum required version is %s.%s.",
                 current_version[0],
@@ -1416,7 +1416,7 @@ class Grubby(object):
         """
         output = self.get_grubby_version_raw()
         if output is None:
-            self.log.warn("Could not run grubby to fetch its version")
+            self.log.warning("Could not run grubby to fetch its version")
             return None
 
         match = re.match("(grubby version)?(\s)?(\d+)\.(\d+)(.*)", output)
@@ -1455,7 +1455,7 @@ class Grubby(object):
             try:
                 shutil.move(path, backup_path)
             except Exception:
-                self.log.warn("Failed to backup the current grubby binary")
+                self.log.warning("Failed to backup the current grubby binary")
 
     def grubby_install_fetch_tarball(self, topdir):
         """
@@ -1558,7 +1558,7 @@ class Grubby(object):
         if deps_klass is not None:
             deps = deps_klass()
             if not deps.check():
-                self.log.warn(
+                self.log.warning(
                     "Installing distro build deps for grubby. This "
                     "may take a while, depending on bandwidth and "
                     "actual number of packages to install"
@@ -2154,7 +2154,7 @@ class BoottoolApp(object):
         """
         current_version = self.grubby.get_grubby_version()
         if current_version is None:
-            self.log.warn("Could not get version numbers from grubby")
+            self.log.warning("Could not get version numbers from grubby")
             return -1
 
         required_version = self.opts.grubby_version_check.split(".", 1)

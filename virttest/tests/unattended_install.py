@@ -1393,7 +1393,7 @@ def run(test, params, env):
                 error_context.context("Quit qemu-kvm before copying guest image")
                 vm.monitor.quit()
             except Exception as e:
-                LOG.warn(e)
+                LOG.warning(e)
             from virttest import utils_test
 
             error_context.context("Copy image from NFS Server")
@@ -1437,7 +1437,7 @@ def run(test, params, env):
     for media in params.get("copy_to_local", "").split():
         media_path = params.get(media)
         if not media_path:
-            LOG.warn(
+            LOG.warning(
                 "Media '%s' is not available, will not "
                 "be copied into local directory",
                 media,
@@ -1534,7 +1534,7 @@ def run(test, params, env):
                         log_file, post_finish_str
                     )
                 except IOError:
-                    LOG.warn("Could not read final serial log file")
+                    LOG.warning("Could not read final serial log file")
                 else:
                     if install_error_str_found:
                         raise exceptions.TestFail(install_error_exception_str)
@@ -1561,7 +1561,7 @@ def run(test, params, env):
                             vm.start()
                             break
                         except:
-                            LOG.warn(
+                            LOG.warning(
                                 "Failed to start unattended install "
                                 "image workaround reboot kickstart "
                                 "parameter bug"
@@ -1594,7 +1594,7 @@ def run(test, params, env):
                 # Only make noise after several failed reads
                 serial_read_fails += 1
                 if serial_read_fails > 10:
-                    LOG.warn(
+                    LOG.warning(
                         "Cannot read from serial log file after %d tries",
                         serial_read_fails,
                     )
@@ -1623,7 +1623,7 @@ def run(test, params, env):
         else:
             time.sleep(1)
     else:
-        LOG.warn("Timeout elapsed while waiting for install to finish ")
+        LOG.warning("Timeout elapsed while waiting for install to finish ")
         attempt_to_log_useful_files(test, vm)
         copy_images()
         raise exceptions.TestFail(

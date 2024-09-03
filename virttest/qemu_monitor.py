@@ -158,7 +158,7 @@ def create_monitor(vm, monitor_name, monitor_params):
     if monitor_params.get("monitor_type") == "qmp":
         if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
             # Add a "human" monitor on non-qmp version of qemu.
-            LOG.warn(
+            LOG.warning(
                 "QMP monitor is unsupported by %s,"
                 " creating human monitor instead." % vm.qemu_version
             )
@@ -188,7 +188,7 @@ def wait_for_create_monitor(vm, monitor_name, monitor_params, timeout):
         try:
             return create_monitor(vm, monitor_name, monitor_params)
         except MonitorError as e:
-            LOG.warn(e)
+            LOG.warning(e)
             time.sleep(1)
     else:
         raise MonitorConnectError(monitor_name)
@@ -841,7 +841,7 @@ class HumanMonitor(Monitor):
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                LOG.warn(e)
+                LOG.warning(e)
             else:
                 raise
 
@@ -913,7 +913,7 @@ class HumanMonitor(Monitor):
             self._supported_cmds = [c for c in cmd_list if c]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _log_response(self, cmd, resp, debug=True):
         """
@@ -1841,7 +1841,7 @@ class QMPMonitor(Monitor):
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                LOG.warn(e)
+                LOG.warning(e)
             else:
                 raise
 
@@ -1943,7 +1943,7 @@ class QMPMonitor(Monitor):
             self._supported_cmds = [n["name"] for n in cmds if "name" in n]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _get_supported_hmp_cmds(self):
         """
@@ -1955,7 +1955,7 @@ class QMPMonitor(Monitor):
             self._supported_hmp_cmds = [(i + j) for i, j in cmd_list if i or j]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _has_hmp_command(self, cmd):
         """

@@ -191,7 +191,7 @@ class QemuAgent(Monitor):
         except VAgentError as e:
             self._close_sock()
             if suppress_exceptions:
-                LOG.warn(e)
+                LOG.warning(e)
             else:
                 raise
 
@@ -333,7 +333,7 @@ class QemuAgent(Monitor):
         if not self._supported_cmds:
             # If initiation fails, set supported list to a None-only list.
             self._supported_cmds = [None]
-            LOG.warn("Could not get supported guest agent cmds list")
+            LOG.warning("Could not get supported guest agent cmds list")
 
     def check_has_command(self, cmd):
         """

@@ -142,12 +142,14 @@ class TestUtils:
             try:
                 pickle.dumps(env.data)
             except Exception:
-                self.log.warn(
+                self.log.warning(
                     "Unable to save environment: %s",
                     stacktrace.str_unpickable_object(env.data),
                 )
             else:
-                self.log.warn("Unable to save environment: %s (%s)", details, env.data)
+                self.log.warning(
+                    "Unable to save environment: %s (%s)", details, env.data
+                )
             return True
         return False
 

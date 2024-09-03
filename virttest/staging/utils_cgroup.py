@@ -196,7 +196,7 @@ class Cgroup(object):
             os.rmdir(pwd)
             self.cgroups.remove(pwd)
         except ValueError:
-            LOG.warn(
+            LOG.warning(
                 "cg.rm_cgroup(): Removed cgroup which wasn't created"
                 "using this Cgroup"
             )
@@ -406,7 +406,7 @@ class Cgroup(object):
             if value[-1] in human:
                 value = int(value[:-1]) * human[value[-1]]
         except Exception:
-            LOG.warn("cg.set_prop() fallback into cg.set_property.")
+            LOG.warning("cg.set_prop() fallback into cg.set_property.")
             value = _value
         self.set_property(prop, value, pwd, check, checkprop)
 
@@ -549,7 +549,7 @@ class CgroupModules(object):
                 try:
                     process.system("umount %s -l" % self.modules[1][i])
                 except Exception as failure_detail:
-                    LOG.warn(
+                    LOG.warning(
                         "CGM: Couldn't unmount %s directory: %s",
                         self.modules[1][i],
                         failure_detail,
@@ -559,7 +559,7 @@ class CgroupModules(object):
                 # If delete /cgroup/, this action will break cgroup service.
                 shutil.rmtree(self.mountdir)
         except Exception:
-            LOG.warn("CGM: Couldn't remove the %s directory", self.mountdir)
+            LOG.warning("CGM: Couldn't remove the %s directory", self.mountdir)
 
     def init(self, _modules):
         """

@@ -409,7 +409,7 @@ def preprocess_vm(test, params, env, name):
             debug_msg += "There is no serial console in VM."
         if debug_msg:
             debug_msg += " Skip the kernel command line check."
-            LOG.warn(debug_msg)
+            LOG.warning(debug_msg)
             return
         cmd_line = params.get("kernel_cmd_line_str", "Command line:")
         try:
@@ -435,7 +435,7 @@ def preprocess_vm(test, params, env, name):
 
             LOG.info("Kernel command line get from serial port is as expect")
         except Exception as err:
-            LOG.warn(
+            LOG.warning(
                 "Did not get the kernel command line from serial "
                 "port output. Skip the kernel command line check."
                 "Error is %s" % err
@@ -516,7 +516,7 @@ def check_image(test, params, image_name, vm_process_status=None):
             if params.get(
                 "skip_cluster_leak_warn"
             ) == "yes" and "Leaked clusters" in six.text_type(e):
-                LOG.warn(six.text_type(e))
+                LOG.warning(six.text_type(e))
             else:
                 raise e
 
@@ -533,7 +533,7 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                               or None for no vm exist.
     """
     if vm_process_status == "running":
-        LOG.warn(
+        LOG.warning(
             "Skipped processing image '%s' since " "the VM is running!" % image_name
         )
         return
@@ -615,7 +615,7 @@ def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
                               running, dead or None for no vm exist.
     """
     if vm_process_status == "running":
-        LOG.warn(
+        LOG.warning(
             "Skipped processing filesystem '%s' since " "the VM is running!" % fs_name
         )
         return
@@ -741,7 +741,7 @@ def process_command(test, params, env, command, command_timeout, command_noncrit
         a_process.system("cd %s; %s" % (test.bindir, command), shell=True)
     except a_process.CmdError as e:
         if command_noncritical:
-            LOG.warn(e)
+            LOG.warning(e)
         else:
             raise
 
@@ -1617,7 +1617,7 @@ def postprocess(test, params, env):
     ppm_file_rex = "*_iter%s.ppm" % test.iteration
     for f in glob.glob(os.path.join(screendump_temp_dir, ppm_file_rex)):
         if not ppm_utils.image_verify_ppm_file(f):
-            LOG.warn("Found corrupt PPM file: %s", f)
+            LOG.warning("Found corrupt PPM file: %s", f)
 
     # Should we convert PPM files to PNG format?
     if params.get("convert_ppm_files_to_png", "no") == "yes":
@@ -1669,7 +1669,7 @@ def postprocess(test, params, env):
                     session = vm.wait_for_serial_login(timeout=vm.LOGIN_WAIT_TIMEOUT)
                     session.close()
             except (remote.LoginError, virt_vm.VMError, IndexError) as e:
-                LOG.warn(e)
+                LOG.warning(e)
                 vm.destroy(gracefully=False)
 
     # Kill VMs with deleted disks
@@ -1874,16 +1874,16 @@ def _take_screendumps(test, params, env):
             try:
                 vm.screendump(filename=temp_filename, debug=False)
             except qemu_monitor.MonitorError as e:
-                LOG.warn(e)
+                LOG.warning(e)
                 continue
             except AttributeError as e:
-                LOG.warn(e)
+                LOG.warning(e)
                 continue
             if not os.path.exists(temp_filename):
-                LOG.warn("VM '%s' failed to produce a screendump", vm.name)
+                LOG.warning("VM '%s' failed to produce a screendump", vm.name)
                 continue
             if not ppm_utils.image_verify_ppm_file(temp_filename):
-                LOG.warn("VM '%s' produced an invalid screendump", vm.name)
+                LOG.warning("VM '%s' produced an invalid screendump", vm.name)
                 os.unlink(temp_filename)
                 continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (
@@ -1973,10 +1973,10 @@ def store_vm_info(vm, log_filename, info_cmd="registers", append=False, vmtype="
         try:
             output = vm.catch_monitor.info(info_cmd, debug=False)
         except qemu_monitor.MonitorError as err:
-            LOG.warn(err)
+            LOG.warning(err)
             return False
         except AttributeError as err:
-            LOG.warn(err)
+            LOG.warning(err)
             return False
     elif vmtype == "libvirt":
         try:
@@ -1985,7 +1985,7 @@ def store_vm_info(vm, log_filename, info_cmd="registers", append=False, vmtype="
             )
             output = result.stdout
         except Exception as details:
-            LOG.warn(details)
+            LOG.warning(details)
             return False
 
     log_filename = "%s_%s" % (log_filename, timestamp)

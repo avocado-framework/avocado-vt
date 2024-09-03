@@ -1509,7 +1509,7 @@ class Parser(object):
             LOG.debug(s, *args)
 
     def _warn(self, s, *args):
-        LOG.warn(s, *args)
+        LOG.warning(s, *args)
 
     def parse_file(self, filename):
         """

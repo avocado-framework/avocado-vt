@@ -1045,7 +1045,7 @@ def get_host_cpu_models():
                 cpu_model = cpu_type
                 cpu_support_model.append(cpu_model)
     else:
-        LOG.warn("Can not Get cpu flags from cpuinfo")
+        LOG.warning("Can not Get cpu flags from cpuinfo")
 
     return cpu_support_model
 
@@ -1200,15 +1200,15 @@ def get_model_features(model_name):
                             features.append(feature.get("name"))
                         break
     except ET.ParseError as error:
-        LOG.warn("Configuration file %s has wrong xml format" % conf)
+        LOG.warning("Configuration file %s has wrong xml format" % conf)
         raise
     except AttributeError as elem_attr:
-        LOG.warn("No attribute %s in file %s" % (str(elem_attr), conf))
+        LOG.warning("No attribute %s in file %s" % (str(elem_attr), conf))
         raise
     except Exception:
         # Other exceptions like IOError when open/read configuration file,
         # capture here
-        LOG.warn(
+        LOG.warning(
             "Some other exceptions, like configuration file is not "
             "found or not file: %s" % conf
         )

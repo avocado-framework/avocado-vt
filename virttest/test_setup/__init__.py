@@ -305,7 +305,7 @@ class HugePageConfig(object):
         try:
             self.expected_hugepage_size = int(params.get("expected_hugepage_size", 0))
         except TypeError:
-            LOG.warn(
+            LOG.warning(
                 "Invalid value 'expected_hugepage_size=%s'",
                 params.get("expected_hugepage_size"),
             )
@@ -456,7 +456,7 @@ class HugePageConfig(object):
 
             available_hugepages = available_hugepages - decreased_pages
             if target_hugepages > available_hugepages:
-                LOG.warn(
+                LOG.warning(
                     "This test requires more huge pages than we"
                     " currently have, we'll try to allocate the"
                     " biggest number the system can support."
@@ -2295,7 +2295,7 @@ class EGDConfig(object):
             # wait port released by egd.pl
             wait.wait_for(_all_killed, timeout=60)
         except OSError:
-            LOG.warn("egd.pl is running")
+            LOG.warning("egd.pl is running")
 
 
 class StraceQemu(object):
