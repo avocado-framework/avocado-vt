@@ -60,6 +60,7 @@ from virttest.test_setup.requirement_checks import (
     CheckRunningAsRoot,
 )
 from virttest.test_setup.storage import StorageConfig
+from virttest.test_setup.verify import VerifyHostDMesg
 from virttest.test_setup.vms import UnrequestedVMHandler
 from virttest.utils_version import VersionInterval
 
@@ -1030,12 +1031,8 @@ def preprocess(test, params, env):
             )
             a_process.system(reset_cmd, shell=True)
 
-    # Check host for any errors to start with and just report and
-    # clear it off, so that we do not get the false test failures.
-    if params.get("verify_host_dmesg", "yes") == "yes":
-        utils_misc.verify_dmesg(ignore_result=True)
-
     _setup_manager.initialize(test, params, env)
+    _setup_manager.register(VerifyHostDMesg)
     _setup_manager.register(SwitchSMTOff)
     _setup_manager.register(CheckRunningAsRoot)
     _setup_manager.register(CheckInstalledCMDs)
@@ -1773,22 +1770,6 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nPostprocess command: %s" % str(details).replace("\n", "\n  ")
             LOG.error(details)
-
-    if params.get("verify_host_dmesg", "yes") == "yes":
-        dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
-        level = params.get("host_dmesg_level", 3)
-        expected_host_dmesg = params.get("expected_host_dmesg", "")
-        ignore_result = params.get("host_dmesg_ignore", "no") == "yes"
-        dmesg_log_file = utils_misc.get_path(test.debugdir, dmesg_log_file)
-        try:
-            utils_misc.verify_dmesg(
-                dmesg_log_file=dmesg_log_file,
-                ignore_result=ignore_result,
-                level_check=level,
-                expected_dmesg=expected_host_dmesg,
-            )
-        except exceptions.TestFail as details:
-            err += "\nHost dmesg verification failed: %s" % details
 
     err += "\n".join(_setup_manager.do_cleanup())
 
