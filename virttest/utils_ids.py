@@ -57,7 +57,11 @@ def _get_subid(id_filepath, name, info):
     if result.exit_status:
         raise TestError("Couldn't read %s" % id_filepath)
 
-    entry = [l for l in result.stdout_text.split("\n") if name in l]
+    entry = [
+        l
+        for l in result.stdout_text.split("\n")
+        if name in l and name == l.split(":")[0]
+    ]
     if not entry:
         raise TestError("No entry for %s found in %s" % (name, id_filepath))
 
