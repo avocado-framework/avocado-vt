@@ -527,19 +527,33 @@ class HugePageConfig(object):
         obj = kernel_interface.SysFS(pgfile)
         return obj.sys_fs_value
 
-    def set_kernel_hugepages(self, pagesize, pagenum):
+    def set_kernel_hugepages(self, pagesize, pagenum, ignore_error=True):
         """
         Let kernel allocate some specific hugepages at runtime
         write page number to
         /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
 
         :param pagesize: string or int, page size in kB
-        :param pagenum: page number
+        :param pagenum: string or int, page number
+        :param ignore_error: boolean, True, not raise exception when failing
+        :return: boolean, False if huge page number is less than pagenum,
+                          otherwise, True
         """
         pgfile = "%s/hugepages-%skB/nr_hugepages" % (self.pool_path, pagesize)
 
         obj = kernel_interface.SysFS(pgfile)
         obj.sys_fs_value = pagenum
+        if obj.sys_fs_value < int(pagenum):
+            error_msg = (
+                "Only allocated %d pages %skiB huge pages, "
+                "but requried %s" % (obj.sys_fs_value, pagesize, pagenum)
+            )
+            if not ignore_error:
+                raise exceptions.TestSetupFail(error_msg)
+            else:
+                LOG.warning(error_msg)
+                return False
+        return True
 
     def get_node_num_huge_pages(self, node, pagesize, type="total"):
         """
