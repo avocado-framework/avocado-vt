@@ -304,6 +304,15 @@ class LibvirtXMLBase(propcan.PropCanBase):
                     'Cannot set attribute "%s" to %s object.'
                     "There is no such attribute." % (key, self.__class__)
                 )
+
+            # Delete attribute if the value is explicitly set to None
+            if value is None:
+                del_func = eval("self.del_%s" % key)
+                if not isinstance(del_func, propcan.PropCanBase):
+                    logging.warning(f"Customized del func {del_func} might not work")
+                del_func()
+                continue
+
             get_func = eval("self.get_%s" % key)
 
             # Skip Getters if they are customized
