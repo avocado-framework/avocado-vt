@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import signal
+import subprocess
 import time
 import traceback
 from collections import OrderedDict
@@ -2259,11 +2260,31 @@ class QVirtioFSDev(QDaemonDev):
 
     def start_daemon(self):
         """Start the virtiofs daemon in background."""
-        fsd_cmd = "%s --socket-path=%s" % (
-            self.get_param("binary"),
-            self.get_param("sock_path"),
-        )
-        fsd_cmd += " -o source=%s" % self.get_param("source")
+        virtiofs_binary = self.get_param("binary")
+        socket_path = self.get_param("sock_path")
+        source_dir = self.get_param("source")
+
+        fsd_cmd = f"{virtiofs_binary} --socket-path={socket_path}"
+
+        # Capture the capabilities of virtiofsd
+        try:
+            result = subprocess.check_output(
+                [virtiofs_binary, "--print-capabilities"], universal_newlines=True
+            )
+        except subprocess.CalledProcessError as e:
+            raise DeviceError("virtiofsd failed to report capabilities: %s" % e)
+
+        virtiofs_cpblt = json.loads(result)
+
+        # Append appropriate parameters based on the virtiofsd capabilities
+        if (
+            "features" in virtiofs_cpblt
+            and "separate-options" in virtiofs_cpblt["features"]
+        ):
+            fsd_cmd += f" --shared-dir {source_dir}"
+        else:
+            fsd_cmd += f" -o source={source_dir}"
+
         if self.get_param("enable_debug_mode") == "on":
             fsd_cmd += " -d"
             self.set_param("status_active", "Waiting for vhost-user socket connection")
