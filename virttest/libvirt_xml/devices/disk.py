@@ -644,7 +644,7 @@ class Disk(base.TypedDeviceBase):
             dict, keys: type, uuid
         """
 
-        __slots__ = ("encryption", "secret")
+        __slots__ = ("encryption", "secret", "attrs")
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute(
@@ -656,6 +656,9 @@ class Disk(base.TypedDeviceBase):
             )
             accessors.XMLElementDict(
                 "secret", self, parent_xpath="/", tag_name="secret"
+            )
+            accessors.XMLElementDict(
+                "attrs", self, parent_xpath="/", tag_name="encryption"
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<encryption/>"
