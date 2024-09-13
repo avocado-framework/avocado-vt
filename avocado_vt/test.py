@@ -150,6 +150,11 @@ class VirtTest(test.Test, utils.TestUtils):
         except exceptions.TestSkipError:
             self.__exc_info = sys.exc_info()
             raise  # This one has to be raised in setUp
+        except OSError as e:
+            if not self._config.get("vt.omit_data_loss"):
+                raise e
+            elif e.errno != 9:
+                raise e
         except:  # nopep8 Old-style exceptions are not inherited from Exception()
             self.__exc_info = sys.exc_info()
             self.__status = self.__exc_info[1]
@@ -169,28 +174,34 @@ class VirtTest(test.Test, utils.TestUtils):
                             os.remove(libvirtd_log)
                     else:
                         # tar the libvirtd log and archive
-                        self.log.info("archiving libvirtd debug logs")
-                        from virttest import utils_package
+                        try:
+                            self.log.info("archiving libvirtd debug logs")
+                            from virttest import utils_package
 
-                        if utils_package.package_install("tar"):
-                            if os.path.isfile(libvirtd_log):
-                                archive = os.path.join(
-                                    os.path.dirname(libvirtd_log), "libvirtd.tar.gz"
-                                )
-                                cmd = "tar -zcf %s -P %s" % (
-                                    shlex.quote(archive),
-                                    shlex.quote(libvirtd_log),
-                                )
-                                if process.system(cmd) == 0:
-                                    os.remove(libvirtd_log)
+                            if utils_package.package_install("tar"):
+                                if os.path.isfile(libvirtd_log):
+                                    archive = os.path.join(
+                                        os.path.dirname(libvirtd_log), "libvirtd.tar.gz"
+                                    )
+                                    cmd = "tar -zcf %s -P %s" % (
+                                        shlex.quote(archive),
+                                        shlex.quote(libvirtd_log),
+                                    )
+                                    if process.system(cmd) == 0:
+                                        os.remove(libvirtd_log)
+                                else:
+                                    self.log.error(
+                                        "Unable to find log file: %s", libvirtd_log
+                                    )
                             else:
                                 self.log.error(
-                                    "Unable to find log file: %s", libvirtd_log
+                                    "Unable to find tar to compress libvirtd " "logs"
                                 )
-                        else:
-                            self.log.error(
-                                "Unable to find tar to compress libvirtd " "logs"
-                            )
+                        except OSError as e:
+                            if not self._config.get("vt.omit_data_loss"):
+                                raise e
+                            elif e.errno != 9:
+                                raise e
 
             if env_lang:
                 os.environ["LANG"] = env_lang

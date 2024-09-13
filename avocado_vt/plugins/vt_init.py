@@ -125,6 +125,19 @@ if hasattr(plugin_interfaces, "Init"):
                 help_msg=help_msg,
             )
 
+            help_msg = (
+                "Omits the `OSError [Errno 9] Bad file descriptor` caused by "
+                "avocado.utils.process utility during clean up. This can be used "
+                "when this error would cause false positive failures of a test."
+            )
+            settings.register_option(
+                section,
+                key="omit_data_loss",
+                key_type=bool,
+                default=False,
+                help_msg=help_msg,
+            )
+
             # [vt.setup] section
             section = "vt.setup"
 
