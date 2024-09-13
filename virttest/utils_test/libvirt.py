@@ -522,6 +522,7 @@ def setup_or_cleanup_nfs(
                     '"setsebool virt_use_nfs on" to get '
                     "nfs access right."
                 )
+                process.run("setsebool virt_use_nfs on", shell=True)
         _nfs.setup()
         nfs_mount_info = (
             process.run("nfsstat -m", shell=True).stdout_text.strip().split(",")
