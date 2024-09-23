@@ -1601,7 +1601,10 @@ def run_autotest(
     except Exception:
         # Leak global_config.ini, generate a mini configuration
         # to ensure client tests can work.
-        import ConfigParser
+        try:
+            import configparser as ConfigParser
+        except ImportError:
+            import ConfigParser
 
         config = ConfigParser.ConfigParser()
         for section in ["CLIENT", "COMMON"]:
