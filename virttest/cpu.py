@@ -45,9 +45,20 @@ ARCH = platform.machine()
 
 CPU_TYPES = {
     "AuthenticAMD": [
+        "EPYC-Genoa-v1",
         "EPYC-Genoa",
+        "EPYC-Milan-v2",
+        "EPYC-Milan-v1",
         "EPYC-Milan",
+        "EPYC-Rome-v4",
+        "EPYC-Rome-v3",
+        "EPYC-Rome-v2",
+        "EPYC-Rome-v1",
         "EPYC-Rome",
+        "EPYC-v4",
+        "EPYC-v3",
+        "EPYC-v2",
+        "EPYC-v1",
         "EPYC",
         "Opteron_G5",
         "Opteron_G4",
@@ -56,9 +67,21 @@ CPU_TYPES = {
         "Opteron_G1",
     ],
     "GenuineIntel": [
+        "SapphireRapids-v3",
+        "SapphireRapids-v2",
+        "SapphireRapids-v1",
         "SapphireRapids",
         "Snowridge",
+        "Cooperlake-v2",
+        "Cooperlake-v1",
         "Cooperlake",
+        "Icelake-Server-v7",
+        "Icelake-Server-v6",
+        "Icelake-Server-v5",
+        "Icelake-Server-v4",
+        "Icelake-Server-v3",
+        "Icelake-Server-v2",
+        "Icelake-Server-v1",
         "Icelake-Server",
         "Icelake-Server-noTSX",
         "Icelake-Client",
@@ -82,26 +105,79 @@ CPU_TYPES = {
     ],
 }
 CPU_TYPES_RE = {
-    "EPYC-Genoa": "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
-    "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2,gfni,avx512_vnni,"
-    "avx512_bitalg,avx512_vpopcntdq,avx512_bf16",
+    "EPYC-Genoa-v1": (
+        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
+        "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
+    ),
+    "EPYC-Genoa": (
+        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
+        "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
+    ),
+    "EPYC-Milan-v2": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku,vaes,vpclmulqdq",
+    "EPYC-Milan-v1": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
     "EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
-    "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
+    "EPYC-Rome-v4": "rdpid,wbnoinvd,stibp,clwb,umip,ibrs",
+    "EPYC-Rome-v3": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
+    "EPYC-Rome-v2": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
+    "EPYC-Rome-v1": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves",
+    "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves",
+    "EPYC-v4": "avx2,adx,bmi2,sha_ni,ibpb,perfctr_core,clzero,xsaveerptr,xsaves",
+    "EPYC-v3": "avx2,adx,bmi2,sha_ni,ibpb,perfctr_core,clzero,xsaveerptr,xsaves",
+    "EPYC-v2": "avx2,adx,bmi2,sha_ni,ibpb",
+    "EPYC-v1": "avx2,adx,bmi2,sha_ni",
     "EPYC": "avx2,adx,bmi2,sha_ni",
     "Opteron_G5": "f16c,fma4,xop,tbm",
     "Opteron_G4": (
-        "fma4,xop,avx,xsave,aes,sse4.2|sse4_2," "sse4.1|sse4_1,cx16,ssse3,sse4a"
+        "fma4,xop,avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a"
     ),
     "Opteron_G3": "cx16,sse4a",
     "Opteron_G2": "cx16",
     "Opteron_G1": "",
+    "SapphireRapids-v3": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no,ss,tsc_adjust,cldemote,movdiri,movdir64b"
+    ),
+    "SapphireRapids-v2": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no"
+    ),
+    "SapphireRapids-v1": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no"
+    ),
     "SapphireRapids": (
         "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
         "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
         "avx512_fp16,hle,rtm,taa-no"
     ),
-    "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote",
+    "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote,mpx",
+    "Cooperlake-v2": "avx512_bf16,stibp,arch_capabilities,hle,rtm,xsaves",
+    "Cooperlake-v1": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
     "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
+    "Icelake-Server-v7": (
+        "avx512_vnni,la57,clflushopt,hle,rtm,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm,hle,rtm"
+    ),
+    "Icelake-Server-v6": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v5": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v4": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v3": "avx512_vnni,la57,clflushopt,arch_capabilities,taa-no",
+    "Icelake-Server-v2": "avx512_vnni,la57,clflushopt",
+    "Icelake-Server-v1": "avx512_vnni,la57,clflushopt,hle,rtm",
     "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
     "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
     "Icelake-Client": (
@@ -115,10 +191,11 @@ CPU_TYPES_RE = {
         "gfni,vaes,vpclmulqdq,avx512_vnni"
     ),
     "Cascadelake-Server": (
-        "avx512f,avx512dq,avx512bw,avx512cd," "avx512vl,clflushopt,avx512_vnni,hle,rtm"
+        "avx512f,avx512dq,avx512bw,avx512cd,avx512vl,clflushopt,avx512_vnni,hle,rtm"
     ),
     "Cascadelake-Server-noTSX": (
-        "avx512f,avx512dq,avx512bw,avx512cd," "avx512vl,clflushopt,avx512_vnni"
+        "avx512f,avx512dq,avx512bw,avx512cd,avx512vl,"
+        "clflushopt,avx512_vnni,arch_capabilities"
     ),
     "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
     "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
@@ -129,7 +206,7 @@ CPU_TYPES_RE = {
     "Haswell": "fma,avx2,movbe,hle,rtm",
     "Haswell-noTSX": "fma,avx2,movbe",
     "IvyBridge": "f16c,fsgsbase,erms",
-    "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1," "cx16,ssse3"),
+    "SandyBridge": "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
     "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
     "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
     "Penryn": "sse4.1|sse4_1,cx16,ssse3",
