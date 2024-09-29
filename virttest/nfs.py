@@ -459,14 +459,13 @@ class NFSClient(object):
         """
         check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
         LOG.debug("To check if the %s exists", self.mount_dir)
-        output = process.getoutput(check_mount_dir_cmd)
-        if re.findall("No such file or directory", output, re.M):
-            mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
-            LOG.debug("Prepare to create %s", self.mount_dir)
-            s, o = process.getstatusoutput(mkdir_cmd)
-            if s != 0:
-                raise exceptions.TestFail("Failed to run %s: %s" % (mkdir_cmd, o))
-            self.mkdir_mount_remote = True
+        ret = process.run(check_mount_dir_cmd, shell=True, ignore_status=True)
+        if ret.exit_status:
+            if re.findall("No such file or directory", ret.stderr_text, re.M):
+                mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
+                LOG.debug("Prepare to create %s", self.mount_dir)
+                process.run(mkdir_cmd, shell=True)
+                self.mkdir_mount_remote = True
 
         if self.params.get("firewall_to_permit_nfs", "yes") == "yes":
             if distro.detect().name != "Ubuntu":
