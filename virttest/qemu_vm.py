@@ -3945,7 +3945,7 @@ class VM(virt_vm.BaseVM):
                     ", ".join([str(tid) for tid in self.vcpu_threads]),
                 )
             vhost_thread_pattern = params.get(
-                "vhost_thread_pattern", r"\w+\s+(\d+)\s.*\[vhost-%s\]"
+                "vhost_thread_pattern", r"\d+\s+(\d+)\s.*vhost-%s"
             )
             self.vhost_threads = self.get_vhost_threads(vhost_thread_pattern)
 
@@ -4385,18 +4385,18 @@ class VM(virt_vm.BaseVM):
 
     def get_vhost_threads(self, vhost_thread_pattern):
         """
-        Return the list of vhost threads PIDs
+        Return the list of vhost threads (LWP) IDs
 
         :param vhost_thread_pattern: a regex to match the vhost threads
         :type vhost_thread_pattern: string
-        :return: a list of vhost threads PIDs
+        :return: a list of vhost threads (LWP) IDs
         :rtype: builtin.list
         """
         return [
             int(_)
             for _ in re.findall(
                 vhost_thread_pattern % self.get_pid(),
-                process.run("ps aux", verbose=False).stdout_text,
+                process.run("ps -eL", verbose=False).stdout_text,
             )
         ]
 
