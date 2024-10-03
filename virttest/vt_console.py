@@ -1,8 +1,10 @@
-import logging
 import threading
 import time
+import logging
 
 from aexpect import remote
+
+from virttest.vt_cluster import proxy
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -100,7 +102,20 @@ class ConsoleManager(object):
                     if len(self._console.get_output().strip()) > 500:
                         break
 
-        remote.handle_prompts(self._console, username, password, prompt, timeout)
+        # FIXME: duplicate the handle prompts for the remote node
+        if hasattr(self._console, "_instance_id"):
+            try:
+                self._console.login(username, password, prompt, timeout)
+            except proxy.ServerProxyError as e:
+                if "aexpect.remote.LoginTimeoutError" == e.code[0]:
+                    raise remote.LoginTimeoutError(e.code[1].get("output"))
+                elif "aexpect.remote.LoginProcessTerminatedError" == e.code:
+                    raise remote.LoginProcessTerminatedError(
+                        e.code[1].get("output"))
+                else:
+                    raise e
+        else:
+            remote.handle_prompts(self._console, username, password, prompt, timeout)
 
     def create_session(
         self, linesep, status_test_command, prompt, username, password, timeout
