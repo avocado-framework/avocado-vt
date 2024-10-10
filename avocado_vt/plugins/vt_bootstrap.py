@@ -142,6 +142,15 @@ class VTBootstrap(CLICmd):
                 "generating the host configuration entry."
             ),
         )
+        parser.add_argument(
+            "--vt-cluster-config",
+            action="store",
+            metavar="CLUSTER_CONFIG",
+            help=(
+                "The cluster config json file to be used when "
+                "generating the cluster hosts configuration entry."
+            ),
+        )
 
     def run(self, config):
         try:
