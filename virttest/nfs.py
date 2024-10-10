@@ -295,6 +295,9 @@ class NFSClient(object):
 
     def __init__(self, params):
         self.nfs_client_ip = params.get("nfs_client_ip")
+        # Create /root/.ssh/known_hosts file
+        cmd = "ssh-keyscan %s >> ~/.ssh/known_hosts" % params.get("nfs_server_ip")
+        process.run(cmd, shell=True, ignore_status=True)
         # To Avoid host key verification failure
         ret = process.run("ssh-keygen -R %s" % self.nfs_client_ip, ignore_status=True)
         stderr = ret.stderr_text
