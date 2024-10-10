@@ -4031,9 +4031,41 @@ class DevContainer(object):
                 "failover_pair_id": params.get("vm_hostdev_failover_pair_id"),
             }
         )
+
+        devs = []
+
+        iommufd_id = params.objects("vm_hostdev_iommufd")
+        # To support single/multiple iommufd for single/multiple hostdev
+        for fd_id in iommufd_id:
+            if not self.get_by_qid(fd_id):
+                iommufd = self.iommufd_object_define_by_params(fd_id)
+                dev_params["iommufd"] = fd_id
+                devs.append(iommufd)
+                break
+            else:
+                # For multiple hostdev with the same iommufd
+                dev_params["iommufd"] = fd_id
+
         # TODO: Support vfio-ap and vfio-ccw, currently only for pci devices
         dev_bus = bus or {"aobject": params.get("pci_bus", "pci.0")}
         dev = qdevices.QDevice(driver, dev_params, parent_bus=dev_bus)
         for ext_k, ext_v in params.get_dict("vm_hostdev_extra_params").items():
             dev.set_param(ext_k, ext_v)
-        return dev
+        devs.append(dev)
+        return devs
+
+    def iommufd_object_define_by_params(self, obj_id):
+        """
+        Create iommufd object device by params
+
+        The iommufd objects cmdlines:
+            -object iommufd,id=iommufd0
+
+        :param obj_id: The id of the QObject device, e.g. iommufd0
+        :return: the iommufd QObject device
+        """
+        if not os.path.exists("/dev/iommu"):
+            LOG.error("iommufd is not supported, modprobe iommufd to enable it")
+        else:
+            backend, properties = "iommufd", {"id": obj_id}
+            return qdevices.QObject(backend, properties)
