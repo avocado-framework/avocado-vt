@@ -3998,6 +3998,10 @@ class DevContainer(object):
                 raise ValueError("Unsupported tdx-guest object")
 
             backend, tdx_obj_props = "tdx-guest", {"id": obj_id}
+            tdx_opts = params.get_dict("vm_secure_guest_object_options")
+            if tdx_opts:
+                tdx_obj_props.update(tdx_opts)
+
             return backend, tdx_obj_props
 
         obj_props_handlers = {"sev": _gen_sev_obj_props, "tdx": _gen_tdx_obj_props}
