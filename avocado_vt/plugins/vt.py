@@ -250,6 +250,20 @@ class VTRun(CLI):
             help=help_msg,
         )
 
+        help_msg = (
+            "Omits the `OSError [Errno 9] Bad file descriptor` caused by "
+            "avocado.utils.process utility during clean up. This can be used "
+            "when this error would cause false positive failures of a test."
+        )
+        add_option(
+            vt_compat_group_common,
+            dest="vt.omit_data_loss",
+            arg="--vt-omit-data-loss",
+            action="store_true",
+            default=False,
+            help=help_msg,
+        )
+
     def run(self, config):
         """
         Run test modules or simple tests.
