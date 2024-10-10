@@ -651,7 +651,7 @@ class VMCheck(object):
         else:
             raise ValueError("Doesn't support %s target now" % self.target)
 
-    def create_session(self, timeout=480):
+    def create_session(self, timeout=900):
         if self.session:
             LOG.debug("vm session %s exists", self.session)
             return
