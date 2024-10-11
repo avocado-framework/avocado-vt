@@ -935,6 +935,7 @@ class VMXML(VMXMLBase):
         sockets=None,
         cores=None,
         threads=None,
+        clusters=None,
         add_topology=False,
         topology_correction=False,
         update_numa=True,
@@ -952,6 +953,7 @@ class VMXML(VMXMLBase):
         :param sockets: number of socket, default None
         :param cores: number of cores, default None
         :param threads: number of threads, default None
+        :param clusters: number of clusters, default None
         :param add_topology: True to add new topology definition if not present
         :param topology_correction: Correct topology if wrong already
         :param update_numa: Update numa
@@ -990,7 +992,11 @@ class VMXML(VMXMLBase):
                     cores = topology["cores"]
                 if not threads:
                     threads = topology["threads"]
-            if (topology or add_topology) and (sockets or cores or threads):
+                if not clusters:
+                    clusters = (
+                        topology["clusters"] if topology["clusters"] is not None else 1
+                    )
+            if (topology or add_topology) and (sockets or cores or threads or clusters):
                 # Only operate topology tag, other tags doesn't change
                 try:
                     vmcpu_xml = vmxml["cpu"]
@@ -1000,15 +1006,19 @@ class VMXML(VMXMLBase):
                     if "aarch64" in platform.platform():
                         vmcpu_xml.mode = "host-passthrough"
                 if topology_correction and (
-                    (int(sockets) * int(cores) * int(threads)) != vcpus
+                    (int(sockets) * int(cores) * int(threads) * int(clusters)) != vcpus
                 ):
                     cores = vcpus
                     sockets = 1
                     threads = 1
+                    clusters = 1
+                if not clusters:
+                    clusters = 1
                 vmcpu_xml["topology"] = {
                     "sockets": sockets,
                     "cores": cores,
                     "threads": threads,
+                    "clusters": clusters,
                 }
                 vmxml["cpu"] = vmcpu_xml
             try:
