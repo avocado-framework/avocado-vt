@@ -1601,9 +1601,9 @@ def run_autotest(
     except Exception:
         # Leak global_config.ini, generate a mini configuration
         # to ensure client tests can work.
-        import ConfigParser
+        import configParser
 
-        config = ConfigParser.ConfigParser()
+        config = configParser.ConfigParser()
         for section in ["CLIENT", "COMMON"]:
             config.add_section(section)
         config.set("COMMON", "crash_handling_enabled", "True")
