@@ -2226,8 +2226,8 @@ class QVirtioFSDev(QDaemonDev):
         binary,
         sock_path,
         source,
+        log_level=None,
         extra_options=None,
-        enable_debug_mode=False,
     ):
         """
         :param aobject: The aobject of virtiofs daemon.
@@ -2238,10 +2238,10 @@ class QVirtioFSDev(QDaemonDev):
         :type sock_path: str
         :param source: The source of virtiofs daemon.
         :type source: str
+        :param log_level: The log level of virtiofs daemon.
+        :type log_level: str
         :param extra_options: The external options of virtiofs daemon.
         :type extra_options: str
-        :param enable_debug_mode: Enable debug mode of virtiofs daemon.
-        :type enable_debug_mode: bool
         """
         super(QVirtioFSDev, self).__init__(
             "virtiofs", aobject=aobject, child_bus=QUnixSocketBus(sock_path, aobject)
@@ -2249,8 +2249,8 @@ class QVirtioFSDev(QDaemonDev):
         self.set_param("binary", binary)
         self.set_param("sock_path", sock_path)
         self.set_param("source", source)
+        self.set_param("log_level", log_level)
         self.set_param("extra_options", extra_options)
-        self.set_param("enable_debug_mode", enable_debug_mode)
 
     def _handle_log(self, line):
         """Handle the log of virtiofs daemon."""
@@ -2265,6 +2265,9 @@ class QVirtioFSDev(QDaemonDev):
         virtiofs_binary = self.get_param("binary")
         socket_path = self.get_param("sock_path")
         source_dir = self.get_param("source")
+        log_level = self.get_param("log_level")
+
+        allowed_log_levels = {"error", "warn", "info", "debug", "trace", "off"}
 
         fsd_cmd = f"{virtiofs_binary} --socket-path={socket_path}"
 
@@ -2284,12 +2287,25 @@ class QVirtioFSDev(QDaemonDev):
             and "separate-options" in virtiofs_cpblt["features"]
         ):
             fsd_cmd += f" --shared-dir {source_dir}"
+            if log_level is not None:
+                if log_level in allowed_log_levels:
+                    fsd_cmd += f" --log-level {log_level}"
+                    self.set_param(
+                        "status_active", "Waiting for vhost-user socket connection"
+                    )
+                else:
+                    raise DeviceError(
+                        f"Only {allowed_log_levels} log levels are supported."
+                    )
         else:
             fsd_cmd += f" -o source={source_dir}"
-
-        if self.get_param("enable_debug_mode") == "on":
-            fsd_cmd += " -d"
-            self.set_param("status_active", "Waiting for vhost-user socket connection")
+            if log_level is not None and log_level == "debug":
+                fsd_cmd += " -d"
+                self.set_param(
+                    "status_active", "Waiting for vhost-user socket connection"
+                )
+            elif log_level is not None:
+                raise DeviceError("Only debug log-level is supported.")
 
         if self.get_param("extra_options"):
             fsd_cmd += self.get_param("extra_options")
