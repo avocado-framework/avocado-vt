@@ -2547,6 +2547,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolFTP
             elif filename.startswith("vdpa:"):
                 protocol_cls = qdevices.QBlockdevProtocolVirtioBlkVhostVdpa
+            elif "vhost-user-blk" in filename:
+                protocol_cls = qdevices.QBlockdevProtocolVirtioBlkVhostUser
             elif fmt in ("scsi-generic", "scsi-block"):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
