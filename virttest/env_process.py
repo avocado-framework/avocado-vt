@@ -45,6 +45,7 @@ from virttest import (
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
 from virttest.test_setup.core import SetupManager
+from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.migration import MigrationEnvSetup
 from virttest.test_setup.networking import (
@@ -1014,24 +1015,8 @@ def preprocess(test, params, env):
         vms = list(set(params.objects("vms") + migrate_vms))
         params["vms"] = " ".join(vms)
 
-    # Check if code coverage for qemu is enabled and
-    # if coverage reset is enabled too, reset coverage report
-    gcov_qemu = params.get("gcov_qemu", "no") == "yes"
-    gcov_qemu_reset = params.get("gcov_qemu_reset", "no") == "yes"
-    if gcov_qemu and gcov_qemu_reset:
-        qemu_builddir = os.path.join(test.bindir, "build", "qemu")
-        qemu_bin = os.path.join(test.bindir, "bin", "qemu")
-        if os.path.isdir(qemu_builddir) and os.path.isfile(qemu_bin):
-            os.chdir(qemu_builddir)
-            # Looks like libvirt process does not have permissions to write to
-            # coverage files, hence give write for all files in qemu source
-            reset_cmd = "make clean-coverage;%s -version;" % qemu_bin
-            reset_cmd += (
-                'find %s -name "*.gcda" -exec chmod a=rwx {} \;' % qemu_builddir
-            )
-            a_process.system(reset_cmd, shell=True)
-
     _setup_manager.initialize(test, params, env)
+    _setup_manager.register(ResetQemuGCov)
     _setup_manager.register(VerifyHostDMesg)
     _setup_manager.register(SwitchSMTOff)
     _setup_manager.register(CheckRunningAsRoot)
