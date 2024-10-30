@@ -15,6 +15,14 @@ class Address(base.TypedDeviceBase):
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         # Blindly accept any/all attributes as simple dictionary
         accessors.XMLElementDict("attrs", self, parent_xpath="/", tag_name="address")
+        accessors.XMLElementNest(
+            "zpci_attrs",
+            self,
+            parent_xpath="/",
+            tag_name="zpci",
+            subclass=self.Zpci,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
         super(self.__class__, self).__init__(
             device_tag="address", type_name=type_name, virsh_instance=virsh_instance
         )
@@ -46,3 +54,33 @@ class Address(base.TypedDeviceBase):
                 "type attribute is manditory for " "Address class"
             )
         return cls.new_from_dict(edict, virsh_instance=virsh_instance)
+
+    class Zpci(base.base.LibvirtXMLBase):
+        """Represents the optional subelement for zpci addresses"""
+
+        __slots__ = ("uid", "fid")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLAttribute(
+                "uid",
+                self,
+                parent_xpath="/",
+                tag_name="zpci",
+                attribute="uid",
+            )
+            accessors.XMLAttribute(
+                "fid",
+                self,
+                parent_xpath="/",
+                tag_name="zpci",
+                attribute="fid",
+            )
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<zpci/>"
+
+        @classmethod
+        def new_from_dict(cls, attributes, virsh_instance=base.base.virsh):
+            instance = cls(virsh_instance=virsh_instance)
+            instance.uid = attributes["uid"]
+            instance.fid = attributes["fid"]
+            return instance
