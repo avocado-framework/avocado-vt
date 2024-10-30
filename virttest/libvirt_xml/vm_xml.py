@@ -1005,14 +1005,14 @@ class VMXML(VMXMLBase):
                     vmcpu_xml = VMCPUXML()
                     if "aarch64" in platform.platform():
                         vmcpu_xml.mode = "host-passthrough"
+                if not clusters:
+                    clusters = 1
                 if topology_correction and (
                     (int(sockets) * int(cores) * int(threads) * int(clusters)) != vcpus
                 ):
                     cores = vcpus
                     sockets = 1
                     threads = 1
-                    clusters = 1
-                if not clusters:
                     clusters = 1
                 vmcpu_xml["topology"] = {
                     "sockets": sockets,
