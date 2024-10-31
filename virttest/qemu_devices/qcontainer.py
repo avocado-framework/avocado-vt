@@ -429,6 +429,9 @@ class DevContainer(object):
         # -object sev-guest
         if self.has_object("sev-guest"):
             self.caps.set_flag(Flags.SEV_GUEST)
+        # -object sev-snp-guest
+        if self.has_object("sev-snp-guest"):
+            self.caps.set_flag(Flags.SNP_GUEST)
         # -object tdx-guest
         if self.has_object("tdx-guest"):
             self.caps.set_flag(Flags.TDX_GUEST)
@@ -1400,8 +1403,8 @@ class DevContainer(object):
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
             )
 
-            # FIXME: Use -bios option to set firmware for a tdx vm
-            if params.get("vm_secure_guest_type") != "tdx":
+            # FIXME: Use -bios option to set firmware for a tdx/snp vm
+            if params.get("vm_secure_guest_type") not in ["snp", "tdx"]:
                 pflash_devices = pflash_handler("ovmf", machine_params)
                 devices.extend(pflash_devices)
 
@@ -3948,30 +3951,43 @@ class DevContainer(object):
         :return: the secret QObject device
         """
 
+        def _gen_sev_common_props(params):
+            """
+            Generate the sev common properties, refer to SevCommonProperties
+            Required: cbitpos, reduced-phys-bits
+            """
+            sev_common_props = {
+                # FIXME: Set the following two properties from sev capabilities
+                # if they are not set yet
+                "cbitpos": int(params["vm_sev_cbitpos"]),
+                "reduced-phys-bits": int(params["vm_sev_reduced_phys_bits"]),
+            }
+
+            if params.get("vm_sev_kernel_hashes"):
+                sev_common_props["kernel-hashes"] = params.get_boolean(
+                    "vm_sev_kernel_hashes"
+                )
+            if params.get("vm_sev_device"):
+                sev_common_props["sev-device"] = params["vm_sev_device"]
+
+            return sev_common_props
+
         def _gen_sev_obj_props(obj_id, params):
             """
-            Generate the properties of the sev-guest object.
-
-            Follow libvirt's way to set the following options:
-            Required:
-              policy, cbitpos and reduced-phys-bits
-            Optional:
-              session-file, dh-cert-file and kernel-hashes(since 6.2)
-
-            :return: a tuple of (backend, sev-guest QObject properties dict)
+            Generate the sev-guest properties, refer to SevGuestProperties
             """
             if Flags.SEV_GUEST not in self.caps:
                 raise ValueError("Unsupported sev-guest object")
 
             backend, sev_obj_props = "sev-guest", {"id": obj_id}
+            sev_opts = params.get_dict("vm_secure_guest_object_options")
+            if sev_opts:
+                sev_obj_props.update(sev_opts)
+
+            sev_obj_props.update(_gen_sev_common_props(params))
 
             # Set policy=3 if vm_sev_policy is not set
             sev_obj_props["policy"] = int(params.get("vm_sev_policy", 3))
-
-            # FIXME: Set the following two options from sev capabilities
-            # if they are not set yet
-            sev_obj_props["cbitpos"] = int(params["vm_sev_cbitpos"])
-            sev_obj_props["reduced-phys-bits"] = int(params["vm_sev_reduced_phys_bits"])
 
             # FIXME: If these files are host dependent, we have to find
             # another way to set them, because different files are needed
@@ -3981,12 +3997,23 @@ class DevContainer(object):
             if params.get("vm_sev_dh_cert_file"):
                 sev_obj_props["dh-cert-file"] = params["vm_sev_dh_cert_file"]
 
-            if params.get("vm_sev_kernel_hashes"):
-                sev_obj_props["kernel-hashes"] = params.get_boolean(
-                    "vm_sev_kernel_hashes"
-                )
-
             return backend, sev_obj_props
+
+        def _gen_snp_obj_props(obj_id, params):
+            """
+            Generate the sev-snp-guest properties, refer to SevSnpGuestProperties
+            """
+            if Flags.SNP_GUEST not in self.caps:
+                raise ValueError("Unsupported sev-snp-guest object")
+
+            backend, snp_obj_props = "sev-snp-guest", {"id": obj_id}
+            snp_opts = params.get_dict("vm_secure_guest_object_options")
+            if snp_opts:
+                snp_obj_props.update(snp_opts)
+
+            snp_obj_props.update(_gen_sev_common_props(params))
+
+            return backend, snp_obj_props
 
         def _gen_tdx_obj_props(obj_id, params):
             """
@@ -4004,13 +4031,17 @@ class DevContainer(object):
 
             return backend, tdx_obj_props
 
-        obj_props_handlers = {"sev": _gen_sev_obj_props, "tdx": _gen_tdx_obj_props}
+        obj_props_handlers = {
+            "sev": _gen_sev_obj_props,
+            "snp": _gen_snp_obj_props,
+            "tdx": _gen_tdx_obj_props,
+        }
 
         sectype = params["vm_secure_guest_type"]
         if sectype in obj_props_handlers:
             backend, properties = obj_props_handlers[sectype](obj_id, params)
         else:
-            raise ValueError("Unsupported secure guest: %s" % sectype)
+            raise ValueError(f"Unsupported secure guest: {sectype}")
 
         return qdevices.QObject(backend, properties)
 
