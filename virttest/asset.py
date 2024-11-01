@@ -1,18 +1,12 @@
+import configparser
 import glob
 import logging
 import os
 import re
 import shutil
 
-from six import StringIO
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
-
 from avocado.utils import astring, crypto, download, genio, git, process
-from six import string_types
+from six import StringIO, string_types
 from six.moves import urllib
 
 from virttest import data_dir
@@ -39,7 +33,7 @@ class ConfigLoader:
                 ValueError exceptions.
         """
         # Base Parser
-        self.parser = ConfigParser.ConfigParser()
+        self.parser = configparser.ConfigParser()
         # Raise errors when lacking values
         self.raise_errors = raise_errors
         # File is already a file like object

@@ -1,15 +1,10 @@
 import ast
+import configparser
 import logging
 import os.path
 
-from six import StringIO
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
-
 from avocado.utils import distro
+from six import StringIO
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -92,7 +87,7 @@ class SectionlessConfig(object):
 
     def __init__(self, path):
         self.path = path
-        self.parser = ConfigParser.ConfigParser()
+        self.parser = configparser.ConfigParser()
         # Prevent of converting option names to lower case
         self.parser.optionxform = str
         self.backup_content = open(path, "r").read()
@@ -112,7 +107,7 @@ class SectionlessConfig(object):
     def __getitem__(self, option):
         try:
             return self.parser.get("root", option)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             raise ConfigNoOptionError(option, self.path)
 
     def __setitem__(self, option, value):
