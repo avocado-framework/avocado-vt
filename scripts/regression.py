@@ -8,15 +8,11 @@ compute and check regression bug.
 """
 from __future__ import division
 
+import configparser
 import os
 import re
 import sys
 import warnings
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
 
 import MySQLdb
 
@@ -32,7 +28,7 @@ def getoutput(cmd):
 
 
 def exec_sql(cmd, conf="../../global_config.ini"):
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(conf)
     user = config.get("AUTOTEST_WEB", "user")
     passwd = config.get("AUTOTEST_WEB", "password")
@@ -490,7 +486,7 @@ def display(
 
 def analyze(test, sample_type, arg1, arg2, configfile):
     """Compute averages/p-vales of two samples, print results nicely"""
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(configfile)
     ignore_col = int(config.get(test, "ignore_col"))
     avg_update = config.get(test, "avg_update")

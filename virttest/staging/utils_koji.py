@@ -6,10 +6,8 @@ try:
     from html.parser import HTMLParser
 except ImportError:
     from HTMLParser import HTMLParser
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
+
+import configparser
 
 from avocado.utils import astring, download, path
 from six.moves import urllib
@@ -223,7 +221,7 @@ class KojiClient(object):
             if not self.is_config_valid():
                 raise ValueError('Koji config "%s" is not valid' % self.config)
 
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(self.config)
 
         basename = os.path.basename(self.command)
@@ -287,7 +285,7 @@ class KojiClient(object):
             LOG.error('Koji config "%s" is not readable', self.config)
             koji_config_ok = False
 
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(self.config)
         basename = os.path.basename(self.command)
         if not config.has_section(basename):
