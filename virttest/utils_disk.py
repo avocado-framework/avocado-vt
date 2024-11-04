@@ -3,6 +3,7 @@ Virtualization test - Virtual disk related utility functions
 
 :copyright: Red Hat Inc.
 """
+import configparser
 import glob
 import logging
 import os
@@ -13,12 +14,6 @@ import shutil
 import stat
 import string
 import tempfile
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
-
 from functools import cmp_to_key
 
 from avocado.core import exceptions
@@ -1438,7 +1433,7 @@ class FloppyDisk(Disk):
                 "driver image has this file"
             )
 
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         parser.read(txtsetup_oem)
 
         if not parser.has_section("Defaults"):

@@ -1,5 +1,6 @@
 from __future__ import division
 
+import configparser
 import logging
 import os
 import re
@@ -9,11 +10,6 @@ import tempfile
 import threading
 import time
 import xml.dom.minidom
-
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
 
 from aexpect import remote
 from avocado.core import exceptions
@@ -523,7 +519,7 @@ class UnattendedInstallConfig(object):
             answer_file.write(contents)
 
     def answer_windows_ini(self, answer_path):
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         parser.read(self.unattended_file)
         # First, replacing the CDKEY
         if self.cdkey:
