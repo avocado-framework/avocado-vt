@@ -2442,7 +2442,7 @@ class QMPMonitor(Monitor):
         try:
             return self.cmd("migrate", args)
         except QMPCmdError as e:
-            if e.data["class"] in ["SockConnectInprogress", "GenericError"]:
+            if e.data["class"] in ["SockConnectInprogress"]:
                 LOG.debug("Migrate socket connection still initializing...")
             else:
                 raise e
