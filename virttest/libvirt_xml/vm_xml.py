@@ -4454,6 +4454,8 @@ class VMFeaturesHypervXML(base.LibvirtXMLBase):
         "ipi",
         "evmcs",
         "avic",
+        "emsr_bitmap",
+        "xmm_input",
     )
 
     def __init__(self, virsh_instance=base.virsh):
@@ -4538,7 +4540,18 @@ class VMFeaturesHypervXML(base.LibvirtXMLBase):
             subclass=VMFeaturesStimerXML,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
-
+        accessors.XMLElementDict(
+            property_name="emsr_bitmap",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="emsr_bitmap",
+        )
+        accessors.XMLElementDict(
+            property_name="xmm_input",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="xmm_input",
+        )
         super(VMFeaturesHypervXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = "<hyperv/>"
 
