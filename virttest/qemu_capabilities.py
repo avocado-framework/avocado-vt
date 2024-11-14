@@ -27,6 +27,7 @@ class Flags(object):
     MACHINE_MEMORY_BACKEND = _auto_value()
     MIGRATION_PARAMS = _auto_value()
     SEV_GUEST = _auto_value()
+    SNP_GUEST = _auto_value()
     TDX_GUEST = _auto_value()
     FLOPPY_DEVICE = _auto_value()
     BLOCKJOB_BACKING_MASK_PROTOCOL = _auto_value()
