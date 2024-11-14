@@ -42,6 +42,8 @@ class Tpm(base.UntypedDeviceBase):
             string. backend type
         version:
             string. backend version
+        debug:
+            string. backend debug
         persistent_state:
             string. backend persistent_state
         path:
@@ -57,6 +59,7 @@ class Tpm(base.UntypedDeviceBase):
         __slots__ = (
             "backend_type",
             "backend_version",
+            "backend_debug",
             "persistent_state",
             "device_path",
             "encryption_secret",
@@ -78,6 +81,13 @@ class Tpm(base.UntypedDeviceBase):
                 parent_xpath="/",
                 tag_name="backend",
                 attribute="version",
+            )
+            accessors.XMLAttribute(
+                property_name="backend_debug",
+                libvirtxml=self,
+                parent_xpath="/",
+                tag_name="backend",
+                attribute="debug",
             )
             accessors.XMLAttribute(
                 property_name="persistent_state",
