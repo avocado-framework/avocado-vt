@@ -1146,6 +1146,7 @@ class BaseVM(object):
             )
         except Exception:
             utils_logfile.close_log_file(log_filename)
+            os.unlink(log_filename)
             raise
         session.close_hooks += [utils_logfile.close_own_log_file(log_filename)]
         session.set_status_test_command(self.params.get("status_test_command", ""))
