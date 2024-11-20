@@ -1,6 +1,6 @@
 import logging
 
-from virttest import virt_vm
+from virttest import env_process, virt_vm
 from virttest.test_setup.core import Setuper
 
 LOG = logging.getLogger(__name__)
@@ -32,3 +32,24 @@ class UnrequestedVMHandler(Setuper):
 
     def cleanup(self):
         pass
+
+
+class ProcessVMOff(Setuper):
+    def setup(self):
+        # Run this hook before any network setup stage and vm creation.
+        if callable(env_process.preprocess_vm_off_hook):
+            env_process.preprocess_vm_off_hook(
+                self.test, self.params, self.env
+            )  # pylint: disable=E1102
+
+    def cleanup(self):
+        if callable(env_process.postprocess_vm_off_hook):
+            try:
+                env_process.postprocess_vm_off_hook(
+                    self.test, self.params, self.env
+                )  # pylint: disable=E1102
+            except Exception as details:
+                raise Exception(
+                    "\nPostprocessing dead vm hook: %s"
+                    % str(details).replace("\\n", "\n  ")
+                ) from None
