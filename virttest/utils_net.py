@@ -4595,7 +4595,19 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     if session:
         runner = session.cmd
     iface_name = get_net_if(runner=runner, state="UP")[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+
+
+    dhcp_client = "dhcp-client"
+    dhcp_cmd = "dhclient"
+    dhcp_release_cmd = "-r"
+    res = utils_misc.cmd_status_output("which dhclient", shell=True, ignore_status=False, session=session)[0]
+    if res == 1:
+        dhcp_client = "dhcpcd"
+        dhcp_cmd = "dhcpcd"
+        dhcp_release_cmd = "-k"
+
+
+    if not utils_package.package_install(["tmux", dhcp_client], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output(
@@ -4608,8 +4620,8 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
             "is installed."
         )
     cmd = (
-        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"
-        "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};{2} {3};"
+        "sleep 5 ;{2} {0}".format(ovs_bridge_name, iface_name, dhcp_cmd, dhcp_release_cmd)
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
