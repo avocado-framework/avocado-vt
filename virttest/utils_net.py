@@ -4089,7 +4089,9 @@ def get_default_gateway_json(
 
     default_route_list = [x for x in ip_route if x["dst"] == "default"]
     if force_dhcp:
-        default_route_list = [x for x in default_route_list if x["protocol"] == "dhcp"]
+        default_route_list = [
+            x for x in default_route_list if x.get("protocol") == "dhcp"
+        ]
     if target_iface:
         LOG.debug(f"Get default gateway only for: {target_iface}")
         non_multi = [x for x in default_route_list if x.get("dev") == target_iface]
