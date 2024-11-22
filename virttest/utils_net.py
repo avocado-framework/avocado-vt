@@ -1465,7 +1465,7 @@ def get_sorted_net_if():
     return (phy_interfaces, vir_interfaces)
 
 
-def get_remote_host_net_ifs(session, state=None):
+def get_remote_host_net_ifs(session, state=None, ip_options=""):
     """
     Get all network interfaces of remote host and sort them as physical
     and virtual interfaces.
@@ -1476,7 +1476,7 @@ def get_remote_host_net_ifs(session, state=None):
     """
     phy_interfaces = []
     vir_interfaces = []
-    cmd = "ip link"
+    cmd = f"ip {ip_options} link"
     if not state:
         state = ".*"
     cmd_output = session.cmd_status_output(cmd)
