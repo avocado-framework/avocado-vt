@@ -54,7 +54,7 @@ def get_cpu_model_name():
     cpu_model = re.search(cpu_model_re, cpu_model)
     if not cpu_model:
         raise OSError("The cpu model name was NOT found!")
-    cpu_model = cpu_model.groups()[0]
+    cpu_model = cpu_model.group()
     return cpu_model.split(":", 1)[-1].strip()
 
 
