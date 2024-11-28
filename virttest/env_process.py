@@ -62,7 +62,7 @@ from virttest.test_setup.requirement_checks import (
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
-from virttest.test_setup.vms import UnrequestedVMHandler
+from virttest.test_setup.vms import ProcessVMOff, UnrequestedVMHandler
 from virttest.utils_version import VersionInterval
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
@@ -1005,10 +1005,6 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
-    # Run this hook before any network setup stage and vm creation.
-    if callable(preprocess_vm_off_hook):
-        preprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
-
     # Add migrate_vms to vms
     migrate_vms = params.objects("migrate_vms")
     if migrate_vms:
@@ -1016,6 +1012,10 @@ def preprocess(test, params, env):
         params["vms"] = " ".join(vms)
 
     _setup_manager.initialize(test, params, env)
+    # Keep ProcessVMOff registered first. That way VM Off hooks will be first
+    # and last running during pre/postprocess. That way vms will be actually
+    # off to ensure data is written to disk.
+    _setup_manager.register(ProcessVMOff)
     _setup_manager.register(ResetQemuGCov)
     _setup_manager.register(VerifyHostDMesg)
     _setup_manager.register(SwitchSMTOff)
@@ -1757,17 +1757,6 @@ def postprocess(test, params, env):
             LOG.error(details)
 
     err += "\n".join(_setup_manager.do_cleanup())
-
-    # Run this hook after any vms are actually off to ensure data is
-    # written to disk.
-    if callable(postprocess_vm_off_hook):
-        try:
-            postprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
-        except Exception as details:
-            err += "\nPostprocessing dead vm hook: %s" % str(details).replace(
-                "\\n", "\n  "
-            )
-            LOG.error(details)
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
