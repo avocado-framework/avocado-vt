@@ -403,18 +403,21 @@ def start_windows_service(session, service, timeout=120):
 
 def get_windows_file_abs_path(session, filename, extension="exe", tmout=240):
     """
-    return file abs path "drive+path" by "wmic datafile"
+    return file abs path "drive+path" by Get-CimInstance
     """
-    cmd_tmp = "wmic datafile where \"Filename='%s' and "
-    cmd_tmp += "extension='%s'\" get drive^,path"
-    cmd = cmd_tmp % (filename, extension)
+    full_name = filename + "." + extension
+    cmd = (
+        'powershell -command "Get-PSDrive -PSProvider FileSystem | ForEach-Object '
+        '{Get-ChildItem -Path $_.Root -Filter "%s" -Recurse -ErrorAction SilentlyContinue} |'
+        ' Select-Object Fullname"'
+    ) % full_name
     info = session.cmd_output(cmd, timeout=tmout).strip()
-    drive_path = re.search(r"(\w):\s+(\S+)", info, re.M)
-    if not drive_path:
+    file_abs_path = re.search(r"^[A-Z]:\\.*\.*$", info, re.M)
+    if not file_abs_path:
         raise exceptions.TestError(
             "Not found file %s.%s in your guest" % (filename, extension)
         )
-    return ":".join(drive_path.groups())
+    return file_abs_path.group()
 
 
 def get_windows_disk_drive(session, filename, extension="exe", tmout=240):

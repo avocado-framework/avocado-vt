@@ -1662,9 +1662,15 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
             session.cmd(cmd, timeout=360)
         elif os_type == "windows":
             info_cmd = "ipconfig /all"
+            get_nic_cmd = (
+                'powershell -command "$Adapter=Get-CimInstance Win32_NetworkAdapterConfiguration | '
+                "Where-Object {$_.MACAddress -eq '%s'}; $Adapter.InterfaceIndex\""
+            ) % mac
+            nic_index = session.cmd_output(get_nic_cmd, timeout=120)
+            prefix_length = subnet_mask_to_prefix_length(netmask)
             cmd = (
-                "wmic nicconfig where MACAddress='%s' call "
-                "enablestatic '%s','%s'" % (mac, ip_addr, netmask)
+                "powershell -command \"New-NetIPAddress -InterfaceIndex %s -IPAddress '%s' -PrefixLength %s\""
+                % (nic_index, ip_addr, prefix_length)
             )
             session.cmd(cmd, timeout=360)
         else:
@@ -1673,6 +1679,24 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
     except Exception as err:
         LOG.debug(session.cmd_output(info_cmd))
         raise IPAddrSetError(mac, ip_addr, err)
+
+
+def subnet_mask_to_prefix_length(subnet_mask):
+    """
+    Convert subnet_mask from 255.*** to prefix length
+
+    :param subnet_mask: nic subnet_mask
+
+    :return: prefix length
+    """
+
+    octets = subnet_mask.split(".")
+
+    prefix_length = 0
+    for octet in octets:
+        prefix_length += bin(int(octet)).count("1")
+
+    return prefix_length
 
 
 def get_guest_nameserver(session):
@@ -3787,7 +3811,10 @@ def windows_mac_ip_maps(session):
         return None
 
     maps = {}
-    cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
+    cmd = (
+        'powershell -command "Get-CimInstance Win32_NetworkAdapterConfiguration | '
+        "Where-Object {$_.IPEnabled -eq 'True'} | Select-Object IPAddress, MACAddress\""
+    )
     out = session.cmd_output(cmd)
     regex = r".*\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}\s*"
     lines = [l.strip() for l in out.splitlines() if l.strip()]
@@ -3942,19 +3969,22 @@ def update_mac_ip_address(vm, timeout=240):
 
 
 def get_windows_nic_attribute(
-    session, key, value, target, timeout=240, global_switch="nic"
+    session, key, value, target, timeout=240, global_switch="NetworkAdapter"
 ):
     """
-    Get the windows nic attribute using wmic. All the support key you can
-    using wmic to have a check.
+    Get the windows nic attribute using powershell. All the support key you can
+    using powershell to have a check.
 
     :param session: session to the virtual machine
-    :param key: the key supported by wmic
+    :param key: the key supported by Get-CimInstance
     :param value: the value of the key
     :param target: which nic attribute you want to get.
 
     """
-    cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
+    cmd = (
+        "powershell -command \"Get-CimInstance Win32_%s | Where-Object {$_.%s -eq '%s'} | Select-Object %s\""
+        % (global_switch, key, value, target)
+    )
     status, out = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
         err_msg = "Execute guest shell command('%s') " "failed with error: '%s'" % (
@@ -3964,7 +3994,7 @@ def get_windows_nic_attribute(
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     # First line is header, return second line
-    return lines[1]
+    return lines[2]
 
 
 def set_win_guest_nic_status(session, connection_id, status, timeout=240):
@@ -3994,7 +4024,7 @@ def restart_windows_guest_network(session, connection_id, timeout=240, mode="net
 
     :param session: session to virtual machine
     :param connection_id: windows nic connectionid,it means connection name,
-                          you Can get connection id string via wmic
+                          you Can get connection id string via wmic or powershell
     """
     if mode == "netsh":
         disable_windows_guest_network(session, connection_id, timeout=timeout)
@@ -4012,7 +4042,7 @@ def restart_windows_guest_network_by_key(
     using devcon mode must download devcon.exe and put it under c:\
 
     :param session: session to virtual machine
-    :param key: the key supported by wmic nic
+    :param key: the key supported by Get-CimInstance nic
     :param value: the value of the key
     :param timeout: timeout
     :param mode: command mode netsh or devcon

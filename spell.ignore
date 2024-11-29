@@ -2106,3 +2106,5 @@ subgid
 uids
 gids
 nexthops
+powershell
+CimInstance

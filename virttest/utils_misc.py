@@ -2346,8 +2346,10 @@ def get_free_disk(session, mount):
     :return string: freespace M-bytes
     """
     if re.match(r"[a-zA-Z]:", mount):
-        cmd = "wmic logicaldisk where \"DeviceID='%s'\" " % mount
-        cmd += "get FreeSpace"
+        cmd = (
+            "powershell -command \"Get-CimInstance Win32_LogicalDisk | Where-Object {$_.DeviceID -eq '%s'}"
+            ' | Select-Object FreeSpace"'
+        ) % mount
         output = session.cmd_output(cmd)
         free = "%sK" % re.findall(r"\d+", output)[0]
     else:
@@ -2370,7 +2372,10 @@ def get_free_mem(session, os_type):
     if os_type != "windows":
         free = "%s kB" % get_mem_info(session, "MemFree")
     else:
-        output = session.cmd_output("wmic OS get FreePhysicalMemory")
+        output = session.cmd_output(
+            'powershell -command "Get-CimInstance Win32_OperatingSystem | '
+            'Select-Object FreePhysicalMemory"'
+        )
         free = "%sK" % re.findall("\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
@@ -2470,11 +2475,15 @@ def get_win_disk_vol(session, condition="VolumeName='WIN_UTILS'"):
     Getting logicaldisk drive letter in windows guest.
 
     :param session: session Object.
-    :param condition: supported condition via cmd "wmic logicaldisk list".
+    :param condition: supported condition via powershell cmd "Get-CimInstance Win32_LogicalDisk".
 
     :return: volume ID.
     """
-    cmd = "wmic logicaldisk where (%s) get DeviceID" % condition
+    c_name, c_value = condition.split("=")
+    cmd = (
+        'powershell -command "Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object {$_.%s -like %s}'
+        ' | Select-Object DeviceID"'
+    ) % (c_name, c_value)
     output = session.cmd(cmd, timeout=120)
     device = re.search(r"(\w):", output, re.M)
     if not device:
