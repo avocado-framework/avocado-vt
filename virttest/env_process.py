@@ -22,7 +22,6 @@ from avocado.utils import process as a_process
 from six.moves import xrange
 
 from virttest import (
-    arch,
     cpu,
     data_dir,
     error_context,
@@ -31,7 +30,6 @@ from virttest import (
     qemu_storage,
     storage,
     test_setup,
-    utils_kernel_module,
     utils_libguestfs,
     utils_logfile,
     utils_misc,
@@ -46,6 +44,7 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
+from virttest.test_setup.kernel import ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.migration import MigrationEnvSetup
 from virttest.test_setup.networking import (
@@ -98,9 +97,6 @@ preprocess_vm_off_hook = None
 preprocess_vm_on_hook = None
 postprocess_vm_on_hook = None
 postprocess_vm_off_hook = None
-
-#: A list to handle kvm and kvm_probe modules reload with certain parameters
-KVM_MODULE_HANDLERS = []
 
 #: QEMU version regex.  Attempts to extract the simple and extended version
 #: information from the output produced by `qemu -version`
@@ -1030,23 +1026,12 @@ def preprocess(test, params, env):
     _setup_manager.register(IPSniffer)
     _setup_manager.register(MigrationEnvSetup)
     _setup_manager.register(UnrequestedVMHandler)
+    _setup_manager.register(ReloadKVMModules)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    global KVM_MODULE_HANDLERS
-    kvm_modules = arch.get_kvm_module_list()
-    for module in reversed(kvm_modules):
-        param_prefix = module if module == "kvm" else "kvm_probe"
-        module_force_load = params.get_boolean("%s_module_force_load" % param_prefix)
-        module_parameters = params.get("%s_module_parameters" % param_prefix, "")
-        module_handler = utils_kernel_module.reload(
-            module, module_force_load, module_parameters
-        )
-        if module_handler is not None:
-            KVM_MODULE_HANDLERS.append(module_handler)
 
     version_info = {}
     # Get the KVM kernel module version
@@ -1706,9 +1691,6 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nTHP cleanup: %s" % str(details).replace("\\n", "\n  ")
             LOG.error(details)
-
-    for kvm_module in KVM_MODULE_HANDLERS:
-        kvm_module.restore()
 
     if params.get("setup_ksm") == "yes":
         try:
