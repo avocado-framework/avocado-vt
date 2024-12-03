@@ -271,6 +271,8 @@ class TopologyXML(base.LibvirtXMLBase):
             string of node cell numbers
         cell:
             list of cpu dict
+        interconnects:
+            list of latency and bandwidth
     """
 
     __slots__ = ('num', 'cell', 'interconnects')
@@ -380,7 +382,7 @@ class CellXML(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_cpu)
         accessors.XMLElementList(property_name="cache",
                                  libvirtxml=self,
-                                 parent_xpath='/cache',
+                                 parent_xpath='/',
                                  marshal_from=self.marshal_from_cache,
                                  marshal_to=self.marshal_to_cache,
                                  has_subclass=True)
@@ -445,9 +447,9 @@ class CellXML(base.LibvirtXMLBase):
         if isinstance(item, CellCacheXML):
             return 'cache', item
         elif isinstance(item, dict):
-            cell_page = CellCacheXML()
-            cell_page.setup_attrs(**item)
-            return 'cache', cell_page
+            cell_cache = CellCacheXML()
+            cell_cache.setup_attrs(**item)
+            return 'cache', cell_cache
         else:
             raise xcepts.LibvirtXMLError("Expected a list of CellCacheXML "
                                          "instances, not a %s" % str(item))
