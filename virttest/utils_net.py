@@ -1606,6 +1606,46 @@ def get_guest_ip_addr(
     return None
 
 
+def get_vm_ip(session, mac, ip_ver="ipv4", timeout=5):
+    """
+    Get vm ip address
+
+    :param session: vm session
+    :param mac: mac address of vm
+    :param ip_ver: ip version, defaults to "ipv4"
+    :return: ip address of given mac
+    """
+
+    def _get_vm_ip():
+        iface_info = get_linux_iface_info(mac=mac, session=session)
+        addr_list = iface_info["addr_info"]
+        if ip_ver == "ipv4":
+            target_addr = [addr for addr in addr_list if addr["family"] == "inet"]
+        elif ip_ver == "ipv6":
+            target_addr = [
+                addr
+                for addr in addr_list
+                if addr["family"] == "inet6"
+                and addr["scope"] == "global"
+                and addr.get("mngtmpaddr") is not True
+            ]
+
+        if len(target_addr) == 0:
+            LOG.warning(f"No ip addr of given mac: {mac}")
+            return
+        elif len(target_addr) > 1:
+            LOG.warning(f"Multiple ip addr: {target_addr}")
+
+        return target_addr[0]["local"]
+
+    vm_ip = utils_misc.wait_for(_get_vm_ip, timeout, ignore_errors=True)
+
+    if not vm_ip:
+        raise exceptions.TestError(f"Cannot find {ip_ver} addr with given mac: {mac}")
+
+    return vm_ip
+
+
 def convert_netmask(mask):
     """
     Convert string type netmask to int type netmask.
