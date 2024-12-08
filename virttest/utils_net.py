@@ -3897,7 +3897,9 @@ def get_linux_iface_info(iface="", mac=None, session=None):
     :return: dict-type info of interface, None if not get any
     """
     ip_cmd = f"ip -json addr show {iface}"
-    run_func = session.cmd_output if session else process.getoutput
+    run_func = process.getoutput
+    if session:
+        run_func = lambda x: session.cmd_output(x, safe=True)
 
     try:
         ip_output_str = run_func(ip_cmd).strip()
