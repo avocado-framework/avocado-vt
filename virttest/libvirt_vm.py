@@ -25,6 +25,7 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    kernel_interface,
     libvirt_xml,
     storage,
     test_setup,
@@ -2578,8 +2579,8 @@ class VM(virt_vm.BaseVM):
             LOG.error("Fail to get VM pid")
         else:
             cmdline = open("/proc/%d/cmdline" % vm_pid).read()
-            values = re.findall(r"sockets=(\d+),cores=(\d+),threads=(\d+)", cmdline)[0]
-            cpu_topology = dict(zip(["sockets", "cores", "threads"], values))
+            values = re.findall(r"(sockets|dies|clusters|cores|threads)=(\d+)", cmdline)
+            cpu_topology = dict(values)
         return cpu_topology
 
     def get_cpu_topology_in_vm(self):
@@ -2589,6 +2590,71 @@ class VM(virt_vm.BaseVM):
             cpu_topology["sockets"] = cpu_info["Socket(s)"]
             cpu_topology["cores"] = cpu_info["Core(s) per socket"]
             cpu_topology["threads"] = cpu_info["Thread(s) per core"]
+            cpu_number = cpu_info["CPU(s)"]
+
+            def get_cpu_topology_num(key, session):
+                """
+                Return cpu topology key number per socket
+
+                :param key: cpu topology key
+                :param session: session object
+                :return: cpu topology key number per socket
+                """
+
+                def get_cpu_topology_info(cpu_id, key, session):
+                    """
+                    Return cpu topology key info of specific cpu
+
+                    :param cpu_id: cpu id
+                    :param key: cpu topology key
+                    :param session: session object
+                    :return: cpu topology key info of specific cpu
+                    """
+                    key_path = "/sys/devices/system/cpu/cpu%s/topology/%s" % (
+                        cpu_id,
+                        key,
+                    )
+                    try:
+                        key_info = kernel_interface.SysFS(
+                            key_path, session=session, regex="\d+%s"
+                        )
+                        key_value = str(key_info.sys_fs_value).rstrip("\n")
+                    except IOError:
+                        LOG.warning(
+                            "Can not find file %s from sysfs. Please check "
+                            "your system." % key_path
+                        )
+                        key_value = None
+                    return key_value
+
+                count_dict = {}
+                for cpu_id in range(int(cpu_number)):
+                    key_val = get_cpu_topology_info(cpu_id, key, session)
+                    if key_val is None:
+                        return None
+                    socket_val = get_cpu_topology_info(
+                        cpu_id, "physical_package_id", session
+                    )
+                    if socket_val in count_dict:
+                        count_dict[socket_val].add(key_val)
+                    else:
+                        count_dict[socket_val] = {key_val}
+                key_per_socket_info = [len(i) for i in list(count_dict.values())]
+                if not all(x == key_per_socket_info[0] for x in key_per_socket_info):
+                    raise ValueError(
+                        "Different %s number on each socket, "
+                        "the number per socket is: %s." % (key, key_per_socket_info)
+                    )
+                return key_per_socket_info[0]
+
+            session = self.wait_for_login()
+            die_num = get_cpu_topology_num("die_id", session)
+            if die_num is not None:
+                cpu_topology["dies"] = str(die_num)
+            cluster_num = get_cpu_topology_num("cluster_id", session)
+            if cluster_num is not None:
+                cpu_topology["clusters"] = str(cluster_num)
+            session.close()
         return cpu_topology
 
     def activate_nic(self, nic_index_or_name):
