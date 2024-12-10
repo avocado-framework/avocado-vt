@@ -58,6 +58,7 @@ from virttest.test_setup.ppc import SwitchSMTOff
 from virttest.test_setup import requirement_checks
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
+    CheckKernelVersion,
     CheckRunningAsRoot,
 )
 from virttest.test_setup.storage import StorageConfig
@@ -1028,38 +1029,12 @@ def preprocess(test, params, env):
     _setup_manager.register(MigrationEnvSetup)
     _setup_manager.register(UnrequestedVMHandler)
     _setup_manager.register(ReloadKVMModules)
+    _setup_manager.register(CheckKernelVersion)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Get the KVM kernel module version
-    if os.path.exists("/dev/kvm"):
-        kvm_version = os.uname()[2]
-    else:
-        warning_msg = "KVM module not loaded"
-        if params.get("enable_kvm", "yes") == "yes":
-            test.cancel(warning_msg)
-        LOG.warning(warning_msg)
-        kvm_version = "Unknown"
-
-    LOG.debug("KVM version: %s" % kvm_version)
-    requirement_checks.version_info["kvm_version"] = str(kvm_version)
-
-    # Checking required kernel, if not satisfied, cancel test
-    if params.get("required_kernel"):
-        required_kernel = params.get("required_kernel")
-        LOG.info("Test requires kernel version: %s" % required_kernel)
-        match = re.search(r"[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?", kvm_version)
-        if match is None:
-            test.cancel("Can not get host kernel version.")
-        host_kernel = match.group(0)
-        if host_kernel not in VersionInterval(required_kernel):
-            test.cancel(
-                "Got host kernel version:%s, which is not in %s"
-                % (host_kernel, required_kernel)
-            )
 
     # Get the KVM userspace version
     kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
