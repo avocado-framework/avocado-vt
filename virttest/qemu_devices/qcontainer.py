@@ -2475,7 +2475,7 @@ class DevContainer(object):
                 if scsi_hba == "virtio-scsi-device":
                     pci_bus = {"type": "virtio-bus"}
                 elif scsi_hba == "virtio-scsi-ccw":
-                    pci_bus = None
+                    pci_bus = {"aobject': 'virtual-css"}
             elif scsi_hba == "spapr-vscsi":
                 addr_spec = [64, 32]
                 pci_bus = None
@@ -3135,7 +3135,7 @@ class DevContainer(object):
                 if bus_type == "virtio-serial-device":
                     pci_bus = {"type": "virtio-bus"}
                 elif bus_type == "virtio-serial-ccw":
-                    pci_bus = None
+                    pci_bus = {"aobject': 'virtual-css"}
                 else:
                     pci_bus = {"aobject": "pci.0"}
                 if bus != "<new>":

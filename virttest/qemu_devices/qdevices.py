@@ -3096,10 +3096,13 @@ class QNoAddrCustomBus(QSparseBus):
     """
 
     def _set_device_props(self, device, addr):
-        pass
+        if self.aobject == "virtual-css":
+            device.set_param("devno", "fe.0.%s" % f"{addr[0]:04x}")
+        else:
+            pass
 
     def _update_device_props(self, device, addr):
-        pass
+        self._set_device_props(device, addr)
 
 
 class QUSBBus(QSparseBus):
