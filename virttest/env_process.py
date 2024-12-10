@@ -61,6 +61,7 @@ from virttest.test_setup.requirement_checks import (
     CheckKernelVersion,
     CheckQEMUVersion,
     CheckRunningAsRoot,
+    LogBootloaderVersion,
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
@@ -1017,23 +1018,12 @@ def preprocess(test, params, env):
     _setup_manager.register(ReloadKVMModules)
     _setup_manager.register(CheckKernelVersion)
     _setup_manager.register(CheckQEMUVersion)
+    _setup_manager.register(LogBootloaderVersion)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Get the version of bootloader
-    vm_bootloader_ver_cmd = params.get("vm_bootloader_ver_cmd", "")
-    if vm_bootloader_ver_cmd:
-        try:
-            vm_bootloader_ver = a_process.run(
-                vm_bootloader_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            vm_bootloader_ver = "Unkown"
-        requirement_checks.version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
-        LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
 
     # Checking required virtio-win version, if not satisfied, cancel test
     if params.get("required_virtio_win") or params.get("required_virtio_win_prewhql"):

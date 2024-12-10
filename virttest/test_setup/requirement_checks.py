@@ -134,3 +134,21 @@ class CheckQEMUVersion(Setuper):
 
     def cleanup(self):
         pass
+
+
+class LogBootloaderVersion(Setuper):
+    def setup(self):
+        # Get the version of bootloader
+        vm_bootloader_ver_cmd = self.params.get("vm_bootloader_ver_cmd", "")
+        if vm_bootloader_ver_cmd:
+            try:
+                vm_bootloader_ver = a_process.run(
+                    vm_bootloader_ver_cmd, shell=True
+                ).stdout_text.strip()
+            except a_process.CmdError:
+                vm_bootloader_ver = "Unknown"
+            version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
+            LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
+
+    def cleanup(self):
+        pass
