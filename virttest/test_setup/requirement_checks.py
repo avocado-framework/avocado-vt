@@ -4,6 +4,8 @@ from avocado.utils import path
 from virttest import utils_misc
 from virttest.test_setup.core import Setuper
 
+version_info = {}
+
 
 class CheckInstalledCMDs(Setuper):
     def setup(self):

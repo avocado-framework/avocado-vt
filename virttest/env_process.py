@@ -55,6 +55,7 @@ from virttest.test_setup.networking import (
 )
 from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.ppc import SwitchSMTOff
+from virttest.test_setup import requirement_checks
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
     CheckRunningAsRoot,
@@ -1033,7 +1034,6 @@ def preprocess(test, params, env):
 
     base_dir = data_dir.get_data_dir()
 
-    version_info = {}
     # Get the KVM kernel module version
     if os.path.exists("/dev/kvm"):
         kvm_version = os.uname()[2]
@@ -1045,7 +1045,7 @@ def preprocess(test, params, env):
         kvm_version = "Unknown"
 
     LOG.debug("KVM version: %s" % kvm_version)
-    version_info["kvm_version"] = str(kvm_version)
+    requirement_checks.version_info["kvm_version"] = str(kvm_version)
 
     # Checking required kernel, if not satisfied, cancel test
     if params.get("required_kernel"):
@@ -1081,7 +1081,7 @@ def preprocess(test, params, env):
             )
 
     LOG.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
-    version_info["qemu_version"] = str(kvm_userspace_version)
+    requirement_checks.version_info["qemu_version"] = str(kvm_userspace_version)
 
     # Checking required qemu, if not satisfied, cancel test
     if params.get("required_qemu"):
@@ -1106,7 +1106,7 @@ def preprocess(test, params, env):
             ).stdout_text.strip()
         except a_process.CmdError:
             vm_bootloader_ver = "Unkown"
-        version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
+        requirement_checks.version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
         LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
 
     # Checking required virtio-win version, if not satisfied, cancel test
@@ -1158,11 +1158,11 @@ def preprocess(test, params, env):
             ).stdout_text.strip()
         except a_process.CmdError:
             libvirt_version = "Unknown"
-        version_info["libvirt_version"] = str(libvirt_version)
+        requirement_checks.version_info["libvirt_version"] = str(libvirt_version)
         LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
 
     # Write it as a keyval
-    test.write_test_keyval(version_info)
+    test.write_test_keyval(requirement_checks.version_info)
 
     libvirtd_inst = None
 
