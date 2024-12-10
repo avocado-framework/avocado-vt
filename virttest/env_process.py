@@ -63,6 +63,7 @@ from virttest.test_setup.requirement_checks import (
     CheckRunningAsRoot,
     CheckVirtioWinVersion,
     LogBootloaderVersion,
+    LogVersionInfo,
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
@@ -109,8 +110,6 @@ QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\(
 THREAD_ERROR = False
 
 LOG = logging.getLogger("avocado." + __name__)
-
-version_info = {}
 
 
 def preprocess_image(test, params, image_name, vm_process_status=None):
@@ -1023,14 +1022,12 @@ def preprocess(test, params, env):
     _setup_manager.register(LogBootloaderVersion)
     _setup_manager.register(CheckVirtioWinVersion)
     _setup_manager.register(CheckLibvirtVersion)
+    _setup_manager.register(LogVersionInfo)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Write it as a keyval
-    test.write_test_keyval(version_info)
 
     libvirtd_inst = None
 

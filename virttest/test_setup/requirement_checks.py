@@ -12,6 +12,8 @@ from virttest.utils_version import VersionInterval
 
 LOG = logging.getLogger(__name__)
 
+version_info = {}
+
 
 class CheckInstalledCMDs(Setuper):
     def setup(self):
@@ -53,7 +55,7 @@ class CheckKernelVersion(Setuper):
             kvm_version = "Unknown"
 
         LOG.debug("KVM version: %s" % kvm_version)
-        env_process.version_info["kvm_version"] = str(kvm_version)
+        version_info["kvm_version"] = str(kvm_version)
 
         # Checking required kernel, if not satisfied, cancel test
         if self.params.get("required_kernel"):
@@ -112,7 +114,7 @@ class CheckQEMUVersion(Setuper):
                 )
 
         LOG.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
-        env_process.version_info["qemu_version"] = str(kvm_userspace_version)
+        version_info["qemu_version"] = str(kvm_userspace_version)
 
         # Checking required qemu, if not satisfied, cancel test
         if self.params.get("required_qemu"):
@@ -145,7 +147,7 @@ class LogBootloaderVersion(Setuper):
                 ).stdout_text.strip()
             except a_process.CmdError:
                 vm_bootloader_ver = "Unknown"
-            env_process.version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
+            version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
             LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
 
     def cleanup(self):
@@ -214,8 +216,17 @@ class CheckLibvirtVersion(Setuper):
                 ).stdout_text.strip()
             except a_process.CmdError:
                 libvirt_version = "Unknown"
-            env_process.version_info["libvirt_version"] = str(libvirt_version)
+            version_info["libvirt_version"] = str(libvirt_version)
             LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
+
+    def cleanup(self):
+        pass
+
+
+class LogVersionInfo(Setuper):
+    def setup(self):
+        # Write package version info dict as a keyval
+        self.test.write_test_keyval(version_info)
 
     def cleanup(self):
         pass
