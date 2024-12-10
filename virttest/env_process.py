@@ -106,6 +106,8 @@ THREAD_ERROR = False
 
 LOG = logging.getLogger("avocado." + __name__)
 
+version_info = {}
+
 
 def _get_qemu_version(qemu_cmd):
     """
@@ -1033,7 +1035,6 @@ def preprocess(test, params, env):
 
     base_dir = data_dir.get_data_dir()
 
-    version_info = {}
     # Get the KVM kernel module version
     if os.path.exists("/dev/kvm"):
         kvm_version = os.uname()[2]
