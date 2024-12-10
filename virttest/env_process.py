@@ -55,7 +55,6 @@ from virttest.test_setup.networking import (
 )
 from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.ppc import SwitchSMTOff
-from virttest.test_setup import requirement_checks
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
     CheckKernelVersion,
@@ -64,6 +63,7 @@ from virttest.test_setup.requirement_checks import (
     CheckRunningAsRoot,
     CheckVirtioWinVersion,
     LogBootloaderVersion,
+    LogVersionInfo,
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
@@ -1022,14 +1022,12 @@ def preprocess(test, params, env):
     _setup_manager.register(LogBootloaderVersion)
     _setup_manager.register(CheckVirtioWinVersion)
     _setup_manager.register(CheckLibvirtVersion)
+    _setup_manager.register(LogVersionInfo)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Write it as a keyval
-    test.write_test_keyval(requirement_checks.version_info)
 
     libvirtd_inst = None
 

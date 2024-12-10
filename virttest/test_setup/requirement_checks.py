@@ -221,3 +221,12 @@ class CheckLibvirtVersion(Setuper):
 
     def cleanup(self):
         pass
+
+
+class LogVersionInfo(Setuper):
+    def setup(self):
+        # Write package version info dict as a keyval
+        self.test.write_test_keyval(version_info)
+
+    def cleanup(self):
+        pass
