@@ -456,7 +456,7 @@ class MigrationTemplate(object):
             self._create_disk_image_on_dest()
 
         # Set xml file path for --xml and --persistent-xml in migrate options
-        self._update_xmlfile_path_in_migrate_options()
+        _, _ = self._update_xmlfile_path_in_migrate_options()
 
         # Set selinux state before migration
         # NOTE: if selinux state is set too early, it may be changed
@@ -652,20 +652,23 @@ class MigrationTemplate(object):
         LOG.info("Generate and replace xml file path for --xml and/or --persistent-xml")
 
         new_options = self.virsh_migrate_options
-
+        dest_vmxml, persist_vmxml = None, None
         if self.migrate_flags & VIR_MIGRATE_DEST_XML:
-            vmxml_path = vm_xml.VMXML.new_from_dumpxml(
+            dest_vmxml = vm_xml.VMXML.new_from_dumpxml(
                 self.main_vm.name, "--security-info --migratable"
             )
-            new_options = new_options.replace("DEST_XML", vmxml_path)
+            new_options = new_options.replace("DEST_XML", dest_vmxml.xml)
 
         if self.migrate_flags & VIR_MIGRATE_PERSIST_DEST_XML:
-            vmxml_path = vm_xml.VMXML.new_from_dumpxml(
+            persist_vmxml = vm_xml.VMXML.new_from_dumpxml(
                 self.main_vm.name, "--security-info --migratable"
             )
-            new_options = new_options.replace("DEST_PERSIST_XML", vmxml_path)
+            new_options = new_options.replace("DEST_PERSIST_XML", persist_vmxml.xml)
 
         self.virsh_migrate_options = new_options
+
+        # Return dest_vmxml and persist_vmxml is to avoid the local variables including the xml file released
+        return dest_vmxml, persist_vmxml
 
     def _migrate_flags(self):
         """
