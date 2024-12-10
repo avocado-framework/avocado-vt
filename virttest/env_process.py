@@ -59,6 +59,7 @@ from virttest.test_setup import requirement_checks
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
     CheckKernelVersion,
+    CheckLibvirtVersion,
     CheckQEMUVersion,
     CheckRunningAsRoot,
     CheckVirtioWinVersion,
@@ -1020,25 +1021,12 @@ def preprocess(test, params, env):
     _setup_manager.register(CheckQEMUVersion)
     _setup_manager.register(LogBootloaderVersion)
     _setup_manager.register(CheckVirtioWinVersion)
+    _setup_manager.register(CheckLibvirtVersion)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Get the Libvirt version
-    if vm_type == "libvirt":
-        libvirt_ver_cmd = params.get(
-            "libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'"
-        )
-        try:
-            libvirt_version = a_process.run(
-                libvirt_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            libvirt_version = "Unknown"
-        requirement_checks.version_info["libvirt_version"] = str(libvirt_version)
-        LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
 
     # Write it as a keyval
     test.write_test_keyval(requirement_checks.version_info)

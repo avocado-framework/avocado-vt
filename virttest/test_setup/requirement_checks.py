@@ -200,3 +200,24 @@ class CheckVirtioWinVersion(Setuper):
 
     def cleanup(self):
         pass
+
+
+class CheckLibvirtVersion(Setuper):
+    def setup(self):
+        # Get the Libvirt version
+        vm_type = self.params.get("vm_type")
+        if vm_type == "libvirt":
+            libvirt_ver_cmd = self.params.get(
+                "libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'"
+            )
+            try:
+                libvirt_version = a_process.run(
+                    libvirt_ver_cmd, shell=True
+                ).stdout_text.strip()
+            except a_process.CmdError:
+                libvirt_version = "Unknown"
+            version_info["libvirt_version"] = str(libvirt_version)
+            LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
+
+    def cleanup(self):
+        pass
