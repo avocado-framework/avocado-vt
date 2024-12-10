@@ -58,6 +58,7 @@ from virttest.test_setup.ppc import SwitchSMTOff
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
     CheckKernelVersion,
+    CheckQEMUVersion,
     CheckRunningAsRoot,
 )
 from virttest.test_setup.storage import StorageConfig
@@ -108,21 +109,6 @@ THREAD_ERROR = False
 LOG = logging.getLogger("avocado." + __name__)
 
 version_info = {}
-
-
-def _get_qemu_version(qemu_cmd):
-    """
-    Return normalized qemu version
-
-    :param qemu_cmd: Path to qemu binary
-    """
-    version_output = a_process.run("%s -version" % qemu_cmd, verbose=False).stdout_text
-    version_line = version_output.split("\n")[0]
-    matches = re.match(QEMU_VERSION_RE, version_line)
-    if matches:
-        return "%s (%s)" % matches.groups()
-    else:
-        return "Unknown"
 
 
 def preprocess_image(test, params, image_name, vm_process_status=None):
@@ -1031,47 +1017,12 @@ def preprocess(test, params, env):
     _setup_manager.register(UnrequestedVMHandler)
     _setup_manager.register(ReloadKVMModules)
     _setup_manager.register(CheckKernelVersion)
+    _setup_manager.register(CheckQEMUVersion)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    # Get the KVM userspace version
-    kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
-
-    if kvm_userspace_ver_cmd:
-        try:
-            kvm_userspace_version = a_process.run(
-                kvm_userspace_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            kvm_userspace_version = "Unknown"
-    else:
-        qemu_path = utils_misc.get_qemu_binary(params)
-        kvm_userspace_version = _get_qemu_version(qemu_path)
-        qemu_dst_path = utils_misc.get_qemu_dst_binary(params)
-        if qemu_dst_path and qemu_dst_path != qemu_path:
-            LOG.debug(
-                "KVM userspace dst version(qemu): %s", _get_qemu_version(qemu_dst_path)
-            )
-
-    LOG.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
-    version_info["qemu_version"] = str(kvm_userspace_version)
-
-    # Checking required qemu, if not satisfied, cancel test
-    if params.get("required_qemu"):
-        required_qemu = params.get("required_qemu")
-        LOG.info("Test requires qemu version: %s" % required_qemu)
-        match = re.search(r"[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?", kvm_userspace_version)
-        if match is None:
-            test.cancel("Can not get host qemu version.")
-        host_qemu = match.group(0)
-        if host_qemu not in VersionInterval(required_qemu):
-            test.cancel(
-                "Got host qemu version:%s, which is not in %s"
-                % (host_qemu, required_qemu)
-            )
 
     # Get the version of bootloader
     vm_bootloader_ver_cmd = params.get("vm_bootloader_ver_cmd", "")
