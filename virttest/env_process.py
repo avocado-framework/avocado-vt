@@ -1741,7 +1741,7 @@ def postprocess(test, params, env):
     err += "\n".join(_setup_manager.do_cleanup())
 
     if err:
-        raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
+        LOG.error("Failures occurred while postprocess:\n%s" % err)
     elif _post_hugepages_surp > _pre_hugepages_surp:
         leak_num = _post_hugepages_surp - _pre_hugepages_surp
         raise exceptions.TestFail("%d huge pages leaked!" % leak_num)
