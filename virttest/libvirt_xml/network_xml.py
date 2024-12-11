@@ -291,9 +291,12 @@ class DNSXML(base.LibvirtXMLBase):
             """
             if isinstance(item, DNSXML.HostnameXML):
                 return "hostname", item
-            elif isinstance(item, str):
+            elif isinstance(item, (dict, str)):
                 hostname = DNSXML.HostnameXML()
-                hostname.hostname = item
+                if isinstance(item, dict):
+                    hostname.setup_attrs(**item)
+                else:
+                    hostname.hostname = item
                 return "hostname", hostname
             else:
                 raise xcepts.LibvirtXMLError(
