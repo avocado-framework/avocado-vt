@@ -2563,9 +2563,11 @@ class DevContainer(object):
                 format_cls = qdevices.QBlockdevFormatLuks
             elif imgfmt == "nvme":
                 format_cls = qdevices.QBlockdevFormatRaw
-            elif imgfmt is None:
-                # use RAW type as the default
+            elif imgfmt is None or imgfmt == "":
+                # use RAW type as the default (None or empty string)
                 format_cls = qdevices.QBlockdevFormatRaw
+            else:
+                raise ValueError(f"Unsupported image format: {imgfmt}")
 
             protocol_node = protocol_cls(name)
             devices.append(protocol_node)
