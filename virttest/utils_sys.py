@@ -5,6 +5,7 @@ Virtualization test utility functions.
 """
 
 import logging
+import platform
 import re
 
 from avocado.utils import process
@@ -13,6 +14,8 @@ from virttest.utils_misc import cmd_status_output
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
+
+ARCH = platform.machine()
 
 
 # TODO: check function in avocado.utils after the next LTS
@@ -102,3 +105,29 @@ def get_pids_for(process_names, sort_pids=True, session=None):
         relevant_pids.sort()
 
     return relevant_pids
+
+
+def get_location_code(pci_id):
+    """
+    Retrieves the location code for a PCI device using the `cat` command.
+
+    :param pci_id : The PCI device address in the format 'xxxx:xx:xx.x'.
+    :return: location code if available, or an error message.
+             Example location code = 'U898B.NT0.WDS0DT1-P0-C4-T0'
+    """
+    try:
+        if ARCH == "ppc64le":
+            loc_code_path = "/sys/bus/pci/devices/%s/of_node/ibm,loc-code" % pci_id
+        else:
+            raise FileNotFoundError(
+                "Valid location code path is not defined for architecture: %s" % ARCH
+            )
+        with open(loc_code_path, "r") as f:
+            loc_code = f.read().strip()
+        loc_code = "".join(c for c in loc_code if 0x20 <= ord(c) <= 0x7E)
+        logging.debug("The location code of the pci device is %s", loc_code)
+        return loc_code
+    except FileNotFoundError:
+        return "Location code file not found for device %s.", pci_id
+    except Exception as e:
+        return "An error occurred: %s", e
