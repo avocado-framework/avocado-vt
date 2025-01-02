@@ -1786,7 +1786,7 @@ class NumaNode(object):
                 )
                 key_val = str(numa_sys.sys_fs_value).rstrip("\n")
                 cpu_topo[key] = key_val
-            except IOError:
+            except (IOError, AttributeError):
                 LOG.warning(
                     "Can not find file %s from sysfs. Please check "
                     "your system." % key_path
