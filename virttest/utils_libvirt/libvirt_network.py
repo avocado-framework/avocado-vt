@@ -127,7 +127,7 @@ def check_established(params):
             cmdRes = remote.run_remote_cmd(cmd, params)
 
         if expected_network_conn_num:
-            pat_str = r".*%s:%s.*ESTABLISHED.*%s.*" % (
+            pat_str = r".*%s.*%s.*ESTABLISHED.*%s.*" % (
                 server_ip,
                 port_to_check,
                 service_to_check,
@@ -144,7 +144,7 @@ def check_established(params):
                 return None
 
         if port_to_check != "4915":
-            pat_str = r".*%s:%s.*ESTABLISHED.*%s.*" % (
+            pat_str = r".*%s.*%s.*ESTABLISHED.*%s.*" % (
                 server_ip,
                 port_to_check,
                 service_to_check,
