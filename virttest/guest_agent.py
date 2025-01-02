@@ -1047,3 +1047,14 @@ class QemuAgent(Monitor):
         cmd = "guest-get-cpustats"
         self.check_has_command(cmd)
         return self.cmd(cmd)
+
+    def get_network_route(self):
+        """
+        Get the network route of the guest by guest agent operation
+
+        :return: a list of network route info such as 'iface' and 'gateway'
+        'metric' and 'refcnt'...
+        """
+        cmd = "guest-network-get-route"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
