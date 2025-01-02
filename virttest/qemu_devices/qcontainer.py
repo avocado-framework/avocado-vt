@@ -1699,9 +1699,7 @@ class DevContainer(object):
             # can't be used.
             LOG.warning("Support for s390x is highly experimental!")
             bus = (
-                qdevices.QNoAddrCustomBus(
-                    "bus",
-                    [["addr"], [32]],
+                qdevices.QCSSBus(
                     "virtual-css",
                     "virtual-css",
                     "virtual-css",
@@ -2475,7 +2473,7 @@ class DevContainer(object):
                 if scsi_hba == "virtio-scsi-device":
                     pci_bus = {"type": "virtio-bus"}
                 elif scsi_hba == "virtio-scsi-ccw":
-                    pci_bus = None
+                    pci_bus = {"type": "virtual-css"}
             elif scsi_hba == "spapr-vscsi":
                 addr_spec = [64, 32]
                 pci_bus = None
