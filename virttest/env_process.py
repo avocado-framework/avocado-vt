@@ -57,12 +57,17 @@ from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.ppc import SwitchSMTOff
 from virttest.test_setup.requirement_checks import (
     CheckInstalledCMDs,
+    CheckKernelVersion,
+    CheckLibvirtVersion,
+    CheckQEMUVersion,
     CheckRunningAsRoot,
+    CheckVirtioWinVersion,
+    LogBootloaderVersion,
+    LogVersionInfo,
 )
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
 from virttest.test_setup.vms import ProcessVMOff, UnrequestedVMHandler
-from virttest.utils_version import VersionInterval
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
 virsh = lazy_import("virttest.virsh")
@@ -105,21 +110,6 @@ QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\(
 THREAD_ERROR = False
 
 LOG = logging.getLogger("avocado." + __name__)
-
-
-def _get_qemu_version(qemu_cmd):
-    """
-    Return normalized qemu version
-
-    :param qemu_cmd: Path to qemu binary
-    """
-    version_output = a_process.run("%s -version" % qemu_cmd, verbose=False).stdout_text
-    version_line = version_output.split("\n")[0]
-    matches = re.match(QEMU_VERSION_RE, version_line)
-    if matches:
-        return "%s (%s)" % matches.groups()
-    else:
-        return "Unknown"
 
 
 def preprocess_image(test, params, image_name, vm_process_status=None):
@@ -1027,142 +1017,17 @@ def preprocess(test, params, env):
     _setup_manager.register(MigrationEnvSetup)
     _setup_manager.register(UnrequestedVMHandler)
     _setup_manager.register(ReloadKVMModules)
+    _setup_manager.register(CheckKernelVersion)
+    _setup_manager.register(CheckQEMUVersion)
+    _setup_manager.register(LogBootloaderVersion)
+    _setup_manager.register(CheckVirtioWinVersion)
+    _setup_manager.register(CheckLibvirtVersion)
+    _setup_manager.register(LogVersionInfo)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
 
     base_dir = data_dir.get_data_dir()
-
-    version_info = {}
-    # Get the KVM kernel module version
-    if os.path.exists("/dev/kvm"):
-        kvm_version = os.uname()[2]
-    else:
-        warning_msg = "KVM module not loaded"
-        if params.get("enable_kvm", "yes") == "yes":
-            test.cancel(warning_msg)
-        LOG.warning(warning_msg)
-        kvm_version = "Unknown"
-
-    LOG.debug("KVM version: %s" % kvm_version)
-    version_info["kvm_version"] = str(kvm_version)
-
-    # Checking required kernel, if not satisfied, cancel test
-    if params.get("required_kernel"):
-        required_kernel = params.get("required_kernel")
-        LOG.info("Test requires kernel version: %s" % required_kernel)
-        match = re.search(r"[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?", kvm_version)
-        if match is None:
-            test.cancel("Can not get host kernel version.")
-        host_kernel = match.group(0)
-        if host_kernel not in VersionInterval(required_kernel):
-            test.cancel(
-                "Got host kernel version:%s, which is not in %s"
-                % (host_kernel, required_kernel)
-            )
-
-    # Get the KVM userspace version
-    kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
-
-    if kvm_userspace_ver_cmd:
-        try:
-            kvm_userspace_version = a_process.run(
-                kvm_userspace_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            kvm_userspace_version = "Unknown"
-    else:
-        qemu_path = utils_misc.get_qemu_binary(params)
-        kvm_userspace_version = _get_qemu_version(qemu_path)
-        qemu_dst_path = utils_misc.get_qemu_dst_binary(params)
-        if qemu_dst_path and qemu_dst_path != qemu_path:
-            LOG.debug(
-                "KVM userspace dst version(qemu): %s", _get_qemu_version(qemu_dst_path)
-            )
-
-    LOG.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
-    version_info["qemu_version"] = str(kvm_userspace_version)
-
-    # Checking required qemu, if not satisfied, cancel test
-    if params.get("required_qemu"):
-        required_qemu = params.get("required_qemu")
-        LOG.info("Test requires qemu version: %s" % required_qemu)
-        match = re.search(r"[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?", kvm_userspace_version)
-        if match is None:
-            test.cancel("Can not get host qemu version.")
-        host_qemu = match.group(0)
-        if host_qemu not in VersionInterval(required_qemu):
-            test.cancel(
-                "Got host qemu version:%s, which is not in %s"
-                % (host_qemu, required_qemu)
-            )
-
-    # Get the version of bootloader
-    vm_bootloader_ver_cmd = params.get("vm_bootloader_ver_cmd", "")
-    if vm_bootloader_ver_cmd:
-        try:
-            vm_bootloader_ver = a_process.run(
-                vm_bootloader_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            vm_bootloader_ver = "Unkown"
-        version_info["vm_bootloader_version"] = str(vm_bootloader_ver)
-        LOG.debug("vm bootloader version: %s", vm_bootloader_ver)
-
-    # Checking required virtio-win version, if not satisfied, cancel test
-    if params.get("required_virtio_win") or params.get("required_virtio_win_prewhql"):
-        if params.get("cdrom_virtio"):
-            cdrom_virtio = params["cdrom_virtio"]
-            cdrom_virtio_path = os.path.basename(
-                utils_misc.get_path(data_dir.get_data_dir(), cdrom_virtio)
-            )
-            virtio_win_range = (
-                params.get("required_virtio_win_prewhql")
-                if re.search("prewhql", cdrom_virtio_path)
-                else params.get("required_virtio_win")
-            )
-            if virtio_win_range:
-                LOG.info("Checking required virtio-win version: %s" % virtio_win_range)
-                match = re.search(
-                    "virtio-win-(?:prewhql-)?(\d+\.\d+(?:\.\d+)?-\d+)",
-                    cdrom_virtio_path,
-                )
-                if match.group(1) is None:
-                    test.error(
-                        'Can not get virtio-win version from "cdrom_virtio": %s'
-                        % cdrom_virtio
-                    )
-                cdrom_virtio_version = re.sub("-", ".", match.group(1))
-                if cdrom_virtio_version not in VersionInterval(virtio_win_range):
-                    test.cancel(
-                        "Got virtio-win version:%s, which is not in %s"
-                        % (cdrom_virtio_version, virtio_win_range)
-                    )
-            else:
-                test.error(
-                    "The limitation for virtio-win is not suitable for the cdrom_virtio"
-                )
-        else:
-            LOG.warning(
-                "required_virtio_win(prewhql) can not take effect without cdrom_virtio"
-            )
-
-    # Get the Libvirt version
-    if vm_type == "libvirt":
-        libvirt_ver_cmd = params.get(
-            "libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'"
-        )
-        try:
-            libvirt_version = a_process.run(
-                libvirt_ver_cmd, shell=True
-            ).stdout_text.strip()
-        except a_process.CmdError:
-            libvirt_version = "Unknown"
-        version_info["libvirt_version"] = str(libvirt_version)
-        LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
-
-    # Write it as a keyval
-    test.write_test_keyval(version_info)
 
     libvirtd_inst = None
 
