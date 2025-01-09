@@ -2214,7 +2214,7 @@ class DevContainer(object):
                     _bus_name = bus_name.rsplit(".")[0]
                     bus_params = {"id": _bus_name, "driver": atype}
                     if num_queues is not None and int(num_queues) > 1:
-                        bus_params["num_queues"] = num_queues
+                        bus_params["num_queues"] = int(num_queues)
                     if bus_extra_params:
                         for extra_param in bus_extra_params.split(","):
                             key, value = extra_param.split("=")
@@ -2921,7 +2921,7 @@ class DevContainer(object):
                 devices[-1].set_param(key, value)
         if self.is_dev_iothread_vq_supported(devices[-1]):
             if num_queues:
-                devices[-1].set_param("num-queues", num_queues)
+                devices[-1].set_param("num-queues", int(num_queues))
             # add iothread-vq-mapping if available
             if image_iothread_vq_mapping:
                 val = []
