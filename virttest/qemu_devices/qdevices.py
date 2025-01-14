@@ -1150,9 +1150,23 @@ class QDevice(QCustomDevice):
             out = "device_add %s" % _convert_args(self.params)
         return out
 
+    def _refresh_hotplug_props(self, params):
+        """
+        Refresh hotplug optional props as per params.
+
+        :return: A dict containing hotplug optional props.
+        """
+        return params
+
     def hotplug_qmp(self):
         """:return: the hotplug monitor command"""
-        return "device_add", self.params
+        params = self.params.copy()
+        params = self._refresh_hotplug_props(params)
+        for option in ["node", "requested-size"]:
+            value = params.get(option)
+            if value:
+                params[option] = int(value)
+        return "device_add", params
 
     def hotplug_hmp_nd(self):
         """:return: the hotplug monitor command without dynamic parameters"""
@@ -1826,6 +1840,11 @@ class Dimm(QDevice):
         kwargs = {"driver": dimm_type, "params": params}
         super(Dimm, self).__init__(**kwargs)
         self.set_param("driver", dimm_type)
+
+    def _refresh_hotplug_props(self, params):
+        if params.get("node"):
+            params["node"] = int(params.get("node"))
+        return params
 
     def verify_hotplug(self, out, monitor):
         out = monitor.info("memory-devices", debug=False)
