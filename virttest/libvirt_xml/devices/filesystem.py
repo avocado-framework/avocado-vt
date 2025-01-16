@@ -67,6 +67,7 @@ class Filesystem(base.TypedDeviceBase):
             <lock posix='on' flock='on'/>
             <thread_pool size='16'/>
             <sandbox mode="namespace"/>
+            <openfiles max='1234'/>
         </binary>
         """
 
@@ -77,6 +78,7 @@ class Filesystem(base.TypedDeviceBase):
             "lock_posix",
             "flock",
             "thread_pool_size",
+            "open_files_max",
             "sandbox_mode",
         )
 
@@ -95,6 +97,13 @@ class Filesystem(base.TypedDeviceBase):
             )
             accessors.XMLAttribute(
                 "flock", self, parent_xpath="/", tag_name="lock", attribute="flock"
+            )
+            accessors.XMLAttribute(
+                "open_files_max",
+                self,
+                parent_xpath="/",
+                tag_name="openfiles",
+                attribute="max",
             )
             accessors.XMLAttribute(
                 "thread_pool_size",
