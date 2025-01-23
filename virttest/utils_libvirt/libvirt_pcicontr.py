@@ -68,12 +68,13 @@ def get_free_root_ports(vmxml):
     return list(free_ports)
 
 
-def get_free_pci_slot(vm_xml, max_slot=31):
+def get_free_pci_slot(vm_xml, max_slot=31, controller_bus="0x00"):
     """
     Get a free slot on pcie-root controller
 
     :param vm_xml The guest xml
     :param max_slot: the maximum of slot to be selected
+    :param controller_bus: The controller bus to be checked
 
     :return: str,the first free slot or None
     """
@@ -81,7 +82,7 @@ def get_free_pci_slot(vm_xml, max_slot=31):
     pci_devices = list(vm_xml.xmltreefile.find("devices"))
     for dev in pci_devices:
         address = dev.find("address")
-        if address is not None and address.get("bus") == "0x00":
+        if address is not None and address.get("bus") == controller_bus:
             used_slot.append(address.get("slot"))
     LOG.debug("Collect used slot:%s", used_slot)
     for slot_index in range(1, max_slot + 1):
