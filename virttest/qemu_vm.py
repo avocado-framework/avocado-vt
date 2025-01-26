@@ -740,11 +740,24 @@ class VM(virt_vm.BaseVM):
                     dev.parent_bus = pci_bus
                     dev.set_param("addr", pci_addr)
                 if nic_extra_params:
+                    nic_extra_params_type = dict(
+                        eval(self.params.get("nic_extra_params_type", {}))
+                    )
                     nic_extra_params = (
                         _.split("=", 1) for _ in nic_extra_params.split(",") if _
                     )
                     for key, val in nic_extra_params:
-                        dev.set_param(key, val)
+                        value_type = nic_extra_params_type.get(key)
+                        if value_type:
+                            try:
+                                converted_val = eval(value_type)(val)
+                                dev.set_param(key, converted_val)
+                            except ValueError as e:
+                                raise ValueError(
+                                    f"Failed to convert {key}: {val} to {value_type}: {e}"
+                                )
+                        else:
+                            dev.set_param(key, val)
                 dev.set_param("bootindex", bootindex)
                 if "aarch64" in params.get("vm_arch_name", arch.ARCH):
                     if "rombar" in devices.execute_qemu("-device %s,?" % model):
