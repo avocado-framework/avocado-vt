@@ -4111,10 +4111,16 @@ def get_default_gateway_json(
         raise exceptions.TestError("Cannot get default gateway with given condition")
     elif len(default_route_list) == 1:
         default_route = default_route_list[0]
+        if iface_name and "dev" in default_route:
+            return default_route["dev"]
         if "gateway" in default_route:
             return default_route["gateway"]
     else:
-        gw = [path["gateway"] for path in default_route_list]
+        # TODO:deal with multiple gateway
+        if iface_name:
+            gw = [path["dev"] for path in default_route_list]
+        else:
+            gw = [path["gateway"] for path in default_route_list]
         return gw
 
 
