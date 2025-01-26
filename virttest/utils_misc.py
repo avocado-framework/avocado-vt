@@ -1782,7 +1782,7 @@ class NumaNode(object):
             try:
                 key_path = eval(key + "_path")
                 numa_sys = kernel_interface.SysFS(
-                    key_path, session=self.session, regex="\d+%s"
+                    key_path, session=self.session, regex="-?\d+%s"
                 )
                 key_val = str(numa_sys.sys_fs_value).rstrip("\n")
                 cpu_topo[key] = key_val
