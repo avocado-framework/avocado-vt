@@ -19,6 +19,7 @@ import time
 import six
 
 from virttest.qemu_capabilities import Flags
+from virttest.vt_monitor.api import ConnectController
 
 from . import cartesian_config, data_dir, utils_logfile, utils_misc
 
@@ -156,14 +157,18 @@ def create_monitor(vm, monitor_name, monitor_params):
     """
     MonitorClass = HumanMonitor
     if monitor_params.get("monitor_type") == "qmp":
-        if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
-            # Add a "human" monitor on non-qmp version of qemu.
-            LOG.warning(
-                "QMP monitor is unsupported by %s,"
-                " creating human monitor instead." % vm.qemu_version
-            )
-        else:
+        if vm.instance_id:
+            # Workaround to only support QMP monitors
             MonitorClass = QMPMonitor
+        else:
+            if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
+                # Add a "human" monitor on non-qmp version of qemu.
+                LOG.warn(
+                    "QMP monitor is unsupported by %s,"
+                    " creating human monitor instead." % vm.qemu_version
+                )
+            else:
+                MonitorClass = QMPMonitor
 
     LOG.info("Connecting to monitor '<%s> %s'", MonitorClass, monitor_name)
     monitor = MonitorClass(vm, monitor_name, monitor_params)
@@ -289,62 +294,71 @@ class Monitor(object):
         :raise MonitorConnectError: Raised if the connection fails
         """
         self.vm = VM(vm.name)
-        self._enable_blockdev = vm.check_capability(Flags.BLOCKDEV)
+        self._vm_instance_id = vm.instance_id
+        if self._vm_instance_id is None:
+            self._enable_blockdev = vm.check_capability(Flags.BLOCKDEV)
         self.name = name
         self.monitor_params = monitor_params
         self._lock = threading.RLock()
         self._log_lock = threading.RLock()
         self._supported_cmds = []
         self.debug_log = False
-        vm_pid = vm.get_pid()
-        if vm_pid is None:
-            vm_pid = "unknown"
-        self.log_file = "%s-%s-pid-%s.log" % (name, vm.name, vm_pid)
-        self.open_log_files = {}
         self._supported_migrate_capabilities = None
         self._supported_migrate_parameters = None
+        self._connect_id = None
+        self._connect_controller = None
 
-        try:
-            backend = monitor_params.get("chardev_backend", "unix_socket")
-            if backend == "tcp_socket":
-                self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self._socket.settimeout(self.CONNECT_TIMEOUT)
-                host = monitor_params["chardev_host"]
-                port = int(monitor_params["chardev_port"])
-                self._socket.connect((host, port))
-            elif backend == "unix_socket":
-                self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                self._socket.settimeout(self.CONNECT_TIMEOUT)
-                file_name = monitor_params.get("monitor_filename")
-                self._socket.connect(file_name)
-            else:
-                raise NotImplementedError(
-                    "Do not support the chardev backend %s." % backend
+        if self._vm_instance_id is None:
+            vm_pid = vm.get_pid()
+            if vm_pid is None:
+                vm_pid = "unknown"
+            self.log_file = "%s-%s-pid-%s.log" % (name, vm.name, vm_pid)
+            self.open_log_files = {}
+            try:
+                backend = monitor_params.get("chardev_backend", "unix_socket")
+                if backend == "tcp_socket":
+                    self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    self._socket.settimeout(self.CONNECT_TIMEOUT)
+                    host = monitor_params["chardev_host"]
+                    port = int(monitor_params["chardev_port"])
+                    self._socket.connect((host, port))
+                elif backend == "unix_socket":
+                    self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    self._socket.settimeout(self.CONNECT_TIMEOUT)
+                    file_name = monitor_params.get("monitor_filename")
+                    self._socket.connect(file_name)
+                else:
+                    raise NotImplementedError(
+                        "Do not support the chardev backend %s." % backend
+                    )
+            except socket.error as details:
+                raise MonitorConnectError(
+                    "Could not connect to monitor socket: %s" % details
                 )
-        except socket.error as details:
-            raise MonitorConnectError(
-                "Could not connect to monitor socket: %s" % details
-            )
         self._server_closed = False
 
     def __del__(self):
         # Automatically close the connection when the instance is garbage
         # collected
-        self._close_sock()
-        if not self._acquire_lock(lock=self._log_lock):
-            raise MonitorLockError(
-                "Could not acquire exclusive lock to access"
-                " %s " % self.open_log_files
-            )
-        try:
-            del_logs = []
-            for log in self.open_log_files:
-                self.open_log_files[log].close()
-                del_logs.append(log)
-            for log in del_logs:
-                self.open_log_files.pop(log)
-        finally:
-            self._log_lock.release()
+
+        if self._connect_id:
+            self._connect_controller.disconnect(self._connect_id)
+        else:
+            self._close_sock()
+            if not self._acquire_lock(lock=self._log_lock):
+                raise MonitorLockError(
+                    "Could not acquire exclusive lock to access"
+                    " %s " % self.open_log_files
+                )
+            try:
+                del_logs = []
+                for log in self.open_log_files:
+                    self.open_log_files[log].close()
+                    del_logs.append(log)
+                for log in del_logs:
+                    self.open_log_files.pop(log)
+            finally:
+                self._log_lock.release()
 
     # The following two functions are defined to make sure the state is set
     # exclusively by the constructor call as specified in __getinitargs__().
@@ -382,11 +396,14 @@ class Monitor(object):
         return self.__class__, (self.__getinitargs__())
 
     def _close_sock(self):
-        try:
-            self._socket.shutdown(socket.SHUT_RDWR)
-        except socket.error:
-            pass
-        self._socket.close()
+        if self._connect_id:
+            self._connect_controller.close_connect(self._connect_id)
+        else:
+            try:
+                self._socket.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
+            self._socket.close()
 
     def _acquire_lock(self, timeout=ACQUIRE_LOCK_TIMEOUT, lock=None):
         end_time = time.time() + timeout
@@ -403,7 +420,12 @@ class Monitor(object):
             return False
         timeout = max(0, timeout)
         try:
-            return bool(select.select([self._socket], [], [], timeout)[0])
+            if self._connect_id:
+                return self._connect_controller.is_data_available(
+                    self._connect_id, timeout
+                )
+            else:
+                return bool(select.select([self._socket], [], [], timeout)[0])
         except socket.error as e:
             raise MonitorSocketError("Verifying data on monitor socket", e)
 
@@ -416,7 +438,10 @@ class Monitor(object):
         s = b""
         while self._data_available():
             try:
-                data = self._socket.recv(1024)
+                if self._connect_id:
+                    data = self._connect_controller.recv_all(self._connect_id)
+                else:
+                    data = self._socket.recv(1024)
             except socket.error as e:
                 raise MonitorSocketError("Could not receive data from monitor", e)
             if not data:
@@ -458,28 +483,32 @@ class Monitor(object):
         """
         Record monitor cmd/output in log file.
         """
-        if not self._acquire_lock(lock=self._log_lock):
-            raise MonitorLockError(
-                "Could not acquire exclusive lock to access" " %s" % self.open_log_files
-            )
-        try:
-            log = utils_logfile.get_log_filename(self.log_file)
-            timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+        if self._connect_id:
+            pass
+        else:
+            if not self._acquire_lock(lock=self._log_lock):
+                raise MonitorLockError(
+                    "Could not acquire exclusive lock to access"
+                    " %s" % self.open_log_files
+                )
             try:
-                if log not in self.open_log_files:
-                    self.open_log_files[log] = open(log, "a")
-                for line in log_str.splitlines():
-                    self.open_log_files[log].write("%s: %s\n" % (timestr, line))
-                self.open_log_files[log].flush()
-            except Exception as err:
-                txt = "Fail to record log to %s.\n" % log
-                txt += "Log content: %s\n" % log_str
-                txt += "Exception error: %s" % err
-                LOG.error(txt)
-                self.open_log_files[log].close()
-                self.open_log_files.pop(log)
-        finally:
-            self._log_lock.release()
+                log = utils_logfile.get_log_filename(self.log_file)
+                timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+                try:
+                    if log not in self.open_log_files:
+                        self.open_log_files[log] = open(log, "a")
+                    for line in log_str.splitlines():
+                        self.open_log_files[log].write("%s: %s\n" % (timestr, line))
+                    self.open_log_files[log].flush()
+                except Exception as err:
+                    txt = "Fail to record log to %s.\n" % log
+                    txt += "Log content: %s\n" % log_str
+                    txt += "Exception error: %s" % err
+                    LOG.error(txt)
+                    self.open_log_files[log].close()
+                    self.open_log_files.pop(log)
+            finally:
+                self._log_lock.release()
 
     @staticmethod
     def _build_args(**kargs):
@@ -493,34 +522,40 @@ class Monitor(object):
         Automatic conversion "-" and "_" in commands if the translate command
         is supported commands;
         """
+        if self._connect_id:
+            pass
+        else:
 
-        def translate(cmd):
-            return "-".join(re.split("[_-]", cmd))
+            def translate(cmd):
+                return "-".join(re.split("[_-]", cmd))
 
-        found = False
-        if not self._has_command(cmd):
-            for _cmd in self._supported_cmds:
-                if translate(_cmd) == translate(cmd):
-                    found = True
-                elif translate(_cmd) == translate("x-%s" % cmd):
-                    found = True
-                if found:
-                    LOG.info("Convert command %s -> %s", cmd, _cmd)
-                    return _cmd
-        return cmd
+            found = False
+            if not self._has_command(cmd):
+                for _cmd in self._supported_cmds:
+                    if translate(_cmd) == translate(cmd):
+                        found = True
+                    elif translate(_cmd) == translate("x-%s" % cmd):
+                        found = True
+                    if found:
+                        LOG.info("Convert command %s -> %s", cmd, _cmd)
+                        return _cmd
+            return cmd
 
     def is_responsive(self):
         """
         Return True if the monitor is responsive.
         """
-        if self._socket.fileno() < 0:
-            LOG.warning("Monitor socket is already closed")
-            return False
-        try:
-            self.verify_responsive()
-            return True
-        except MonitorError:
-            return False
+        if self._connect_id:
+            return self._connect_controller.is_responsive(self._connect_id)
+        else:
+            if self._socket.fileno() < 0:
+                LOG.warning("Monitor socket is already closed")
+                return False
+            try:
+                self.verify_responsive()
+                return True
+            except MonitorError:
+                return False
 
     def verify_supported_cmd(self, cmd):
         """
@@ -823,9 +858,8 @@ class HumanMonitor(Monitor):
                 docstring.
         """
         try:
-            super(HumanMonitor, self).__init__(vm, name, monitor_params)
-
             self.protocol = "human"
+            super(HumanMonitor, self).__init__(vm, name, monitor_params)
 
             # Find the initial (qemu) prompt
             s, o = self._read_up_to_qemu_prompt()
@@ -1807,31 +1841,42 @@ class QMPMonitor(Monitor):
             self._events = []
             self._supported_hmp_cmds = []
 
-            # Make sure json is available
-            try:
-                json
-            except NameError:
-                raise MonitorNotSupportedError(
-                    "QMP requires the json module " "(Python 2.6 and up)"
-                )
-
-            # Read greeting message
-            end_time = time.time() + 20
-            output_str = ""
-            while time.time() < end_time:
-                for obj in self._read_objects():
-                    output_str += str(obj)
-                    if "QMP" in obj:
-                        self._greeting = obj
-                        break
-                if self._greeting:
-                    break
-                time.sleep(0.1)
+            if self._vm_instance_id is not None:
+                try:
+                    self._connect_controller = ConnectController(
+                        self.name, vm.instance_id
+                    )
+                    self._connect_id = self._connect_controller.connect(self.protocol)
+                except Exception as details:
+                    raise MonitorConnectError(
+                        "Could not connect to monitor socket: %s" % details
+                    )
             else:
-                raise MonitorProtocolError(
-                    "No QMP greeting message received."
-                    " Output so far: %s" % output_str
-                )
+                # Make sure json is available
+                try:
+                    json
+                except NameError:
+                    raise MonitorNotSupportedError(
+                        "QMP requires the json module " "(Python 2.6 and up)"
+                    )
+
+                # Read greeting message
+                end_time = time.time() + 20
+                output_str = ""
+                while time.time() < end_time:
+                    for obj in self._read_objects():
+                        output_str += str(obj)
+                        if "QMP" in obj:
+                            self._greeting = obj
+                            break
+                    if self._greeting:
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise MonitorProtocolError(
+                        "No QMP greeting message received."
+                        " Output so far: %s" % output_str
+                    )
 
             # Issue qmp_capabilities
             self.cmd("qmp_capabilities")
@@ -2060,35 +2105,43 @@ class QMPMonitor(Monitor):
             )
 
         try:
-            # Read any data that might be available
-            self._read_objects()
-            # Send command
-            q_id = utils_misc.generate_random_string(8)
-            cmdobj = json.dumps(self._build_cmd(cmd, args, q_id))
-            msg = cmdobj.encode()
-            fds = (
-                [fd.fileno() if not isinstance(fd, int) else fd]
-                if fd is not None
-                else None
-            )
-            if debug:
-                LOG.debug("Send command: %s" % cmdobj)
-            self._send(msg, fds)
-            # Read response
-            r = self._get_response(q_id, timeout)
-            if r is None:
-                raise MonitorProtocolError(
-                    "Received no response to QMP "
-                    "command '%s', or received a "
-                    "response with an incorrect id" % cmd
+            if self._connect_id:
+                data = (cmd, args)
+                r = self._connect_controller.execute_data(
+                    self._connect_id, data, timeout, debug, fd, data_format="cmd"
                 )
-            if "return" in r:
-                ret = r["return"]
-                if ret:
-                    self._log_response(cmd, ret, debug)
-                return ret
-            if "error" in r:
-                raise QMPCmdError(cmd, args, r["error"])
+                return r
+            else:
+
+                # Read any data that might be available
+                self._read_objects()
+                # Send command
+                q_id = utils_misc.generate_random_string(8)
+                cmdobj = json.dumps(self._build_cmd(cmd, args, q_id))
+                msg = cmdobj.encode()
+                fds = (
+                    [fd.fileno() if not isinstance(fd, int) else fd]
+                    if fd is not None
+                    else None
+                )
+                if debug:
+                    LOG.debug("Send command: %s" % cmdobj)
+                self._send(msg, fds)
+                # Read response
+                r = self._get_response(q_id, timeout)
+                if r is None:
+                    raise MonitorProtocolError(
+                        "Received no response to QMP "
+                        "command '%s', or received a "
+                        "response with an incorrect id" % cmd
+                    )
+                if "return" in r:
+                    ret = r["return"]
+                    if ret:
+                        self._log_response(cmd, ret, debug)
+                    return ret
+                if "error" in r:
+                    raise QMPCmdError(cmd, args, r["error"])
 
         finally:
             self._lock.release()
@@ -2112,12 +2165,19 @@ class QMPMonitor(Monitor):
             )
 
         try:
-            self._read_objects()
-            self._send(data.encode())
-            r = self._get_response(None, timeout)
-            if r is None:
-                raise MonitorProtocolError("Received no response to data: %r" % data)
-            return r
+            if self._connect_id:
+                r = self._connect_controller.execute_data(
+                    self._connect_id, data, timeout, data_format="raw"
+                )
+            else:
+                self._read_objects()
+                self._send(data.encode())
+                r = self._get_response(None, timeout)
+                if r is None:
+                    raise MonitorProtocolError(
+                        "Received no response to data: %r" % data
+                    )
+                return r
 
         finally:
             self._lock.release()
@@ -2136,6 +2196,21 @@ class QMPMonitor(Monitor):
         :raise MonitorSocketError: Raised if a socket error occurs
         :raise MonitorProtocolError: Raised if no response is received
         """
+        if self._connect_id:
+            if not self._acquire_lock():
+                raise MonitorLockError(
+                    "Could not acquire exclusive lock to send " "obj: %r" % obj
+                )
+
+            try:
+                r = self._connect_controller.execute_data(
+                    self._connect_id, obj, timeout, data_format="obj"
+                )
+                return r
+
+            finally:
+                self._lock.release()
+
         return self.cmd_raw(json.dumps(obj) + "\n", timeout)
 
     def cmd_qmp(self, cmd, args=None, q_id=None, timeout=CMD_TIMEOUT):
@@ -2154,6 +2229,22 @@ class QMPMonitor(Monitor):
         :raise MonitorSocketError: Raised if a socket error occurs
         :raise MonitorProtocolError: Raised if no response is received
         """
+        if self._connect_id:
+            if not self._acquire_lock():
+                raise MonitorLockError(
+                    "Could not acquire exclusive lock to send " "QMP command : %r" % cmd
+                )
+
+            try:
+                data = (cmd, args, q_id)
+                r = self._connect_controller.execute_data(
+                    self._connect_id, data, timeout, data_format="qmp"
+                )
+                return r
+
+            finally:
+                self._lock.release()
+
         return self.cmd_obj(self._build_cmd(cmd, args, q_id), timeout)
 
     def verify_responsive(self):
@@ -2211,8 +2302,11 @@ class QMPMonitor(Monitor):
                 "Could not acquire exclusive lock to read " "QMP events"
             )
         try:
-            self._read_objects()
-            return self._events[:]
+            if self._connect_id:
+                return self._connect_controller.get_events(self._connect_id)
+            else:
+                self._read_objects()
+                return self._events[:]
         finally:
             self._lock.release()
 
@@ -2223,9 +2317,12 @@ class QMPMonitor(Monitor):
         :param name: The name of the event to look for (e.g. 'RESET')
         :return: An event object or None if none is found
         """
-        for e in self.get_events():
-            if e.get("event") == name:
-                return e
+        if self._connect_id:
+            return self._connect_controller.get_event(self._connect_id, name)
+        else:
+            for e in self.get_events():
+                if e.get("event") == name:
+                    return e
 
     def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
@@ -2257,7 +2354,10 @@ class QMPMonitor(Monitor):
             raise MonitorLockError(
                 "Could not acquire exclusive lock to clear " "QMP event list"
             )
-        self._events = []
+        if self._connect_id:
+            self._connect_controller.clear_events(self._connect_id)
+        else:
+            self._events = []
         self._lock.release()
 
     def clear_event(self, name):
@@ -2270,12 +2370,15 @@ class QMPMonitor(Monitor):
             raise MonitorLockError(
                 "Could not acquire exclusive lock to clear " "QMP event list"
             )
-        while True:
-            event = self.get_event(name)
-            if event:
-                self._events.remove(event)
-            else:
-                break
+        if self._connect_id:
+            self._connect_controller.clear_event(self._connect_id, name)
+        else:
+            while True:
+                event = self.get_event(name)
+                if event:
+                    self._events.remove(event)
+                else:
+                    break
         self._lock.release()
 
     def get_greeting(self):
