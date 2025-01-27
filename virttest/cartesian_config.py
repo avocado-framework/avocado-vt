@@ -377,7 +377,6 @@ class NegativeCondition(OnlyFilter):
 
 
 class StrReader(object):
-
     """
     Preprocess an input string for easy reading.
     """
@@ -436,7 +435,6 @@ class StrReader(object):
 
 
 class FileReader(StrReader):
-
     """
     Preprocess an input file for easy reading.
     """

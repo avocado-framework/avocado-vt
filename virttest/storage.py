@@ -5,6 +5,7 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
+
 from __future__ import division
 
 import collections
@@ -804,7 +805,6 @@ class ImageEncryption(object):
 
 
 class ImageSlicesInfo:
-
     """Slices information associated with images."""
 
     def __init__(self, image, slices):
@@ -840,7 +840,6 @@ class ImageSlicesInfo:
 
 
 class SliceProperties(propcan.PropCan):
-
     """Properties of a single slice associated with images."""
 
     __slots__ = ["offset", "size"]
@@ -881,7 +880,6 @@ def copy_nfs_image(params, root_dir, basename=False):
 
 
 class OptionMissing(Exception):
-
     """
     Option not found in the odbject
     """
@@ -894,7 +892,6 @@ class OptionMissing(Exception):
 
 
 class QemuImg(object):
-
     """
     A basic class for handling operations of disk/block images.
     """
@@ -1259,7 +1256,6 @@ class QemuImg(object):
 
 
 class Rawdev(object):
-
     """
     Base class for raw storage devices such as iscsi and local disks
     """
@@ -1283,7 +1279,6 @@ class Rawdev(object):
 
 
 class Iscsidev(Rawdev):
-
     """
     Class for handle iscsi devices for VM
     """
@@ -1310,7 +1305,6 @@ class Iscsidev(Rawdev):
 
 
 class LVMdev(Rawdev):
-
     """
     Class for handle LVM devices for VM
     """

@@ -8,7 +8,6 @@ from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
 
 
 class VolXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for VolXML class.
 
@@ -115,7 +114,6 @@ class VolXMLBase(base.LibvirtXMLBase):
 
 
 class VolXML(VolXMLBase):
-
     """
     Manipulators of a Virtual Vol through it's XML definition.
     """
@@ -195,7 +193,6 @@ class VolXML(VolXMLBase):
         return new_one
 
     class Encryption(base.LibvirtXMLBase):
-
         """
         Encryption volume XML class
 

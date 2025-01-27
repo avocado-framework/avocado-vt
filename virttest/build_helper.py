@@ -25,7 +25,6 @@ def _force_copy(src, dest):
 
 
 class GitRepoParamHelper(git.GitRepoHelper):
-
     """
     Helps to deal with git repos specified in cartersian config files
 
@@ -161,7 +160,6 @@ class GitRepoParamHelper(git.GitRepoHelper):
 
 
 class LocalSourceDirHelper(object):
-
     """
     Helper class to deal with source code sitting somewhere in the filesystem
     """
@@ -187,7 +185,6 @@ class LocalSourceDirHelper(object):
 
 
 class LocalSourceDirParamHelper(LocalSourceDirHelper):
-
     """
     Helps to deal with source dirs specified in cartersian config files
 
@@ -228,7 +225,6 @@ class LocalSourceDirParamHelper(LocalSourceDirHelper):
 
 
 class LocalTarHelper(object):
-
     """
     Helper class to deal with source code in a local tarball
     """
@@ -285,7 +281,6 @@ class LocalTarHelper(object):
 
 
 class LocalTarParamHelper(LocalTarHelper):
-
     """
     Helps to deal with source tarballs specified in cartersian config files
 
@@ -326,7 +321,6 @@ class LocalTarParamHelper(LocalTarHelper):
 
 
 class RemoteTarHelper(LocalTarHelper):
-
     """
     Helper that fetches a tarball and extracts it locally
     """
@@ -354,7 +348,6 @@ class RemoteTarHelper(LocalTarHelper):
 
 
 class RemoteTarParamHelper(RemoteTarHelper):
-
     """
     Helps to deal with remote source tarballs specified in cartersian config
 
@@ -395,7 +388,6 @@ class RemoteTarParamHelper(RemoteTarHelper):
 
 
 class PatchHelper(object):
-
     """
     Helper that encapsulates the patching of source code with patch files
     """
@@ -433,7 +425,6 @@ class PatchHelper(object):
 
 
 class PatchParamHelper(PatchHelper):
-
     """
     Helps to deal with patches specified in cartersian config files
 
@@ -482,7 +473,6 @@ class PatchParamHelper(PatchHelper):
 
 
 class GnuSourceBuildInvalidSource(Exception):
-
     """
     Exception raised when build source dir/file is not valid
     """
@@ -491,7 +481,6 @@ class GnuSourceBuildInvalidSource(Exception):
 
 
 class SourceBuildFailed(Exception):
-
     """
     Exception raised when building with parallel jobs fails
 
@@ -503,7 +492,6 @@ class SourceBuildFailed(Exception):
 
 
 class SourceBuildParallelFailed(Exception):
-
     """
     Exception raised when building with parallel jobs fails
 
@@ -515,7 +503,6 @@ class SourceBuildParallelFailed(Exception):
 
 
 class GnuSourceBuildHelper(object):
-
     """
     Handles software installation of GNU-like source code
 
@@ -712,7 +699,6 @@ class GnuSourceBuildHelper(object):
 
 
 class LinuxKernelBuildHelper(object):
-
     """
     Handles Building Linux Kernel.
     """
@@ -807,7 +793,6 @@ class LinuxKernelBuildHelper(object):
 
 
 class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
-
     """
     Helps to deal with gnu_autotools build helper in cartersian config files
 

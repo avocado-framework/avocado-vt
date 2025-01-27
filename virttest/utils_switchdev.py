@@ -3,6 +3,7 @@ Virtualization test - SwitchDev related utilities
 
 :copyright: Red Hat Inc.
 """
+
 import logging
 import os
 

@@ -7,7 +7,6 @@ This relies on generally available multimedia libraries, frameworks
 and tools.
 """
 
-
 import glob
 import logging
 import os
@@ -72,7 +71,6 @@ class EncodingError(Exception):
 
 
 class GiEncoder(object):
-
     """
     Encodes a video from Virtual Machine screenshots (jpg files).
 
@@ -265,7 +263,6 @@ class GiEncoder(object):
 
 
 class GstEncoder(object):
-
     """
     Encodes a video from Virtual Machine screenshots (jpg files).
 

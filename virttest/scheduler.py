@@ -7,7 +7,6 @@ from virttest import utils_env, virt_vm
 
 
 class scheduler:
-
     """
     A scheduler that manages several parallel test execution pipelines on a
     single host.

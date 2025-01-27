@@ -3,6 +3,7 @@ Interfaces and helpers for the virtio_serial ports.
 
 :copyright: 2012 Red Hat Inc.
 """
+
 from __future__ import division
 
 import logging
@@ -28,21 +29,18 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtioPortException(Exception):
-
     """General virtio_port exception"""
 
     pass
 
 
 class VirtioPortFatalException(VirtioPortException):
-
     """Fatal virtio_port exception"""
 
     pass
 
 
 class _VirtioPort(object):
-
     """
     Define structure to keep information about used port.
     """
@@ -165,7 +163,6 @@ class _VirtioPort(object):
 
 
 class VirtioSerial(_VirtioPort):
-
     """Class for handling virtio-serialport"""
 
     def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
@@ -178,7 +175,6 @@ class VirtioSerial(_VirtioPort):
 
 
 class VirtioConsole(_VirtioPort):
-
     """Class for handling virtio-console"""
 
     def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
@@ -191,7 +187,6 @@ class VirtioConsole(_VirtioPort):
 
 
 class GuestWorker(object):
-
     """
     Class for executing "virtio_console_guest" script on guest
     """
@@ -522,7 +517,6 @@ class GuestWorker(object):
 
 
 class ThSend(Thread):
-
     """
     Random data sender thread.
     """
@@ -560,7 +554,6 @@ class ThSend(Thread):
 
 
 class ThSendCheck(Thread):
-
     """
     Random data sender thread.
     """
@@ -704,7 +697,6 @@ class ThSendCheck(Thread):
 
 
 class ThRecv(Thread):
-
     """
     Receives data and throws it away.
     """
@@ -745,7 +737,6 @@ class ThRecv(Thread):
 
 
 class ThRecvCheck(Thread):
-
     """
     Random data receiver/checker thread.
     """

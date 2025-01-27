@@ -9,7 +9,6 @@ from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class CAPXML(base.LibvirtXMLBase):
-
     """
     The base class for capability.
     """
@@ -43,7 +42,6 @@ class CAPXML(base.LibvirtXMLBase):
 
 
 class SystemXML(CAPXML):
-
     """
     class for capability which type is system.
     """
@@ -208,7 +206,6 @@ class MdevXML(CAPXML):
 
 
 class StorageXML(CAPXML):
-
     """
     class for capability whose type is storage.
     """
@@ -242,7 +239,6 @@ class VDPAXML(CAPXML):
 
 
 class PCIXML(CAPXML):
-
     """
     class for capability whose type is pci.
     """
@@ -337,7 +333,6 @@ class PCIXML(CAPXML):
         self.xml = " <capability type='pci'></capability>"
 
     class Address(base.LibvirtXMLBase):
-
         """
         Address of Virtual Function device.
         """
@@ -461,7 +456,6 @@ class PCIXML(CAPXML):
 
 
 class NodedevXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for NodedevXML class.
 
@@ -613,7 +607,6 @@ class NodedevXMLBase(base.LibvirtXMLBase):
 
 
 class NodedevXML(NodedevXMLBase):
-
     """
     class for Node device XML.
     """

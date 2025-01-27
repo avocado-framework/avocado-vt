@@ -22,7 +22,6 @@ from virttest.staging import utils_koji
 
 
 class OptionParser(optparse.OptionParser):
-
     """
     KojiPkgSpec App option parser
     """
@@ -58,7 +57,6 @@ class OptionParser(optparse.OptionParser):
 
 
 class App(object):
-
     """
     KojiPkgSpec app
     """

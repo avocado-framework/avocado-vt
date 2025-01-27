@@ -6,6 +6,7 @@ interact with qemu qdev structure.
 
 :copyright: 2012-2013 Red Hat Inc.
 """
+
 import json
 import logging
 import os
@@ -63,7 +64,6 @@ def _build_cmd(cmd, args=None, q_id=None):
 # Device objects
 #
 class QBaseDevice(object):
-
     """Base class of qemu objects"""
 
     def __init__(
@@ -378,7 +378,6 @@ class QBaseDevice(object):
 
 
 class QStringDevice(QBaseDevice):
-
     """
     General device which allows to specify methods by fixed or parametrizable
     strings in this format:
@@ -444,7 +443,6 @@ class QStringDevice(QBaseDevice):
 
 
 class QCustomDevice(QBaseDevice):
-
     """
     Representation of the '-$option $param1=$value1,$param2...' qemu object.
     This representation handles only cmdline.
@@ -515,7 +513,6 @@ class QCustomDevice(QBaseDevice):
 
 
 class QDrive(QCustomDevice):
-
     """
     Representation of the '-drive' qemu object without hotplug support.
     """
@@ -545,7 +542,6 @@ class QDrive(QCustomDevice):
 
 
 class QOldDrive(QDrive):
-
     """
     This is a variant for -drive without 'addr' support
     """
@@ -566,7 +562,6 @@ class QOldDrive(QDrive):
 
 
 class QHPDrive(QDrive):
-
     """
     Representation of the '-drive' qemu object with hotplug support.
     """
@@ -640,7 +635,6 @@ class QHPDrive(QDrive):
 
 
 class QRHDrive(QDrive):
-
     """
     Representation of the '-drive' qemu object with RedHat hotplug support.
     """
@@ -1118,7 +1112,6 @@ class QBlockdevProtocolFTPS(QBlockdevProtocol):
 
 
 class QDevice(QCustomDevice):
-
     """
     Representation of the '-device' qemu object. It supports all methods.
     :note: Use driver format in full form - 'driver' = '...' (usb-ehci, ide-hd)
@@ -1309,7 +1302,6 @@ class QDevice(QCustomDevice):
 
 
 class QGlobal(QBaseDevice):
-
     """
     Representation of qemu global setting (-global driver.property=value)
     """
@@ -1334,7 +1326,6 @@ class QGlobal(QBaseDevice):
 
 
 class QFloppy(QGlobal):
-
     """
     Imitation of qemu floppy disk defined by -global isa-fdc.drive?=$drive
     """
@@ -1368,7 +1359,6 @@ class QFloppy(QGlobal):
 
 
 class QObject(QCustomDevice):
-
     """
     Representation of the '-object backend' qemu object.
     """
@@ -1616,7 +1606,6 @@ class QThrottleGroup(QObject):
 
 
 class Memory(QObject):
-
     """
     QOM memory object, support for pinning memory on host NUMA nodes.
     The existing options in __attributes__ are subsumed by the QOM objects
@@ -2660,7 +2649,6 @@ class QNetdev(QCustomDevice):
 # virtio-serial-bus
 #
 class QSparseBus(object):
-
     """
     Universal bus representation object.
 
@@ -3062,7 +3050,6 @@ class QSparseBus(object):
 
 
 class QStrictCustomBus(QSparseBus):
-
     """
     Similar to QSparseBus. The address starts with 1 and addr is always set
     """
@@ -3089,7 +3076,6 @@ class QStrictCustomBus(QSparseBus):
 
 
 class QNoAddrCustomBus(QSparseBus):
-
     """
     This is the opposite of QStrictCustomBus. Even when addr is set it's not
     updated in the device's params.
@@ -3103,7 +3089,6 @@ class QNoAddrCustomBus(QSparseBus):
 
 
 class QUSBBus(QSparseBus):
-
     """
     USB bus representation including usb-hub handling.
     """
@@ -3179,7 +3164,6 @@ class QUSBBus(QSparseBus):
 
 
 class QDriveBus(QSparseBus):
-
     """
     QDrive bus representation (single slot, drive=...)
     """
@@ -3212,7 +3196,6 @@ class QDriveBus(QSparseBus):
 
 
 class QDenseBus(QSparseBus):
-
     """
     Dense bus representation. The only difference from SparseBus is the output
     string format. DenseBus iterates over all addresses and show free slots
@@ -3252,7 +3235,6 @@ class QDenseBus(QSparseBus):
 
 
 class QPCIBus(QSparseBus):
-
     """
     PCI Bus representation (bus&addr, uses hex digits)
     """
@@ -3514,7 +3496,6 @@ class QPCIEBus(QPCIBus):
 
 
 class QPCISwitchBus(QPCIBus):
-
     """
     PCI Switch bus representation (creates downstream device while inserting
     a device).
@@ -3569,7 +3550,6 @@ class QPCISwitchBus(QPCIBus):
 
 
 class QSCSIBus(QSparseBus):
-
     """
     SCSI bus representation (bus + 2 leves, don't iterate over lun by default)
     """
@@ -3598,7 +3578,6 @@ class QSCSIBus(QSparseBus):
 
 
 class QBusUnitBus(QDenseBus):
-
     """Implementation of bus-unit/nr bus (ahci, ide, virtio-serial)"""
 
     def __init__(
@@ -3663,7 +3642,6 @@ class QBusUnitBus(QDenseBus):
 
 
 class QSerialBus(QBusUnitBus):
-
     """Serial bus representation"""
 
     def __init__(self, busid, bus_type, aobject=None, max_ports=32):
@@ -3681,7 +3659,6 @@ class QSerialBus(QBusUnitBus):
 
 
 class QAHCIBus(QBusUnitBus):
-
     """AHCI bus (ich9-ahci, ahci)"""
 
     def __init__(self, busid, aobject=None):
@@ -3690,7 +3667,6 @@ class QAHCIBus(QBusUnitBus):
 
 
 class QIDEBus(QBusUnitBus):
-
     """IDE bus (piix3-ide)"""
 
     def __init__(self, busid, aobject=None):
@@ -3699,7 +3675,6 @@ class QIDEBus(QBusUnitBus):
 
 
 class QFloppyBus(QDenseBus):
-
     """
     Floppy bus (-global isa-fdc.drive?=$drive)
     """
@@ -3735,7 +3710,6 @@ class QFloppyBus(QDenseBus):
 
 
 class QOldFloppyBus(QDenseBus):
-
     """
     Floppy bus (-drive index=n)
     """

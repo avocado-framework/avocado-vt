@@ -196,7 +196,6 @@ def add_qemu_bin_vt_option(parser):
 
 
 class VTRun(CLI):
-
     """
     Avocado VT - legacy virt-test support
     """

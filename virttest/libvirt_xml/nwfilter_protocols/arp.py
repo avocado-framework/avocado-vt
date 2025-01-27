@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Arp(base.TypedDeviceBase):
-
     """
     Create new Arp xml instances
 
@@ -61,7 +60,6 @@ class Arp(base.TypedDeviceBase):
         return arp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Arp attribute XML class
 

@@ -10,7 +10,6 @@ from virttest.libvirt_xml.devices.seclabel import Seclabel
 
 
 class Disk(base.TypedDeviceBase):
-
     """
     Disk device XML class
 
@@ -352,7 +351,6 @@ class Disk(base.TypedDeviceBase):
     Address = librarian.get("address")
 
     class DiskSource(base.base.LibvirtXMLBase):
-
         """
         Disk source device XML class
 
@@ -490,7 +488,6 @@ class Disk(base.TypedDeviceBase):
             return dict(attr_dict)  # return copy of dict, not reference
 
     class DiskDriverIOthreadsXML(base.base.LibvirtXMLBase):
-
         """
         iothreads tag XML class
 
@@ -598,7 +595,6 @@ class Disk(base.TypedDeviceBase):
                 return dict(attr_dict)
 
     class IOTune(base.base.LibvirtXMLBase):
-
         """
         IOTune device XML class
 
@@ -632,7 +628,6 @@ class Disk(base.TypedDeviceBase):
             self.xml = "<iotune/>"
 
     class Encryption(base.base.LibvirtXMLBase):
-
         """
         Encryption device XML class
 
@@ -664,7 +659,6 @@ class Disk(base.TypedDeviceBase):
             self.xml = "<encryption/>"
 
     class Auth(base.base.LibvirtXMLBase):
-
         """
         Auth device XML class
 
@@ -715,7 +709,6 @@ class Disk(base.TypedDeviceBase):
             self.xml = "<auth/>"
 
     class Slices(base.base.LibvirtXMLBase):
-
         """
         slices device XML class
         Typical xml looks like:
@@ -752,7 +745,6 @@ class Disk(base.TypedDeviceBase):
             self.xml = "<slices/>"
 
     class Reservations(base.base.LibvirtXMLBase):
-
         """
         Reservations device XML class
 

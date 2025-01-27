@@ -1,6 +1,7 @@
 """
 Classes and functions for embedded qemu driver.
 """
+
 import logging
 import re
 
@@ -20,7 +21,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class EmbeddedQemuSession(object):
-
     """
     Interaction embeddedQemu session can start a qemu process.
     """

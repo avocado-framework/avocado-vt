@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Esp_ipv6(base.TypedDeviceBase):
-
     """
     Create new Esp_ipv6 xml instances
 
@@ -60,7 +59,6 @@ class Esp_ipv6(base.TypedDeviceBase):
         return esp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Esp_ipv6 attribute XML class
 

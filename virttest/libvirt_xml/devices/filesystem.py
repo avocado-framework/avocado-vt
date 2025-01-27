@@ -58,7 +58,6 @@ class Filesystem(base.TypedDeviceBase):
         )
 
     class Binary(base.base.LibvirtXMLBase):
-
         """
         Filesystem binary subclass
         Typical xml looks like:

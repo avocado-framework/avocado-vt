@@ -113,7 +113,6 @@ def find_header(hdr):
 
 
 class EfiVar(object):
-
     """
     Helper class to manipulate EFI firmware variables
 
@@ -210,7 +209,6 @@ class EfiVar(object):
 
 
 class EfiToolSys(object):
-
     """
     Interfaces with /sys/firmware/efi/vars provided by the kernel
 
@@ -305,7 +303,6 @@ class EfiToolSys(object):
 
 
 class EliloConf(object):
-
     """
     A simple parser for elilo configuration file
 
@@ -520,7 +517,6 @@ def detect_distro_type():
 
 
 class DebianBuildDeps(object):
-
     """
     Checks and install grubby build dependencies on Debian (like) systems
 
@@ -570,7 +566,6 @@ class DebianBuildDeps(object):
 
 
 class RPMBuildDeps(object):
-
     """
     Base class for RPM based systems
     """
@@ -598,7 +593,6 @@ class RPMBuildDeps(object):
 
 
 class SuseBuildDeps(RPMBuildDeps):
-
     """
     Checks and install grubby build dependencies on SuSE (like) systems
 
@@ -624,7 +618,6 @@ class SuseBuildDeps(RPMBuildDeps):
 
 
 class RedHatBuildDeps(RPMBuildDeps):
-
     """
     Checks and install grubby build dependencies on RedHat (like) systems
 
@@ -722,7 +715,6 @@ def install_grubby_if_necessary(path=None):
 
 
 class GrubbyInstallException(Exception):
-
     """
     Exception that signals failure when doing grubby installation
     """
@@ -731,7 +723,6 @@ class GrubbyInstallException(Exception):
 
 
 class Grubby(object):
-
     """
     Grubby wrapper
 
@@ -1819,7 +1810,6 @@ class Grubby(object):
 
 
 class OptionParser(optparse.OptionParser):
-
     """
     Command line option parser
 
@@ -2047,7 +2037,6 @@ class OptionParser(optparse.OptionParser):
 
 
 class BoottoolApp(object):
-
     """
     The boottool application itself
     """

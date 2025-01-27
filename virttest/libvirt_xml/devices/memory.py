@@ -66,7 +66,6 @@ class Memory(base.UntypedDeviceBase):
     Address = librarian.get("address")
 
     class Target(base.base.LibvirtXMLBase):
-
         """
         Memory target xml class.
 
@@ -162,7 +161,6 @@ class Memory(base.UntypedDeviceBase):
             self.xml = "<target/>"
 
         class Label(base.base.LibvirtXMLBase):
-
             """
             Memory target label xml class.
 
@@ -190,7 +188,6 @@ class Memory(base.UntypedDeviceBase):
                 self.xml = "<label/>"
 
     class Source(base.base.LibvirtXMLBase):
-
         """
         Memory source xml class.
 

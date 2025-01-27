@@ -15,7 +15,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class ConfigLoader:
-
     """
     Base class of the configuration parser
     """

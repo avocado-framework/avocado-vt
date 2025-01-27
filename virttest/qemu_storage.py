@@ -5,6 +5,7 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
+
 import collections
 import json
 import logging
@@ -2098,7 +2099,6 @@ class QemuImg(storage.QemuImg):
 
 
 class Iscsidev(storage.Iscsidev):
-
     """
     Class for handle iscsi devices for VM
     """
@@ -2151,7 +2151,6 @@ class Iscsidev(storage.Iscsidev):
 
 
 class LVMdev(storage.LVMdev):
-
     """
     Class for handle lvm devices for VM
     """

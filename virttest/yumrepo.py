@@ -3,7 +3,6 @@ This module implements classes that allow a user to create, enable and disable
 YUM repositories on the system.
 """
 
-
 import os
 
 __all__ = ["REPO_DIR", "YumRepo"]
@@ -13,7 +12,6 @@ REPO_DIR = "/etc/yum.repos.d"
 
 
 class YumRepo(object):
-
     """
     Represents a YUM repository
 

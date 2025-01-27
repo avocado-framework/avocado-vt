@@ -2,6 +2,7 @@
 Common spice test utility functions.
 
 """
+
 import logging
 import os
 import sys
@@ -16,7 +17,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class RVConnectError(Exception):
-
     """Exception raised in case that remote-viewer fails to connect"""
 
     pass

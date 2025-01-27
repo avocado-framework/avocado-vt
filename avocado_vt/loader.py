@@ -84,7 +84,6 @@ def arch_listing(config, guest_name_parser=None):
 
 
 class NotAvocadoVTTest(object):
-
     """
     Not an Avocado-vt test (for reporting purposes)
     """
@@ -93,7 +92,6 @@ class NotAvocadoVTTest(object):
 if AVOCADO_LOADER_AVAILABLE:
 
     class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
-
         """
         Avocado loader plugin to load avocado-vt tests
         """

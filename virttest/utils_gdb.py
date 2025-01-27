@@ -18,7 +18,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class GDBError(Exception):
-
     """
     General module exception class
     """
@@ -27,7 +26,6 @@ class GDBError(Exception):
 
 
 class GDBCmdError(GDBError):
-
     """
     Exception raised when calling an gdb command.
     """
@@ -109,7 +107,6 @@ def _parse_result(result_str):
 
 
 class GDB(aexpect.Expect):
-
     """
     Class to manipulate a inferior process in gdb.
     """

@@ -6,6 +6,7 @@ Please put the configuration file service.cfg into $tests/cfg/ directory.
 :difficulty: advanced
 :copyright: 2014 Red Hat Inc.
 """
+
 import logging
 import time
 

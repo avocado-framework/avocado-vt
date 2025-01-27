@@ -7,7 +7,6 @@ from virttest import error_context, utils_logfile, utils_misc
 
 
 class QemuIOParamError(Exception):
-
     """
     Parameter Error for qemu-io command
     """
@@ -16,7 +15,6 @@ class QemuIOParamError(Exception):
 
 
 class QemuIO(object):
-
     """
     A class for execute qemu-io command
     """
@@ -100,7 +98,6 @@ class QemuIO(object):
 
 
 class QemuIOShellSession(QemuIO):
-
     """
     Use a shell session to execute qemu-io command
     """
@@ -179,7 +176,6 @@ class QemuIOShellSession(QemuIO):
 
 
 class QemuIOSystem(QemuIO):
-
     """
     Run qemu-io with a command line which will return immediately
     """

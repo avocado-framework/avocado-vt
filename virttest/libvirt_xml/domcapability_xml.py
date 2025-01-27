@@ -2,6 +2,7 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomaincaps.html
 """
+
 import logging
 
 from virttest import xml_utils
@@ -11,7 +12,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class DomCapabilityXML(base.LibvirtXMLBase):
-
     """
     Handler of libvirt domcapabilities operations.
 

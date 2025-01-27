@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Esp(base.TypedDeviceBase):
-
     """
     Create new Esp xml instances
 
@@ -60,7 +59,6 @@ class Esp(base.TypedDeviceBase):
         return esp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Esp attribute XML class
 

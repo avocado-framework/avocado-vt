@@ -2,7 +2,6 @@ from virttest import utils_misc
 
 
 class Des(object):
-
     """
     Base Data Encryption Standard class.
     For details, please refer to:

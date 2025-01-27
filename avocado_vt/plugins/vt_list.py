@@ -85,7 +85,6 @@ except (OSError, AssertionError):
 
 
 class VTLister(CLI):
-
     """
     Avocado VT - implements legacy virt-test listing
     """

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Tcp(base.TypedDeviceBase):
-
     """
     Create new Tcp xml instances
 
@@ -60,7 +59,6 @@ class Tcp(base.TypedDeviceBase):
         return tcp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Tcp attribute XML class
 

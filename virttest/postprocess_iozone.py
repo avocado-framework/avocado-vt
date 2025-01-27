@@ -99,7 +99,6 @@ def compare_matrices(matrix1, matrix2, treshold=0.05):
 
 
 class IOzoneAnalyzer(object):
-
     """
     Analyze an unprocessed IOzone file, and generate the following types of
     report:
@@ -383,7 +382,6 @@ class IOzoneAnalyzer(object):
 
 
 class IOzonePlotter(object):
-
     """
     Plots graphs based on the results of an IOzone run.
 

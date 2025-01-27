@@ -3,6 +3,7 @@ A decorator utility functions to apply libvirtd functions.
 
 Copyright: Red Hat Inc. 2020
 """
+
 import logging
 import os
 import re

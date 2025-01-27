@@ -5,6 +5,7 @@ Available functions:
 - get_image_filename: Get the device path from vdpa.
 
 """
+
 from virttest import utils_vdpa
 
 

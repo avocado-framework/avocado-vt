@@ -73,7 +73,6 @@ virt = None
 
 
 class VirtioGuest:
-
     """
     Test tools of virtio_ports.
     """
@@ -230,7 +229,6 @@ class VirtioGuest:
 
 
 class VirtioGuestPosix(VirtioGuest):
-
     """
     Test tools of virtio_ports.
     """
@@ -367,7 +365,6 @@ class VirtioGuestPosix(VirtioGuest):
         print("PASS: Init and check virtioconsole files in system.")
 
     class Switch(Thread):
-
         """
         Thread that sends data between ports.
         """
@@ -554,7 +551,6 @@ class VirtioGuestPosix(VirtioGuest):
                 self._reconnect_none_mode()
 
     class Sender(Thread):
-
         """
         Creates a thread which sends random blocks of data to dst port.
         """
@@ -980,7 +976,6 @@ class VirtioGuestPosix(VirtioGuest):
 
 
 class VirtioGuestNt(VirtioGuest):
-
     """
     Test tools of virtio_ports.
     """
@@ -1137,7 +1132,6 @@ class VirtioGuestNt(VirtioGuest):
         print("PASS: All threads finished")
 
     class Switch(Thread):
-
         """
         Thread that sends data between ports.
         """
@@ -1189,7 +1183,6 @@ class VirtioGuestNt(VirtioGuest):
             self._none_mode()
 
     class Sender(Thread):
-
         """
         Creates a thread which sends random blocks of data to dst port.
         """
@@ -1387,7 +1380,6 @@ def sigusr_handler(sig, frame):
 
 
 class Daemon:
-
     """
     Daemonize guest
     """

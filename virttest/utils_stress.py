@@ -211,14 +211,18 @@ class VMStressEvents:
         """
         for itr in range(self.host_iterations):
             if "cpu_freq_governor" in event:
-                cpu.set_freq_governor() if hasattr(
-                    cpu, "set_freq_governor"
-                ) else cpu.set_cpufreq_governor()
+                (
+                    cpu.set_freq_governor()
+                    if hasattr(cpu, "set_freq_governor")
+                    else cpu.set_cpufreq_governor()
+                )
                 LOG.debug(
                     "Current governor: %s",
-                    cpu.get_freq_governor()
-                    if hasattr(cpu, "get_freq_governor")
-                    else cpu.get_cpufreq_governor(),
+                    (
+                        cpu.get_freq_governor()
+                        if hasattr(cpu, "get_freq_governor")
+                        else cpu.get_cpufreq_governor()
+                    ),
                 )
                 time.sleep(self.event_sleep_time)
             elif "cpu_idle" in event:
@@ -227,13 +231,17 @@ class VMStressEvents:
                     if hasattr(cpu, "get_idle_state")
                     else cpu.get_cpuidle_state()
                 )
-                cpu.set_idle_state() if hasattr(
-                    cpu, "set_idle_state"
-                ) else cpu.set_cpuidle_state()
+                (
+                    cpu.set_idle_state()
+                    if hasattr(cpu, "set_idle_state")
+                    else cpu.set_cpuidle_state()
+                )
                 time.sleep(self.event_sleep_time)
-                cpu.set_idle_state(setstate=idlestate) if hasattr(
-                    cpu, "set_idle_state"
-                ) else cpu.set_cpuidle_state(setstate=idlestate)
+                (
+                    cpu.set_idle_state(setstate=idlestate)
+                    if hasattr(cpu, "set_idle_state")
+                    else cpu.set_cpuidle_state(setstate=idlestate)
+                )
                 time.sleep(self.event_sleep_time)
             elif "cpuoffline" in event:
                 online_count = (

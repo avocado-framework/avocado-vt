@@ -57,7 +57,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class TempXMLFile(io.FileIO):
-
     """
     Temporary XML file auto-removed on instance del / module exit.
     """
@@ -113,7 +112,6 @@ class TempXMLFile(io.FileIO):
 
 
 class XMLBackup(TempXMLFile):
-
     """
     Backup file copy of XML data, automatically removed on instance destruction.
     """
@@ -164,7 +162,6 @@ class XMLBackup(TempXMLFile):
 
 
 class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
-
     """
     Combination of ElementTree root and auto-cleaned XML backup file.
     """
@@ -350,7 +347,6 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
 
 
 class Sub(object):
-
     """String substituter using string.Template"""
 
     def __init__(self, **mapping):
@@ -369,7 +365,6 @@ class Sub(object):
 
 
 class TemplateXMLTreeBuilder(ElementTree.XMLParser, Sub):
-
     """Resolve XML templates into temporary file-backed ElementTrees"""
 
     BuilderClass = ElementTree.TreeBuilder
@@ -389,7 +384,6 @@ class TemplateXMLTreeBuilder(ElementTree.XMLParser, Sub):
 
 
 class TemplateXML(XMLTreeFile):
-
     """Template-sourced XML ElementTree backed by temporary file."""
 
     ParserClass = TemplateXMLTreeBuilder
