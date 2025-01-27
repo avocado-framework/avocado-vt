@@ -1,4 +1,5 @@
 """Library to perform pre/post test setup for virt test."""
+
 from __future__ import division
 
 import ipaddress
@@ -41,7 +42,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class THPError(Exception):
-
     """
     Base exception for Transparent Hugepage setup.
     """
@@ -50,7 +50,6 @@ class THPError(Exception):
 
 
 class THPNotSupportedError(THPError):
-
     """
     Thrown when host does not support transparent hugepages.
     """
@@ -59,7 +58,6 @@ class THPNotSupportedError(THPError):
 
 
 class THPWriteConfigError(THPError):
-
     """
     Thrown when host does not support transparent hugepages.
     """
@@ -68,7 +66,6 @@ class THPWriteConfigError(THPError):
 
 
 class THPKhugepagedError(THPError):
-
     """
     Thrown when khugepaged is not behaving as expected.
     """
@@ -77,7 +74,6 @@ class THPKhugepagedError(THPError):
 
 
 class PolkitConfigError(Exception):
-
     """
     Base exception for Polkit Config setup.
     """
@@ -86,7 +82,6 @@ class PolkitConfigError(Exception):
 
 
 class PolkitRulesSetupError(PolkitConfigError):
-
     """
     Thrown when setup polkit rules is not behaving as expected.
     """
@@ -95,7 +90,6 @@ class PolkitRulesSetupError(PolkitConfigError):
 
 
 class PolkitWriteLibvirtdConfigError(PolkitConfigError):
-
     """
     Thrown when setup libvirtd config file is not behaving as expected.
     """
@@ -104,7 +98,6 @@ class PolkitWriteLibvirtdConfigError(PolkitConfigError):
 
 
 class PolkitConfigCleanupError(PolkitConfigError):
-
     """
     Thrown when polkit config cleanup is not behaving as expected.
     """
@@ -198,7 +191,7 @@ class TransparentHugePageConfig(object):
             """
             Check the status of khugepaged when set value to specify file.
             """
-            for (act, ret) in action_list:
+            for act, ret in action_list:
                 LOG.info(
                     "Writing path %s: %s, expected khugepage rc: %s ",
                     file_name,
@@ -1048,7 +1041,6 @@ class PrivateOvsBridgeConfig(PrivateBridgeConfig):
 
 
 class PciAssignable(object):
-
     """
     Request PCI assignable devices on host. It will check whether to request
     PF (physical Functions) or VF (Virtual Functions).
@@ -1905,7 +1897,6 @@ class PciAssignable(object):
 
 
 class LibvirtPolkitConfig(object):
-
     """
     Enable polkit access driver for libvirtd and set polkit rules.
 
@@ -2059,6 +2050,7 @@ class LibvirtPolkitConfig(object):
         """
         Set polkit libvirt ACL rule config file
         """
+
         # polkit template string
         def _get_one_rule(action_lookup_list, lookup_oper):
             """
@@ -2199,7 +2191,6 @@ class LibvirtPolkitConfig(object):
 
 
 class EGDConfigError(Exception):
-
     """
     Raise when setup local egd.pl server failed.
     """
@@ -2208,7 +2199,6 @@ class EGDConfigError(Exception):
 
 
 class EGDConfig(object):
-
     """
     Setup egd.pl server on localhost, support startup with socket unix or tcp.
     """
@@ -2313,7 +2303,6 @@ class EGDConfig(object):
 
 
 class StraceQemu(object):
-
     """
     Attach strace to qemu VM processes, if enable_strace is 'yes'.
     It's useful to analyze qemu hang issue. But it will generate

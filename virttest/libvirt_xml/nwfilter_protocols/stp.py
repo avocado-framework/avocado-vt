@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Stp(base.TypedDeviceBase):
-
     """
     Create new Stp xml instances
 
@@ -60,7 +59,6 @@ class Stp(base.TypedDeviceBase):
         return stp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Stp attribute XML class
 

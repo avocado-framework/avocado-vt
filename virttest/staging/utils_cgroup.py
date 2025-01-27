@@ -26,7 +26,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class Cgroup(object):
-
     """
     Cgroup handling class.
     """
@@ -523,7 +522,6 @@ class Cgroup(object):
 
 
 class CgroupModules(object):
-
     """
     Handles the list of different cgroup filesystems.
     """
@@ -722,7 +720,6 @@ def resolve_task_cgroup_path(pid, controller):
 
 
 class CgconfigService(object):
-
     """
     Cgconfig service class.
     """

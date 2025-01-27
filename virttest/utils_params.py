@@ -16,7 +16,6 @@ class ParamNotFound(exceptions.TestSkipError):
 
 
 class Params(IterableUserDict):
-
     """
     A dict-like object passed to every test.
     """

@@ -3,6 +3,7 @@ Build documentation and report whether we had warning/error messages.
 
 This is geared towards documentation build regression testing.
 """
+
 import os
 import unittest
 
@@ -52,7 +53,7 @@ class DocBuildTest(unittest.TestCase):
                 "%s ERRORS and/or WARNINGS detected while building the html docs:\n"
                 % len(failure_lines)
             )
-            for (index, failure_line) in enumerate(failure_lines):
+            for index, failure_line in enumerate(failure_lines):
                 e_msg += "%s) %s\n" % (index + 1, failure_line)
             e_msg += "Full output: %s\n" % "\n".join(output_lines)
             e_msg += "Please check the output and fix your docstrings/.rst docs"

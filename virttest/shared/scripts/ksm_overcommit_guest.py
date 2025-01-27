@@ -26,7 +26,6 @@ TMPFS_OVERHEAD = 0.0022  # overhead on 1MB of write data
 
 
 class MemFill(object):
-
     """
     Fills guest memory according to certain patterns.
     """

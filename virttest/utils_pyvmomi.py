@@ -4,6 +4,7 @@ A module is used to interact with VMware Vshpere Server
 For more examples of pyvmomi, please refer:
 https://github.com/vmware/pyvmomi-community-samples
 """
+
 import datetime
 import logging
 from functools import wraps

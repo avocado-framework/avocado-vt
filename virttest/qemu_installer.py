@@ -23,7 +23,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class QEMUBaseInstaller(base_installer.BaseInstaller):
-
     """
     Base class for KVM installations
     """
@@ -234,7 +233,6 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
 
 class GitRepoInstaller(QEMUBaseInstaller, base_installer.GitRepoInstaller):
-
     """
     Installer that deals with source code on Git repositories
     """
@@ -245,7 +243,6 @@ class GitRepoInstaller(QEMUBaseInstaller, base_installer.GitRepoInstaller):
 class LocalSourceDirInstaller(
     QEMUBaseInstaller, base_installer.LocalSourceDirInstaller
 ):
-
     """
     Installer that deals with source code on local directories
     """
@@ -256,7 +253,6 @@ class LocalSourceDirInstaller(
 class LocalSourceTarInstaller(
     QEMUBaseInstaller, base_installer.LocalSourceTarInstaller
 ):
-
     """
     Installer that deals with source code on local tarballs
     """
@@ -267,7 +263,6 @@ class LocalSourceTarInstaller(
 class RemoteSourceTarInstaller(
     QEMUBaseInstaller, base_installer.RemoteSourceTarInstaller
 ):
-
     """
     Installer that deals with source code on remote tarballs
     """

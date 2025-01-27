@@ -91,7 +91,6 @@ ARCH = platform.machine()
 
 
 class InterruptedThread(threading.Thread):
-
     """
     Run a function in a background thread.
     """
@@ -1481,7 +1480,6 @@ def is_symlink(link_name, session=None):
 
 
 class NumaInfo(object):
-
     """
     Numa topology for host. Also provide the function for check the memory status
     of the node.
@@ -1673,7 +1671,6 @@ class NumaInfo(object):
 
 
 class NumaNode(object):
-
     """
     Numa node to control processes and shared memory.
     """
@@ -2123,7 +2120,6 @@ class ForAll(list):
 
 
 class ForAllP(list):
-
     """
     Parallel version of ForAll
     """
@@ -2143,7 +2139,6 @@ class ForAllP(list):
 
 
 class ForAllPSE(list):
-
     """
     Parallel version of and suppress exception.
     """
@@ -3006,7 +3001,6 @@ def get_test_entrypoint_func(name, module):
 
 
 class KSMError(Exception):
-
     """
     Base exception for KSM setup
     """
@@ -3015,7 +3009,6 @@ class KSMError(Exception):
 
 
 class KSMNotSupportedError(KSMError):
-
     """
     Thrown when host does not support KSM.
     """
@@ -3024,7 +3017,6 @@ class KSMNotSupportedError(KSMError):
 
 
 class KSMTunedError(KSMError):
-
     """
     Thrown when KSMTuned Error happen.
     """
@@ -3033,7 +3025,6 @@ class KSMTunedError(KSMError):
 
 
 class KSMTunedNotSupportedError(KSMTunedError):
-
     """
     Thrown when host does not support KSMTune.
     """
@@ -3042,7 +3033,6 @@ class KSMTunedNotSupportedError(KSMTunedError):
 
 
 class KSMController(object):
-
     """KSM Manager"""
 
     def __init__(self):
@@ -3661,7 +3651,6 @@ class VFIOError(Exception):
 
 
 class VFIOController(object):
-
     """Control Virtual Function for testing"""
 
     def __init__(self, load_modules=True, allow_unsafe_interrupts=True):
@@ -3772,7 +3761,6 @@ class VFIOController(object):
 
 
 class SELinuxBoolean(object):
-
     """
     SELinuxBoolean class for managing SELinux boolean value.
     """

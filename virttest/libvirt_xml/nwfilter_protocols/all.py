@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class All(base.TypedDeviceBase):
-
     """
     Create new All xml instances
 
@@ -60,7 +59,6 @@ class All(base.TypedDeviceBase):
         return all_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         All attribute XML class
 

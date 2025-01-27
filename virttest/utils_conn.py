@@ -26,7 +26,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class ConnectionError(Exception):
-
     """
     The base error in connection.
     """
@@ -35,7 +34,6 @@ class ConnectionError(Exception):
 
 
 class ConnForbiddenError(ConnectionError):
-
     """
     Error in forbidden operation.
     """
@@ -49,7 +47,6 @@ class ConnForbiddenError(ConnectionError):
 
 
 class ConnCopyError(ConnectionError):
-
     """
     Error in coping file.
     """
@@ -64,7 +61,6 @@ class ConnCopyError(ConnectionError):
 
 
 class ConnNotImplementedError(ConnectionError):
-
     """
     Error in calling unimplemented method
     """
@@ -82,7 +78,6 @@ class ConnNotImplementedError(ConnectionError):
 
 
 class ConnLoginError(ConnectionError):
-
     """
     Error in login.
     """
@@ -100,7 +95,6 @@ class ConnLoginError(ConnectionError):
 
 
 class ConnToolNotFoundError(ConnectionError):
-
     """
     Error in not found tools.
     """
@@ -118,7 +112,6 @@ class ConnToolNotFoundError(ConnectionError):
 
 
 class ConnSCPError(ConnectionError):
-
     """
     Error in SCP.
     """
@@ -142,7 +135,6 @@ class ConnSCPError(ConnectionError):
 
 
 class SSHCheckError(ConnectionError):
-
     """
     Base Error in check of SSH connection.
     """
@@ -157,7 +149,6 @@ class SSHCheckError(ConnectionError):
 
 
 class SSHRmAuthKeysError(ConnectionError):
-
     """
     Error in removing authorized_keys file.
     """
@@ -175,7 +166,6 @@ class SSHRmAuthKeysError(ConnectionError):
 
 
 class ConnCmdClientError(ConnectionError):
-
     """
     Error in executing cmd on client.
     """
@@ -193,7 +183,6 @@ class ConnCmdClientError(ConnectionError):
 
 
 class ConnPrivKeyError(ConnectionError):
-
     """
     Error in building private key with certtool command.
     """
@@ -211,7 +200,6 @@ class ConnPrivKeyError(ConnectionError):
 
 
 class ConnCertError(ConnectionError):
-
     """
     Error in building certificate file with certtool command.
     """
@@ -229,7 +217,6 @@ class ConnCertError(ConnectionError):
 
 
 class ConnRmCertError(ConnectionError):
-
     """
     Error in removing certificate file with rm command.
     """
@@ -247,7 +234,6 @@ class ConnRmCertError(ConnectionError):
 
 
 class ConnMkdirError(ConnectionError):
-
     """
     Error in making directory.
     """
@@ -265,7 +251,6 @@ class ConnMkdirError(ConnectionError):
 
 
 class ConnServerRestartError(ConnectionError):
-
     """
     Error in restarting libvirtd on server.
     """
@@ -281,7 +266,6 @@ class ConnServerRestartError(ConnectionError):
 
 
 class ListenUNIXSocketError(ConnectionError):
-
     """
     Error in starting a proxy that listens on UNIX socket.
     """
@@ -299,7 +283,6 @@ class ListenUNIXSocketError(ConnectionError):
 
 
 class ConnUNIXSocketError(ConnectionError):
-
     """
     Error in starting a proxy that listens on network and connects to UNIX socket.
     """
@@ -317,7 +300,6 @@ class ConnUNIXSocketError(ConnectionError):
 
 
 class ConnectionBase(propcan.PropCanBase):
-
     """
     Base class of a connection between server and client.
 
@@ -559,7 +541,6 @@ class ConnectionBase(propcan.PropCanBase):
 
 
 class SSHConnection(ConnectionBase):
-
     """
     Connection of SSH transport.
 
@@ -757,7 +738,6 @@ class SSHConnection(ConnectionBase):
 
 
 class TCPConnection(ConnectionBase):
-
     """
     Connection class for TCP transport.
 
@@ -933,9 +913,9 @@ class TCPConnection(ConnectionBase):
         # a whitelist of allowed SASL usernames, it's a list.
         # If the list is an empty, no client can connect
         if sasl_allowed_users:
-            pattern_to_repl[
-                r".*sasl_allowed_username_list\s*=.*"
-            ] = "sasl_allowed_username_list=%s" % (sasl_allowed_users)
+            pattern_to_repl[r".*sasl_allowed_username_list\s*=.*"] = (
+                "sasl_allowed_username_list=%s" % (sasl_allowed_users)
+            )
         if listen_addr:
             pattern_to_repl[r".*listen_addr\s*=.*"] = "listen_addr='%s'" % (listen_addr)
         if tcp_min_ssf:
@@ -1000,7 +980,6 @@ class TCPConnection(ConnectionBase):
 
 
 class TLSConnection(ConnectionBase):
-
     """
     Connection of TLS transport.
 
@@ -2011,7 +1990,6 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", certtool="certtool", credential_dict=N
 
 
 class UNIXConnection(ConnectionBase):
-
     """
     Connection class for UNIX transport.
 

@@ -24,7 +24,6 @@ class SearchResults(object):
 
 
 class GithubCache(object):
-
     """
     Auto-refreshing github.GithubObject.GithubObject from dict
     """
@@ -193,7 +192,6 @@ class GithubCache(object):
 
 
 class GithubIssuesBase(list):
-
     """
     Base class for cached list of github issues
     """
@@ -318,7 +316,6 @@ class GithubIssuesBase(list):
 
 
 class GithubIssues(GithubIssuesBase, object):
-
     """
     Read-only List-like interface to cached github issues in standardized format
     """
@@ -696,7 +693,6 @@ class MutateError(KeyError):
 
 
 class MutableIssue(dict):
-
     """Allow modification of some issue values"""
 
     def __init__(self, github_issues, issue_number):

@@ -1,4 +1,5 @@
 """AUTOtest implementation of iothread manager classes for QEMU."""
+
 import itertools
 
 from virttest.qemu_devices.qdevices import QIOThread

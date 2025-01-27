@@ -14,7 +14,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class SelinuxError(Exception):
-
     """
     Error selinux utility functions.
     """
@@ -23,7 +22,6 @@ class SelinuxError(Exception):
 
 
 class SeCmdError(SelinuxError):
-
     """
     Error in executing cmd.
     """
@@ -40,7 +38,6 @@ class SeCmdError(SelinuxError):
 
 
 class SemanageError(SelinuxError):
-
     """
     Error when semanage binary is not found
     """

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Vlan(base.TypedDeviceBase):
-
     """
     Create new Vlan xml instances
 
@@ -60,7 +59,6 @@ class Vlan(base.TypedDeviceBase):
         return vlan_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Vlan attribute XML class
 

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Icmpv6(base.TypedDeviceBase):
-
     """
     Create new Icmpv6 xml instances
 
@@ -57,7 +56,6 @@ class Icmpv6(base.TypedDeviceBase):
         return icmpv6_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Icmpv6 attribute XML class
 

@@ -224,11 +224,12 @@ def preprocess_vm(test, params, env, name):
                     nested_cmdline = params.get("virtinstall_qemu_cmdline", "")
                     # virt-install doesn't have option, so use qemu-cmdline
                     if "cap-nested-hv=on" not in nested_cmdline:
-                        params[
-                            "virtinstall_qemu_cmdline"
-                        ] = "%s -M %s,cap-nested-hv=on" % (
-                            nested_cmdline,
-                            params["machine_type"],
+                        params["virtinstall_qemu_cmdline"] = (
+                            "%s -M %s,cap-nested-hv=on"
+                            % (
+                                nested_cmdline,
+                                params["machine_type"],
+                            )
                         )
                 elif params.get("vm_type") == "qemu":
                     nested_cmdline = params.get("machine_type_extra_params", "")
@@ -736,7 +737,6 @@ def process_command(test, params, env, command, command_timeout, command_noncrit
 
 
 class _CreateImages(threading.Thread):
-
     """
     Thread which creates images. In case of failure it stores the exception
     in self.exc_info

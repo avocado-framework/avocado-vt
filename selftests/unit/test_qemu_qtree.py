@@ -27,7 +27,6 @@ OFFSET_PER_LEVEL = qemu_qtree.OFFSET_PER_LEVEL
 
 # Dummy classes and functions
 class ParamsDict(dict):
-
     """params like dictionary"""
 
     def objects(self, item):
@@ -36,7 +35,7 @@ class ParamsDict(dict):
 
     def object_params(self, obj):
         ret = self.copy()
-        for (param, value) in six.iteritems(self):
+        for param, value in six.iteritems(self):
             if param.endswith("_%s" % obj):
                 ret[param[: -len("_%s" % obj)]] = value
         return ret
@@ -191,7 +190,6 @@ params = ParamsDict(
 
 
 class QtreeContainerTest(unittest.TestCase):
-
     """QtreeContainer tests"""
 
     def test_qtree(self):
@@ -259,7 +257,6 @@ class QtreeContainerTest(unittest.TestCase):
 
 
 class QtreeDiskContainerTest(unittest.TestCase):
-
     """QtreeDiskContainer tests"""
 
     def setUp(self):
@@ -330,7 +327,6 @@ Host: scsi1 Channel: 00 Id: 00 Lun: 00
 
 
 class KvmQtreeClassTest(unittest.TestCase):
-
     """Additional tests for qemu_qtree classes"""
 
     def test_qtree_bus_bus(self):

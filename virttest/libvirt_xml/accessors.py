@@ -40,7 +40,6 @@ def add_to_slots(*args):
 
 
 class AccessorBase(PropCanBase):
-
     """
     Base class for a callable operating on a LibvirtXMLBase subclass instance
     """
@@ -158,7 +157,6 @@ class AccessorBase(PropCanBase):
 
 
 class ForbiddenBase(AccessorBase):
-
     """
     Raise LibvirtXMLAccessorError when called w/ or w/o a value arg.
     """
@@ -180,7 +178,6 @@ class ForbiddenBase(AccessorBase):
 
 
 class AccessorGeneratorBase(object):
-
     """
     Accessor method/class generator for specific property name
     """
@@ -264,7 +261,6 @@ class AccessorGeneratorBase(object):
 
 
 class AllForbidden(AccessorGeneratorBase):
-
     """
     Class of forbidden accessor classes for those undefined on libvirtxml
     """
@@ -284,7 +280,6 @@ class AllForbidden(AccessorGeneratorBase):
 
 
 class XMLElementText(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating on element.text
     """
@@ -317,7 +312,6 @@ class XMLElementText(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve text on element
         """
@@ -330,7 +324,6 @@ class XMLElementText(AccessorGeneratorBase):
             ).text
 
     class Setter(AccessorBase):
-
         """
         Set text to value on element
         """
@@ -345,7 +338,6 @@ class XMLElementText(AccessorGeneratorBase):
             self.xmltreefile().write()
 
     class Delter(AccessorBase):
-
         """
         Remove element and ignore if it doesn't exist (same as False)
         """
@@ -370,7 +362,6 @@ class XMLElementText(AccessorGeneratorBase):
 
 
 class XMLElementInt(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating on element.text as an integer
     """
@@ -413,7 +404,6 @@ class XMLElementInt(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve text on element and convert to int
         """
@@ -434,7 +424,6 @@ class XMLElementInt(AccessorGeneratorBase):
             return result
 
     class Setter(AccessorBase):
-
         """
         Set text on element after converting to int then to str
         """
@@ -454,7 +443,6 @@ class XMLElementInt(AccessorGeneratorBase):
 
 
 class XMLElementBool(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating purely element existence
     """
@@ -487,7 +475,6 @@ class XMLElementBool(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve text on element
         """
@@ -503,7 +490,6 @@ class XMLElementBool(AccessorGeneratorBase):
                 return False
 
     class Setter(AccessorBase):
-
         """
         Create element when True, delete when false
         """
@@ -521,7 +507,6 @@ class XMLElementBool(AccessorGeneratorBase):
 
 
 class XMLAttribute(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating on an attribute of an element
     """
@@ -555,7 +540,6 @@ class XMLAttribute(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Get attribute value
         """
@@ -575,7 +559,6 @@ class XMLAttribute(AccessorGeneratorBase):
             return value
 
     class Setter(AccessorBase):
-
         """
         Set attribute value
         """
@@ -590,7 +573,6 @@ class XMLAttribute(AccessorGeneratorBase):
             self.xmltreefile().write()
 
     class Delter(AccessorBase):
-
         """
         Remove attribute
         """
@@ -609,7 +591,6 @@ class XMLAttribute(AccessorGeneratorBase):
 
 
 class XMLElementDict(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating as a dictionary of attributes
     """
@@ -640,7 +621,6 @@ class XMLElementDict(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve attributes on element
         """
@@ -654,7 +634,6 @@ class XMLElementDict(AccessorGeneratorBase):
             return dict(list(element.items()))
 
     class Setter(AccessorBase):
-
         """
         Set attributes to value on element
         """
@@ -675,7 +654,6 @@ class XMLElementDict(AccessorGeneratorBase):
 
 
 class XMLElementNest(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating on a LibvirtXMLBase subclass
     """
@@ -718,7 +696,6 @@ class XMLElementNest(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve instance of subclass with it's xml set to rerooted xpath/tag
         """
@@ -745,7 +722,6 @@ class XMLElementNest(AccessorGeneratorBase):
             return nestedinst
 
     class Setter(AccessorBase):
-
         """
         Set attributes to value on element
         """
@@ -768,7 +744,6 @@ class XMLElementNest(AccessorGeneratorBase):
 
 
 class XMLElementList(AccessorGeneratorBase):
-
     """
     Class of accessor classes operating on a list of child elements
 
@@ -819,7 +794,6 @@ class XMLElementList(AccessorGeneratorBase):
         )
 
     class Getter(AccessorBase):
-
         """
         Retrieve list of values as returned by the marshal_to callable
         """
@@ -865,7 +839,6 @@ class XMLElementList(AccessorGeneratorBase):
             return result
 
     class Setter(AccessorBase):
-
         """
         Set child elements as returned by the marshal_to callable
         """
@@ -927,7 +900,6 @@ class XMLElementList(AccessorGeneratorBase):
             self.xmltreefile().write()
 
     class Delter(AccessorBase):
-
         """
         Remove ALL child elements for which marshal_to does NOT return None
         """

@@ -47,7 +47,6 @@ class UnknownBackendError(Exception):
 
 
 class SubdirList(list):
-
     """
     List of all non-hidden subdirectories beneath basedir
     """
@@ -85,7 +84,6 @@ class SubdirList(list):
 
 
 class SubdirGlobList(SubdirList):
-
     """
     List of all files matching glob in all non-hidden basedir subdirectories
     """

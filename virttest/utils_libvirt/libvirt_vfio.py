@@ -3,6 +3,7 @@ Libvirt vfio related utilities.
 
 :copyright: 2021 Red Hat Inc.
 """
+
 import logging
 
 from avocado.core import exceptions

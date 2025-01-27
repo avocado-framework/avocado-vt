@@ -19,7 +19,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class NoModuleError(Exception):
-
     """
     Error raised when no suitable modules were found to load
     """
@@ -28,7 +27,6 @@ class NoModuleError(Exception):
 
 
 class VirtInstallException(Exception):
-
     """
     Base virtualization software components installation exception
     """
@@ -37,7 +35,6 @@ class VirtInstallException(Exception):
 
 
 class VirtInstallFailed(VirtInstallException):
-
     """
     Installation of virtualization software components failed
     """
@@ -46,7 +43,6 @@ class VirtInstallFailed(VirtInstallException):
 
 
 class VirtInstallNotInstalled(VirtInstallException):
-
     """
     Virtualization software components are not installed
     """
@@ -55,7 +51,6 @@ class VirtInstallNotInstalled(VirtInstallException):
 
 
 class BaseInstaller(object):
-
     """
     Base virtualization software installer
 
@@ -456,7 +451,6 @@ class BaseInstaller(object):
 
 
 class NoopInstaller(BaseInstaller):
-
     """
     Dummy installer that does nothing, useful when software is pre-installed
     """
@@ -481,7 +475,6 @@ class NoopInstaller(BaseInstaller):
 
 
 class YumInstaller(BaseInstaller):
-
     """
     Installs virtualization software using YUM
 
@@ -527,7 +520,6 @@ class YumInstaller(BaseInstaller):
 
 
 class KojiInstaller(BaseInstaller):
-
     """
     Handles virtualization software installation via koji/brew
 
@@ -748,7 +740,6 @@ class BaseLocalSourceInstaller(BaseInstaller):
 
 
 class LocalSourceDirInstaller(BaseLocalSourceInstaller):
-
     """
     Handles software installation by building/installing from a source dir
     """
@@ -764,7 +755,6 @@ class LocalSourceDirInstaller(BaseLocalSourceInstaller):
 
 
 class LocalSourceTarInstaller(BaseLocalSourceInstaller):
-
     """
     Handles software installation by building/installing from a tarball
     """
@@ -780,7 +770,6 @@ class LocalSourceTarInstaller(BaseLocalSourceInstaller):
 
 
 class RemoteSourceTarInstaller(BaseLocalSourceInstaller):
-
     """
     Handles software installation by building/installing from a remote tarball
     """
@@ -813,7 +802,6 @@ class GitRepoInstaller(BaseLocalSourceInstaller):
 
 
 class FailedInstaller:
-
     """
     Class used to be returned instead of the installer if a installation fails
 

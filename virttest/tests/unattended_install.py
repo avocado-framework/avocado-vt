@@ -103,7 +103,6 @@ def terminate_unattended_server_thread():
 
 
 class RemoteInstall(object):
-
     """
     Represents a install http server that we can master according to our needs.
     """
@@ -133,7 +132,6 @@ class RemoteInstall(object):
 
 
 class UnattendedInstallConfig(object):
-
     """
     Creates a floppy disk image that will contain a config file for unattended
     OS install. The parameters to the script are retrieved from environment

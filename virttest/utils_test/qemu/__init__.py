@@ -269,7 +269,6 @@ def setup_runlevel(params, session):
 
 
 class GuestSuspend(object):
-
     """
     Suspend guest, supports both Linux and Windows.
 
@@ -430,7 +429,6 @@ class GuestSuspend(object):
 
 
 class MemoryBaseTest(object):
-
     """
     Base class for memory functions.
     """
@@ -590,7 +588,6 @@ class MemoryBaseTest(object):
 
 
 class MemoryHotplugTest(MemoryBaseTest):
-
     """
     Class for memory hotplug/unplug test.
     """

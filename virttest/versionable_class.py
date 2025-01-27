@@ -184,7 +184,6 @@ def isclass(obj):
 
 
 class ModuleWrapper(object):
-
     """
     Wrapper around module.
 
@@ -223,7 +222,6 @@ class ModuleWrapper(object):
 
 
 class VersionableClass(object):
-
     """
     Class used for marking of mutable class.
     """

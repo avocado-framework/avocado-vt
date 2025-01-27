@@ -1,6 +1,7 @@
 """
 libvirt disk related utility functions
 """
+
 import collections
 import logging
 import os

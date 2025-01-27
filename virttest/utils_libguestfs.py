@@ -16,7 +16,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class LibguestfsCmdError(Exception):
-
     """
     Error of libguestfs-tool command.
     """
@@ -106,7 +105,6 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
 
 
 class LibguestfsBase(propcan.PropCanBase):
-
     """
     Base class of libguestfs tools.
     """
@@ -185,7 +183,6 @@ class LibguestfsBase(propcan.PropCanBase):
 
 
 class Guestfish(LibguestfsBase):
-
     """
     Execute guestfish, using a new guestfish shell each time.
     """
@@ -270,7 +267,6 @@ class Guestfish(LibguestfsBase):
 
 
 class GuestfishSession(aexpect.ShellSession):
-
     """
     A shell session of guestfish.
     """
@@ -332,7 +328,6 @@ class GuestfishSession(aexpect.ShellSession):
 
 
 class GuestfishRemote(object):
-
     """
     Remote control of guestfish.
     """
@@ -422,7 +417,6 @@ class GuestfishRemote(object):
 
 
 class GuestfishPersistent(Guestfish):
-
     """
     Execute operations using persistent guestfish session.
     """

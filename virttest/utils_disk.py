@@ -3,6 +3,7 @@ Virtualization test - Virtual disk related utility functions
 
 :copyright: Red Hat Inc.
 """
+
 import configparser
 import glob
 import logging
@@ -1323,7 +1324,6 @@ def dd_data_to_vm_disk(session, disk, bs="1M", seek="0", count="100"):
 
 
 class Disk(object):
-
     """
     Abstract class for Disk objects, with the common methods implemented.
     """
@@ -1352,7 +1352,6 @@ class Disk(object):
 
 
 class FloppyDisk(Disk):
-
     """
     Represents a floppy disk. We can copy files to it, and setup it in
     convenient ways.
@@ -1469,7 +1468,6 @@ class FloppyDisk(Disk):
 
 
 class CdromDisk(Disk):
-
     """
     Represents a CDROM disk that we can master according to our needs.
     """
@@ -1544,7 +1542,6 @@ class CdromDisk(Disk):
 
 
 class CdromInstallDisk(Disk):
-
     """
     Represents a install CDROM disk that we can master according to our needs.
     """
@@ -1600,7 +1597,6 @@ class CdromInstallDisk(Disk):
 
 
 class GuestFSModiDisk(object):
-
     """
     class of guest disk using guestfs lib to do some operation(like read/write)
     on guest disk:

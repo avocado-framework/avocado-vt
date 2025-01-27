@@ -8,7 +8,6 @@ from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class CapabilityXML(base.LibvirtXMLBase):
-
     """
     Handler of libvirt capabilities and nonspecific item operations.
 
@@ -282,7 +281,6 @@ class CapabilityXML(base.LibvirtXMLBase):
 
 
 class TopologyXML(base.LibvirtXMLBase):
-
     """
     Handler of cells topology element in libvirt capabilities.
 
@@ -328,7 +326,6 @@ class TopologyXML(base.LibvirtXMLBase):
 
 
 class CellXML(base.LibvirtXMLBase):
-
     """
     Handler of cell element in libvirt capabilities.
 
@@ -481,7 +478,6 @@ class CellXML(base.LibvirtXMLBase):
 
 
 class CellPagesXML(base.LibvirtXMLBase):
-
     """
     Handler of pages element under cell element in libvirt capabilities.
 

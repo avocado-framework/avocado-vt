@@ -52,7 +52,6 @@ def make_sandboxes(params, env, extra_ns=None):
 
 
 class TestBaseSandboxes(lvsb_base.TestSandboxes):
-
     """
     Simplistic sandbox aggregate manager
     """
@@ -122,7 +121,6 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
 
 
 class TestSimpleSandboxes(TestBaseSandboxes):
-
     """
     Executes a command with simple options
     """
@@ -141,7 +139,6 @@ class TestSimpleSandboxes(TestBaseSandboxes):
 
 
 class TestComplexSandboxes(TestBaseSandboxes):
-
     """
     Executes a command with complex options
     """
