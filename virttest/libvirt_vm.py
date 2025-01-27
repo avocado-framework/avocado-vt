@@ -987,6 +987,8 @@ class VM(virt_vm.BaseVM):
                     result += "initrd=%s," % initrd_path
                 if has_sub_option("boot", "kernel_args") and kernel_args:
                     result += 'kernel_args="%s",' % kernel_args
+                elif has_sub_option("boot", "cmdline") and kernel_args:
+                    result += 'cmdline="%s",' % kernel_args
             else:
                 result = ""
                 LOG.warning("boot option is not supported")
@@ -1450,6 +1452,8 @@ class VM(virt_vm.BaseVM):
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
         kernel_args = params.get("kernel_args", None)
+        if not kernel_args:
+            kernel_args = params.get("cmdline", None)
         if (kernel or initrd) and kernel_args:
             virt_install_cmd += add_kernel(
                 help_text, virt_install_cmd, kernel, initrd, kernel_args
