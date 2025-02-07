@@ -161,23 +161,27 @@ class NetperfPackage(remote_old.Remote_Package):
     def pack_compile(self, compile_option=""):
         pre_setup_cmd = "cd %s " % self.netperf_base_dir
         pre_setup_cmd += " && %s %s" % (self.decomp_cmd, self.netperf_file)
-        pre_setup_cmd += " && cd %s " % self.netperf_dir
         # Create dict to make other OS architectures easy to extend
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
         build_arch = self.session.cmd_output("arch", timeout=60).strip()
+        self.env_cleanup(clean_all=False)
+        try:
+            self.session.cmd("echo $?", timeout=60)
+            self.session.cmd(pre_setup_cmd, timeout=600)
+        except aexpect.ShellError as e:
+            raise NetperfPackageError("Compilation setup failed: %s" % e)
         np_build = build_type.get(build_arch, build_arch).strip()
-        setup_cmd = (
-            "./autogen.sh > /dev/null 2>&1 &&"
+        setup_cmd = "cd %s " % self.netperf_dir
+        setup_cmd += (
+            "&& ./autogen.sh > /dev/null 2>&1 &&"
             # Workaround for gcc >= 14.0
             " CFLAGS=-Wno-implicit-function-declaration"
             " ./configure --build=%s %s > /dev/null 2>&1" % (np_build, compile_option)
         )
         setup_cmd += " && make > /dev/null 2>&1"
-        self.env_cleanup(clean_all=False)
-        cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
         try:
             self.session.cmd("echo $?", timeout=60)
-            self.session.cmd(cmd, timeout=1200)
+            self.session.cmd(setup_cmd, timeout=600)
         except aexpect.ShellError as e:
             raise NetperfPackageError("Compile failed: %s" % e)
 
