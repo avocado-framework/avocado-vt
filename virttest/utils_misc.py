@@ -4599,3 +4599,29 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
+
+
+def get_location_code(pci_id):
+    """
+    Retrieves the location code for a PCI device using the `cat` command.
+
+    :param device : The PCI device address in the format 'xxxx:xx:xx.x'.
+    :return: location code if available, or an error message.
+    """
+    try:
+        # Construct the path
+        pci_id = pci_id.replace(":", "\\:")
+        loc_code_path = "/sys/bus/pci/devices/%s/of_node/ibm,loc-code" % pci_id
+
+        # Execute the cat command and capture the output
+        loc_code = process.run("cat %s" % loc_code_path, shell=True)
+        loc_code = "".join(
+            c for c in loc_code.stdout_text.strip() if 0x20 <= ord(c) <= 0x7E
+        )
+        logging.debug("The location code of the pci device is %s" % loc_code)
+        return loc_code
+
+    except FileNotFoundError:
+        return "Location code file not found for device %s." % pci_id
+    except Exception as e:
+        return "An error occurred: %s" % e
