@@ -4112,9 +4112,15 @@ def get_default_gateway_json(
     elif len(default_route_list) == 1:
         default_route = default_route_list[0]
         if "gateway" in default_route:
-            return default_route["gateway"]
+            gw = default_route["gateway"]
+        if "dev" in default_route:
+            dev_name = default_route["dev"]
     else:
         gw = [path["gateway"] for path in default_route_list]
+        dev_name = default_route_list[0]["dev"]
+    if iface_name:
+        return dev_name
+    else:
         return gw
 
 
