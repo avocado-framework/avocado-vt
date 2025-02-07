@@ -39,7 +39,6 @@ class KojiDownloadError(IOError):
 
 
 class KojiDirIndexParser(HTMLParser):
-
     """
     Parser for HTML directory index pages, specialized to look for RPM links
     """
@@ -64,7 +63,6 @@ class KojiDirIndexParser(HTMLParser):
 
 
 class RPMFileNameInfo:
-
     """
     Simple parser for RPM based on information present on the filename itself
     """
@@ -113,7 +111,6 @@ class RPMFileNameInfo:
 
 
 class KojiClient(object):
-
     """
     Stablishes a connection with the build system, either koji or brew.
 
@@ -573,7 +570,6 @@ def get_default_koji_tag():
 
 
 class KojiPkgSpec(object):
-
     """
     A package specification syntax parser for Koji
 
@@ -848,7 +844,6 @@ class KojiPkgSpec(object):
 
 
 class KojiScratchPkgSpec(object):
-
     """
     A package specification syntax parser for Koji scratch builds
 

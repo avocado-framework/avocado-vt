@@ -3,6 +3,7 @@ Virtualization test - cgroup related utility functions for libvirt
 
 :copyright: 2019 Red Hat Inc.
 """
+
 import logging
 import os
 import re
@@ -71,7 +72,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 # cgroup related functions
 class CgroupTest(object):
-
     """Class for libvirt cgroup related test"""
 
     __vm_pid = ""
@@ -431,9 +431,9 @@ class CgroupTest(object):
                         if "dev" in io_value_list[i]:
                             dev_num = self.__get_dev_major_minor(io_value_list[i])
                             if dev_num not in dev_list:
-                                standardized_virsh_output_info[
-                                    dev_num
-                                ] = dev_init_dict.copy()
+                                standardized_virsh_output_info[dev_num] = (
+                                    dev_init_dict.copy()
+                                )
                                 dev_list.append(dev_num)
                             standardized_virsh_output_info[dev_num][
                                 virsh_output_mapping[io_item]

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.devices import base
 
 
 class Seclabel(base.TypedDeviceBase):
-
     """
     Seclabel XML class
 

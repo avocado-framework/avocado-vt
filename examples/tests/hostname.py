@@ -6,6 +6,7 @@ Before this test please set your hostname to something meaningful.
 :difficulty: simple
 :copyright: 2014 Red Hat Inc.
 """
+
 import logging
 
 from avocado.utils import process

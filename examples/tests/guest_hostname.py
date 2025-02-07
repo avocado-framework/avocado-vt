@@ -4,6 +4,7 @@ Simple hostname test (on guest)
 :difficulty: simple
 :copyright: 2014 Red Hat Inc.
 """
+
 import logging
 
 LOG = logging.getLogger("avocado.vt.examples.guest_hostname")

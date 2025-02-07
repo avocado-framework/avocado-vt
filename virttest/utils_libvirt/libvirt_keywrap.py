@@ -1,6 +1,7 @@
 """
 Module to contain logic testing protected key module 'pkey'
 """
+
 import logging
 import os
 

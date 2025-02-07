@@ -46,7 +46,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class Uri(object):
-
     """
     This class is used for generating uri.
     """
@@ -132,7 +131,6 @@ class Uri(object):
 
 
 class Target(object):
-
     """
     This class is used for generating command options.
     """
@@ -362,12 +360,14 @@ class Target(object):
                 # Invalid vddk thumbprint if no ':'
                 if self.vddk_thumbprint is None or ":" not in self.vddk_thumbprint:
                     self.vddk_thumbprint = get_vddk_thumbprint(
-                        *(self.esxi_host, self.esxi_password, self.src_uri_type)
-                        if self.src_uri_type == "esx"
-                        else (
-                            self.vcenter_host,
-                            self.vcenter_password,
-                            self.src_uri_type,
+                        *(
+                            (self.esxi_host, self.esxi_password, self.src_uri_type)
+                            if self.src_uri_type == "esx"
+                            else (
+                                self.vcenter_host,
+                                self.vcenter_password,
+                                self.src_uri_type,
+                            )
                         )
                     )
 
@@ -594,7 +594,6 @@ class Target(object):
 
 
 class VMCheck(object):
-
     """
     This is VM check class dispatcher.
     """
@@ -726,7 +725,6 @@ class VMCheck(object):
 
 
 class LinuxVMCheck(VMCheck):
-
     """
     This class handles all basic linux VM check operations.
     """
@@ -1009,7 +1007,6 @@ class LinuxVMCheck(VMCheck):
 
 
 class WindowsVMCheck(VMCheck):
-
     """
     This class handles all basic Windows VM check operations.
     """

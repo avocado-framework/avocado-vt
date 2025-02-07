@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Rarp(base.TypedDeviceBase):
-
     """
     Create new Rarp xml instances
 
@@ -60,7 +59,6 @@ class Rarp(base.TypedDeviceBase):
         return rarp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Rarp attribute XML class
 

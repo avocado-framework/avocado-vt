@@ -1,6 +1,7 @@
 """
 Functions and classes used for logging into guests and transferring files.
 """
+
 from __future__ import division
 
 import logging
@@ -22,7 +23,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class AexpectIOWrapperOut(messenger.StdIOWrapperOutBase64):
-
     """
     Basic implementation of IOWrapper for stdout
     """
@@ -212,7 +212,6 @@ class Remote_Package(object):
 
 
 class RemoteFile(object):
-
     """
     Class to handle the operations of file on remote host or guest.
     """
@@ -457,7 +456,6 @@ class RemoteFile(object):
 
 
 class RemoteRunner(object):
-
     """
     Class to provide a utils.run-like method to execute command on
     remote host or guest. Provide a similar interface with utils.run

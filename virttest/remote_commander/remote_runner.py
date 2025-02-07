@@ -239,7 +239,6 @@ def close_unused_fds(fds):
 
 
 class CmdFinish(object):
-
     """
     Class used for communication with child process. This class
     """
@@ -255,7 +254,6 @@ class CmdFinish(object):
 
 
 class CmdSlave(object):
-
     """
     Representation of BaseCmd on slave side.
     """
@@ -544,7 +542,6 @@ class CmdSlave(object):
 
 
 class CommanderSlave(ms.Messenger):
-
     """
     Class commander slace is responsible for communication with commander
     master. It invoke commands to slave part and receive messages from them.
@@ -646,7 +643,6 @@ class CommanderSlave(ms.Messenger):
 
 
 class CommanderSlaveCmds(CommanderSlave):
-
     """
     Class extends CommanderSlave and adds to them special commands like
     shell process, interactive python, send_msg to cmd.

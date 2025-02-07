@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Ip(base.TypedDeviceBase):
-
     """
     Create new Ip xml instances
 
@@ -61,7 +60,6 @@ class Ip(base.TypedDeviceBase):
         return ip_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Ip attribute XML class
 

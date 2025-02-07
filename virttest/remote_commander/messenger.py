@@ -30,7 +30,6 @@ else:
 
 
 class IOWrapper(object):
-
     """
     Class encaptulates io operation to be more consist in different
     implementations. (stdio, sockets, etc..)
@@ -94,7 +93,6 @@ class IOWrapper(object):
 
 
 class DataWrapper(object):
-
     """
     Basic implementation of IOWrapper for stdio.
     """
@@ -117,7 +115,6 @@ class DataWrapper(object):
 
 
 class DataWrapperBase64(DataWrapper):
-
     """
     Basic implementation of IOWrapper for stdio.
     """
@@ -130,7 +127,6 @@ class DataWrapperBase64(DataWrapper):
 
 
 class StdIOWrapper(IOWrapper, DataWrapper):
-
     """
     Basic implementation of IOWrapper for stdio.
     """
@@ -143,7 +139,6 @@ class StdIOWrapper(IOWrapper, DataWrapper):
 
 
 class StdIOWrapperIn(StdIOWrapper):
-
     """
     Basic implementation of IOWrapper for stdin
     """
@@ -156,7 +151,6 @@ class StdIOWrapperIn(StdIOWrapper):
 
 
 class StdIOWrapperOut(StdIOWrapper):
-
     """
     Basic implementation of IOWrapper for stdout
     """
@@ -166,14 +160,12 @@ class StdIOWrapperOut(StdIOWrapper):
 
 
 class StdIOWrapperInBase64(StdIOWrapperIn, DataWrapperBase64):
-
     """
     Basic implementation of IOWrapper for stdin
     """
 
 
 class StdIOWrapperOutBase64(StdIOWrapperOut, DataWrapperBase64):
-
     """
     Basic implementation of IOWrapper for stdout
     """
@@ -198,7 +190,6 @@ def _map_path(mod_name, kls_name):
 
 
 class Messenger(object):
-
     """
     Class could be used for communication between two python process connected
     by communication canal wrapped by IOWrapper class. Pickling is used

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Mac(base.TypedDeviceBase):
-
     """
     Create new Mac xml instances
 
@@ -60,7 +59,6 @@ class Mac(base.TypedDeviceBase):
         return mac_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Mac attribute XML class
 

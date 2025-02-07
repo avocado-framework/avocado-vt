@@ -49,7 +49,6 @@ def lock_safe(function):
 
 
 class Env(IterableUserDict):
-
     """
     A dict-like object containing global objects used by tests.
     """

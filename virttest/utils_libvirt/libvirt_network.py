@@ -1,6 +1,7 @@
 """
 Virsh net* command related utility functions
 """
+
 import ast
 import logging
 import re

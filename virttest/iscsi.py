@@ -174,7 +174,6 @@ def iscsi_discover(portal_ip):
 
 
 class _IscsiComm(object):
-
     """
     Provide an interface to complete the similar initialization
     """
@@ -352,7 +351,6 @@ class _IscsiComm(object):
 
 
 class IscsiTGT(_IscsiComm):
-
     """
     iscsi support TGT backend used in RHEL6.
     """
@@ -540,7 +538,6 @@ class IscsiTGT(_IscsiComm):
 
 
 class IscsiLIO(_IscsiComm):
-
     """
     iscsi support class for LIO backend used in RHEL7.
     """
@@ -783,7 +780,6 @@ class IscsiLIO(_IscsiComm):
 
 
 class Iscsi(object):
-
     """
     Basic iSCSI support class,
     which will handle the emulated iscsi export and

@@ -1,6 +1,7 @@
 """
 QEMU related utility functions.
 """
+
 import json
 import re
 

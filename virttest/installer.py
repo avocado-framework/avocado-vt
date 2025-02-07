@@ -19,7 +19,6 @@ __all__ = [
 
 
 class InstallerRegistry(dict):
-
     """
     Holds information on known installer classes
 

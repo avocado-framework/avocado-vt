@@ -168,7 +168,6 @@ class Monitor(object):
 
 
 class VM(virt_vm.BaseVM):
-
     """
     This class handles all basic VM operations for libvirt.
     """

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Icmp(base.TypedDeviceBase):
-
     """
     Create new Icmp xml instances
 
@@ -60,7 +59,6 @@ class Icmp(base.TypedDeviceBase):
         return icmp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Icmp attribute XML class
 

@@ -24,7 +24,6 @@ class CheckPlaybackError(Exception):
 
 
 class SaveDataAfterCloseStringIO(StringIO):
-
     """Saves the contents in a final_data property when close() is called.
 
     Useful as a mock output file object to test both that the file was
@@ -178,7 +177,6 @@ class function_mapping(base_mapping):
 
 
 class function_any_args_mapping(function_mapping):
-
     """A mock function mapping that doesn't verify its arguments."""
 
     def match(self, *args, **dargs):

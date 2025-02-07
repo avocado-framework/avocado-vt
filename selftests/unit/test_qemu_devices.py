@@ -42,7 +42,6 @@ QEMU_MACHINE = open(os.path.join(UNITTEST_DATA_DIR, "qemu-1.5.0__machine_help"))
 
 
 class ParamsDict(dict):
-
     """params like dictionary"""
 
     def objects(self, item):
@@ -51,14 +50,13 @@ class ParamsDict(dict):
 
     def object_params(self, obj):
         ret = self.copy()
-        for (param, value) in six.iteritems(self):
+        for param, value in six.iteritems(self):
             if param.endswith("_%s" % obj):
                 ret[param[: -len("_%s" % obj)]] = value
         return ret
 
 
 class MockHMPMonitor(qemu_monitor.HumanMonitor):
-
     """Dummy class inherited from qemu_monitor.HumanMonitor"""
 
     def __init__(self):  # pylint: disable=W0231
@@ -69,7 +67,6 @@ class MockHMPMonitor(qemu_monitor.HumanMonitor):
 
 
 class Devices(unittest.TestCase):
-
     """set of qemu devices tests"""
 
     def test_q_base_device(self):
@@ -151,7 +148,6 @@ class Devices(unittest.TestCase):
 
 
 class Buses(unittest.TestCase):
-
     """Set of bus-representation tests"""
 
     def test_q_sparse_bus(self):
@@ -671,7 +667,6 @@ Slots:
 
 
 class Container(unittest.TestCase):
-
     """Tests related to the abstract representation of qemu machine"""
 
     def setUp(self):

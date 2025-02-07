@@ -8,7 +8,6 @@ from . import lvsb_base, virsh
 
 
 class SandboxService(object):
-
     """
     Management for a single new/existing sandboxed service
     """

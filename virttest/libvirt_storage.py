@@ -18,7 +18,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class QemuImg(storage.QemuImg):
-
     """
     libvirt class for handling operations of disk/block images.
     """
@@ -114,7 +113,6 @@ class QemuImg(storage.QemuImg):
 
 
 class StoragePool(object):
-
     """
     Pool Manager for libvirt storage with virsh commands
     """
@@ -430,7 +428,6 @@ class StoragePool(object):
 
 
 class PoolVolume(object):
-
     """Volume Manager for libvirt storage pool."""
 
     def __init__(self, pool_name, virsh_instance=virsh):

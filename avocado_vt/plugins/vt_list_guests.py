@@ -8,7 +8,6 @@ from ..loader import guest_listing
 
 
 class VTListGuests(CLICmd):
-
     """
     Avocado VT - implements vt-list-guests command
     """

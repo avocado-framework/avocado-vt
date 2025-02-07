@@ -151,7 +151,6 @@ def cleanup_vm(vm_name=None, disk=None):
 
 
 class VirtTools(object):
-
     """
     Useful functions for virt-commands.
 
@@ -512,7 +511,6 @@ class VirtTools(object):
 
 
 class GuestfishTools(lgf.GuestfishPersistent):
-
     """Useful Tools for Guestfish class."""
 
     __slots__ = ("params",)

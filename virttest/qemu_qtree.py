@@ -4,6 +4,7 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 :author: Lukas Doktor <ldoktor@redhat.com>
 :copyright: 2012 Red Hat Inc.
 """
+
 import json
 import logging
 import os
@@ -41,7 +42,6 @@ class IncompatibleTypeError(TypeError):
 
 
 class QtreeNode(object):
-
     """
     Generic Qtree node
     """
@@ -143,7 +143,6 @@ class QtreeNode(object):
 
 
 class QtreeBus(QtreeNode):
-
     """bus: qtree object"""
 
     def __init__(self):
@@ -159,7 +158,6 @@ class QtreeBus(QtreeNode):
 
 
 class QtreeDev(QtreeNode):
-
     """dev: qtree object"""
 
     def __init__(self):
@@ -180,7 +178,6 @@ class QtreeDev(QtreeNode):
 
 
 class QtreeDisk(QtreeDev):
-
     """qtree disk object"""
 
     def __init__(self):
@@ -242,7 +239,6 @@ class QtreeDisk(QtreeDev):
 
 
 class QtreeContainer(object):
-
     """Container for Qtree"""
 
     def __init__(self):
@@ -391,7 +387,6 @@ class QtreeContainer(object):
 
 
 class QtreeDisksContainer(object):
-
     """
     Container for QtreeDisks verification.
     It's necessary because some information can be verified only from
@@ -567,7 +562,7 @@ class QtreeDisksContainer(object):
                 data_dir.get_data_dir(), params.object_params(name).get("cdrom", "")
             )
             image_name = os.path.realpath(image_name)
-            for (qname, disk) in six.iteritems(disks):
+            for qname, disk in six.iteritems(disks):
                 if disk[0].get("image_name") == image_name:
                     break
             else:
@@ -582,7 +577,7 @@ class QtreeDisksContainer(object):
             image_name = os.path.realpath(
                 storage.get_image_filename(image_params, base_dir)
             )
-            for (qname, disk) in six.iteritems(disks):
+            for qname, disk in six.iteritems(disks):
                 if disk[0].get("image_name") == image_name:
                     current = disk[0]
                     current_node = disk[1]

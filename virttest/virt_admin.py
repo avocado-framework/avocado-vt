@@ -74,7 +74,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtadminBase(propcan.PropCanBase):
-
     """
     Base Class storing libvirt Connection & state to a host
     """
@@ -105,7 +104,6 @@ class VirtadminBase(propcan.PropCanBase):
 
 
 class VirtadminSession(aexpect.ShellSession):
-
     """
     A virtadmin shell session, used with Virtadmin instances.
     """
@@ -390,7 +388,6 @@ class VirtadminSession(aexpect.ShellSession):
 # Work around for inconsistent builtin closure local reference problem
 # across different versions of python
 class VirtadminClosure(object):
-
     """
     Callable with weak ref. to override ``**dargs`` when calling reference_function
     """
@@ -424,7 +421,6 @@ class VirtadminClosure(object):
 
 
 class Virtadmin(VirtadminBase):
-
     """
     Execute libvirt operations, using a new virtadmin shell each time.
     """
@@ -449,7 +445,6 @@ class Virtadmin(VirtadminBase):
 
 
 class VirtadminPersistent(Virtadmin):
-
     """
     Execute libvirt operations using persistent virtadmin session.
     """
@@ -602,7 +597,6 @@ class VirtadminPersistent(Virtadmin):
 
 
 class VirtadminConnectBack(VirtadminPersistent):
-
     """
     Persistent virtadmin session connected back from a remote host
     """

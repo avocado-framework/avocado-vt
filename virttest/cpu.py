@@ -946,7 +946,6 @@ def get_cpu_info(session=None):
 
 
 class Flag(str):
-
     """
     Class for easy merge cpuflags.
     """

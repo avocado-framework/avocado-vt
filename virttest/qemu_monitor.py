@@ -269,7 +269,6 @@ class VM(object):
 
 
 class Monitor(object):
-
     """
     Common code for monitor classes.
     """
