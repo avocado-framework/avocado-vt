@@ -209,7 +209,7 @@ class VirtadminSession(aexpect.ShellSession):
 
         # fail if libvirtd is not running
         if check_libvirtd:
-            status, out = self.cmd_status_output("uri", timeout=60)
+            status, out = self.cmd_status_output("uri", timeout=60, safe=True)
             if status != 0:
                 LOG.debug(
                     "Persistent virt-admin session is not responding, "
