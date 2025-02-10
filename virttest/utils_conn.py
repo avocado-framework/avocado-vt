@@ -10,7 +10,7 @@ import tempfile
 import aexpect
 from aexpect import remote
 from avocado.core import exceptions
-from avocado.utils import path, process
+from avocado.utils import distro, path, process
 
 from virttest import data_dir, libvirt_version, propcan
 from virttest import remote as remote_old
@@ -2388,7 +2388,7 @@ class UNIXConnection(ConnectionBase):
                     runner("systemctl daemon-reload")
                     runner("systemctl stop libvirtd")
                     runner("systemctl stop libvirtd.socket")
-                    runner("systemctl start libvirtd.socket")
+                    runner("systemctl start libvirtd.socket", ignore_status=True)
                     utils_misc.wait_for(
                         lambda: process.system(
                             "systemctl status libvirtd.socket",
@@ -2398,6 +2398,29 @@ class UNIXConnection(ConnectionBase):
                         == 0,
                         10,
                     )
+                    if process.system(
+                        "systemctl status libvirtd.socket",
+                        ignore_status=True,
+                        shell=True,
+                    ):
+                        # On RHEL 8, SELinux is preventing systemd from create
+                        # access on the sock_file libvirt-sock. We can generate
+                        # a local policy module to allow this access.
+                        if (
+                            distro.detect().name == "rhel"
+                            and int(distro.detect().version) == 8
+                        ):
+                            process.run(
+                                "ausearch -c 'systemd' --raw | audit2allow -M my-systemd",
+                                ignore_status=True,
+                                shell=True,
+                            )
+                            process.run(
+                                "semodule -X 300 -i my-systemd.pp",
+                                ignore_status=True,
+                                shell=True,
+                            )
+                            runner("systemctl start libvirtd.socket")
                     runner("systemctl reset-failed libvirtd")
                     runner("systemctl start libvirtd")
                 current_session.close()
