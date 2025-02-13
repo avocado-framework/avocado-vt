@@ -1426,15 +1426,18 @@ def local_runner_status(cmd, timeout=None, shell=False):
     return process.run(cmd, verbose=False, timeout=timeout, shell=shell).exit_status
 
 
-def get_net_if(runner=local_runner, state=".*", qdisc=".*", optional=".*"):
+def get_net_if(
+    runner=local_runner, state=".*", qdisc=".*", optional=".*", ip_options=""
+):
     """
     :param runner: command runner.
     :param state: interface state get from ip link
     :param qdisc: interface qdisc get from ip link
     :param optional: optional match for interface find
+    :param ip_options: ip command options
     :return: List of network interfaces.
     """
-    cmd = "ip link"
+    cmd = f"ip {ip_options} link"
     # As the runner converts stdout to unicode on Python2,
     # it has to be converted to string for struct.pack().
     result = str(runner(cmd))
