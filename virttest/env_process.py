@@ -46,6 +46,7 @@ from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
+from virttest.test_setup.memory import HugePagesSetup
 from virttest.test_setup.migration import MigrationEnvSetup
 from virttest.test_setup.networking import (
     BridgeConfig,
@@ -1023,6 +1024,7 @@ def preprocess(test, params, env):
     _setup_manager.register(CheckVirtioWinVersion)
     _setup_manager.register(CheckLibvirtVersion)
     _setup_manager.register(LogVersionInfo)
+    _setup_manager.register(HugePagesSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
@@ -1030,24 +1032,6 @@ def preprocess(test, params, env):
     base_dir = data_dir.get_data_dir()
 
     libvirtd_inst = None
-
-    # If guest is configured to be backed by hugepages, setup hugepages in host
-    if params.get("hugepage") == "yes":
-        params["setup_hugepages"] = "yes"
-
-    if params.get("setup_hugepages") == "yes":
-        global _pre_hugepages_surp
-        h = test_setup.HugePageConfig(params)
-        _pre_hugepages_surp = h.ext_hugepages_surp
-        suggest_mem = h.setup()
-        if suggest_mem is not None:
-            params["mem"] = suggest_mem
-        if not params.get("hugepage_path"):
-            params["hugepage_path"] = h.hugepage_path
-        if vm_type == "libvirt":
-            if libvirtd_inst is None:
-                libvirtd_inst = utils_libvirtd.Libvirtd()
-            libvirtd_inst.restart()
 
     if params.get("setup_thp") == "yes":
         thp = test_setup.TransparentHugePageConfig(test, params, env)
@@ -1533,21 +1517,6 @@ def postprocess(test, params, env):
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
-
-    if params.get("setup_hugepages") == "yes":
-        global _post_hugepages_surp
-        try:
-            h = test_setup.HugePageConfig(params)
-            h.cleanup()
-            if vm_type == "libvirt":
-                if libvirtd_inst is None:
-                    libvirtd_inst = utils_libvirtd.Libvirtd()
-                libvirtd_inst.restart()
-        except Exception as details:
-            err += "\nHP cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
-        else:
-            _post_hugepages_surp = h.ext_hugepages_surp
 
     if params.get("setup_thp") == "yes":
         try:
