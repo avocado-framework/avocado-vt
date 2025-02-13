@@ -1514,7 +1514,7 @@ def get_net_if_addrs(if_name, runner=None):
     """
     if runner is None:
         runner = local_runner
-    cmd = "ip addr show %s" % (if_name)
+    cmd = "ip -color=never addr show %s" % (if_name)
     result = runner(cmd)
     return {
         "ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
