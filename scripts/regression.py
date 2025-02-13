@@ -67,7 +67,6 @@ def get_test_keyval(jobid, keyname, default=""):
 
 
 class Sample(object):
-
     """Collect test results in same environment to a sample"""
 
     def __init__(self, sample_type, arg):

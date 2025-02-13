@@ -385,7 +385,6 @@ def warp_init_del(func):
 
 
 class Interface(object):
-
     """Class representing a Linux network device."""
 
     def __init__(self, name):
@@ -691,7 +690,6 @@ class Interface(object):
 
 
 class Macvtap(Interface):
-
     """
     class of macvtap, base Interface
     """
@@ -754,7 +752,6 @@ class Macvtap(Interface):
 
 
 class IPAddress(object):
-
     """
     Class to manipulate IPv4 or IPv6 address.
     """
@@ -2319,7 +2316,6 @@ def if_set_macaddress(ifname, mac):
 
 
 class IPv6Manager(propcan.PropCanBase):
-
     """
     Setup and cleanup IPv6 environment.
     """
@@ -2625,7 +2621,6 @@ ieee_eui64_assignment = ieee_eui_assignment(64)
 
 
 class VirtIface(propcan.PropCan, object):
-
     """
     Networking information for single guest interface and host connection.
     """
@@ -2768,7 +2763,6 @@ class VirtIface(propcan.PropCan, object):
 
 
 class LibvirtIface(VirtIface):
-
     """
     Networking information specific to libvirt
     """
@@ -2777,7 +2771,6 @@ class LibvirtIface(VirtIface):
 
 
 class QemuIface(VirtIface):
-
     """
     Networking information specific to Qemu
     """
@@ -2802,7 +2795,6 @@ class QemuIface(VirtIface):
 
 
 class VMNet(list):
-
     """
     Collection of networking information.
     """
@@ -2956,7 +2948,6 @@ class VMNet(list):
 # for xen networking.  This will also enable further extensions
 # to network information handing in the future.
 class VMNetStyle(dict):
-
     """
     Make decisions about needed info from vm_type and driver_type params.
     """
@@ -3003,7 +2994,6 @@ class VMNetStyle(dict):
 
 
 class ParamsNet(VMNet):
-
     """
     Networking information from Params
 
@@ -3126,7 +3116,6 @@ class ParamsNet(VMNet):
 
 
 class DbNet(VMNet):
-
     """
     Networking information from database
 
@@ -3271,7 +3260,6 @@ def clean_tmp_files():
 
 
 class VirtNet(DbNet, ParamsNet):
-
     """
     Persistent collection of VM's networking information.
     """

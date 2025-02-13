@@ -13,7 +13,6 @@ virsh = lazy_import("virttest.virsh")
 
 
 class LibvirtXMLBase(propcan.PropCanBase):
-
     """
     Base class for common attributes/methods applying to all sub-classes
 

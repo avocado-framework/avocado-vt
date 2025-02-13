@@ -9,7 +9,6 @@ from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class UntypedDeviceBase(base.LibvirtXMLBase):
-
     """
     Base class implementing common functions for all rule protocol XML w/o a
     type attr.
@@ -71,7 +70,6 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
 
 
 class TypedDeviceBase(UntypedDeviceBase):
-
     """
     Base class implementing common functions for all filter rule XML w/o a
     type attr.

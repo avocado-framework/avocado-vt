@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Igmp(base.TypedDeviceBase):
-
     """
     Create new Igmp xml instances
 
@@ -57,7 +56,6 @@ class Igmp(base.TypedDeviceBase):
         return igmp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Igmp attribute XML class
 

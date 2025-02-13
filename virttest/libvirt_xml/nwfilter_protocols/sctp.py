@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Sctp(base.TypedDeviceBase):
-
     """
     Create new Sctp xml instances
 
@@ -61,7 +60,6 @@ class Sctp(base.TypedDeviceBase):
         return sctp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Sctp attribute XML class
 

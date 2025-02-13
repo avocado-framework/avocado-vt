@@ -2,6 +2,7 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatstorage.html#StoragePool
 """
+
 import logging
 import os
 import tempfile
@@ -16,7 +17,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class SourceXML(base.LibvirtXMLBase):
-
     """
     Source block in pool xml, optionally containing different elements and
     attributes which dependent on pool type.
@@ -187,7 +187,6 @@ class SourceXML(base.LibvirtXMLBase):
 
 
 class PoolXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for PoolXML class.
 
@@ -305,7 +304,6 @@ class PoolXMLBase(base.LibvirtXMLBase):
 
 
 class PoolcapabilityXML(base.LibvirtXMLBase):
-
     """
     Handler of libvirt pool-capabilities.
 
@@ -380,7 +378,6 @@ class PoolcapabilityXML(base.LibvirtXMLBase):
 
 
 class PoolXML(PoolXMLBase):
-
     """
     Manipulators of a libvirt Pool through it's XML definition.
     """

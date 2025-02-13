@@ -90,7 +90,6 @@ class ServiceManager(VersionableClass):
 
 
 class OpenVSwitchControl(object):
-
     """
     Class select the best matches control class for installed version
     of OpenVSwitch.
@@ -219,7 +218,6 @@ class OpenVSwitchControl(object):
 
 
 class OpenVSwitchControlDB_140(OpenVSwitchControl):
-
     """
     Don't use this class directly. This class is automatically selected by
     OpenVSwitchControl.
@@ -247,7 +245,6 @@ class OpenVSwitchControlDB_CNT(VersionableClass):
 
 
 class OpenVSwitchControlCli_140(OpenVSwitchControl):
-
     """
     Don't use this class directly. This class is automatically selected by
     OpenVSwitchControl.
@@ -354,7 +351,6 @@ class OpenVSwitchControlCli_CNT(VersionableClass):
 
 
 class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
-
     """
     OpenVSwtich class.
     """
@@ -462,7 +458,6 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
 
 
 class OpenVSwitch(OpenVSwitchSystem):
-
     """
     OpenVSwtich class.
     """

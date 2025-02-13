@@ -333,7 +333,6 @@ class BaseConsole(object):
 
 
 class DummyConsole(BaseConsole):
-
     """
     Dummy console
     """
@@ -342,7 +341,6 @@ class DummyConsole(BaseConsole):
 
 
 class QMPConsole(BaseConsole):
-
     """
     QMP console
     """

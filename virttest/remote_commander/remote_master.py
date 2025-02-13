@@ -31,7 +31,6 @@ def wait_timeout(timeout):
 
 
 class CmdMaster(object):
-
     """
     Representation of BaseCmd on master side.
     """
@@ -146,7 +145,6 @@ class CmdMaster(object):
 
 
 class CmdEncapsulation(object):
-
     """
     Class parse command name   cmd.nohup.shell -> ["nohup", "shell"]
     """
@@ -171,7 +169,6 @@ class CmdEncapsulation(object):
 
 
 class CmdTimeout(remote_interface.MessengerError):
-
     """
     Raised when waiting for cmd exceeds time define by timeout.
     """
@@ -184,7 +181,6 @@ class CmdTimeout(remote_interface.MessengerError):
 
 
 class Commander(object):
-
     """
     Commander representation for transfer over network.
     """
@@ -193,7 +189,6 @@ class Commander(object):
 
 
 class CommanderMaster(messenger.Messenger):
-
     """
     Class commander master is responsible for communication with commander
     slave. It invoke commands to slave part and receive messages from them.

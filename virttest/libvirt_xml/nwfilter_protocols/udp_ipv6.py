@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Udp_ipv6(base.TypedDeviceBase):
-
     """
     Create new Udp_ipv6 xml instances
 
@@ -60,7 +59,6 @@ class Udp_ipv6(base.TypedDeviceBase):
         return udp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Udp_ipv6 attribute XML class
 

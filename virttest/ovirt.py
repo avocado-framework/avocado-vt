@@ -4,7 +4,6 @@ oVirt SDK wrapper module.
 :copyright: 2008-2012 Red Hat Inc.
 """
 
-
 import logging
 import time
 
@@ -83,7 +82,6 @@ def disconnect():
 
 
 class VMManager(virt_vm.BaseVM):
-
     """
     This class handles all basic VM operations for oVirt.
     """
@@ -629,7 +627,6 @@ class VMManager(virt_vm.BaseVM):
 
 
 class DataCenterManager(object):
-
     """
     This class handles all basic datacenter operations.
     """
@@ -678,7 +675,6 @@ class DataCenterManager(object):
 
 
 class ClusterManager(object):
-
     """
     This class handles all basic cluster operations.
     """
@@ -734,7 +730,6 @@ class ClusterManager(object):
 
 
 class HostManager(object):
-
     """
     This class handles all basic host operations.
     """
@@ -818,7 +813,6 @@ class HostManager(object):
 
 
 class StorageDomainManager(object):
-
     """
     This class handles all basic storage domain operations.
     """

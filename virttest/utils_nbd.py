@@ -10,6 +10,7 @@ disk xml:
       <target dev='sda' bus='scsi'/>
     </disk>
 """
+
 import logging
 import os
 import shutil
@@ -183,9 +184,9 @@ class NbdExport(object):
         client_credential_dict["clientkey"] = "client-key.pem"
         client_credential_dict["clientcert"] = "client-cert.pem"
         if self.private_key_encrypt_passphrase:
-            client_credential_dict[
-                "clientprivatekeypass"
-            ] = self.private_key_encrypt_passphrase
+            client_credential_dict["clientprivatekeypass"] = (
+                self.private_key_encrypt_passphrase
+            )
         server_credential_dict["ca_cakey_path"] = tmp_ca_cert_dir
 
         # build a client key.

@@ -32,7 +32,6 @@ class Tpm(base.UntypedDeviceBase):
         super(Tpm, self).__init__(device_tag="tpm", virsh_instance=virsh_instance)
 
     class Backend(base.base.LibvirtXMLBase):
-
         """
         Tpm backend xml class.
 

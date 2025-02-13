@@ -31,7 +31,6 @@ _net_state = {"active": False, "autostart": False, "persistent": False}
 
 
 class NetworkTestBase(unittest.TestCase):
-
     """
     Base class for NetworkXML test providing fake virsh commands.
     """
@@ -111,7 +110,6 @@ class NetworkTestBase(unittest.TestCase):
 
 
 class NetworkXMLTest(NetworkTestBase):
-
     """
     Unit test class for manipulator methods in NetworkXML class.
     """

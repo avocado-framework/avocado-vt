@@ -3,7 +3,6 @@ Module simplifying manipulation of numa & hmat related part described at
 http://libvirt.org/formatdomain.html
 """
 
-
 import ast
 import logging
 

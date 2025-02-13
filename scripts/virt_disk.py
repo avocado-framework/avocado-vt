@@ -21,7 +21,6 @@ from virttest import utils_disk
 
 
 class OptionParser(optparse.OptionParser):
-
     """
     App option parser
     """
@@ -82,7 +81,6 @@ class OptionParser(optparse.OptionParser):
 
 
 class App:
-
     """
     Virt Disk Creation App
     """

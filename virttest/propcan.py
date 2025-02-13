@@ -68,7 +68,6 @@ example:
 
 
 class PropCanInternal(object):
-
     """
     Semi-private methods for use only by PropCanBase subclasses (NOT instances)
     """
@@ -127,7 +126,6 @@ class classproperty(property):
 
 
 class PropCanBase(dict, PropCanInternal):
-
     """
     Objects with optional accessor methods and dict-like access to fixed set of keys
     """
@@ -281,7 +279,6 @@ class PropCanBase(dict, PropCanInternal):
 
 
 class PropCan(PropCanBase):
-
     """
     Special value handling on retrieval of None values
     """

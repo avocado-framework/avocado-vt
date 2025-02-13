@@ -36,7 +36,6 @@ LOG = logging.getLogger("avocado.vt.options")
 
 
 class VirtTestOptionsProcess(object):
-
     """
     Pick virt test options and parse them to get to a cartesian parser.
     """

@@ -17,7 +17,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class VMXMLDevices(list):
-
     """
     List of device instances from classes handed out by librarian.get()
     """
@@ -58,7 +57,6 @@ class VMXMLDevices(list):
 
 
 class VMXMLBase(LibvirtXMLBase):
-
     """
     Accessor methods for VMXML class properties (items in __slots__)
 
@@ -753,7 +751,6 @@ class VMXMLBase(LibvirtXMLBase):
 
 
 class VMXML(VMXMLBase):
-
     """
     Higher-level manipulations related to VM's XML or guest/host state
     """
@@ -2068,7 +2065,6 @@ class VMXML(VMXMLBase):
 
 
 class VMCPUXML(base.LibvirtXMLBase):
-
     """
     Higher-level manipulations related to VM's XML(CPU)
     """
@@ -2202,7 +2198,6 @@ class VMCPUXML(base.LibvirtXMLBase):
 
     # Sub-element of cpu
     class InterconnectsXML(base.LibvirtXMLBase):
-
         """Interconnects element of numa"""
 
         __slots__ = ("latency", "bandwidth")
@@ -2503,7 +2498,6 @@ class VMCPUXML(base.LibvirtXMLBase):
 
 # Sub-element of cpu/numa
 class NumaCellXML(base.LibvirtXMLBase):
-
     """
     Cell element of numa
     """
@@ -2667,7 +2661,6 @@ class NumaCellXML(base.LibvirtXMLBase):
 
 
 class CellCacheXML(base.LibvirtXMLBase):
-
     """
     Cache of cell
     """
@@ -2747,7 +2740,6 @@ class CellCacheXML(base.LibvirtXMLBase):
 
 
 class VMClockXML(base.LibvirtXMLBase):
-
     """
     Higher-level manipulations related to VM's XML(Clock)
     """
@@ -2800,7 +2792,6 @@ class VMClockXML(base.LibvirtXMLBase):
 
     # Sub-element of clock
     class TimerXML(base.LibvirtXMLBase):
-
         """Timer element of clock"""
 
         __slots__ = (
@@ -2922,7 +2913,6 @@ class VMClockXML(base.LibvirtXMLBase):
 
 
 class CacheTuneXML(base.LibvirtXMLBase):
-
     """CacheTune XML"""
 
     __slots__ = ("vcpus", "caches", "monitors")
@@ -3015,7 +3005,6 @@ class CacheTuneXML(base.LibvirtXMLBase):
 
     # Sub-element of CacheTuneXML
     class CacheXML(base.LibvirtXMLBase):
-
         """Cache element of CacheTuneXML"""
 
         __slots__ = ("id", "level", "type", "size", "unit")
@@ -3070,7 +3059,6 @@ class CacheTuneXML(base.LibvirtXMLBase):
 
     # Sub-element of CacheTuneXML
     class MonitorXML(base.LibvirtXMLBase):
-
         """Monitor element of CacheTuneXML"""
 
         __slots__ = ("level", "vcpus")
@@ -3101,7 +3089,6 @@ class CacheTuneXML(base.LibvirtXMLBase):
 
 
 class MemoryTuneXML(base.LibvirtXMLBase):
-
     """Event element of perf"""
 
     __slots__ = ("vcpus", "nodes", "monitors")
@@ -3194,7 +3181,6 @@ class MemoryTuneXML(base.LibvirtXMLBase):
 
     # Sub-element of MemoryTuneXML
     class NodeXML(base.LibvirtXMLBase):
-
         """Node element of MemoryTuneXML"""
 
         __slots__ = ("id", "bandwidth")
@@ -3225,7 +3211,6 @@ class MemoryTuneXML(base.LibvirtXMLBase):
 
     # Sub-element of MemoryTuneXML
     class MonitorXML(base.LibvirtXMLBase):
-
         """Monitor element of MemoryTuneXML"""
 
         __slots__ = ("vcpus",)
@@ -3519,7 +3504,6 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
 
 
 class VMOSXML(base.LibvirtXMLBase):
-
     """
     Class to access <os> tag of domain XML.
 
@@ -3787,7 +3771,6 @@ class VMOSXML(base.LibvirtXMLBase):
 
 
 class VMPMXML(base.LibvirtXMLBase):
-
     """
     VM power management tag XML class
 
@@ -3818,7 +3801,6 @@ class VMPMXML(base.LibvirtXMLBase):
 
 
 class VMFeaturesXML(base.LibvirtXMLBase):
-
     """
     Class to access <features> tag of domain XML.
 
@@ -3996,7 +3978,6 @@ class VMFeaturesXML(base.LibvirtXMLBase):
 
 
 class VMVCPUSXML(base.LibvirtXMLBase):
-
     """
     vcpus tag XML class
 
@@ -4044,7 +4025,6 @@ class VMVCPUSXML(base.LibvirtXMLBase):
 
 # Sub-element of memoryBacking
 class VMHugepagesXML(base.LibvirtXMLBase):
-
     """hugepages element"""
 
     __slots__ = ("pages",)
@@ -4064,7 +4044,6 @@ class VMHugepagesXML(base.LibvirtXMLBase):
 
     # Sub-element of hugepages
     class PageXML(base.LibvirtXMLBase):
-
         """Page element of hugepages"""
 
         __slots__ = ("size", "unit", "nodeset")
@@ -4124,7 +4103,6 @@ class VMHugepagesXML(base.LibvirtXMLBase):
 
 
 class VMMemBackingXML(base.LibvirtXMLBase):
-
     """
     memoryBacking tag XML class
 
@@ -4188,7 +4166,6 @@ class VMMemBackingXML(base.LibvirtXMLBase):
 
 
 class VMMemTuneXML(base.LibvirtXMLBase):
-
     """
     Memory Tuning tag XML class
 
@@ -4272,7 +4249,6 @@ class VMMemTuneXML(base.LibvirtXMLBase):
 
 
 class VMPerfXML(base.LibvirtXMLBase):
-
     """
     perf tag XML class
 
@@ -4298,7 +4274,6 @@ class VMPerfXML(base.LibvirtXMLBase):
 
     # Sub-element of perf
     class EventXML(base.LibvirtXMLBase):
-
         """Event element of perf"""
 
         __slots__ = ("name", "enabled")
@@ -4361,7 +4336,6 @@ class VMPerfXML(base.LibvirtXMLBase):
 
 
 class VMIothreadidsXML(base.LibvirtXMLBase):
-
     """
     iothreadids tag XML class
 
@@ -4602,7 +4576,6 @@ class VMFeaturesStimerXML(base.LibvirtXMLBase):
 
 
 class VMFeaturesHptXML(base.LibvirtXMLBase):
-
     """
     Hpt tag XML class of features tag
 
@@ -4689,7 +4662,6 @@ class VMKeywrapXML(base.LibvirtXMLBase):
 
 
 class VMSysinfoXML(base.LibvirtXMLBase):
-
     """
     Class to access <sysinfo> tag of domain XML
 

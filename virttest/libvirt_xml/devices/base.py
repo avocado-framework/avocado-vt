@@ -12,7 +12,6 @@ from virttest.xml_utils import ElementTree
 
 
 class UntypedDeviceBase(base.LibvirtXMLBase):
-
     """
     Base class implementing common functions for all device XML w/o a type attr.
     """
@@ -130,7 +129,6 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
 
 
 class TypedDeviceBase(UntypedDeviceBase):
-
     """
     Base class implementing common functions for all device XML w/o a type attr.
     """
@@ -193,7 +191,6 @@ class TypedDeviceBase(UntypedDeviceBase):
 
 
 class StubDeviceMeta(type):
-
     """
     Metaclass for generating stub Device classes where not fully implemented yet
     """

@@ -111,7 +111,6 @@ class VAgentFreezeStatusError(VAgentError):
 
 
 class QemuAgent(Monitor):
-
     """
     Wraps qemu guest agent commands.
     """

@@ -81,7 +81,6 @@ except path.CmdNotFoundError:
 
 
 class VirshBase(propcan.PropCanBase):
-
     """
     Base Class storing libvirt Connection & state to a host
     """
@@ -112,7 +111,6 @@ class VirshBase(propcan.PropCanBase):
 
 
 class VirshSession(aexpect.ShellSession):
-
     """
     A virsh shell session, used with Virsh instances.
     """
@@ -387,7 +385,6 @@ class VirshSession(aexpect.ShellSession):
 # Work around for inconsistent builtin closure local reference problem
 # across different versions of python
 class VirshClosure(object):
-
     """
     Callable with weak ref. to override ``**dargs`` when calling reference_function
     """
@@ -421,7 +418,6 @@ class VirshClosure(object):
 
 
 class Virsh(VirshBase):
-
     """
     Execute libvirt operations, using a new virsh shell each time.
     """
@@ -447,7 +443,6 @@ class Virsh(VirshBase):
 
 
 class VirshPersistent(Virsh):
-
     """
     Execute libvirt operations using persistent virsh session.
     """
@@ -600,7 +595,6 @@ class VirshPersistent(Virsh):
 
 
 class VirshConnectBack(VirshPersistent):
-
     """
     Persistent virsh session connected back from a remote host
     """
@@ -746,9 +740,11 @@ class EventTracker(object):
                 return (
                     kwargs.get(arg)
                     if arg in kwargs
-                    else inspect.signature(func).parameters[arg].default
-                    if arg in inspect.signature(func).parameters
-                    else None
+                    else (
+                        inspect.signature(func).parameters[arg].default
+                        if arg in inspect.signature(func).parameters
+                        else None
+                    )
                 )
 
             def _get_event_output(session):
@@ -1133,7 +1129,6 @@ def reboot(
     event_timeout=30,
     **dargs,
 ):
-
     """
     Run a reboot command in the target domain.
 

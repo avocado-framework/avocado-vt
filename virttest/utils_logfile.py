@@ -7,6 +7,7 @@ Naive module that keeps tacks of some opened files and somehow manages them.
 
 :copyright: 2020 Red Hat Inc.
 """
+
 import logging
 import os
 import re

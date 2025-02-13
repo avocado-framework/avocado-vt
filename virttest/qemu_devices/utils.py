@@ -11,14 +11,12 @@ import six
 # Exceptions
 #
 class DeviceError(Exception):
-
     """General device exception"""
 
     pass
 
 
 class DeviceInsertError(DeviceError):
-
     """Fail to insert device"""
 
     def __init__(self, device, reason, vmdev):
@@ -42,7 +40,6 @@ class DeviceInsertError(DeviceError):
 
 
 class DeviceRemoveError(DeviceInsertError):
-
     """Fail to remove device"""
 
     def __init__(self, device, reason, vmdev):
@@ -51,7 +48,6 @@ class DeviceRemoveError(DeviceInsertError):
 
 
 class DeviceHotplugError(DeviceInsertError):
-
     """Fail to hotplug device"""
 
     def __init__(self, device, reason, vmdev, ver_out=None):
@@ -61,7 +57,6 @@ class DeviceHotplugError(DeviceInsertError):
 
 
 class DeviceUnplugError(DeviceHotplugError):
-
     """Fail to unplug device"""
 
     def __init__(self, device, reason, vmdev):

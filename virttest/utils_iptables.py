@@ -1,6 +1,7 @@
 """
 Library to perform iptables configuration for virt test.
 """
+
 import logging
 
 from aexpect import remote
