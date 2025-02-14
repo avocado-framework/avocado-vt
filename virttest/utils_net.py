@@ -35,6 +35,7 @@ from virttest import (
     utils_misc,
     utils_package,
     utils_selinux,
+    virs
 )
 from virttest.remote import RemoteRunner
 from virttest.staging import service, utils_memory
@@ -4902,3 +4903,21 @@ def check_class_rules(ifname, rule_id, bandwidth, expect_none=False):
         stacktrace.log_exc_info(sys.exc_info())
         return False
     return True
+
+
+def obtain_guest_ip_from_dhcp_leases(mac):
+    """
+    Obtaining the guest ip address from virsh-net-dhcp-leases command
+    :param: Mac address of the guest
+    :return: return ip-address if found for given mac in the
+             virsh-net-dhcp-leases default table, else return None
+    """
+    output = virsh.net_dhcp_leases("default")
+        lines = output.stdout.splitlines()
+    for line in lines:
+        if mac in line:
+            parts = line.split()
+            for part in parts:
+                if "/" in part:
+                    return part.split("/")[0]
+    return None
