@@ -50,6 +50,7 @@ from virttest import (
 )
 from virttest.qemu_capabilities import Flags
 from virttest.qemu_devices import qcontainer, qdevices
+from virttest.qemu_devices.qdevice_format import qdevice_format
 from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
 from virttest.utils_params import Params
 from virttest.utils_version import VersionInterval
@@ -1786,6 +1787,7 @@ class VM(virt_vm.BaseVM):
         qemu_binary = utils_misc.get_qemu_binary(params)
 
         self.qemu_binary = qemu_binary
+        qdevice_format.qemu_binary = self.qemu_binary
         self.qemu_version = process.run(
             "%s -version" % qemu_binary, verbose=False, ignore_status=True, shell=True
         ).stdout_text.split(",")[0]
