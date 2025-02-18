@@ -1,6 +1,8 @@
 import logging
 import re
 
+from avocado.utils import process
+
 from virttest import utils_numeric
 
 LOG = logging.getLogger("avocado." + __name__)
@@ -11,6 +13,8 @@ class _QDeviceFormatManagement(object):
     This class is designed to manage the expression( including json format
     and raw format) of classes in qdevices.py file.
     """
+
+    qemu_binary = None
 
     def __init__(self):
         self._format_func = {"json": self._json_format, "raw": self._raw_format}
@@ -305,6 +309,8 @@ class _QDeviceFormatManagement(object):
         driver = "usb_driver" if driver.startswith("usb-") else driver
         if driver not in self._device_driver_checked:
             self._device_driver_checked.append(driver)
+            if self.qemu_binary:
+                self._update_args_type_from_qemu(driver)
         device_args = self._special_args_in_json[dev_type]
         new_args = dict()
         # convert type
@@ -533,6 +539,35 @@ class _QDeviceFormatManagement(object):
             tmp[parts[-1]] = val
 
         return args
+
+    def _update_args_type_from_qemu(self, driver):
+        """
+        Update the args type from qemu.
+        Only update the following type: int16, int32, int64, bool, str.
+
+        :param driver: The driver of -device.
+        :type driver: String.
+        """
+        if driver not in self._special_args_in_json["device"]:
+            self._special_args_in_json["device"][driver] = dict()
+        cmd = "%s --device %s,\\?" % (self.qemu_binary, driver)
+        output = process.run(cmd, shell=True, verbose=False).stdout_text.strip()
+        args_list = re.findall("(.+)=(<[^>]+>+)", output)
+        for arg, arg_type in args_list:
+            arg = arg.strip()
+            if arg in self._skip_args:
+                continue
+            arg_type = arg_type.strip()
+            if driver not in self._mandatory_assignment_args_type["device"]:
+                self._mandatory_assignment_args_type["device"][driver] = dict()
+            if arg in self._mandatory_assignment_args_type["device"][driver]:
+                self._special_args_in_json["device"][driver][arg] = (
+                    self._mandatory_assignment_args_type["device"][driver][arg]
+                )
+            elif arg_type in self._type_func_mapping:
+                self._special_args_in_json["device"][driver][arg] = (
+                    self._type_func_mapping[arg_type]
+                )
 
 
 qdevice_format = _QDeviceFormatManagement()
