@@ -4587,13 +4587,16 @@ def get_netkvm_param_value(vm, param):
         session.close()
 
 
-def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
+def create_ovs_bridge(
+    ovs_bridge_name, session=None, ignore_status=False, ip_options=""
+):
     """
     Create ovs bridge via tmux command on local or remote
 
     :param ovs_bridge_name: The ovs bridge
     :param session: The remote session
     :param ignore_status: Whether to raise an exception when command fails
+    :param ip_options: ip command options
     :return: The command status and output
     """
     runner = process.run
@@ -4605,7 +4608,7 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     runner = local_runner
     if session:
         runner = session.cmd
-    iface_name = get_net_if(runner=runner, state="UP")[0]
+    iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
@@ -4628,13 +4631,16 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     )
 
 
-def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
+def delete_ovs_bridge(
+    ovs_bridge_name, session=None, ignore_status=False, ip_options=""
+):
     """
     Delete ovs bridge via tmux command on local or remote
 
     :param ovs_bridge_name: The ovs bridge
     :param session: The remote session
     :param ignore_status: Whether to raise an exception when command fails
+    :param ip_options: ip command options
     :return: The command status and output
     """
     runner = process.run
@@ -4646,7 +4652,7 @@ def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     runner = local_runner
     if session:
         runner = session.cmd
-    iface_name = get_net_if(runner=runner, state="UP")[0]
+    iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
