@@ -92,11 +92,6 @@ _vm_info_thread_termination_event = None
 
 _setup_manager = SetupManager()
 
-# default num of surplus hugepage, order to compare the values before and after
-# the test when 'setup_hugepages = yes'
-_pre_hugepages_surp = 0
-_post_hugepages_surp = 0
-
 #: Hooks to use for own customization stages of the virtual machines with
 #: test, params. and env as supplied arguments
 preprocess_vm_off_hook = None
@@ -1576,9 +1571,6 @@ def postprocess(test, params, env):
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
-    elif _post_hugepages_surp > _pre_hugepages_surp:
-        leak_num = _post_hugepages_surp - _pre_hugepages_surp
-        raise exceptions.TestFail("%d huge pages leaked!" % leak_num)
 
 
 def postprocess_on_error(test, params, env):
