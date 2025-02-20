@@ -76,6 +76,14 @@ class THPKhugepagedError(THPError):
     pass
 
 
+class HugePagesLeakError(Exception):
+    """
+    Thrown when huge pages are leaked after cleanup.
+    """
+
+    pass
+
+
 class PolkitConfigError(Exception):
 
     """
