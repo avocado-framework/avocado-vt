@@ -3,7 +3,6 @@ Module simplifying manipulation of the vm attributes described at
 http://libvirt.org/formatdomain.html
 """
 
-
 import logging
 import re
 

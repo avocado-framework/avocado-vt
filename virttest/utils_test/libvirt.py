@@ -87,7 +87,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class LibvirtNetwork(object):
-
     """
     Class to create a temporary network for testing.
     """
@@ -948,7 +947,6 @@ def check_vm_state(vm_name, state="paused", reason=None, uri=None):
 
 
 class PoolVolumeTest(object):
-
     """Test class for storage pool or volume"""
 
     def __init__(self, test, params):

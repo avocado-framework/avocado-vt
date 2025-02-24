@@ -14,7 +14,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class SandboxException(Exception):
-
     """
     Basic exception class for problems occurring in SandboxBase or subclasses
     """
@@ -30,7 +29,6 @@ class SandboxException(Exception):
 # This is to allow us to alter back-end session management w/o affecting
 # sandbox subclasses
 class SandboxSession(object):
-
     """
     Connection instance to asynchronous I/O redirector process
     """
@@ -150,7 +148,6 @@ class SandboxSession(object):
 
 
 class SandboxBase(object):
-
     """
     Base operations for sandboxed command
     """
@@ -268,7 +265,6 @@ class SandboxBase(object):
 
 
 class SandboxCommandBase(SandboxBase):
-
     """
     Connection to a single new or existing sandboxed command
     """
@@ -420,7 +416,6 @@ class SandboxCommandBase(SandboxBase):
 # Instances are similar to a list-of-lists- multiple kinds (classes) of
 # multiple sandbox executions.
 class TestSandboxes(object):
-
     """
     Aggregate manager class of SandboxCommandBase or subclass instances
     """

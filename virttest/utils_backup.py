@@ -16,7 +16,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class BackupError(Exception):
-
     """
     Class of backup exception
     """
@@ -26,7 +25,6 @@ class BackupError(Exception):
 
 
 class BackupBeginError(BackupError):
-
     """
     Class of backup begin exception
     """
@@ -40,7 +38,6 @@ class BackupBeginError(BackupError):
 
 
 class BackupTLSError(BackupError):
-
     """
     Class of backup TLS exception
     """
@@ -54,7 +51,6 @@ class BackupTLSError(BackupError):
 
 
 class BackupCanceledError(BackupError):
-
     """
     Class of backup canceled exception
     """

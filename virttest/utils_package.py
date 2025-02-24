@@ -1,6 +1,7 @@
 """
 Package utility for manage package operation on host
 """
+
 import logging
 
 import aexpect
@@ -141,7 +142,6 @@ class RemotePackageMgr(object):
 
 
 class LocalPackageMgr(manager.SoftwareManager):
-
     """
     Local package manage class
     """

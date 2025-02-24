@@ -8,7 +8,6 @@ from virttest.libvirt_xml.nwfilter_protocols import librarian
 
 
 class NwfilterRulesProtocol(list):
-
     """
     List of protocol instances from classes handed out by librarian.get
     """
@@ -49,7 +48,6 @@ class NwfilterRulesProtocol(list):
 
 
 class NwfilterXMLRules(base.LibvirtXMLBase):
-
     """
     Create new NwfilterXMLRules instance.
 
@@ -141,7 +139,6 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
 
 
 class NwfilterXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for NwfilterXML class.
 
@@ -308,7 +305,6 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
 
 
 class NwfilterXML(NwfilterXMLBase):
-
     """
     Manipulators of a nwfilter through it's XML definition.
     """

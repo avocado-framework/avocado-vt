@@ -50,7 +50,6 @@ class Rng(base.UntypedDeviceBase):
         return new_one
 
     class Backend(base.base.LibvirtXMLBase):
-
         """
         Rng backend xml class.
 

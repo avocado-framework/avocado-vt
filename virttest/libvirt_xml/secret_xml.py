@@ -7,7 +7,6 @@ from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class SecretXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for SecretXML class.
 
@@ -98,7 +97,6 @@ class SecretXMLBase(base.LibvirtXMLBase):
 
 
 class SecretXML(SecretXMLBase):
-
     """
     Manipulators of a secret through it's XML definition.
     """

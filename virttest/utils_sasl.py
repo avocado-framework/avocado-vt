@@ -15,7 +15,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class SASL(propcan.PropCanBase):
-
     """
     Base class of a connection between server and client.
     """
@@ -159,7 +158,6 @@ class SASL(propcan.PropCanBase):
 
 
 class VirshSessionSASL(virsh.VirshSession):
-
     """
     A wrap class for virsh session which used SASL infrastructure.
     """

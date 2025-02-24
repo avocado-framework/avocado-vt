@@ -4,7 +4,6 @@ import sys
 
 
 class AllowBelowSeverity(logging.Filter):
-
     """
     Allows only records less severe than a given level (the opposite of what
     the normal logging level filtering does.

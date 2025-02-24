@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Udplite(base.TypedDeviceBase):
-
     """
     Create new Udplite xml instances
 
@@ -60,7 +59,6 @@ class Udplite(base.TypedDeviceBase):
         return udplite_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Udplite attribute XML class
 

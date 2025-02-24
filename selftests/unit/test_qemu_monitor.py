@@ -15,7 +15,6 @@ from virttest import qemu_monitor
 
 
 class MockMonitor(qemu_monitor.Monitor):
-
     """Dummy class inherited from qemu_monitor.HumanMonitor"""
 
     def __init__(self):  # pylint: disable=W0231

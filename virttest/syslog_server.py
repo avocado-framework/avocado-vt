@@ -33,7 +33,6 @@ def get_default_format():
 
 
 class RequestHandler(socketserver.BaseRequestHandler):
-
     """
     A request handler that relays all received messages as DEBUG
     """

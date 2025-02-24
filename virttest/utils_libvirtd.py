@@ -1,6 +1,7 @@
 """
 Module to control libvirtd service.
 """
+
 import logging
 import re
 
@@ -24,7 +25,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class Libvirtd(object):
-
     """
     Class to manage libvirtd service on host or guest.
     """
@@ -149,7 +149,6 @@ class Libvirtd(object):
 
 
 class DaemonSocket(object):
-
     """
     Class to manage libvirt/virtproxy tcp/tls socket on host or guest.
     """
@@ -207,7 +206,6 @@ class DaemonSocket(object):
 
 
 class LibvirtdSession(object):
-
     """
     Interaction daemon session by directly call the command.
     With gdb debugging feature can be optionally started.

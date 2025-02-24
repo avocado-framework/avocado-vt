@@ -24,7 +24,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class AddrCache(object):
-
     """
     Address cache implementation.
     """
@@ -118,7 +117,6 @@ class AddrCache(object):
 
 
 class Sniffer(object):
-
     """
     Virtual base class of the ip sniffer abstraction.
 
@@ -242,7 +240,6 @@ class Sniffer(object):
 
 
 class TcpdumpSniffer(Sniffer):
-
     """
     Tcpdump sniffer class.
     """
@@ -292,7 +289,6 @@ class TcpdumpSniffer(Sniffer):
 
 
 class TSharkSniffer(Sniffer):
-
     """
     TShark sniffer base class.
     """
@@ -360,7 +356,6 @@ class TSharkSniffer(Sniffer):
 
 
 class TShark1To2(TSharkSniffer):
-
     """
     TShark sniffer class for version 1.0.0 - 2.x.x.
     """
@@ -377,7 +372,6 @@ class TShark1To2(TSharkSniffer):
 
 
 class TShark3ToLatest(TSharkSniffer):
-
     """
     TShark sniffer class for version 3.0.0 - latest.
     """

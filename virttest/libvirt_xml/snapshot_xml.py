@@ -9,7 +9,6 @@ from virttest.libvirt_xml.devices.disk import Disk
 
 
 class SnapshotXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for SnapshotXML class.
 
@@ -67,7 +66,6 @@ class SnapshotXMLBase(base.LibvirtXMLBase):
 
 
 class SnapshotXML(SnapshotXMLBase):
-
     """
     Manipulators of a snapshot through it's XML definition.
     """
@@ -134,7 +132,6 @@ class SnapshotXML(SnapshotXMLBase):
         self.xmltreefile.write()
 
     class SnapDiskXML(Disk):
-
         """
         Manipulators disk xml in snapshot xml definition.
         Most properties are inherit from parent class Disk.

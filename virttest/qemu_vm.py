@@ -80,7 +80,6 @@ class QemuSegFaultError(virt_vm.VMError):
 
 
 class VMMigrateProtoUnsupportedError(virt_vm.VMMigrateProtoUnknownError):
-
     """
     When QEMU tells us it doesn't know about a given migration protocol.
 
@@ -149,7 +148,6 @@ def qemu_proc_term_handler(vm, monitor_exit_status, exit_status):
 
 
 class VM(virt_vm.BaseVM):
-
     """
     This class handles all basic VM operations.
     """
@@ -500,6 +498,7 @@ class VM(virt_vm.BaseVM):
                nic_model -- string to pass as 'model' parameter for this
                NIC (e.g. e1000)
         """
+
         # Helper function for command line option wrappers
         def _add_option(option, value, option_type=None, first=False):
             """
@@ -2100,11 +2099,9 @@ class VM(virt_vm.BaseVM):
                     vcpu_threads = vcpu_threads or missing_value
             elif smp_values.count(0) > 1:
                 if vcpu_maxcpus == 1 and max(smp_values) < 2:
-                    vcpu_drawers = (
-                        vcpu_books
-                    ) = (
-                        vcpu_sockets
-                    ) = vcpu_dies = vcpu_clusters = vcpu_cores = vcpu_threads = 1
+                    vcpu_drawers = vcpu_books = vcpu_sockets = vcpu_dies = (
+                        vcpu_clusters
+                    ) = vcpu_cores = vcpu_threads = 1
 
             hotpluggable_cpus = len(params.objects("vcpu_devices"))
             if params["machine_type"].startswith("pseries"):
@@ -4075,7 +4072,7 @@ class VM(virt_vm.BaseVM):
                     session = self.login()
                 else:
                     session = self.serial_login()
-            except (IndexError) as e:
+            except IndexError as e:
                 try:
                     session = self.serial_login()
                 except (remote.LoginError, virt_vm.VMError) as e:
@@ -5384,7 +5381,7 @@ class VM(virt_vm.BaseVM):
             self.monitor.migrate(uri)
 
             if mig_inner_funcs:
-                for (func, param) in mig_inner_funcs:
+                for func, param in mig_inner_funcs:
                     if func == "postcopy":
                         # trigger a postcopy at somewhere below the given % of
                         # the 1st pass
@@ -5846,7 +5843,7 @@ class VM(virt_vm.BaseVM):
                 for key, value in six.iteritems(p_dict):
                     if is_json_data(value):
                         value = parse_json(value)
-                    for (k, v) in traverse_nested_dict(block):
+                    for k, v in traverse_nested_dict(block):
                         if is_json_data(v):
                             v = parse_json(v)
                         if k != key:

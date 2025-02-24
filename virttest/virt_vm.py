@@ -470,7 +470,6 @@ class VMSMPTopologyInvalidError(VMError):
 
 
 class CpuInfo(object):
-
     """
     A class for VM's cpu information.
     """
@@ -553,7 +552,6 @@ def session_handler(func):
 
 
 class BaseVM(object):
-
     """
     Base class for all hypervisor specific VM subclasses.
 
@@ -926,6 +924,7 @@ class BaseVM(object):
         """
         Wait for a nic to acquire an IP address, then return it.
         """
+
         # Don't let VMIPAddressMissingError/VMAddressVerificationError through
         def _get_address():
             try:

@@ -1,6 +1,7 @@
 """
 Module to control split daemon service.
 """
+
 import logging
 
 # pylint: disable=E0611
@@ -20,7 +21,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtDaemonCommon(object):
-
     """
     Common class to manage libvirt split daemon service on host or guest.
     """
@@ -115,7 +115,6 @@ class VirtProxyd(VirtDaemonCommon):
 
 
 class VirtQemudSession(object):
-
     """
     Interaction virtqemud daemon session by directly call the virtqemud command.
     With gdb debugging feature can be optionally started.

@@ -17,7 +17,6 @@ def do_not_report_as_logging_caller(func):
 
 
 class LoggingFile(object):
-
     """
     File-like object that will receive messages pass them to the logging
     infrastructure in an appropriate way.

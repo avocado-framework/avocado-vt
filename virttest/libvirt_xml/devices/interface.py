@@ -349,7 +349,6 @@ class Interface(base.TypedDeviceBase):
         return new_one
 
     class Bandwidth(base.base.LibvirtXMLBase):
-
         """
         Interface bandwidth xml class.
 
@@ -374,7 +373,6 @@ class Interface(base.TypedDeviceBase):
             self.xml = "<bandwidth/>"
 
     class Driver(base.base.LibvirtXMLBase):
-
         """
         Interface Driver xml class.
 
@@ -404,7 +402,6 @@ class Interface(base.TypedDeviceBase):
             self.xml = "<driver/>"
 
     class Vlan(base.base.LibvirtXMLBase):
-
         """
         Interface vlan xml class.
 

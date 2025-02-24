@@ -44,7 +44,6 @@ class LibvirtConfigUnknownKeyError(ConfigError):
 
 
 class SectionlessConfig(object):
-
     """
     This is a wrapper class for python's internal library configparser except
     allows manipulating sectionless configuration file with a dict-like way.
@@ -204,7 +203,6 @@ class SectionlessConfig(object):
 
 
 class LibvirtConfigCommon(SectionlessConfig):
-
     """
     A abstract class to manipulate options of a libvirt related configure files
     in a property's way.
@@ -310,7 +308,6 @@ class LibvirtConfigCommon(SectionlessConfig):
 
 
 class LibvirtConfig(LibvirtConfigCommon):
-
     """
     Class for libvirt config file.
     """
@@ -324,7 +321,6 @@ class LibvirtConfig(LibvirtConfigCommon):
 
 
 class LibvirtdConfig(LibvirtConfigCommon):
-
     """
     Class for libvirt daemon config file.
     """
@@ -389,7 +385,6 @@ class LibvirtdConfig(LibvirtConfigCommon):
 
 
 class LibvirtQemuConfig(LibvirtConfigCommon):
-
     """
     Class for libvirt qemu config file.
     """
@@ -488,7 +483,6 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
 
 
 class LibvirtdSysConfig(LibvirtConfigCommon):
-
     """
     Class for sysconfig libvirtd config file.
     """
@@ -509,7 +503,6 @@ class LibvirtdSysConfig(LibvirtConfigCommon):
 
 
 class LibvirtGuestsConfig(LibvirtConfigCommon):
-
     """
     Class for sysconfig libvirt-guests config file.
     """
@@ -529,7 +522,6 @@ class LibvirtGuestsConfig(LibvirtConfigCommon):
 
 
 class LibvirtSanLockConfig(LibvirtConfigCommon):
-
     """
     Class for libvirt san lock config file.
     """
@@ -546,7 +538,6 @@ class LibvirtSanLockConfig(LibvirtConfigCommon):
 
 
 class VirtQemudConfig(LibvirtConfigCommon):
-
     """
     Class for libvirt virtqemud config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -595,7 +586,6 @@ class VirtQemudConfig(LibvirtConfigCommon):
 
 
 class VirtInterfacedConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtinterfaced config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -605,7 +595,6 @@ class VirtInterfacedConfig(VirtQemudConfig):
 
 
 class VirtLockdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtlock config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -615,7 +604,6 @@ class VirtLockdConfig(VirtQemudConfig):
 
 
 class VirtLogdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtlogd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -625,7 +613,6 @@ class VirtLogdConfig(VirtQemudConfig):
 
 
 class VirtNetworkdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtnetworkd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -635,7 +622,6 @@ class VirtNetworkdConfig(VirtQemudConfig):
 
 
 class VirtNodedevdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtnodedevd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -645,7 +631,6 @@ class VirtNodedevdConfig(VirtQemudConfig):
 
 
 class VirtNwfilterdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtnwfilterd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -655,7 +640,6 @@ class VirtNwfilterdConfig(VirtQemudConfig):
 
 
 class VirtSecretdConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtsecretd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -665,7 +649,6 @@ class VirtSecretdConfig(VirtQemudConfig):
 
 
 class VirtStoragedConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtstoraged config file.
     This is used to represent split daemons changes after libvirt version 5.6.0
@@ -675,7 +658,6 @@ class VirtStoragedConfig(VirtQemudConfig):
 
 
 class VirtProxydConfig(VirtQemudConfig):
-
     """
     Class for libvirt virtproxyd config file.
     This is used to represent split daemons changes after libvirt version 5.6.0

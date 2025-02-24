@@ -3,7 +3,6 @@ Module simplifying manipulation of CPU model and topology part described at
 http://libvirt.org/formatdomain.html
 """
 
-
 import logging
 
 from virttest.libvirt_xml import vm_xml

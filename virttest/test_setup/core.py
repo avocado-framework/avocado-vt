@@ -8,7 +8,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 @six.add_metaclass(ABCMeta)
 class Setuper(object):
-
     """
     Virtual base abstraction of setuper.
     """
@@ -40,7 +39,6 @@ class Setuper(object):
 
 
 class SetupManager(object):
-
     """
     Setup Manager implementation.
 

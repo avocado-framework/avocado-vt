@@ -67,7 +67,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class DevContainer(object):
-
     """
     Device container class
     """

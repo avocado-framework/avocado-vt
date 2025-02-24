@@ -4,6 +4,7 @@ Simple bad test.
 :difficulty: simple
 :copyright: 2014 Red Hat Inc.
 """
+
 from avocado.utils import process
 
 

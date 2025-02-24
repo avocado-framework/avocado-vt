@@ -13,7 +13,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class RangeList(list):
-
     """
     A list of start & end address tuples
     """
@@ -61,7 +60,6 @@ class RangeXML(base.LibvirtXMLBase):
 
 
 class IPXML(base.LibvirtXMLBase):
-
     """
     IP address block, optionally containing DHCP range information
 
@@ -180,7 +178,6 @@ class DhcpHostXML(base.LibvirtXMLBase):
 
 
 class DNSXML(base.LibvirtXMLBase):
-
     """
     DNS block, contains configuration information for the network's DNS server
 
@@ -238,7 +235,6 @@ class DNSXML(base.LibvirtXMLBase):
         self.xml = "<dns></dns>"
 
     class HostnameXML(base.LibvirtXMLBase):
-
         """
         Hostname element of dns
         """
@@ -256,7 +252,6 @@ class DNSXML(base.LibvirtXMLBase):
             self.xml = "<hostname/>"
 
     class HostXML(base.LibvirtXMLBase):
-
         """
         Hostname element of dns
         """
@@ -345,7 +340,6 @@ class DNSXML(base.LibvirtXMLBase):
 
 
 class PortgroupXML(base.LibvirtXMLBase):
-
     """
     Accessor methods for PortgroupXML class in NetworkXML.
 
@@ -406,7 +400,6 @@ class PortgroupXML(base.LibvirtXMLBase):
 
 
 class NetworkXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for NetworkXML class.
 
@@ -889,7 +882,6 @@ class NetworkXMLBase(base.LibvirtXMLBase):
 
 
 class NetworkXML(NetworkXMLBase):
-
     """
     Manipulators of a Virtual Network through it's XML definition.
     """

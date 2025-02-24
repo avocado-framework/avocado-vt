@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Ah(base.TypedDeviceBase):
-
     """
     Create new Ah xml instances
 
@@ -60,7 +59,6 @@ class Ah(base.TypedDeviceBase):
         return ah_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Ah attribute XML class
 

@@ -19,7 +19,6 @@ from ..test import VirtTest
 
 
 class LockCreationError(Exception):
-
     """
     Represents any error situation when attempting to create a lock file
     """
@@ -28,7 +27,6 @@ class LockCreationError(Exception):
 
 
 class OtherProcessHoldsLockError(Exception):
-
     """
     Represents a condition where other process has the lock
     """

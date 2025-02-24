@@ -1,5 +1,6 @@
 """ Define set/clean up procedures for storage devices
 """
+
 import os
 
 from avocado.utils import distro

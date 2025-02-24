@@ -4,11 +4,11 @@ Created on Dec 11, 2013
 :author: jzupka, astepano
 :contact: Andrei Stepanov <astepano@redhat.com>
 """
+
 import copy
 
 
 class MessengerError(Exception):
-
     """
     Represented error in messanger.
     """
@@ -22,7 +22,6 @@ class MessengerError(Exception):
 
 
 class CommanderError(MessengerError):
-
     """
     Represent error in Commander
     """
@@ -35,7 +34,6 @@ class CommanderError(MessengerError):
 
 
 class CmdTraceBack(Exception):
-
     """
     Represent back-trace used for error tracing on remote side.
     """
@@ -49,7 +47,6 @@ class CmdTraceBack(Exception):
 
 
 class CmdMessage(object):
-
     """
     Base cmd message class
     """
@@ -73,7 +70,6 @@ class CmdMessage(object):
 
 
 class StdStream(CmdMessage):
-
     """
     Represent message string data from remote client
     """
@@ -96,7 +92,6 @@ class StdStream(CmdMessage):
 
 
 class StdOut(StdStream):
-
     """
     Represent message from stdout string data from remote client
     """
@@ -115,7 +110,6 @@ class StdOut(StdStream):
 
 
 class StdErr(StdStream):
-
     """
     Represent message from stderr string data from remote client
     """
@@ -160,7 +154,6 @@ class CmdRespond(object):
 
 
 class BaseCmd(CmdMessage):
-
     """
     Class used for moving information about commands between master and slave.
     """

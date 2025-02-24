@@ -25,7 +25,6 @@ LOG = logging.getLogger("avocado.app")
 
 
 class VTBootstrap(CLICmd):
-
     """
     Avocado VT - implements the 'vt-bootstrap' subcommand
     """

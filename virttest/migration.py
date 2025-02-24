@@ -33,7 +33,6 @@ LOG = logging.getLogger("avocado." + __name__)
 
 # Migration Relative functions##############
 class MigrationTest(object):
-
     """Class for migration tests"""
 
     def __init__(self):

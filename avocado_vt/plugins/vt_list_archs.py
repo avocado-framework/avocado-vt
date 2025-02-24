@@ -7,7 +7,6 @@ from ..loader import arch_listing
 
 
 class VTListArchs(CLICmd):
-
     """
     Avocado VT - implements vt-list-archs command
     """

@@ -282,7 +282,6 @@ class MigrationData(object):
 
 
 class MultihostMigration(object):
-
     """
     Class that provides a framework for multi-host migration.
 
@@ -1432,7 +1431,6 @@ class MultihostMigrationRdma(MultihostMigration):
 
 
 class MigrationBase(object):
-
     """Class that provides some general functions for multi-host migration."""
 
     def __setup__(self, test, params, env, srchost, dsthost):

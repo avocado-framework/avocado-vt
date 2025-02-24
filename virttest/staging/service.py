@@ -371,7 +371,6 @@ COMMANDS = (
 
 
 class _ServiceCommTool(object):
-
     """
     Provide an interface to complete the similar initialization
     """
@@ -389,7 +388,6 @@ class _ServiceCommTool(object):
 
 
 class _ServiceResultParser(_ServiceCommTool):
-
     """
     A class that contains staticmethods to parse the result of service command.
     """
@@ -421,7 +419,6 @@ class _ServiceResultParser(_ServiceCommTool):
 
 
 class _ServiceCommandGenerator(_ServiceCommTool):
-
     """
     A class that contains staticmethods that generate partial functions that
     generate command lists for starting/stopping services.
@@ -512,7 +509,6 @@ class _SpecificServiceManager(object):
 
 
 class _GenericServiceManager(object):
-
     """
     Base class for SysVInitServiceManager and SystemdServiceManager.
     """
@@ -581,7 +577,6 @@ class _GenericServiceManager(object):
 
 
 class _SysVInitServiceManager(_GenericServiceManager):
-
     """
     Concrete class that implements the SysVInitServiceManager
     """
@@ -664,7 +659,6 @@ def convert_systemd_target_to_runlevel(target):
 
 
 class _SystemdServiceManager(_GenericServiceManager):
-
     """
     Concrete class that implements the SystemdServiceManager
     """
@@ -701,7 +695,6 @@ class _SystemdServiceManager(_GenericServiceManager):
 
 
 class Factory(object):
-
     """
     Class to create different kinds of ServiceManager.
     The all interfaces to create manager are staticmethod,
@@ -744,7 +737,6 @@ class Factory(object):
     """
 
     class FactoryHelper(object):
-
         """
         Internal class to help create service manager.
 
