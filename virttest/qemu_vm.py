@@ -734,7 +734,7 @@ class VM(virt_vm.BaseVM):
                 if model == "virtio-net-device":
                     dev.parent_bus = {"type": "virtio-bus"}
                 elif model == "virtio-net-ccw":  # For s390x platform
-                    dev.parent_bus = {"type": "virtual-css"}
+                    dev.parent_bus = {"type": "virtual-css-bus"}
                 elif model != "spapr-vlan":
                     dev.parent_bus = pci_bus
                     dev.set_param("addr", pci_addr)
@@ -1650,7 +1650,7 @@ class VM(virt_vm.BaseVM):
             machine_type = self.params.get("machine_type")
             if "s390" in machine_type:  # For s390x platform
                 model = "virtio-balloon-ccw"
-                bus = {"type": "virtual-css"}
+                bus = {"type": "virtual-css-bus"}
             else:
                 model = "virtio-balloon-pci"
             dev = QDevice(model, parent_bus=bus)

@@ -3957,3 +3957,28 @@ class QMachine(QCustomDevice):
             # -machine allows empty line
             return ""
         return super()._cmdline_raw()
+
+
+class QCSSBus(QSparseBus):
+    """
+    CSS Bus representation
+    """
+
+    def __init__(
+        self, busid, bus_type, aobject, cssid_len=256, ssid_len=4, devno_len=65536
+    ):
+        super(QCSSBus, self).__init__(
+            "bus",
+            [["cssid", "ssid", "devno"], [cssid_len, ssid_len, devno_len]],
+            busid,
+            bus_type,
+            aobject,
+        )
+
+    def _set_device_props(self, device, addr):
+        """Convert addr to the format used by qtree"""
+        device.set_param("devno", f"fe.0.{addr[2]:04}")
+
+    def _update_device_props(self, device, addr):
+        """Always set properties"""
+        self._set_device_props(device, addr)
