@@ -9,6 +9,7 @@ import re
 
 from avocado.utils import process
 
+from virttest import utils_package, utils_test
 from virttest.utils_misc import cmd_status_output
 from virttest.utils_test import libvirt
 
@@ -102,3 +103,93 @@ def get_pids_for(process_names, sort_pids=True, session=None):
         relevant_pids.sort()
 
     return relevant_pids
+
+
+def update_boot_option(
+    vm,
+    args_removed="",
+    args_added="",
+    need_reboot=True,
+    guest_arch_name="x86_64",
+    serial_login=False,
+):
+    """
+    Update guest default kernel option.
+
+    :param vm: The VM object.
+    :param args_removed: Kernel options want to remove.
+    :param args_added: Kernel options want to add.
+    :param need_reboot: Whether need reboot VM or not.
+    :param guest_arch_name: Guest architecture, e.g. x86_64, s390x
+    :param serial_login: Login guest via serial session
+    :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
+
+    """
+    session = None
+    if vm.params.get("os_type") == "windows":
+        # this function is only for linux, if we need to change
+        # windows guest's boot option, we can use a function like:
+        # update_win_bootloader(args_removed, args_added, reboot)
+        # (this function is not implement.)
+        # here we just:
+        msg = "update_boot_option() is supported only for Linux guest"
+        LOG.warning(msg)
+        return
+    login_timeout = int(vm.params.get("login_timeout"))
+    session = vm.wait_for_login(
+        timeout=login_timeout, serial=serial_login, restart_network=True
+    )
+    try:
+        # check for args that are really required to be added/removed
+        req_args, req_remove_args = utils_test.check_kernel_cmdline(
+            session, remove_args=args_removed, args=args_added
+        )
+        if "ubuntu" in vm.get_distro().lower():
+            if req_args:
+                utils_test.update_boot_option_ubuntu(req_args, session=session)
+            if req_remove_args:
+                utils_test.update_boot_option_ubuntu(
+                    req_remove_args, session=session, remove_args=True
+                )
+        else:
+            if not utils_package.package_install("grubby", session=session):
+                raise exceptions.TestError("Failed to install grubby package")
+            msg = "Update guest kernel option. "
+            cmd = "grubby --update-kernel=`grubby --default-kernel` "
+            if req_remove_args:
+                msg += " remove args: %s" % req_remove_args
+                cmd += '--remove-args="%s" ' % req_remove_args
+            if req_args:
+                msg += " add args: %s" % req_args
+                cmd += '--args="%s"' % req_args
+            if req_remove_args or req_args:
+                __run_cmd_and_handle_error(
+                    msg, cmd, session, "Failed to modify guest kernel option"
+                )
+
+        if guest_arch_name == "s390x":
+            msg = "Update boot media with zipl"
+            cmd = "zipl"
+            __run_cmd_and_handle_error(
+                msg, cmd, session, "Failed to update boot media with zipl"
+            )
+
+        # reboot is required only if we really add/remove any args
+        if need_reboot and (req_args or req_remove_args):
+            LOG.info("Rebooting guest ...")
+            session = vm.reboot(
+                session=session, timeout=login_timeout, serial=serial_login
+            )
+            # check nothing is required to be added/removed by now
+            req_args, req_remove_args = utils_test.check_kernel_cmdline(
+                session, remove_args=args_removed, args=args_added
+            )
+            if req_remove_args:
+                err = "Fail to remove guest kernel option %s" % args_removed
+                raise exceptions.TestError(err)
+            if req_args:
+                err = "Fail to add guest kernel option %s" % args_added
+                raise exceptions.TestError(err)
+    finally:
+        if session:
+            session.close()
