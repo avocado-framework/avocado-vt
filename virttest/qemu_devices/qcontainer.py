@@ -1698,11 +1698,9 @@ class DevContainer(object):
             # can't be used.
             LOG.warning("Support for s390x is highly experimental!")
             bus = (
-                qdevices.QNoAddrCustomBus(
-                    "bus",
-                    [["addr"], [32]],
+                qdevices.QCSSBus(
                     "virtual-css",
-                    "virtual-css",
+                    "virtual-css-bus",
                     "virtual-css",
                 ),
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
@@ -2474,7 +2472,7 @@ class DevContainer(object):
                 if scsi_hba == "virtio-scsi-device":
                     pci_bus = {"type": "virtio-bus"}
                 elif scsi_hba == "virtio-scsi-ccw":
-                    pci_bus = None
+                    pci_bus = {"type": "virtual-css-bus"}
             elif scsi_hba == "spapr-vscsi":
                 addr_spec = [64, 32]
                 pci_bus = None
@@ -2513,7 +2511,7 @@ class DevContainer(object):
         elif fmt == "virtio-blk-device":
             dev_parent = {"type": "virtio-bus"}
         elif fmt == "virtio-blk-ccw":  # For IBM s390 platform
-            dev_parent = {"type": "virtual-css"}
+            dev_parent = {"type": "virtual-css-bus"}
         else:
             dev_parent = {"type": fmt}
 
@@ -3625,7 +3623,7 @@ class DevContainer(object):
                 qbus_type = "virtio-bus"
             elif machine_type.startswith("s390"):
                 driver += "-ccw"
-                qbus_type = "virtual-css"
+                qbus_type = "virtual-css-bus"
             else:
                 driver += "-pci"
 
@@ -3729,7 +3727,7 @@ class DevContainer(object):
                 qbus_type = "virtio-bus"
             elif machine_type.startswith("s390"):
                 qdriver += "-ccw"
-                qbus_type = "virtual-css"
+                qbus_type = "virtual-css-bus"
             else:
                 qdriver += "-pci"
 

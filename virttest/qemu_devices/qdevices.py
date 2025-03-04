@@ -3845,3 +3845,26 @@ class QPRManager(QObject):
     def verify_unplug(self, out, monitor):
         """Verify if it is unplugged from VM."""
         return not self._is_attached_to_qemu(monitor)
+
+
+class QCSSBus(QSparseBus):
+    """
+    CSS Bus representation
+    """
+
+    def __init__(self, busid, bus_type, aobject, devno_len=65536):
+        super(QCSSBus, self).__init__(
+            "bus",
+            [["devno"], [devno_len]],
+            busid,
+            bus_type,
+            aobject,
+        )
+
+    def _set_device_props(self, device, addr):
+        """Convert addr to the format used by qtree"""
+        device.set_param("devno", f"fe.0.{addr[0]:04}")
+
+    def _update_device_props(self, device, addr):
+        """Always set properties"""
+        self._set_device_props(device, addr)
