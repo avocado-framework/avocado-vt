@@ -2949,6 +2949,9 @@ def get_image_info(image_file):
                 elif line.find("extended l2") != -1:
                     extended_l2 = line.split(":")[-1].strip()
                     image_info_dict["extended l2"] = extended_l2
+                elif line.find("data file:") != -1:
+                    data_file = line.split(":")[-1].strip()
+                    image_info_dict["data file"] = data_file
         return image_info_dict
     except (KeyError, IndexError, process.CmdError) as detail:
         raise exceptions.TestError(
