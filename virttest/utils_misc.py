@@ -2843,7 +2843,7 @@ def get_image_snapshot(image_file):
         snap_info = process.run(cmd, ignore_status=False).stdout_text.strip()
         snap_list = []
         if snap_info:
-            pattern = "(\d+) +\d+ +.*"
+            pattern = "(\d+) +[0-9a-zA-Z]+ +.*"
             for line in snap_info.splitlines():
                 snap_list.extend(re.findall(r"%s" % pattern, line))
         return snap_list
