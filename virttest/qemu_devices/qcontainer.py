@@ -2655,8 +2655,13 @@ class DevContainer(object):
                 ext_data_file_mode = os.stat(external_data_file_path).st_mode
                 if stat.S_ISBLK(ext_data_file_mode):
                     ext_data_file_driver = "host_device"
-            devices[-1].set_param("data-file.driver", ext_data_file_driver)
-            devices[-1].set_param("data-file.filename", external_data_file_path)
+            if Flags.BLOCKDEV in self.caps:
+                if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
+                    format_node.set_param("data-file.driver", ext_data_file_driver)
+                    format_node.set_param("data-file.filename", external_data_file_path)
+            else:
+                devices[-1].set_param("data-file.driver", ext_data_file_driver)
+                devices[-1].set_param("data-file.filename", external_data_file_path)
 
         if "aio" in self.get_help_text():
             if aio == "native" and snapshot == "yes":
