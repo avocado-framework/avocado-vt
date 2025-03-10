@@ -488,6 +488,12 @@ class UnattendedInstallConfig(object):
             pkgs = self.params.get("kickstart_lock_pkgs", "")
             contents = re.sub(dummy_lock_pkgs_re, pkgs, contents)
 
+        dummy_bootc_image_re = r"\bBOOTC_IMAGE\b"
+        if re.search(dummy_bootc_image_re, contents):
+            # Path to the bootloader image
+            bootc_image = self.params.get("kickstart_bootc_image", "")
+            contents = re.sub(dummy_bootc_image_re, bootc_image, contents)
+
         dummy_logging_re = r"\bKVM_TEST_LOGGING\b"
         if re.search(dummy_logging_re, contents):
             if self.syslog_server_enabled == "yes":
