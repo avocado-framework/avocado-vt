@@ -9,6 +9,7 @@ iscsi in localhost then access it.
 
 from __future__ import division
 
+import ast
 import logging
 import os
 import re
@@ -833,5 +834,170 @@ class Iscsi(object):
                 )
             iscsi_instance = IscsiTGT(params, root_dir)
         else:
-            iscsi_instance = IscsiLIO(params, root_dir)
+            iscsi_instance = (
+                MultiTargetsIscsiLIO(params, root_dir)
+                if not params.get("target") and params.get("targets_luns")
+                else IscsiLIO(params, root_dir)
+            )
         return iscsi_instance
+
+
+class MultiTargetsIscsiLIO(IscsiLIO):
+    """
+    Iscsi class supporting multi-targets for the LIO backend used in RHEL7.
+    """
+
+    def __init__(self, params, root_dir):
+        """
+        Init the object based on the params and root_dir.
+        Note: 'targets_luns' in params is introduced at this class.
+              The structure of 'targets_luns':
+                targets_luns =
+                {
+                    ${target01}: {
+                        ${lun01} : {"emulated_image": ..., ...},
+                        ${lun02} : {"emulated_image": ..., ...},
+                    },
+                    ${target02}: {
+                        ${lun01} : {"emulated_image": ..., ...},
+                        ${lun02} : {"emulated_image": ..., ...},
+                    },
+                    ...
+                }
+              If there's only one lun without any special assigned requests,
+              lun should be set to "default_lun", for example:
+                targets_luns = { ${target01}: { "default_lun": {...}}}
+
+        :param params: parameters dict for iSCSI
+        :param root_dir: path for image
+        """
+        self._targets_luns = ast.literal_eval(params.get("targets_luns"))
+        # stores the iscsiLIO objects based on each targets
+        self._targets_mapping = {}
+        for target in self._targets_luns.keys():
+            single_target_param = params.copy()
+            for lun in self._targets_luns[target].keys():
+                single_target_param.update(self._targets_luns[target][lun])
+                single_target_param["target"] = target
+                single_target_param["iscsi_backend"] = "fileio"
+                self._targets_mapping[target] = IscsiLIO(single_target_param, root_dir)
+                if lun not in ("default_lun",):
+                    self._targets_mapping[target].luns = lun
+
+    def query_targets(self, emulated_image=None, lun=None):
+        """
+        Dynamically filter the targets from image name given and lun given.
+
+        :param emulated_image: the image name. If none, do NOT check emulated_image
+        :type emulated_image: string
+        :param lun: the lun. If none, do NOT check lun
+        :type lun: string
+
+        :return: the targets in list or []
+        :rtype: list
+        """
+        cmd = "targetcli ls /iscsi 1"
+        target_info = process.run(cmd).stdout_text
+        targets = re.findall(r"iqn[\.]\S+:\S+", target_info)
+
+        filtered_targets = []
+        for target in targets:
+            cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
+            luns_info = process.run(cmd).stdout_text
+            if (
+                (not emulated_image and not lun)
+                or (emulated_image and not lun and emulated_image + ")" in luns_info)
+                or (
+                    emulated_image
+                    and lun
+                    and emulated_image + ")" in luns_info
+                    and " " + lun + " " in luns_info
+                )
+            ):
+                filtered_targets.append(target)
+        return filtered_targets
+
+    def set_chap_auth_target(self, target=None):
+        """
+        set up authentication information for every single initiator,
+        which provides the capability to define common login information
+        for all Endpoints in a TPG
+
+        :param target: the target.
+        :type target: string
+        """
+        for key in self._targets_mapping.keys():
+            if not target or key == target:
+                self._targets_mapping[key].set_chap_auth_target()
+
+    def export_target(self, target=None):
+        """
+        Export target(s) in localhost for emulated iscsi.
+
+        :param target: the target.
+        :type target: string
+        """
+        for key in self._targets_mapping.keys():
+            if not target or key == target:
+                self._targets_mapping[key].export_target()
+
+    def delete_target(self, target=None):
+        """
+        Delete target(s) from host.
+
+        :param target: the target.
+        :type target: string
+        """
+        for key in self._targets_mapping.keys():
+            if not target or key == target:
+                self._targets_mapping[key].delete_target()
+
+    def login(self, target=None):
+        """
+        Login target.
+
+        :param target: the target.
+        :type target: string
+        """
+        if target:
+            self._targets_mapping[target].login()
+        else:
+            LOG.error("The target can't be None!")
+
+    def cleanup(self, target=None, confirmed=False):
+        """
+        Clean up env after iscsi used.
+
+        :param target: the target.
+        :type target: string
+        :param confirmed: switch for cleanup all iscsi config
+        :type confirmed: bool
+        """
+        for key in self._targets_mapping.keys():
+            if not target or key == target:
+                self._targets_mapping[key].cleanup(confirmed)
+
+    def logout(self, target=None):
+        """
+        Logout from target.
+
+        :param target: the target.
+        :type target: string
+        """
+        if self._targets_mapping[target].logged_in():
+            iscsi_logout(self.target)
+
+    def logged_in(self, target=None):
+        """
+        Check if the session is login or not.
+
+        :param target: the target.
+        :type target: string
+
+        :return: logged in or not
+        :rtype: bool
+        """
+        if target:
+            return self._targets_mapping[target].logged_in()
+        else:
+            LOG.error("The target can't be None!")
