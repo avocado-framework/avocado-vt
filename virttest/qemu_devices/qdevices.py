@@ -25,9 +25,11 @@ import six
 from avocado.utils import process
 from six.moves import xrange
 
-from virttest import qemu_monitor, utils_logfile, utils_misc, utils_numeric
+from virttest import qemu_monitor, utils_logfile, utils_misc
 from virttest.qemu_devices.utils import DeviceError, none_or_int
 from virttest.utils_version import VersionInterval
+
+from .qdevice_format import qdevice_format
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -773,41 +775,6 @@ class QBlockdevNode(QCustomDevice):
         """Delete all child blockdev nodes."""
         self._child_nodes.clear()
 
-    @staticmethod
-    def _convert_blkdev_args(args):
-        """
-        Convert string type of 'on' and 'off' to boolean, and create new dict
-        (e.g: 'cache': {'direct': 'true'}) from key which include symbol '.'
-        (e.g: 'cache.direct': 'true') to adhere to the blockdev qmp syntax.
-
-        :param args: Dictionary with the qmp parameters.
-        :type args: dict
-        :return: Converted args.
-        :rtype: dict
-        """
-        new_args = dict()
-        keep_original_type = ("detect-zeroes",)
-        int_opts = ("offset", "size")
-        for key, value in six.iteritems(args):
-            if key not in keep_original_type:
-                if value in ("on", "yes"):
-                    value = True
-                elif value in ("off", "no"):
-                    value = False
-
-            if key in int_opts:
-                value = int(value)
-
-            parts = key.split(".")
-            d = new_args
-            for part in parts[:-1]:
-                if part not in d:
-                    d[part] = dict()
-                d = d[part]
-            d[parts[-1]] = value
-
-        return new_args
-
     def hotplug_qmp(self):
         """
         Hot plug this blockdev node by qmp.
@@ -815,7 +782,7 @@ class QBlockdevNode(QCustomDevice):
         :return: Hot plug qemu command and arguments.
         :rtype: tuple
         """
-        return "blockdev-add", self._convert_blkdev_args(self.params)
+        return "blockdev-add", qdevice_format.format("json", self.params, self.type)
 
     def unplug_qmp(self):
         """
@@ -901,7 +868,7 @@ class QBlockdevNode(QCustomDevice):
     def _cmdline_json(self):
         params = self.params.copy()
         out = "-%s " % self.type
-        new_args = self._convert_blkdev_args(params)
+        new_args = qdevice_format.format(self.cmdline_format, params, self.type)
         return out + "'" + json.dumps(new_args) + "'"
 
     def get_children(self):
@@ -941,13 +908,6 @@ class QBlockdevFormatQcow2(QBlockdevFormatNode):
     """New a format qcow2 blockdev node."""
 
     TYPE = "qcow2"
-
-    def _convert_blkdev_args(self, args):
-        for key, val in args.items():
-            # "cache-size" is from device( "driver": "qcow2" )
-            if key == "cache-size":
-                args[key] = int(val)
-        return super(QBlockdevFormatQcow2, self)._convert_blkdev_args(args)
 
 
 class QBlockdevFormatRaw(QBlockdevFormatNode):
@@ -1040,28 +1000,6 @@ class QBlockdevProtocolGluster(QBlockdevProtocol):
 
     TYPE = "gluster"
 
-    def hotplug_qmp(self):
-        # TODO: design a new _convert_blkdev_args to handle list
-        # of dicts, e.g. convert 'server.0.host', 'server.1.host'
-        # to {'server': [{'host':xx}, {'host':xx}]}
-        servers = {}
-        args = OrderedDict()
-        p = re.compile(r"server\.(?P<index>\d+)\.(?P<opt>.+)")
-
-        for key, value in six.iteritems(self.params):
-            m = p.match(key)
-            if m is not None:
-                index = int(m.group("index"))
-                servers.setdefault(index, {})
-                servers[index].update({m.group("opt"): value})
-            else:
-                args[key] = value
-
-        params = self._convert_blkdev_args(args)
-        params["server"] = [servers[i] for i in sorted(servers)]
-
-        return "blockdev-add", params
-
 
 class QBlockdevProtocolNBD(QBlockdevProtocol):
     """New a protocol nbd blockdev node."""
@@ -1091,12 +1029,6 @@ class QBlockdevProtocolHTTPS(QBlockdevProtocol):
     """New a protocol https blockdev node."""
 
     TYPE = "https"
-
-    def _convert_blkdev_args(self, args):
-        for key, val in args.items():
-            if key == "timeout":
-                args[key] = int(val)
-        return super(QBlockdevProtocolHTTPS, self)._convert_blkdev_args(args)
 
 
 class QBlockdevProtocolFTP(QBlockdevProtocol):
@@ -1145,7 +1077,7 @@ class QDevice(QCustomDevice):
 
     def hotplug_qmp(self):
         """:return: the hotplug monitor command"""
-        return "device_add", self.params
+        return "device_add", qdevice_format.format("json", self.params, "device")
 
     def hotplug_hmp_nd(self):
         """:return: the hotplug monitor command without dynamic parameters"""
@@ -1169,7 +1101,7 @@ class QDevice(QCustomDevice):
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
-        return "device_add", params
+        return "device_add", qdevice_format.format("json", params, "device")
 
     def unplug_hmp(self):
         """:return: the unplug monitor command"""
@@ -1207,97 +1139,10 @@ class QDevice(QCustomDevice):
             return False
 
     def _cmdline_json(self):
-        command_dict = {}
         out = "-%s " % self.type
-
-        usb_driver = self.get_param("driver", "").startswith("usb-")
-
-        pcic = self.get_param("driver") in ("pcie-root-port")
-
-        pvpanic = self.get_param("driver") in ("pvpanic")
-
-        expect_string_val = (
-            "write-cache",
-            "disable-legacy",
-            "intremap",
-            "serial",
-            "eim",
+        command_dict = qdevice_format.format(
+            self.cmdline_format, self.params, self.type
         )
-
-        for key, val in self.params.items():
-            # wwn needs to be presented as hexadecimal
-            # port from device ( "driver": "pcie-root-port" )
-            if (
-                key in ("wwn")
-                or (key == "port" and pcic)
-                or (key == "ioport" and pvpanic)
-            ):
-                command_dict[key] = int(val, 16)
-            # physical_block_size from device ("driver": "scsi-hd")
-            # logical_block_size from device ("driver": "scsi-hd")
-            # bootindex from device ("driver": "scsi-hd")
-            # max_sectors from device ("driver": "virtio-scsi-pci")
-            # num_queues from device ("driver": "virtio-scsi-pci")
-            # virtqueue_size from device ("driver": "virtio-scsi-pci")
-            # period, max-bytes from device ("driver": "virtio-rng-pci")
-            # max-write-zeroes-sectors, queue-size, max-discard-sectors,
-            # num-queues from device ("driver": "virtio-blk-pci")
-            # host_mtu, speed, vectors from
-            # device ( "driver": "virtio-net-pci" )
-            # node from device ("driver": "pc-dimm")
-            # events from device("driver": "pvpanic")
-            # min_io_size, opt_io_size from device ( "driver": "usb-storage" )
-            # discard_granularity from device ("driver": "scsi-hd") and
-            # ("driver": "virtio-blk-pci")
-            # guest-stats-polling-interval from
-            # device ("driver": "virtio-balloon-ccw")
-            # acpi-index from device("driver": "virtio-net-pci")
-            # aw-bits from device("driver": "intel-iommu")
-            elif key in (
-                "physical_block_size",
-                "logical_block_size",
-                "bootindex",
-                "max_sectors",
-                "num_queues",
-                "virtqueue_size",
-                "discard_granularity",
-                "period",
-                "max-bytes",
-                "max-write-zeroes-sectors",
-                "queue-size",
-                "max-discard-sectors",
-                "num-queues",
-                "host_mtu",
-                "speed",
-                "vectors",
-                "node",
-                "events",
-                "min_io_size",
-                "opt_io_size",
-                "guest-stats-polling-interval",
-                "acpi-index",
-                "aw-bits",
-            ):
-                command_dict[key] = int(val)
-            # port from usb related driver
-            elif key == "port" and usb_driver:
-                command_dict[key] = str(val)
-            elif val == "NO_EQUAL_STRING":
-                if usb_driver and key == "serial":
-                    command_dict[key] = "on"
-            # disable-legacy from device ("driver": "virtio-scsi-pci")
-            # write-cache from device ("driver": "scsi-hd")
-            elif val in ("on", "yes", "true") and key not in expect_string_val:
-                command_dict[key] = True
-            elif val in ("off", "no", "false") and key not in expect_string_val:
-                command_dict[key] = False
-            # requested-size from device("driver": "virtio-mem-pci")
-            # label-size from device("driver": "nvdimm")
-            elif key in ("requested-size", "label-size"):
-                command_dict[key] = int(utils_numeric.normalize_data_size(val, "B"))
-            else:
-                command_dict[key] = val
-
         return out + "'" + json.dumps(command_dict) + "'"
 
 
@@ -1387,14 +1232,6 @@ class QObject(QCustomDevice):
             out = "object_add %s" % _convert_args(self.params)
         return out
 
-    def _refresh_hotplug_props(self, params):
-        """
-        Refresh hotplug optional props as per params.
-
-        :return: A dict containing hotplug optional props.
-        """
-        return params
-
     def _hotplug_qmp_mapping(self, qemu_version):
         return (
             self.hotplug_qmp_lt_600
@@ -1405,16 +1242,7 @@ class QObject(QCustomDevice):
     def hotplug_qmp(self):
         """:return: the object-add command (since 6.0.0)"""
         params = self.params.copy()
-
-        # qom-type and id are mandatory
-        kwargs = {"qom-type": params.pop("backend"), "id": params.pop("id")}
-
-        # optional params
-        params = self._refresh_hotplug_props(params)
-        if len(params) > 0:
-            kwargs.update(params)
-
-        return "object-add", kwargs
+        return "object-add", qdevice_format.format("json", params, self.type)
 
     def hotplug_qmp_lt_600(self):
         """:return: the object-add command (before 6.0.0)"""
@@ -1424,11 +1252,10 @@ class QObject(QCustomDevice):
         kwargs = {"qom-type": params.pop("backend"), "id": params.pop("id")}
 
         # props is optional
-        params = self._refresh_hotplug_props(params)
         if len(params) > 0:
             kwargs["props"] = params
 
-        return "object-add", kwargs
+        return "object-add", qdevice_format.format("json", kwargs, self.type)
 
     def hotplug_hmp_nd(self):
         """:return: the hotplug monitor command without dynamic parameters"""
@@ -1452,7 +1279,7 @@ class QObject(QCustomDevice):
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
-        return "object-add", params
+        return "object-add", qdevice_format.format("json", params, self.type)
 
     def unplug_hmp(self):
         """:return: the unplug monitor command"""
@@ -1476,11 +1303,10 @@ class QObject(QCustomDevice):
         return len(out) == 0
 
     def _cmdline_json(self):
-        command_dict = {}
         out = "-%s " % self.type
         params = self.params.copy()
-        command_dict["qom-type"] = params.pop("backend")
-        return out + "'" + json.dumps(dict(command_dict, **params)) + "'"
+        command_dict = qdevice_format.format(self.cmdline_format, params, self.type)
+        return out + "'" + json.dumps(command_dict) + "'"
 
 
 class QIOThread(QObject):
@@ -1581,9 +1407,10 @@ class QThrottleGroup(QObject):
         """Update raw throttle group properties."""
         self._raw_limits.update(props)
 
-    def _refresh_hotplug_props(self, params):
+    def hotplug_qmp(self):
+        params = self.params.copy()
         params["limits"] = self.raw_limits
-        return params
+        return "object-add", qdevice_format.format("json", params, "object")
 
     def _query(self, monitor):
         """Check if throttle is in use by QEMU."""
@@ -1683,20 +1510,6 @@ class Memory(QObject):
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
 
-    def _refresh_hotplug_props(self, params):
-        convert_size = utils_misc.normalize_data_size
-        args = (params["size"], "B", 1024)
-        params["size"] = int(float(convert_size(*args)))
-        if params.get("prealloc-threads"):
-            params["prealloc-threads"] = int(params["prealloc-threads"])
-        if params.get("host-nodes"):
-            host_nodes = list(map(int, params["host-nodes"].split()))
-            params["host-nodes"] = host_nodes
-        for k in params:
-            params[k] = True if params[k] == "yes" else params[k]
-            params[k] = False if params[k] == "no" else params[k]
-        return params
-
     def verify_unplug(self, out, monitor):
         """
         :param out: Output of the unplug command
@@ -1745,49 +1558,8 @@ class Memory(QObject):
     def _cmdline_json(self):
         out = "-%s " % self.type
         params = self.params.copy()
-        params["qom-type"] = params.pop("backend")
-        params = self._convert_memobj_args(params)
+        params = qdevice_format.format(self.cmdline_format, params, self.type)
         return out + "'" + json.dumps(params) + "'"
-
-    @staticmethod
-    def _convert_memobj_args(args):
-        """
-        Type convert, such as string to uint64( "size": "14336M"  to
-        "size": 15032385536 (bytes) )
-
-        :param args: Dictionary with the qmp parameters.
-        :type args: dict
-        :return: Converted args.
-        :rtype: dict
-        """
-        command_dict = {}
-        for key, val in args.items():
-            if key in ("size", "align"):
-                command_dict[key] = int(utils_numeric.normalize_data_size(val, "B"))
-            # "share", "reserve", "hugetlb"
-            # from object( "qom-type": "memory-backend-memfd" )
-            # "prealloc", "dump", "merge"
-            # from -object ("qom-type": "memory-backend-ram")
-            # readonly from -object("qom-type": "memory-backend-file")
-            # pmem from -object("qom-type": "memory-backend-file")
-            # discard-data from object("qom-type": "memory-backend-file")
-            elif key in (
-                "share",
-                "reserve",
-                "hugetlb",
-                "pmem",
-                "prealloc",
-                "dump",
-                "merge",
-                "readonly",
-                "discard-data",
-            ):
-                command_dict[key] = val in ("yes", "on")
-            elif key == "host-nodes":
-                command_dict[key] = list(map(int, val.split()))
-            else:
-                command_dict[key] = val
-        return command_dict
 
 
 class Dimm(QDevice):
@@ -2539,50 +2311,8 @@ class QNetdev(QCustomDevice):
     def _cmdline_json(self):
         out = "-%s " % self.type
         params = self.params.copy()
-        params = self._convert_netdev_args(params)
+        params = qdevice_format.format(self.cmdline_format, params, self.type)
         return out + f" '{json.dumps(params)}'"
-
-    @staticmethod
-    def _convert_netdev_args(args):
-        """
-        Convert string type of 'on' and 'off' to boolean, and create new dict
-
-        :param args: Dictionary with the qmp parameters.
-        :type args: dict
-        :return: Converted args.
-        :rtype: dict
-        """
-        new_args = dict()
-        keep_original_type = ("fd", "vhostfd")
-        for key, value in args.items():
-            if key not in keep_original_type:
-                if key in ["dnssearch", "hostfwd", "guestfwd"] and isinstance(
-                    value, list
-                ):
-                    value = [{"str": v} for v in value]
-                # https://gitlab.com/qemu-project/qemu/-/blob/master/qapi/net.json#L242
-                elif key in ("sndbuf",):
-                    value = int(utils_numeric.normalize_data_size(value, "B"))
-                elif isinstance(value, str) and value.isdigit():
-                    value = int(value)
-                elif value in ("on", "yes", "true"):
-                    value = True
-                elif value in ("off", "no", "false"):
-                    value = False
-
-            subs = key.split(".")
-            curr = new_args
-            for subk in subs[:-1]:
-                try:
-                    int(subk)
-                    subv = list()
-                except ValueError:
-                    subv = dict()
-                curr.setdefault(subk, subv)
-                curr = curr[subk]
-            curr[subs[-1]] = value
-
-        return new_args
 
     def hotplug_hmp(self):
         """:return: the hotplug monitor command"""
@@ -2598,7 +2328,7 @@ class QNetdev(QCustomDevice):
 
     def hotplug_qmp(self):
         """:return: the hotplug monitor command"""
-        return "netdev_add", self._convert_netdev_args(self.params)
+        return "netdev_add", qdevice_format.format("json", self.params, self.type)
 
     def hotplug_hmp_nd(self):
         """:return: the hotplug monitor command without dynamic parameters"""
@@ -2619,7 +2349,7 @@ class QNetdev(QCustomDevice):
         params = self.params.copy()
         for key in self.dynamic_params:
             params[key] = "DYN"
-        return "netdev_add", self._convert_netdev_args(params)
+        return "netdev_add", qdevice_format.format("json", params, self.type)
 
     def unplug_hmp(self):
         """:return: the unplug monitor command"""
