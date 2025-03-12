@@ -522,6 +522,8 @@ xxxx
 yyy
 augpath
 backstore
+Backstore
+backstores
 backtrace
 baz
 bbb
@@ -843,6 +845,7 @@ baremetal
 baseclasses
 basecmds
 basedir
+basefile
 baselabel
 baseurl
 basicConfig
@@ -1251,6 +1254,7 @@ ips
 IPs
 iptable
 IQN
+iqn
 isapc
 iscsiadm
 iscsid
@@ -1717,6 +1721,8 @@ scsis
 sctps
 sdaa
 sdc
+sdd
+sde
 SDK
 SDL
 seclables
