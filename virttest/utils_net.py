@@ -38,6 +38,7 @@ from virttest import (
 )
 from virttest.remote import RemoteRunner
 from virttest.staging import service, utils_memory
+from virttest.utils_libvirt import libvirt_service
 from virttest.utils_windows import system, virtio_win
 from virttest.versionable_class import factory
 
@@ -4608,8 +4609,9 @@ def create_ovs_bridge(
     if session:
         runner = session.cmd
     iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(["tmux", "dhcpcd"], session):
         raise exceptions.TestError("Failed to install the required packages.")
+    libvirt_service.ensure_service_status("dhcpcd")
 
     res = utils_misc.cmd_status_output(
         "which ovs-vsctl", shell=True, ignore_status=False, session=session
@@ -4621,8 +4623,8 @@ def create_ovs_bridge(
             "is installed."
         )
     cmd = (
-        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"
-        "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1}; dhcpcd -k {1};"
+        "dhcpcd -n {0}".format(ovs_bridge_name, iface_name)
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4652,8 +4654,9 @@ def delete_ovs_bridge(
     if session:
         runner = session.cmd
     iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(["tmux", "dhcpcd"], session):
         raise exceptions.TestError("Failed to install the required packages.")
+    libvirt_service.ensure_service_status("dhcpcd")
 
     res = utils_misc.cmd_status_output(
         "which ovs-vsctl", shell=True, ignore_status=False, session=session
@@ -4665,8 +4668,8 @@ def delete_ovs_bridge(
             "is installed."
         )
     cmd = (
-        "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};dhclient -r;"
-        "sleep 5 ;dhclient {1}".format(ovs_bridge_name, iface_name)
+        "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};"
+        "dhcpcd -n {1}; sleep 6;".format(ovs_bridge_name, iface_name)
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4752,7 +4755,7 @@ def create_linux_bridge_tmux(
     """
     # Create bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"]):
+    if not utils_package.package_install(["tmux", "dhcpcd", "net-tools"]):
         raise exceptions.TestError("Failed to install the required packages.")
     if os.path.exists(br_path):
         s, o = delete_linux_bridge_tmux(linux_bridge_name, iface_name)
@@ -4761,15 +4764,14 @@ def create_linux_bridge_tmux(
                 "Create bridge fail as there is already interface named '%s' on the host "
                 "and can not delete with error: %s" % (linux_bridge_name, o)
             )
+    libvirt_service.ensure_service_status("dhcpcd")
     if iface_name:
+        rm_addr_cmd = f"dhcpcd -k {iface_name}" if remove_addr_on_dev else ""
         shell_cmd = (
             "ip link add name {0} type bridge; ip link set {1} up; "
-            "ip link set {1} master {0}; ip link set {0} up; "
-            "pkill dhclient; sleep 6; "
-            "dhclient {0};".format(linux_bridge_name, iface_name)
+            "ip link set {1} master {0}; ip link set {0} up; {2};"
+            "dhcpcd -n {0};".format(linux_bridge_name, iface_name, rm_addr_cmd)
         )
-        if remove_addr_on_dev:
-            shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
         cmd = 'tmux -c "%s"' % shell_cmd
     else:
         cmd = "ip link add %s type bridge" % linux_bridge_name
@@ -4790,17 +4792,16 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     """
     # Delete the linux bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(
-        ["tmux", "dhcp-client", "procps-ng", "net-tools"]
-    ):
+    if not utils_package.package_install(["tmux", "dhcpcd", "procps-ng", "net-tools"]):
         raise exceptions.TestError("Failed to install the required packages.")
     if not os.path.exists(br_path):
         LOG.info("There is no bridge named '%s' on the host" % linux_bridge_name)
         return
+    libvirt_service.ensure_service_status("dhcpcd")
     if iface_name:
         cmd = (
-            'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; '
-            'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
+            'tmux -c "ip link set {1} nomaster; ip link delete {0};'
+            'dhcpcd -n {1}; sleep 6;"'.format(linux_bridge_name, iface_name)
         )
     else:
         cmd = "ip link delete %s" % linux_bridge_name
