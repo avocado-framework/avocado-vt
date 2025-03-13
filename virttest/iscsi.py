@@ -190,6 +190,7 @@ class _IscsiComm(object):
         self.luns = None
         self.iscsi_lun_attrs = params.get("iscsi_lun_attrs")
         self.restart_tgtd = "yes" == params.get("restart_tgtd", "no")
+        self.allow_multipath = "yes" == params.get("iscsi_allow_multipath", "no")
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
         else:
@@ -651,8 +652,22 @@ class IscsiLIO(_IscsiComm):
                 self.device,
                 self.emulated_image,
             )
-            output = process.run(device_cmd).stdout_text
-            if "Created %s" % self.iscsi_backend not in output:
+            try:
+                output = process.run(device_cmd).stdout_text
+            except process.CmdError as e:
+                file_exists = re.match(
+                    r".*storage object.*exists.*",
+                    str(e),
+                    re.DOTALL | re.IGNORECASE,
+                )
+                if file_exists and self.allow_multipath:
+                    LOG.info(f"Allow Multipath, skipping error {e}")
+                else:
+                    raise e
+            if (
+                not self.allow_multipath
+                and "Created %s" % self.iscsi_backend not in output
+            ):
                 raise exceptions.TestFail(
                     "Failed to create %s %s. (%s)"
                     % (self.iscsi_backend, self.device, output)
