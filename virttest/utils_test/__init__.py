@@ -251,6 +251,71 @@ def update_boot_option(
             session.close()
 
 
+def update_default_kernel(
+    vm,
+    kernel_version,
+    reboot=True,
+    timeout="",
+    guest_arch_name="x86_64",
+    serial_login=False,
+):
+    """
+    Update guest default kernel.
+
+    :param vm: The VM object.
+    :param kernel_version: The full kernel version that should be set as the new default.
+    :param reboot: Whether to reboot the VM and update the kernel used or not.
+    :param timeout: Timeout for login and reboot.
+    :param guest_arch_name: Guest architecture, e.g. x86_64, s390x, aarch64.
+    :param serial_login: Login guest via serial session.
+    :raise exceptions.TestError: Raised if failed to update the guest kernel.
+    """
+    session = None
+    if vm.params.get("os_type") == "windows":
+        msg = "update_default_kernel() is supported only for Linux guest"
+        LOG.warning(msg)
+        return
+    timeout = int(timeout) or int(vm.params.get("login_timeout"))
+    session = vm.wait_for_login(
+        timeout=timeout, serial=serial_login, restart_network=True
+    )
+    try:
+        cmd = "grubby --default-kernel"
+        status, output = session.cmd_status_output(cmd)
+        if status != 0:
+            LOG.error(output)
+        else:
+            if kernel_version in output:
+                LOG.info(
+                    "%s is already the default kernel version (%s)"
+                    % (kernel_version, output)
+                )
+                return
+
+        if not utils_package.package_install("grubby", session=session):
+            raise exceptions.TestError("Failed to install grubby package")
+        msg = "Set default guest kernel"
+        cmd = 'grubby --set-default="%s"' % kernel_version
+        __run_cmd_and_handle_error(
+            msg, cmd, session, "Failed to set default guest kernel"
+        )
+
+        if guest_arch_name == "s390x":
+            msg = "Update boot media with zipl"
+            cmd = "zipl"
+            __run_cmd_and_handle_error(
+                msg, cmd, session, "Failed to update boot media with zipl"
+            )
+
+        if reboot:
+            LOG.info("Rebooting guest ...")
+            session = vm.reboot(session=session, timeout=timeout, serial=serial_login)
+
+    finally:
+        if session:
+            session.close()
+
+
 def stop_windows_service(session, service, timeout=120):
     """
     Stop a Windows service using sc.
