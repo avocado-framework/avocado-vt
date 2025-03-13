@@ -3875,9 +3875,7 @@ class DevContainer(object):
         if numa_hmat_caches:
             if not self.get_by_properties(
                 {"aobject": "%s_hmat_lb_bandwidth" % nodeid}
-            ) or not self.get_by_properties(
-                {"aobject": "%s_hmat_lb_bandwidth" % nodeid}
-            ):
+            ) or not self.get_by_properties({"aobject": "%s_hmat_lb_latency" % nodeid}):
                 raise exceptions.TestError(
                     "Please make sure both hmat-lb bandwidth and "
                     "hmat-lb latency are defined when define hmat-cache."
