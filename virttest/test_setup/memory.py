@@ -34,3 +34,15 @@ class HugePagesSetup(Setuper):
             if post_hugepages_surp > self._pre_hugepages_surp:
                 leak_num = post_hugepages_surp - self._pre_hugepages_surp
                 raise test_setup.HugePagesLeakError("%d huge pages leaked!" % leak_num)
+
+
+class TransparentHugePagesSetup(Setuper):
+    def setup(self):
+        if self.params.get("setup_thp") == "yes":
+            thp = test_setup.TransparentHugePageConfig(self.test, self.params, self.env)
+            thp.setup()
+
+    def cleanup(self):
+        if self.params.get("setup_thp") == "yes":
+            thp = test_setup.TransparentHugePageConfig(self.test, self.params, self.env)
+            thp.cleanup()
