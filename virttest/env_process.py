@@ -46,7 +46,7 @@ from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
-from virttest.test_setup.memory import HugePagesSetup
+from virttest.test_setup.memory import HugePagesSetup, TransparentHugePagesSetup
 from virttest.test_setup.migration import MigrationEnvSetup
 from virttest.test_setup.networking import (
     BridgeConfig,
@@ -1020,6 +1020,7 @@ def preprocess(test, params, env):
     _setup_manager.register(CheckLibvirtVersion)
     _setup_manager.register(LogVersionInfo)
     _setup_manager.register(HugePagesSetup)
+    _setup_manager.register(TransparentHugePagesSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
@@ -1027,10 +1028,6 @@ def preprocess(test, params, env):
     base_dir = data_dir.get_data_dir()
 
     libvirtd_inst = None
-
-    if params.get("setup_thp") == "yes":
-        thp = test_setup.TransparentHugePageConfig(test, params, env)
-        thp.setup()
 
     if params.get("setup_ksm") == "yes":
         ksm = test_setup.KSMConfig(params, env)
@@ -1512,14 +1509,6 @@ def postprocess(test, params, env):
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
-
-    if params.get("setup_thp") == "yes":
-        try:
-            thp = test_setup.TransparentHugePageConfig(test, params, env)
-            thp.cleanup()
-        except Exception as details:
-            err += "\nTHP cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
 
     if params.get("setup_ksm") == "yes":
         try:
