@@ -242,7 +242,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd map %s --pool %s -m %s" % (rbd_image_name, rbd_pool_name, ceph_monitor)
     output = process.run(cmd, verbose=True).stdout_text
-    if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
+    if os.path.exists(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         return os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)
     else:
         LOG.debug("Failed to map image to local: %s" % output)
@@ -258,7 +258,7 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
     output = process.run(cmd, verbose=True).stdout_text
-    if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
+    if os.path.exists(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         LOG.debug("Failed to unmap image from local: %s" % output)
 
 
