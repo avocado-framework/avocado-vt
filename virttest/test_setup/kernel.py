@@ -1,4 +1,4 @@
-from virttest import arch, utils_kernel_module
+from virttest import arch, test_setup, utils_kernel_module
 from virttest.test_setup.core import Setuper
 
 
@@ -26,3 +26,15 @@ class ReloadKVMModules(Setuper):
     def cleanup(self):
         for kvm_module in self.kvm_module_handlers:
             kvm_module.restore()
+
+
+class KSMSetup(Setuper):
+    def setup(self):
+        if self.params.get("setup_ksm") == "yes":
+            ksm = test_setup.KSMConfig(self.params, self.env)
+            ksm.setup(self.env)
+
+    def cleanup(self):
+        if self.params.get("setup_ksm") == "yes":
+            ksm = test_setup.KSMConfig(self.params, self.env)
+            ksm.cleanup(self.env)

@@ -44,7 +44,7 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
-from virttest.test_setup.kernel import ReloadKVMModules
+from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.memory import HugePagesSetup, TransparentHugePagesSetup
 from virttest.test_setup.migration import MigrationEnvSetup
@@ -1021,6 +1021,7 @@ def preprocess(test, params, env):
     _setup_manager.register(LogVersionInfo)
     _setup_manager.register(HugePagesSetup)
     _setup_manager.register(TransparentHugePagesSetup)
+    _setup_manager.register(KSMSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
@@ -1028,10 +1029,6 @@ def preprocess(test, params, env):
     base_dir = data_dir.get_data_dir()
 
     libvirtd_inst = None
-
-    if params.get("setup_ksm") == "yes":
-        ksm = test_setup.KSMConfig(params, env)
-        ksm.setup(env)
 
     if params.get("setup_egd") == "yes":
         egd = test_setup.EGDConfig(params, env)
@@ -1509,14 +1506,6 @@ def postprocess(test, params, env):
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
-
-    if params.get("setup_ksm") == "yes":
-        try:
-            ksm = test_setup.KSMConfig(params, env)
-            ksm.cleanup(env)
-        except Exception as details:
-            err += "\nKSM cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
 
     if params.get("setup_egd") == "yes" and params.get("kill_vm") == "yes":
         try:
