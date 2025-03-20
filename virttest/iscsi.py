@@ -25,7 +25,6 @@ LOG = logging.getLogger("avocado." + __name__)
 def get_image_filename(portal, target, lun=0, user=None, password=None):
     """
     Form the iscsi image name, now only tcp is supported by qemu
-    e.g. iscsi://10.66.10.26/iqn.2019-09.com.example:zhencliu/0
     """
     uri = "iscsi://{auth}{portal}/{target}/{lun}"
     auth = (
