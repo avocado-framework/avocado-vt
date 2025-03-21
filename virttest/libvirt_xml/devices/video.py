@@ -21,6 +21,7 @@ class Video(base.UntypedDeviceBase):
         "acceleration",
         "address",
         "driver",
+        "resolution",
     )
 
     def __init__(self, virsh_instance=base.base.virsh):
@@ -50,4 +51,7 @@ class Video(base.UntypedDeviceBase):
         )
         accessors.XMLElementDict("address", self, parent_xpath="/", tag_name="address")
         accessors.XMLElementDict("driver", self, parent_xpath="/", tag_name="driver")
+        accessors.XMLElementDict(
+            "resolution", self, parent_xpath="/model", tag_name="resolution"
+        )
         super(Video, self).__init__(device_tag="video", virsh_instance=virsh_instance)
