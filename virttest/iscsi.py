@@ -292,24 +292,65 @@ class _IscsiComm(object):
 
     def get_device_name(self):
         """
-        Get device name from the target name.
+        Get the first device name found from the target name.
+
+        :return: the device name
+        :rtype: string
         """
-        cmd = "iscsiadm -m session -P 3"
-        pattern = r"%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
+        outputs = self._get_iscsi_session(3)
+        if outputs:
+            outputs = outputs.split("Target: ")[1:]
+        pattern = r"%s .*?disk\s(\w+)\s+\S+\srunning" % self.target
         device_name = []
+
+        for output in outputs:
+            if self.target in output:
+                device_name = re.findall(pattern, output, re.S)
+                break
+        try:
+            device_name = "/dev/%s" % device_name[0]
+        except IndexError:
+            LOG.error("Can not find target '%s' after login.", self.target)
+        return device_name
+
+    def get_devices_name(self):
+        """
+        Get devices name from the multi targets.
+
+        :return: the mapping including target and device name.
+                 the format is as following:
+                    mapping[ ${target} ] = ${device_name}
+        :rtype: dict
+        """
+        outputs = self._get_iscsi_session(3)
+        if outputs:
+            outputs = outputs.split("Target: ")[1:]
+        targets = [_.strip() for _ in self.target.split(",")]
+        device_name = {}
+
+        for target in targets:
+            for output in outputs:
+                pattern = r"%s .*?disk\s(\w+)\s+\S+\srunning" % target
+                name = re.findall(pattern, output, re.S)
+                if len(name) > 0:
+                    device_name[target] = "/dev/%s" % name[0]
+                    break
+
+        if len(targets) != len(device_name):
+            for target in targets:
+                if target not in device_name.keys():
+                    LOG.error("Can not find target '%s' after login." % target)
+
+        return device_name
+
+    def _get_iscsi_session(self, priority):
+        cmd = "iscsiadm -m session -P %i" % int(priority)
+        output = None
         if self.logged_in():
             output = process.run(cmd).stdout_text
-            targets = output.split("Target: ")[1:]
-            for target in targets:
-                if self.target in target:
-                    device_name = re.findall(pattern, target, re.S)
-            try:
-                device_name = "/dev/%s" % device_name[0]
-            except IndexError:
-                LOG.error("Can not find target '%s' after login.", self.target)
         else:
             LOG.error("Session is not logged in yet.")
-        return device_name
+        return output
 
     def set_chap_auth_initiator(self):
         """
