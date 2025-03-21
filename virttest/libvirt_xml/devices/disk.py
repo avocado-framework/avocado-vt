@@ -372,6 +372,8 @@ class Disk(base.TypedDeviceBase):
             "config_file",
             "snapshot_name",
             "address",
+            "knownhosts",
+            "identity",
         )
 
         def __init__(self, virsh_instance=base.base.virsh):
@@ -440,6 +442,20 @@ class Disk(base.TypedDeviceBase):
             accessors.XMLElementDict(
                 "address", self, parent_xpath="/", tag_name="address"
             )
+            accessors.XMLAttribute(
+                "knownhosts",
+                self,
+                parent_xpath="/",
+                tag_name="knownHosts",
+                attribute="path",
+            )
+            accessors.XMLElementList(
+                "identity",
+                self,
+                parent_xpath="/",
+                marshal_from=self.marshal_from_identity,
+                marshal_to=self.marshal_to_identity,
+            )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<source/>"
 
@@ -484,6 +500,26 @@ class Disk(base.TypedDeviceBase):
             del index  # not used
             del libvirtxml  # not used
             if tag != "host":
+                return None  # skip this one
+            return dict(attr_dict)  # return copy of dict, not reference
+
+        @staticmethod
+        def marshal_from_identity(item, index, libvirtxml):
+            """Convert a dictionary into a tag + attributes"""
+            del index  # not used
+            del libvirtxml  # not used
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError(
+                    "Expected a dictionary of identity attributes, not a %s" % str(item)
+                )
+            return ("identity", dict(item))  # return copy of dict, not reference
+
+        @staticmethod
+        def marshal_to_identity(tag, attr_dict, index, libvirtxml):
+            """Convert a tag + attributes into a dictionary"""
+            del index  # not used
+            del libvirtxml  # not used
+            if tag != "identity":
                 return None  # skip this one
             return dict(attr_dict)  # return copy of dict, not reference
 
