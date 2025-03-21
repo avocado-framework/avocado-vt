@@ -4100,19 +4100,22 @@ def get_default_gateway_json(
 
     if len(default_route_list) == 0:
         raise exceptions.TestError("Cannot get default gateway with given condition")
-    elif len(default_route_list) == 1:
-        default_route = default_route_list[0]
-        if iface_name and "dev" in default_route:
-            return default_route["dev"]
-        if "gateway" in default_route:
-            return default_route["gateway"]
-    else:
-        # TODO:deal with multiple gateway
-        if iface_name:
-            gw = [path["dev"] for path in default_route_list]
-        else:
-            gw = [path["gateway"] for path in default_route_list]
-        return gw
+    elif len(default_route_list) > 1:
+        # For multiple default gateway, return the one with smaller metric
+        # which has the higher priority
+        default_route_list = [
+            x
+            for x in default_route_list
+            if x["metric"] == min([y["metric"] for y in default_route_list])
+        ]
+
+    default_route = default_route_list[0]
+    LOG.debug(f"Default route: {default_route}")
+
+    if iface_name and "dev" in default_route:
+        return default_route["dev"]
+    if "gateway" in default_route:
+        return default_route["gateway"]
 
 
 def get_default_gateway(
