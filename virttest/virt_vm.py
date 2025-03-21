@@ -12,6 +12,7 @@ import traceback
 import six
 from aexpect import remote
 from aexpect.exceptions import ExpectError, ShellError
+from aexpect.utils import astring
 from avocado.core import exceptions
 from six.moves import xrange
 
@@ -1563,7 +1564,9 @@ class BaseVM(object):
         """
         cmd = self.params.get(check_cmd)
         out = self.session.cmd_output_safe(cmd)
-        return int(re.search("\d+", out, re.M).group())
+        # Removing the escape sequence from the output
+        out_no_escape = astring.strip_console_codes(out)
+        return int(re.search("\d+", out_no_escape, re.M).group())
 
     def get_memory_size(self, cmd=None, timeout=60):
         """
