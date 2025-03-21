@@ -66,6 +66,7 @@ from virttest.test_setup.requirement_checks import (
     LogBootloaderVersion,
     LogVersionInfo,
 )
+from virttest.test_setup.rng_egd import EGDSetup
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
 from virttest.test_setup.vms import ProcessVMOff, UnrequestedVMHandler
@@ -1023,6 +1024,7 @@ def preprocess(test, params, env):
     _setup_manager.register(HugePagesSetup)
     _setup_manager.register(TransparentHugePagesSetup)
     _setup_manager.register(KSMSetup)
+    _setup_manager.register(EGDSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
@@ -1030,10 +1032,6 @@ def preprocess(test, params, env):
     base_dir = data_dir.get_data_dir()
 
     libvirtd_inst = None
-
-    if params.get("setup_egd") == "yes":
-        egd = test_setup.EGDConfig(params, env)
-        egd.setup()
 
     if vm_type == "libvirt":
         connect_uri = params.get("connect_uri")
@@ -1504,14 +1502,6 @@ def postprocess(test, params, env):
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
-
-    if params.get("setup_egd") == "yes" and params.get("kill_vm") == "yes":
-        try:
-            egd = test_setup.EGDConfig(params, env)
-            egd.cleanup()
-        except Exception as details:
-            err += "\negd.pl cleanup: %s" % str(details).replace("\\n", "\n  ")
-            LOG.error(details)
 
     if vm_type == "libvirt":
         if params.get("setup_libvirt_polkit") == "yes":
