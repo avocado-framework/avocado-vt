@@ -32,6 +32,7 @@ def create_fs_xml(fsdev_dict, launched_mode="auto"):
         xattr = binary_dict.get("xattr", "on")
         thread_pool_size = binary_dict.get("thread_pool_size")
         open_files_max = binary_dict.get("open_files_max")
+        sandbox_mode = binary_dict.get("sandbox_mode")
         if cache_mode != "auto":
             binary_xml.cache_mode = cache_mode
         if xattr != "":
@@ -40,6 +41,8 @@ def create_fs_xml(fsdev_dict, launched_mode="auto"):
             binary_xml.thread_pool_size = thread_pool_size
         if open_files_max:
             binary_xml.open_files_max = open_files_max
+        if sandbox_mode and sandbox_mode != "none":
+            binary_xml.sandbox_mode = sandbox_mode
         binary_xml.path = path
         fs_dev.binary = binary_xml
 
