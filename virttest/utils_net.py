@@ -4106,7 +4106,8 @@ def get_default_gateway_json(
         default_route_list = [
             x
             for x in default_route_list
-            if x["metric"] == min([y["metric"] for y in default_route_list])
+            if x.get("metric")
+            == min([y.get("metric", float("inf")) for y in default_route_list])
         ]
 
     default_route = default_route_list[0]
