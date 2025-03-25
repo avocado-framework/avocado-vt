@@ -372,6 +372,7 @@ class Disk(base.TypedDeviceBase):
             "config_file",
             "snapshot_name",
             "address",
+            "dataStore",
         )
 
         def __init__(self, virsh_instance=base.base.virsh):
@@ -439,6 +440,14 @@ class Disk(base.TypedDeviceBase):
             )
             accessors.XMLElementDict(
                 "address", self, parent_xpath="/", tag_name="address"
+            )
+            accessors.XMLElementNest(
+                "dataStore",
+                self,
+                parent_xpath="/",
+                tag_name="dataStore",
+                subclass=Disk.dataStore,
+                subclass_dargs={"virsh_instance": virsh_instance},
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<source/>"
@@ -877,9 +886,20 @@ class Disk(base.TypedDeviceBase):
                 dict, nested xml of backingStore/source tag
             file:
                 string, attribute of backingStore/source tag
+            datastore:
+                dict, nexted xml of backingStore/source/dataStore tag
             """
 
-            __slots__ = ("attrs", "dev", "protocol", "name", "host", "file", "auth")
+            __slots__ = (
+                "attrs",
+                "dev",
+                "protocol",
+                "name",
+                "host",
+                "file",
+                "auth",
+                "datastore",
+            )
 
             def __init__(self, virsh_instance=base.base.virsh):
                 accessors.XMLElementDict(
@@ -910,6 +930,14 @@ class Disk(base.TypedDeviceBase):
                     parent_xpath="/",
                     tag_name="auth",
                     subclass=Disk.Auth,
+                    subclass_dargs={"virsh_instance": virsh_instance},
+                )
+                accessors.XMLElementNest(
+                    "datastore",
+                    self,
+                    parent_xpath="/",
+                    tag_name="dataStore",
+                    subclass=Disk.dataStore,
                     subclass_dargs={"virsh_instance": virsh_instance},
                 )
 
@@ -944,3 +972,95 @@ class Disk(base.TypedDeviceBase):
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<metadata_cache/>"
+
+    class dataStore(base.base.LibvirtXMLBase):
+        """
+        DataStore device XML class
+
+        type:
+            string, attribute of dataStore tag
+        index:
+            string, attribute of dataStore tag
+        format:
+            dict, key-attribute of dataStore tag
+        source:
+            nested xml of dataStore tag
+        """
+
+        __slots__ = ("type", "index", "format", "source")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLAttribute(
+                "type",
+                self,
+                parent_xpath="/",
+                tag_name="dataStore",
+                attribute="type",
+            )
+            accessors.XMLAttribute(
+                "index",
+                self,
+                parent_xpath="/",
+                tag_name="dataStore",
+                attribute="index",
+            )
+            accessors.XMLElementDict(
+                "format", self, parent_xpath="/", tag_name="format"
+            )
+            accessors.XMLElementNest(
+                "source",
+                self,
+                parent_xpath="/",
+                tag_name="source",
+                subclass=self.Source,
+                subclass_dargs={"virsh_instance": virsh_instance},
+            )
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<dataStore/>"
+
+        class Source(base.base.LibvirtXMLBase):
+            """
+            Source of datastore xml class
+
+            dev:
+                string, attribute of dataStore/source tag
+            protocal:
+                string, attribute of dataStore/source tag
+            name:
+                string, attribute of dataStore/source tag
+            host:
+                dict, nested xml of dataStore/source tag
+            file:
+                string, attribute of dataStore/source tag
+            """
+
+            __slots__ = ("attrs", "protocol", "name", "host", "auth")
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLElementDict(
+                    "attrs", self, parent_xpath="/", tag_name="source"
+                )
+                accessors.XMLAttribute(
+                    "protocol",
+                    self,
+                    parent_xpath="/",
+                    tag_name="source",
+                    attribute="protocol",
+                )
+                accessors.XMLAttribute(
+                    "name", self, parent_xpath="/", tag_name="source", attribute="name"
+                )
+                accessors.XMLElementDict(
+                    "host", self, parent_xpath="/", tag_name="host"
+                )
+                accessors.XMLElementNest(
+                    "auth",
+                    self,
+                    parent_xpath="/",
+                    tag_name="auth",
+                    subclass=Disk.Auth,
+                    subclass_dargs={"virsh_instance": virsh_instance},
+                )
+
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = "<source/>"
