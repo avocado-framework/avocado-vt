@@ -1501,7 +1501,7 @@ def get_remote_host_net_ifs(session, state=None, ip_options=""):
     return (phy_interfaces, vir_interfaces)
 
 
-def get_net_if_addrs(if_name, runner=None):
+def get_net_if_addrs(if_name, runner=None, ip_options=""):
     """
     Get network device ip addresses. ioctl not used because it's not
     compatible with ipv6 address.
@@ -1511,7 +1511,7 @@ def get_net_if_addrs(if_name, runner=None):
     """
     if runner is None:
         runner = local_runner
-    cmd = "ip addr show %s" % (if_name)
+    cmd = f"ip {ip_options} addr show {if_name}"
     result = runner(cmd)
     return {
         "ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
@@ -1549,7 +1549,13 @@ def get_net_if_and_addrs(runner=None):
 
 
 def get_guest_ip_addr(
-    session, mac_addr, os_type="linux", ip_version="ipv4", linklocal=False, timeout=1
+    session,
+    mac_addr,
+    os_type="linux",
+    ip_version="ipv4",
+    linklocal=False,
+    timeout=1,
+    ip_options="",
 ):
     """
     Get guest ip addresses by serial session
@@ -1570,7 +1576,9 @@ def get_guest_ip_addr(
             if os_type == "linux":
                 nic_ifname = get_linux_ifname(session, mac_addr)
                 info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
-                nic_address = get_net_if_addrs(nic_ifname, session.cmd_output)
+                nic_address = get_net_if_addrs(
+                    nic_ifname, session.cmd_output, ip_options=ip_options
+                )
             elif os_type == "windows":
                 info_cmd = "ipconfig /all"
                 nic_address = get_net_if_addrs_win(session, mac_addr)
