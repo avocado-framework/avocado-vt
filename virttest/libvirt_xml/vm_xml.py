@@ -839,7 +839,7 @@ class VMXML(VMXMLBase):
         func_used = backup.undefine if backup else self.undefine
         if not func_used(options, virsh_instance=virsh_instance):
             raise xcepts.LibvirtXMLError("Failed to undefine %s." % self.vm_name)
-        result_define = virsh_instance.define(self.xml)
+        result_define = virsh_instance.define(self.xml, ignore_status=True)
         # Vm define failed
         if result_define.exit_status:
             if backup:
