@@ -4116,7 +4116,7 @@ def check_logfile(
 
     :param search_str: the string to be searched
     :param log_file: the given file
-    :param str_in_log: True if the file should include the given string,
+    :param str_in_log: bool, True if the file should include the given string,
                         otherwise, False
     :param cmd_parms: The parms for remote executing
     :param runner_on_target:  Remote runner
@@ -4133,6 +4133,7 @@ def check_logfile(
         cmdRes = process.run(cmd, shell=True, ignore_status=True)
     else:
         cmdRes = remote_old.run_remote_cmd(cmd, cmd_parms, runner_on_target)
+
     if str_in_log == bool(int(cmdRes.exit_status)):
         error_msg = "The string '{}' {} included in {}".format(
             search_str, "is not" if str_in_log else "is", log_file
