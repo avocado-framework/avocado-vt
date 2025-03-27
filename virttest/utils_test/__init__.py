@@ -2271,9 +2271,6 @@ class Stress(object):
         load stress tool in guest
         """
         self.install()
-        self.cmd_output_safe(
-            "cd %s" % os.path.join(self.dst_path, self.base_name, self.work_path)
-        )
         launch_cmds = "nohup %s %s > /dev/null &" % (self.stress_cmds, self.stress_args)
         LOG.info("Launch stress with command: %s", launch_cmds)
         try:
@@ -2403,6 +2400,10 @@ class Stress(object):
         """
         To download, abstract, build and install the stress tool
         """
+        #check if tool has been installed
+        status = self.session.cmd_status("which %s" % self.stress_type)
+        if status == 0:
+            return
         # Install the dependencies before the tool gets installed
         if self.dependency_packages:
             if not utils_package.package_install(
