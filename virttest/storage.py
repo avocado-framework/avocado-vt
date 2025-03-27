@@ -1089,7 +1089,7 @@ class QemuImg(object):
         # backup external data file
         if self.data_file:
             self.data_file.backup_image(
-                self.data_file.params, root_dir, action, good, skip_existing
+                self.data_file.params, backup_dir, action, good, skip_existing
             )
 
         for src, dst in backup_set:
