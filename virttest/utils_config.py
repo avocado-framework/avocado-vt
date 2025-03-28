@@ -480,6 +480,7 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         "backup_tls_x509_secret_uuid": "string",
         "sched_core": "string",
         "virtiofsd_debug": "int",
+        "storage_use_nbdkit": "int",
     }
 
 
