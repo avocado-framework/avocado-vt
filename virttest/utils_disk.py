@@ -486,7 +486,7 @@ def delete_partition_linux(session, partition_name, timeout=360):
                     err_msg = "Failed to umount partition '%s'"
                     raise exceptions.TestError(err_msg % partition_name)
             break
-    session.cmd(rm_cmd % (kname, partition[0]))
+    session.cmd(rm_cmd % (kname, re.findall(r"\d+", partition[0])[0]))
     session.cmd("partprobe /dev/%s" % kname, timeout=timeout)
     if not wait.wait_for(
         lambda: not re.search(regex, session.cmd(ls_block_cmd), re.M),
