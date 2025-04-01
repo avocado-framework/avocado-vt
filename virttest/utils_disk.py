@@ -135,7 +135,7 @@ def mount(src, dst, fstype=None, options=None, verbose=False, session=None):
     return process.system(cmd, verbose=verbose) == 0
 
 
-def umount(src, dst, fstype=None, verbose=False, session=None):
+def umount(src, dst, fstype=None, verbose=True, session=None):
     """
     Umount src from dst, if src really mounted under dst.
 
