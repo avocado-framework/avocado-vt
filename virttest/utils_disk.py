@@ -146,7 +146,7 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
 
     :return: if unmounted return True else return False
     """
-    mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
+    mounted = is_mount(src, dst, fstype, verbose=True, session=session)
     if mounted:
         from . import utils_package
 
