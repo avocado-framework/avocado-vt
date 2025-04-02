@@ -76,32 +76,29 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
 
     :return: True if mounted, else return False
     """
-    mount_str = "%s %s %s" % (src, dst, fstype)
-    mount_str = mount_str.replace("None", "").strip()
-    mount_list_cmd = "cat /proc/mounts"
+    mount_options = [("-S", src), ("-M", dst), ("-t", fstype), ("-O", options)]
+    mount_opts = " ".join(
+        f"{opt} {val}" for opt, val in mount_options if val is not None
+    )
+    if mount_opts == "":
+        raise exceptions.TestError("Mount options is empty, it is meaningless")
+    mount_check_cmd = f"findmnt -J {mount_opts}"
 
-    if session:
-        mount_result = session.cmd_output_safe(mount_list_cmd)
-    else:
-        mount_result = process.run(mount_list_cmd, shell=True).stdout_text
-    if verbose:
-        LOG.debug("/proc/mounts contents:\n%s", mount_result)
+    mount_result = None
+    try:
+        if session:
+            mount_result = session.cmd_output_safe(mount_check_cmd)
+        else:
+            mount_result = process.run(mount_check_cmd, shell=True).stdout_text
+        if verbose:
+            LOG.info("Output of findmnt: %s", mount_result)
+    except process.CmdError:
+        pass
 
-    for result in mount_result.splitlines():
-        if mount_str in result:
-            if options:
-                options = options.split(",")
-                options_result = result.split()[3].split(",")
-                for op in options:
-                    if op not in options_result:
-                        if verbose:
-                            LOG.info(
-                                "%s is not mounted with given" " option %s", src, op
-                            )
-                        return False
-            if verbose:
-                LOG.info("%s is mounted", src)
-            return True
+    if mount_result:
+        if verbose:
+            LOG.info("%s is mounted", src)
+        return True
     if verbose:
         LOG.info("%s is not mounted", src)
     return False
