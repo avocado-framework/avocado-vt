@@ -1497,7 +1497,7 @@ class CdromDisk(Disk):
                 copytree(mnt_pnt, self.mount, ignore="*.vfd")
             finally:
                 os.chdir(pwd)
-                umount(None, mnt_pnt, verbose=DEBUG)
+                umount(None, os.path.realpath(mnt_pnt), verbose=DEBUG)
                 os.rmdir(mnt_pnt)
         elif virtio_floppy:
             cmd = "mcopy -s -o -n -i %s ::/* %s" % (virtio_floppy, self.mount)
