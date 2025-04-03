@@ -4101,6 +4101,63 @@ def customize_libvirt_config(
     return obj_conf
 
 
+def backup_logfile(log_file, backup_file_name, backup_dir="/tmp"):
+    """
+    Copies log_file into backup position with required backup_file_name+timestamp
+    using /tmp dir as destination
+
+    :param log_file: path to the log_file
+    :param backup_file_name: name of the backup_file
+    :param backup_dir: dir where the log will be placed; default /tmp
+
+    Returns:
+        str: The name of created backup file
+    """
+
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    backup_file_name = f"{backup_file_name}_{timestamp}.log"
+    backup_file = os.path.join(backup_dir, backup_file_name)
+    LOG.debug(f"Going to backup file {log_file} into {backup_file}")
+    shutil.copy2(log_file, backup_file)  # Create a backup with a timestamp
+    return backup_file
+
+
+def clear_logfile(log_file_name,
+                  backup_file_name="",
+                  log_dir='/var/log/libvirt/qemu/',
+                  backup_dir='/tmp',
+                  backup_old_log=False):
+    """
+    Clears the (e.g. VM) log file before a test run.
+
+    If the log file exists, it will be backed up to /tmp with a timestamp (if backup_old_log is True) and then cleared.
+
+    :param log_file_name: name of file to be cleared
+    :param backup_file_name: name of file to be used if different than log_file_name; default ""
+    :param log_dir: directory with logfile; default '/var/log/libvirt/qemu/'
+    :param backup_old_log: if True, the actual content of log_file will be backuped; default False
+
+    Returns:
+        str or None: The name of the backup file if created, otherwise None.
+    """
+    # in case user didn't specified the backup_file_name, log_file_name will be used
+    if not backup_file_name:
+        backup_file_name = log_file_name
+    log_file = os.path.join(log_dir, log_file_name)
+
+    if not os.path.exists(log_file):
+        return None  # Log file does not exist, do nothing
+
+    if backup_old_log:
+        backup_file = backup_logfile(log_file, backup_file_name, backup_dir)
+    else:
+        backup_file = None
+
+    # Clear the log file
+    open(log_file, 'w').close()
+    return backup_file
+
+
 def check_logfile(
     search_str,
     log_file,
@@ -4132,6 +4189,10 @@ def check_logfile(
         cmdRes = process.run(cmd, shell=True, ignore_status=True)
     else:
         cmdRes = remote_old.run_remote_cmd(cmd, cmd_parms, runner_on_target)
+
+    if isinstance(str_in_log, str):
+        str_in_log = str_in_log.lower() in ['true', 'yes', '1']
+
     if str_in_log == bool(int(cmdRes.exit_status)):
         error_msg = "The string '{}' {} included in {}".format(
             search_str, "is not" if str_in_log else "is", log_file
