@@ -195,7 +195,7 @@ class Nfs(object):
             params.get("setup_remote_nfs") == "yes"
             or params.get("setup_local_nfs") == "yes"
         ):
-            if distro_details.upper() in ("UBUNTU", "RHEL", "FEDORA", ):
+            if distro_details.upper() in ("UBUNTU", "RHEL", "FEDORA"):
                 self.nfs_service = service.Service("nfs-server", session=self.session)
             else:
                 self.nfs_service = service.Service("nfs", session=self.session)
