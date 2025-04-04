@@ -83,7 +83,7 @@ class VirtTest(test.Test, utils.TestUtils):
                instance. Because of the compatibility with avocado 82.0 LTS we
                can't remove the job instance. For avocado < 86 job instance is
                used and for avocado=>86 config is used.
-        :param vt_params: avocado-vt/cartesian_config params stored as
+        :param vt_params: Cartesian configuration params stored as
                           `self.params`.
         """
         self.__vt_params = None

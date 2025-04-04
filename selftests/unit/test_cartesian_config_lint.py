@@ -8,7 +8,7 @@ if sys.version_info[:2] == (2, 6):
 else:
     import unittest
 
-from virttest import cartesian_config
+from cartconf.parser import Parser
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RHELDIR = os.path.join(BASEDIR, "shared", "cfg", "guest-os", "Linux", "RHEL")
@@ -41,7 +41,7 @@ class CartesianCfgLint(unittest.TestCase):
             ]
         lines.insert(0, "variants:")
         content = "\n".join(lines)
-        parser = cartesian_config.Parser()
+        parser = Parser()
         parser.parse_string(content)
         dicts = [d for d in parser.get_dicts()]
         len_dicts = len(dicts)

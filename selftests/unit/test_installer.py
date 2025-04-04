@@ -9,7 +9,9 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import cartesian_config, installer
+from cartconf.parser import Parser
+
+from virttest import installer
 
 
 class installer_test(unittest.TestCase):
@@ -52,7 +54,7 @@ vm_type = test"""
 
         installer.INSTALLER_REGISTRY.register("test_install_mode", Installer, "test")
 
-        config_parser = cartesian_config.Parser()
+        config_parser = Parser()
         config_parser.parse_string(config)
         params = next(config_parser.get_dicts())
 

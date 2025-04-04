@@ -22,7 +22,9 @@ import os
 
 from avocado.core import output
 
-from virttest import cartesian_config, data_dir, standalone_test, storage
+from cartconf import exceptions
+
+from virttest import data_dir, standalone_test, storage
 from virttest.compat import get_opt, set_opt
 
 from .discovery import DiscoveryMixIn
@@ -182,7 +184,7 @@ if AVOCADO_LOADER_AVAILABLE:
                 # config parser, hence it should be ignored.
                 # just return an empty params list and let
                 # the other test plugins to handle the URL.
-                except cartesian_config.ParserError as details:
+                except exceptions.ParserError as details:
                     return self._report_bad_discovery(url, details, which_tests)
             elif which_tests is loader.DiscoverMode.DEFAULT and not get_opt(
                 self.config, "vt.config"

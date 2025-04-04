@@ -17,7 +17,7 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import cartesian_config
+from cartconf.parser import Parser
 from virttest.staging import utils_koji
 
 
@@ -79,7 +79,7 @@ class App(object):
     def get_koji_qemu_kvm_tag_pkgs(self, config_file):
         tag = None
         pkgs = None
-        parser = cartesian_config.Parser(config_file)
+        parser = Parser(config_file)
         for d in parser.get_dicts():
             if tag is not None and pkgs is not None:
                 break

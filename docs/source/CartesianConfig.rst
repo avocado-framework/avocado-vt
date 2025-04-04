@@ -4,6 +4,9 @@
 Cartesian Configuration
 =======================
 
+.. todo:: Usage and documentation is now being migrated to the `cartconf`
+    project.
+
 Cartesian Configuration is a highly specialized way of providing lists
 of key/value pairs within combination's of various categories. The
 format simplifies and condenses highly complex multidimensional arrays

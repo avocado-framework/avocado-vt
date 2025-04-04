@@ -21,7 +21,9 @@ import os
 
 from avocado.utils import path as utils_path
 
-from virttest import cartesian_config, data_dir, defaults, standalone_test
+from cartconf.parser import Parser
+
+from virttest import data_dir, defaults, standalone_test
 from virttest.compat import get_opt, set_opt, set_opt_from_settings
 from virttest.standalone_test import (
     SUPPORTED_DISK_BUSES,
@@ -545,7 +547,7 @@ class VirtTestOptionsProcess(object):
                     % (vt_type_setting, vt_type, " ".join(SUPPORTED_TEST_TYPES))
                 )
 
-        self.cartesian_parser = cartesian_config.Parser(debug=False)
+        self.cartesian_parser = Parser(debug=False)
 
         if vt_config:
             cfg = os.path.abspath(vt_config)
