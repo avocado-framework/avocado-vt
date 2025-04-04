@@ -2,7 +2,9 @@ import os
 
 from avocado.utils import path as utils_path
 
-from . import cartesian_config, data_dir
+from cartconf.parser import Parser
+
+from . import data_dir
 from .compat import get_opt
 
 GUEST_NAME_LIST = None
@@ -128,7 +130,7 @@ def get_guest_name_parser(
     machine="vt.common.machine_type",
     guest_os="vt.guest_os",
 ):
-    cartesian_parser = cartesian_config.Parser()
+    cartesian_parser = Parser()
     machines_cfg_path = data_dir.get_backend_cfg_path(
         get_opt(options, "vt.type"), "machines.cfg"
     )
