@@ -20,7 +20,7 @@ import six
 
 from virttest.qemu_capabilities import Flags
 
-from . import cartesian_config, data_dir, utils_logfile, utils_misc
+from . import data_dir, utils_logfile, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -251,6 +251,30 @@ def pick_supported_x_feature(
     # capability2 also not supported, probably negative testing,
     # return the original capability.
     return feature
+
+
+def convert_data_size(size: str, default_suffix: str = "B") -> int:
+    """
+    Convert data size from human readable units to an int of arbitrary size.
+
+    :param size: human readable data size representation
+    :param default_suffix: default suffix used to represent data
+    :returns: integer with data size in the appropriate order of magnitude
+    """
+    orders = {
+        "B": 1,
+        "K": 1024,
+        "M": 1024 * 1024,
+        "G": 1024 * 1024 * 1024,
+        "T": 1024 * 1024 * 1024 * 1024,
+    }
+
+    order = re.findall("([BbKkMmGgTt])", size[-1])
+    if not order:
+        size += default_suffix
+        order = [default_suffix]
+
+    return int(float(size[0:-1]) * orders[order[0].upper()])
 
 
 class VM(object):
@@ -2465,7 +2489,7 @@ class QMPMonitor(Monitor):
         :param value: Speed in bytes/sec
         :return: The response to the command
         """
-        value = cartesian_config.convert_data_size(value, "M")
+        value = convert_data_size(value, "M")
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
 
