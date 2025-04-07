@@ -936,6 +936,12 @@ class QBlockdevProtocolVirtioBlkVhostVdpa(QBlockdevProtocol):
     TYPE = "virtio-blk-vhost-vdpa"
 
 
+class QBlockdevProtocolVirtioBlkVhostUser(QBlockdevProtocol):
+    """New a protocol virtio-blk-vhost-user blockdev node."""
+
+    TYPE = "virtio-blk-vhost-user"
+
+
 class QBlockdevProtocolFile(QBlockdevProtocol):
     """New a protocol file blockdev node."""
 
