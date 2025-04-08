@@ -4510,11 +4510,13 @@ class VMFeaturesHypervXML(base.LibvirtXMLBase):
             parent_xpath="/",
             tag_name="reenlightenment",
         )
-        accessors.XMLElementDict(
+        accessors.XMLElementNest(
             property_name="tlbflush",
             libvirtxml=self,
             parent_xpath="/",
+            subclass=VMFeaturestlbflushXML,
             tag_name="tlbflush",
+            subclass_dargs={"virsh_instance": virsh_instance},
         )
         accessors.XMLElementDict(
             property_name="ipi", libvirtxml=self, parent_xpath="/", tag_name="ipi"
@@ -4916,3 +4918,36 @@ class VMOSACPIXML(base.LibvirtXMLBase):
         accessors.XMLElementText("table", self, parent_xpath="/", tag_name="table")
         super(VMOSACPIXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = "<acpi/>"
+
+
+class VMFeaturestlbflushXML(base.LibvirtXMLBase):
+    """
+    tlbflush tag XML class of features tag
+    """
+
+    __slots__ = ("state", "extended", "direct")
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute(
+            property_name="state",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="tlbflush",
+            attribute="state",
+        )
+        accessors.XMLElementDict(
+            property_name="extended",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="extended",
+        )
+        accessors.XMLElementDict(
+            property_name="direct",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="direct",
+        )
+        super(VMFeaturestlbflushXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = "<tlbflush/>"
