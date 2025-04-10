@@ -92,11 +92,18 @@ class SetupManager(object):
 
         :return: Errors occurred in cleanup procedures.
         """
+        LOG.debug("Starting setup manager cleanup")
         errors = []
         while self.__setupers:
+            setuper = self.__setupers.pop()
             try:
-                self.__setupers.pop().cleanup()
+                LOG.debug("cleanup %s", setuper.__class__.__name__)
+            except:
+                pass
+            try:
+                setuper.cleanup()
             except Exception as err:
                 LOG.error(str(err))
                 errors.append(str(err))
+        LOG.debug("Finished setup manager cleanup")
         return errors
