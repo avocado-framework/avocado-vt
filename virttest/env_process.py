@@ -1345,6 +1345,8 @@ def postprocess(test, params, env):
                 "Check either qemu build directory availablilty"
                 " or install gcovr package for qemu coverage report"
             )
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Postprocess all VMs and images
     try:
         process(
@@ -1360,6 +1362,8 @@ def postprocess(test, params, env):
         err += "\nPostprocess: %s" % str(details).replace("\\n", "\n  ")
         LOG.error(details)
 
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
     if _screendump_thread is not None:
@@ -1367,6 +1371,9 @@ def postprocess(test, params, env):
         _screendump_thread.join(30)
         _screendump_thread = None
 
+    LOG.debug("Screendump joined")
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Encode an HTML 5 compatible video from the screenshots produced
     dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
     for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
@@ -1441,6 +1448,9 @@ def postprocess(test, params, env):
         _vm_info_thread.join(10)
         _vm_info_thread = None
 
+    LOG.debug("vminfothread joined")
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
         for vm in env.get_all_vms():
@@ -1457,6 +1467,9 @@ def postprocess(test, params, env):
             except (remote.LoginError, virt_vm.VMError, IndexError) as e:
                 LOG.warning(e)
                 vm.destroy(gracefully=False)
+        LOG.debug("unresponsive vms killed")
+        for thread in threading.enumerate():
+            LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
 
     # Kill VMs with deleted disks
     for vm in env.get_all_vms():
