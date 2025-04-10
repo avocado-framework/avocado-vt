@@ -11,7 +11,6 @@ import sys
 import threading
 import time
 
-import aexpect
 import six
 from aexpect import remote
 from avocado.core import exceptions
@@ -42,6 +41,7 @@ from virttest import (
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
+from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
@@ -1009,6 +1009,7 @@ def preprocess(test, params, env):
     _setup_manager.register(BridgeConfig)
     _setup_manager.register(StorageConfig)
     _setup_manager.register(FirewalldService)
+    _setup_manager.register(KillTailThreads)
     _setup_manager.register(IPSniffer)
     _setup_manager.register(MigrationEnvSetup)
     _setup_manager.register(UnrequestedVMHandler)
@@ -1467,9 +1468,6 @@ def postprocess(test, params, env):
         if destroy and not vm.is_dead():
             LOG.debug("Image of VM %s was removed, destroying it.", vm.name)
             vm.destroy()
-
-    # Kill all aexpect tail threads
-    aexpect.kill_tail_threads()
 
     # collect sosreport of host/remote host during postprocess if enabled
     if params.get("enable_host_sosreport", "no") == "yes":
