@@ -7,11 +7,12 @@ Naive module that keeps tacks of some opened files and somehow manages them.
 
 :copyright: 2020 Red Hat Inc.
 """
+
 import logging
 import os
 import re
-import time
 import threading
+import time
 
 from avocado.core import exceptions
 from avocado.utils import aurl
@@ -20,7 +21,7 @@ from avocado.utils.astring import string_safe_encode
 
 from virttest import data_dir
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 _log_file_dir = data_dir.get_tmp_dir()
 _log_lock = threading.RLock()
@@ -63,8 +64,9 @@ def log_line(filename, line):
     global _open_log_files, _log_file_dir, _log_lock
 
     if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
+        raise LogLockError(
+            "Could not acquire exclusive lock to access" " _open_log_files"
+        )
     log_file = get_log_filename(filename)
     base_file = os.path.basename(log_file)
     try:
@@ -88,7 +90,7 @@ def log_line(filename, line):
         _log_lock.release()
 
 
-def get_match_count(file_path, key_message, encoding='ISO-8859-1'):
+def get_match_count(file_path, key_message, encoding="ISO-8859-1"):
     """
     Get expected messages count in path
 
@@ -99,15 +101,17 @@ def get_match_count(file_path, key_message, encoding='ISO-8859-1'):
     """
     count = 0
     try:
-        with open(file_path, 'r', encoding=encoding) as fp:
+        with open(file_path, "r", encoding=encoding) as fp:
             for line in fp.readlines():
                 if re.findall(key_message, line):
                     count += 1
-                    LOG.debug("Get '%s' in %s %s times" % (key_message,
-                                                           file_path, str(count)))
+                    LOG.debug(
+                        "Get '%s' in %s %s times" % (key_message, file_path, str(count))
+                    )
     except IOError as details:
-        raise exceptions.TestError("Fail to read :%s and get error: %s" % (
-            file_path, details))
+        raise exceptions.TestError(
+            "Fail to read :%s and get error: %s" % (file_path, details)
+        )
     return count
 
 
@@ -139,7 +143,8 @@ def get_log_filename(filename):
     if aurl.is_url(filename):
         return filename
     return os.path.realpath(
-            os.path.abspath(utils_path.get_path(_log_file_dir, filename)))
+        os.path.abspath(utils_path.get_path(_log_file_dir, filename))
+    )
 
 
 def close_log_file(filename="*"):
@@ -152,12 +157,14 @@ def close_log_file(filename="*"):
     global _open_log_files, _log_file_dir, _log_lock
     remove = []
     if not _acquire_lock(_log_lock):
-        raise LogLockError("Could not acquire exclusive lock to access"
-                           " _open_log_files")
+        raise LogLockError(
+            "Could not acquire exclusive lock to access" " _open_log_files"
+        )
     try:
         for log_file, log_fd in _open_log_files.items():
-            if (filename == '*' or
-                    os.path.basename(log_file) == os.path.basename(filename)):
+            if filename == "*" or os.path.basename(log_file) == os.path.basename(
+                filename
+            ):
                 log_fd.close()
                 remove.append(log_file)
         if remove:

@@ -1,17 +1,16 @@
-import re
-import os
 import logging
+import os
+import re
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from .. import virsh, virt_vm, libvirt_vm, data_dir
-from .. import utils_net, xml_utils
+from .. import data_dir, libvirt_vm, qemu_storage
 from .. import utils_libguestfs as lgf
-from .. import qemu_storage
+from .. import utils_net, virsh, virt_vm, xml_utils
 from ..libvirt_xml import vm_xml, xcepts
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VTError(Exception):
@@ -19,7 +18,6 @@ class VTError(Exception):
 
 
 class VTAttachError(VTError):
-
     def __init__(self, cmd, output):
         super(VTAttachError, self).__init__(cmd, output)
         self.cmd = cmd
@@ -30,25 +28,23 @@ class VTAttachError(VTError):
 
 
 class VTMountError(VTError):
-
     def __init__(self, cmd, output):
         VTError.__init__(self, cmd, output)
         self.cmd = cmd
         self.output = output
 
     def __str__(self):
-        return ("Mount command failed:%s\n%s" % (self.cmd, self.output))
+        return "Mount command failed:%s\n%s" % (self.cmd, self.output)
 
 
 class VTXMLParseError(VTError):
-
     def __init__(self, cmd, output):
         super(VTXMLParseError, self).__init__(cmd, output)
         self.cmd = cmd
         self.output = output
 
     def __str__(self):
-        return ("Parse XML with '%s' failed:%s" % (self.cmd, self.output))
+        return "Parse XML with '%s' failed:%s" % (self.cmd, self.output)
 
 
 def preprocess_image(params):
@@ -86,10 +82,10 @@ def get_primary_disk(vm):
     """
     vmdisks = vm.get_disk_devices()
     if len(vmdisks):
-        pri_target = ['vda', 'sda', 'hda']
+        pri_target = ["vda", "sda", "hda"]
         for target in pri_target:
             try:
-                return vmdisks[target]['source']
+                return vmdisks[target]["source"]
             except KeyError:
                 pass
     return None
@@ -113,8 +109,9 @@ def attach_additional_disk(vm, disksize, targetdev):
     # To confirm attached device do not exist.
     virsh.detach_disk(vm.name, targetdev, extra="--config")
 
-    attach_result = virsh.attach_disk(vm.name, disk_path, targetdev,
-                                      extra="--config", debug=True)
+    attach_result = virsh.attach_disk(
+        vm.name, disk_path, targetdev, extra="--config", debug=True
+    )
     if attach_result.exit_status:
         return (False, attach_result)
     return (True, disk_path)
@@ -154,7 +151,6 @@ def cleanup_vm(vm_name=None, disk=None):
 
 
 class VirtTools(object):
-
     """
     Useful functions for virt-commands.
 
@@ -166,8 +162,7 @@ class VirtTools(object):
         self.params = params
         self.oldvm = vm
         # Many command will create a new vm or disk, init it here
-        self.newvm = libvirt_vm.VM("VTNEWVM", vm.params, vm.root_dir,
-                                   vm.address_cache)
+        self.newvm = libvirt_vm.VM("VTNEWVM", vm.params, vm.root_dir, vm.address_cache)
         # Prepare for created vm disk
         self.indisk = get_primary_disk(vm)
         self.outdisk = None
@@ -183,9 +178,9 @@ class VirtTools(object):
             self.newvm.destroy()
             self.newvm.wait_for_shutdown()
 
-        attachs, attacho = attach_additional_disk(self.newvm,
-                                                  disksize=device_size,
-                                                  targetdev=target_dev)
+        attachs, attacho = attach_additional_disk(
+            self.newvm, disksize=device_size, targetdev=target_dev
+        )
         if attachs:
             # Restart vm for guestfish command
             # Otherwise updated disk is not visible
@@ -194,7 +189,7 @@ class VirtTools(object):
                 self.newvm.wait_for_login()
                 self.newvm.destroy()
                 self.newvm.wait_for_shutdown()
-                self.params['added_disk_path'] = attacho
+                self.params["added_disk_path"] = attacho
             except virt_vm.VMError as detail:
                 raise VTAttachError("", str(detail))
         else:
@@ -218,21 +213,20 @@ class VirtTools(object):
         elif self.indisk is not None:
             self.outdisk = "%s-clone" % self.indisk
         cloned_files.append(self.outdisk)
-        options['files'] = cloned_files
+        options["files"] = cloned_files
         # cloned_mac can be CREATED, RANDOM or a string.
         cloned_mac = self.params.get("cloned_mac", "CREATED")
         if cloned_mac == "CREATED":
-            options['mac'] = utils_net.generate_mac_address_simple()
+            options["mac"] = utils_net.generate_mac_address_simple()
         else:
-            options['mac'] = cloned_mac
+            options["mac"] = cloned_mac
 
-        options['ignore_status'] = True
-        options['debug'] = True
-        options['timeout'] = int(self.params.get("timeout", 240))
+        options["ignore_status"] = True
+        options["debug"] = True
+        options["timeout"] = int(self.params.get("timeout", 240))
         if newname is None:
             newname = "%s-virtclone" % self.oldvm.name
-        result = lgf.virt_clone_cmd(self.oldvm.name, newname,
-                                    autoclone, **options)
+        result = lgf.virt_clone_cmd(self.oldvm.name, newname, autoclone, **options)
         if result.exit_status:
             error_info = "Clone %s to %s failed." % (self.oldvm.name, newname)
             LOG.error(error_info)
@@ -255,12 +249,11 @@ class VirtTools(object):
         if self.outdisk is None:
             self.outdisk = "%s-sparsify" % self.indisk
         timeout = int(self.params.get("timeout", 240))
-        result = lgf.virt_sparsify_cmd(self.indisk, self.outdisk,
-                                       ignore_status=True, debug=True,
-                                       timeout=timeout)
+        result = lgf.virt_sparsify_cmd(
+            self.indisk, self.outdisk, ignore_status=True, debug=True, timeout=timeout
+        )
         if result.exit_status:
-            error_info = "Sparsify %s to %s failed." % (self.indisk,
-                                                        self.outdisk)
+            error_info = "Sparsify %s to %s failed." % (self.indisk, self.outdisk)
             LOG.error(error_info)
             return (False, result)
         return (True, result)
@@ -284,32 +277,32 @@ class VirtTools(object):
             vmxml = vm_xml.VMXML.new_from_dumpxml(old_vm_name)
             vmxml.vm_name = new_vm_name
             vmxml.uuid = ""
-            vmxml.set_xml(re.sub(old_disk, new_disk,
-                                 str(vmxml.__dict_get__('xml'))))
-            LOG.debug(vmxml.__dict_get__('xml'))
+            vmxml.set_xml(re.sub(old_disk, new_disk, str(vmxml.__dict_get__("xml"))))
+            LOG.debug(vmxml.__dict_get__("xml"))
             vmxml.define()
         except xcepts.LibvirtXMLError as detail:
             LOG.debug(detail)
             return (False, detail)
         return (True, vmxml.xml)
 
-    def expand_vm_filesystem(self, resize_part_num=2, resized_size="+1G",
-                             new_disk=None):
+    def expand_vm_filesystem(
+        self, resize_part_num=2, resized_size="+1G", new_disk=None
+    ):
         """
         Expand vm's filesystem with virt-resize.
         """
         LOG.info("Resizing vm's disk...")
         options = {}
-        options['resize'] = "/dev/sda%s" % resize_part_num
-        options['resized_size'] = resized_size
+        options["resize"] = "/dev/sda%s" % resize_part_num
+        options["resized_size"] = resized_size
         if new_disk is not None:
             self.outdisk = new_disk
         elif self.outdisk is None:
             self.outdisk = "%s-resize" % self.indisk
 
-        options['ignore_status'] = True
-        options['debug'] = True
-        options['timeout'] = int(self.params.get("timeout", 480))
+        options["ignore_status"] = True
+        options["debug"] = True
+        options["timeout"] = int(self.params.get("timeout", 480))
         result = lgf.virt_resize_cmd(self.indisk, self.outdisk, **options)
         if result.exit_status:
             LOG.error(result)
@@ -334,23 +327,23 @@ class VirtTools(object):
         special_mountpoints = self.params.get("special_mountpoints", [])
         is_disk = "yes" == self.params.get("gm_is_disk", "no")
         options = {}
-        options['ignore_status'] = True
-        options['debug'] = True
-        options['timeout'] = int(self.params.get("timeout", 240))
-        options['special_mountpoints'] = special_mountpoints
-        options['is_disk'] = is_disk
-        result = lgf.guestmount(disk_or_domain, mountpoint,
-                                inspector, readonly, **options)
+        options["ignore_status"] = True
+        options["debug"] = True
+        options["timeout"] = int(self.params.get("timeout", 240))
+        options["special_mountpoints"] = special_mountpoints
+        options["is_disk"] = is_disk
+        result = lgf.guestmount(
+            disk_or_domain, mountpoint, inspector, readonly, **options
+        )
         if result.exit_status:
-            error_info = "Mount %s to %s failed." % (disk_or_domain,
-                                                     mountpoint)
+            error_info = "Mount %s to %s failed." % (disk_or_domain, mountpoint)
             LOG.error(result)
             return (False, error_info)
         return (True, mountpoint)
 
-    def write_file_with_guestmount(self, mountpoint, path,
-                                   content=None, vm_ref=None,
-                                   cleanup=True):
+    def write_file_with_guestmount(
+        self, mountpoint, path, content=None, vm_ref=None, cleanup=True
+    ):
         """
         Write content to file with guestmount
         """
@@ -386,8 +379,9 @@ class VirtTools(object):
         """
         result = lgf.virt_filesystems(self.oldvm.name, long_format=True)
         if result.exit_status:
-            raise exceptions.TestSkipError("Cannot get primary disk"
-                                           " filesystem information!")
+            raise exceptions.TestSkipError(
+                "Cannot get primary disk" " filesystem information!"
+            )
         fs_info = result.stdout_text.strip().splitlines()
         if len(fs_info) <= 1:
             raise exceptions.TestSkipError("No disk filesystem information!")
@@ -401,56 +395,61 @@ class VirtTools(object):
     def tar_in(self, tar_file, dest="/tmp", vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_tar_in(vm_ref, tar_file, dest,
-                                 debug=True, ignore_status=True)
+        result = lgf.virt_tar_in(vm_ref, tar_file, dest, debug=True, ignore_status=True)
         return result
 
     def tar_out(self, directory, tar_file="temp.tar", vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_tar_out(vm_ref, directory, tar_file,
-                                  debug=True, ignore_status=True)
+        result = lgf.virt_tar_out(
+            vm_ref, directory, tar_file, debug=True, ignore_status=True
+        )
         return result
 
     def cat(self, filename, vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_cat_cmd(vm_ref, filename, debug=True,
-                                  ignore_status=True)
+        result = lgf.virt_cat_cmd(vm_ref, filename, debug=True, ignore_status=True)
         return result
 
     def copy_in(self, filename, dest="/tmp", vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_copy_in(vm_ref, filename, dest, debug=True,
-                                  ignore_status=True)
+        result = lgf.virt_copy_in(
+            vm_ref, filename, dest, debug=True, ignore_status=True
+        )
         return result
 
     def copy_out(self, file_path, localdir="/tmp", vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_copy_out(vm_ref, file_path, localdir,
-                                   debug=True, ignore_status=True)
+        result = lgf.virt_copy_out(
+            vm_ref, file_path, localdir, debug=True, ignore_status=True
+        )
         return result
 
-    def format_disk(self, disk_path=None, filesystem=None, partition=None,
-                    lvm=None):
+    def format_disk(self, disk_path=None, filesystem=None, partition=None, lvm=None):
         """
         :param disk_path: None for additional disk by update_vm_disk() only
         """
         if disk_path is None:
             disk_path = self.params.get("added_disk_path")
-        result = lgf.virt_format(disk_path, filesystem,
-                                 lvm=lvm, partition=partition,
-                                 debug=True, ignore_status=True)
+        result = lgf.virt_format(
+            disk_path,
+            filesystem,
+            lvm=lvm,
+            partition=partition,
+            debug=True,
+            ignore_status=True,
+        )
         return result
 
     def get_filesystems_info(self, vm_ref=None):
         if vm_ref is None:
             vm_ref = self.oldvm.name
-        result = lgf.virt_filesystems(vm_ref, long_format=True,
-                                      debug=True, all=True,
-                                      ignore_status=True)
+        result = lgf.virt_filesystems(
+            vm_ref, long_format=True, debug=True, all=True, ignore_status=True
+        )
         return result
 
     def list_df(self, vm_ref=None):
@@ -469,8 +468,9 @@ class VirtTools(object):
         sys_info = {}
         result = lgf.virt_inspector(vm_ref, ignore_status=True)
         if result.exit_status:
-            LOG.error("Get %s information with inspector(2) failed:\n%s",
-                      vm_ref, result)
+            LOG.error(
+                "Get %s information with inspector(2) failed:\n%s", vm_ref, result
+            )
             return sys_info
         # Analyse output to get information
         try:
@@ -481,40 +481,39 @@ class VirtTools(object):
         except (IOError, VTXMLParseError) as detail:
             LOG.error(detail)
             return sys_info
-        sys_info['root'] = os_root.findtext("root")
-        sys_info['name'] = os_root.findtext("name")
-        sys_info['arch'] = os_root.findtext("arch")
-        sys_info['distro'] = os_root.findtext("distro")
-        sys_info['release'] = os_root.findtext("product_name")
-        sys_info['major_version'] = os_root.findtext("major_version")
-        sys_info['minor_version'] = os_root.findtext("minor_version")
-        sys_info['hostname'] = os_root.findtext("hostname")
+        sys_info["root"] = os_root.findtext("root")
+        sys_info["name"] = os_root.findtext("name")
+        sys_info["arch"] = os_root.findtext("arch")
+        sys_info["distro"] = os_root.findtext("distro")
+        sys_info["release"] = os_root.findtext("product_name")
+        sys_info["major_version"] = os_root.findtext("major_version")
+        sys_info["minor_version"] = os_root.findtext("minor_version")
+        sys_info["hostname"] = os_root.findtext("hostname")
         # filesystems and mountpoints are dict to restore detail info
         mountpoints = {}
         for node in os_root.find("mountpoints"):
             mp_device = node.get("dev")
             if mp_device is not None:
                 mountpoints[mp_device] = node.text
-        sys_info['mountpoints'] = mountpoints
+        sys_info["mountpoints"] = mountpoints
         filesystems = {}
         for node in os_root.find("filesystems"):
             fs_detail = {}
             fs_device = node.get("dev")
             if fs_device is not None:
-                fs_detail['type'] = node.findtext("type")
-                fs_detail['label'] = node.findtext("label")
-                fs_detail['uuid'] = node.findtext("uuid")
+                fs_detail["type"] = node.findtext("type")
+                fs_detail["label"] = node.findtext("label")
+                fs_detail["uuid"] = node.findtext("uuid")
                 filesystems[fs_device] = fs_detail
-        sys_info['filesystems'] = filesystems
+        sys_info["filesystems"] = filesystems
         LOG.debug("VM information:\n%s", sys_info)
         return sys_info
 
 
 class GuestfishTools(lgf.GuestfishPersistent):
-
     """Useful Tools for Guestfish class."""
 
-    __slots__ = ('params', )
+    __slots__ = ("params",)
 
     def __init__(self, params):
         """
@@ -527,10 +526,14 @@ class GuestfishTools(lgf.GuestfishPersistent):
         inspector = bool(params.get("gf_inspector", False))
         mount_options = params.get("mount_options")
         run_mode = params.get("gf_run_mode", "interactive")
-        super(GuestfishTools, self).__init__(disk_img, ro_mode,
-                                             libvirt_domain, inspector,
-                                             mount_options=mount_options,
-                                             run_mode=run_mode)
+        super(GuestfishTools, self).__init__(
+            disk_img,
+            ro_mode,
+            libvirt_domain,
+            inspector,
+            mount_options=mount_options,
+            run_mode=run_mode,
+        )
 
     def get_root(self):
         """
@@ -554,11 +557,9 @@ class GuestfishTools(lgf.GuestfishPersistent):
             LOG.error("Cat /etc/redhat-release failed")
             return (False, release_result)
 
-        release_type = {'rhel': "Red Hat Enterprise Linux",
-                        'fedora': "Fedora"}
+        release_type = {"rhel": "Red Hat Enterprise Linux", "fedora": "Fedora"}
         for key in release_type:
-            if re.search(release_type[key],
-                         release_result.stdout_text):
+            if re.search(release_type[key], release_result.stdout_text):
                 return (True, key)
 
     def write_file(self, path, content):
@@ -568,8 +569,9 @@ class GuestfishTools(lgf.GuestfishPersistent):
         LOG.info("Creating file %s in vm...", path)
         write_result = self.write(path, content)
         if write_result.exit_status:
-            LOG.error("Create '%s' with content '%s' failed:%s",
-                      path, content, write_result)
+            LOG.error(
+                "Create '%s' with content '%s' failed:%s", path, content, write_result
+            )
             return False
         return True
 
@@ -596,16 +598,16 @@ class GuestfishTools(lgf.GuestfishPersistent):
 
             if re.search("part_num", line):
                 part_num = int(line.split(":")[-1].strip())
-                part_details['num'] = part_num
+                part_details["num"] = part_num
             elif re.search("part_start", line):
                 part_start = int(line.split(":")[-1].strip())
-                part_details['start'] = part_start
+                part_details["start"] = part_start
             elif re.search("part_end", line):
                 part_end = int(line.split(":")[-1].strip())
-                part_details['end'] = part_end
+                part_details["end"] = part_end
             elif re.search("part_size", line):
                 part_size = int(line.split(":")[-1].strip())
-                part_details['size'] = part_size
+                part_details["size"] = part_size
 
             if index != -1:
                 partitions[index] = part_details
@@ -637,7 +639,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         blocksize = self.params.get("blocksize")
         tarball_path = self.params.get("tarball_path")
 
-        if partition_type not in ['lvm', 'physical']:
+        if partition_type not in ["lvm", "physical"]:
             return (False, "partition_type is incorrect, support [physical,lvm]")
 
         if partition_type == "lvm":
@@ -646,10 +648,10 @@ class GuestfishTools(lgf.GuestfishPersistent):
             vg_name = self.params.get("vg_name", "vol_test")
             lv_name = self.params.get("lv_name", "vol_file")
             mount_point = "/dev/%s/%s" % (vg_name, lv_name)
-            if 'G' in image_size:
-                lv_size = int(image_size.replace('G', '')) * 1000
+            if "G" in image_size:
+                lv_size = int(image_size.replace("G", "")) * 1000
             else:
-                lv_size = int(image_size.replace('M', '')) - 10
+                lv_size = int(image_size.replace("M", "")) - 10
 
             self.pvcreate(pv_name)
             self.vgcreate(vg_name, pv_name)
@@ -667,8 +669,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
 
         if with_blocksize == "yes" and fs_type != "btrfs" and fs_type != "no_fs":
             if blocksize:
-                self.mkfs_opts(
-                    fs_type, mount_point, "blocksize:%s" % (blocksize))
+                self.mkfs_opts(fs_type, mount_point, "blocksize:%s" % (blocksize))
                 self.vfs_type(mount_point)
             else:
                 LOG.error("with_blocksize is set but blocksize not given")
@@ -680,9 +681,9 @@ class GuestfishTools(lgf.GuestfishPersistent):
             self.vfs_type(mount_point)
 
         if tarball_path:
-            self.mount_options("noatime", mount_point, '/')
-            self.tar_in_opts(tarball_path, '/', 'gzip')
-            self.ll('/')
+            self.mount_options("noatime", mount_point, "/")
+            self.tar_in_opts(tarball_path, "/", "gzip")
+            self.ll("/")
 
         self.umount_all()
         self.sync()
@@ -805,18 +806,20 @@ class GuestfishTools(lgf.GuestfishPersistent):
         # Default is /etc/udev/rules.d/70-persistent-net.rules
         devices_file = "/etc/udev/rules.d/70-persistent-net.rules"
         # Set file which binds mac and IP-address
-        ifcfg_files = ["/etc/sysconfig/network-scripts/ifcfg-p1p1",
-                       "/etc/sysconfig/network-scripts/ifcfg-eth0"]
+        ifcfg_files = [
+            "/etc/sysconfig/network-scripts/ifcfg-p1p1",
+            "/etc/sysconfig/network-scripts/ifcfg-eth0",
+        ]
         # Fix devices file
-        mac_regex = (r"\w.:\w.:\w.:\w.:\w.:\w.")
+        mac_regex = r"\w.:\w.:\w.:\w.:\w.:\w."
         edit_expr = "s/%s/%s/g" % (mac_regex, iface_mac)
         file_ret = self.is_file(devices_file)
         if file_ret.stdout.strip() == b"true":
             self.close_session()
             try:
-                result = lgf.virt_edit_cmd(vm_ref, devices_file,
-                                           expr=edit_expr, debug=True,
-                                           ignore_status=True)
+                result = lgf.virt_edit_cmd(
+                    vm_ref, devices_file, expr=edit_expr, debug=True, ignore_status=True
+                )
                 if result.exit_status:
                     LOG.error("Edit %s failed:%s", devices_file, result)
                     return False
@@ -834,11 +837,11 @@ class GuestfishTools(lgf.GuestfishPersistent):
             if file_ret.stdout.strip() == b"false":
                 continue
             self.close_session()
-            self.params['ifcfg_file'] = ifcfg_file
+            self.params["ifcfg_file"] = ifcfg_file
             try:
-                result = lgf.virt_edit_cmd(vm_ref, ifcfg_file,
-                                           expr=edit_expr, debug=True,
-                                           ignore_status=True)
+                result = lgf.virt_edit_cmd(
+                    vm_ref, ifcfg_file, expr=edit_expr, debug=True, ignore_status=True
+                )
                 if result.exit_status:
                     LOG.error("Edit %s failed:%s", ifcfg_file, result)
                     return False
@@ -861,6 +864,6 @@ class GuestfishTools(lgf.GuestfishPersistent):
             if is_need.stdout.strip() == b"false":
                 cp_result = self.cp(bak_file, ifcfg_file)
                 if cp_result.exit_status:
-                    LOG.warn("Recover ifcfg file failed:%s", cp_result)
+                    LOG.warning("Recover ifcfg file failed:%s", cp_result)
                     return False
         return True

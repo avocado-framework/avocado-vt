@@ -30,10 +30,11 @@ Example:
     mask_helper.return_to_host_all()
 
 """
-from uuid import uuid1
 from os.path import join
+from uuid import uuid1
 
 from avocado.utils import process
+
 from virttest.utils_misc import cmd_status_output
 
 # timeout value in seconds for any command run
@@ -64,15 +65,18 @@ class CryptoDeviceInfoBuilder(object):
         :return: CryptoDeviceInfo instance
         """
         info = CryptoDeviceInfo()
-        err, out = cmd_status_output("lszcrypt -V", shell=True,
-                                     session=self.session,
-                                     timeout=CMD_TIMEOUT,
-                                     verbose=VERBOSE)
+        err, out = cmd_status_output(
+            "lszcrypt -V",
+            shell=True,
+            session=self.session,
+            timeout=CMD_TIMEOUT,
+            verbose=VERBOSE,
+        )
         if err:
             if NO_DEVICES not in out:
                 raise OSError("Error when running lszcrypt: %s" % out)
         else:
-            out = out.strip().split('\n')[2:]
+            out = out.strip().split("\n")[2:]
             for entry in out:
                 info.append(entry)
         return info
@@ -149,6 +153,7 @@ class CryptoDeviceInfoEntry(object):
         self.qdepth = None
         self.functions = None
         self.driver = None
+        self.sestat = None
 
     @property
     def id(self):
@@ -192,8 +197,26 @@ class CryptoDeviceInfoEntry(object):
         :return: device info entry
         """
         r = CryptoDeviceInfoEntry()
-        (r.id, r.type, r.mode, r.status, r.requests, r.pending,
-         r.hwtype, r.qdepth, r.functions, r.driver) = line.split()
+        crypto_dev_info = line.split()
+        crypto_dev_act_attr_num = len(crypto_dev_info)
+        crypto_dev_exp_attr_num = len(vars(r)) - 1
+        if crypto_dev_act_attr_num < crypto_dev_exp_attr_num:
+            crypto_dev_info.extend(
+                [None] * (crypto_dev_exp_attr_num - crypto_dev_act_attr_num)
+            )
+        (
+            r.id,
+            r.type,
+            r.mode,
+            r.status,
+            r.requests,
+            r.pending,
+            r.hwtype,
+            r.qdepth,
+            r.functions,
+            r.driver,
+            r.sestat,
+        ) = crypto_dev_info
         return r
 
 
@@ -207,13 +230,11 @@ def _echo(value, sysfs):
     :return: None
     """
 
-    err, out = process.getstatusoutput("echo %s > %s" % (value, sysfs),
-                                       timeout=CMD_TIMEOUT,
-                                       verbose=VERBOSE)
+    err, out = process.getstatusoutput(
+        "echo %s > %s" % (value, sysfs), timeout=CMD_TIMEOUT, verbose=VERBOSE
+    )
     if err:
-        raise RuntimeError("Couldn't set value '%s' on '%s': %s" % (
-            value, sysfs, out
-        ))
+        raise RuntimeError("Couldn't set value '%s' on '%s': %s" % (value, sysfs, out))
 
 
 def load_vfio_ap(session=None):
@@ -224,10 +245,13 @@ def load_vfio_ap(session=None):
                     host if None
     :return: None
     """
-    err, out = cmd_status_output("modprobe vfio_ap", shell=True,
-                                 session=session,
-                                 timeout=CMD_TIMEOUT,
-                                 verbose=VERBOSE)
+    err, out = cmd_status_output(
+        "modprobe vfio_ap",
+        shell=True,
+        session=session,
+        timeout=CMD_TIMEOUT,
+        verbose=VERBOSE,
+    )
     if err:
         raise RuntimeError("Couldn't load vfio_ap: %s" % out)
 
@@ -240,10 +264,13 @@ def unload_vfio_ap(session=None):
                     host if None
     :return: None
     """
-    err, out = cmd_status_output("rmmod vfio_ap", shell=True,
-                                 session=session,
-                                 timeout=CMD_TIMEOUT,
-                                 verbose=VERBOSE)
+    err, out = cmd_status_output(
+        "rmmod vfio_ap",
+        shell=True,
+        session=session,
+        timeout=CMD_TIMEOUT,
+        verbose=VERBOSE,
+    )
     if err:
         raise RuntimeError("Couldn't unload vfio_ap: %s" % out)
 
@@ -324,8 +351,9 @@ class APMaskHelper(object):
 
 
 # sysfs path for the vfio-ap matrix devices
-PASSTHROUGH_SYSFS = ("/sys/devices/vfio_ap/"
-                     "matrix/mdev_supported_types/vfio_ap-passthrough/")
+PASSTHROUGH_SYSFS = (
+    "/sys/devices/vfio_ap/" "matrix/mdev_supported_types/vfio_ap-passthrough/"
+)
 
 
 class MatrixDevice(object):

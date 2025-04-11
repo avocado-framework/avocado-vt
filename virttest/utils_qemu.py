@@ -1,14 +1,15 @@
 """
 QEMU related utility functions.
 """
-import re
+
 import json
+import re
 
 from avocado.utils import process
 
-QEMU_VERSION_RE = re.compile(r"QEMU (?:PC )?emulator version\s"
-                             r"([0-9]+\.[0-9]+\.[0-9]+)"
-                             r"(?:\s\((.*?)\))?")
+QEMU_VERSION_RE = re.compile(
+    r"QEMU (?:PC )?emulator version\s" r"([0-9]+\.[0-9]+\.[0-9]+)" r"(?:\s\((.*?)\))?"
+)
 DEVICE_CATEGORY_RE = re.compile(r"([A-Z]\S+) devices:")
 
 
@@ -41,7 +42,7 @@ def get_qemu_version(bin_path):
     output = _get_info(bin_path, "-version")
     matches = QEMU_VERSION_RE.match(output)
     if matches is None:
-        raise OSError('Unable to get the version of qemu')
+        raise OSError("Unable to get the version of qemu")
     return matches.groups()
 
 
@@ -87,10 +88,10 @@ def get_devices_info(bin_path, category=None):
         device_type = DEVICE_CATEGORY_RE.match(device_info)
         if device_type:
             device_type = device_type.group(1)
-            devs_info = re.findall(r'^name "(\S+)"(.*)', device_info,
-                                   re.M)
-            qemu_devices[device_type] = {dev[0]: dev[1].replace(", ", "", 1)
-                                         for dev in devs_info}
+            devs_info = re.findall(r'^name "(\S+)"(.*)', device_info, re.M)
+            qemu_devices[device_type] = {
+                dev[0]: dev[1].replace(", ", "", 1) for dev in devs_info
+            }
     if category:
         return qemu_devices.get(category, {})
     return {k: v for d in qemu_devices.values() for k, v in d.items()}
@@ -145,18 +146,23 @@ def get_maxcpus_hard_limit(bin_path, machine_type):
     :return: Maximum value of vCPU
     """
     # TODO: Extract the process of executing QMP as a separate method
-    output = process.run('echo -e \''
-                         '{ "execute": "qmp_capabilities" }\n'
-                         '{ "execute": "query-machines", "id": "TEMP-INST" }\n'
-                         '{ "execute": "quit" }\''
-                         '| %s -M none -nodefaults -nographic -S -qmp stdio '
-                         '| grep return | grep TEMP-INST' % bin_path,
-                         ignore_status=True, shell=True,
-                         verbose=False).stdout_text
+    output = process.run(
+        "echo -e '"
+        '{ "execute": "qmp_capabilities" }\n'
+        '{ "execute": "query-machines", "id": "TEMP-INST" }\n'
+        '{ "execute": "quit" }\''
+        "| %s -M none -nodefaults -nographic -S -qmp stdio "
+        "| grep return | grep TEMP-INST" % bin_path,
+        ignore_status=True,
+        shell=True,
+        verbose=False,
+    ).stdout_text
     machines = json.loads(output)["return"]
     try:
         machines_info = {machine.pop("name"): machine for machine in machines}
         return machines_info[machine_type]["cpu-max"]
     except KeyError:
-        raise ValueError("Could not get the maximum limit CPUs supported by "
-                         "this machine '%s'" % machine_type)
+        raise ValueError(
+            "Could not get the maximum limit CPUs supported by "
+            "this machine '%s'" % machine_type
+        )

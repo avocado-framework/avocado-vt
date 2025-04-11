@@ -1,11 +1,11 @@
-import os
-import fcntl
-import struct
 import errno
+import fcntl
+import os
+import struct
 
 from virttest import arch
 
-VSOCK_PATH = '/dev/vhost-vsock'
+VSOCK_PATH = "/dev/vhost-vsock"
 
 
 def get_guest_cid(guest_cid):
@@ -18,10 +18,9 @@ def get_guest_cid(guest_cid):
     vsock_fd = os.open(VSOCK_PATH, os.O_RDWR)
     try:
         while guest_cid:
-            cid_c = struct.pack('L', guest_cid)
+            cid_c = struct.pack("L", guest_cid)
             try:
-                fcntl.ioctl(
-                    vsock_fd, arch.VHOST_VSOCK_SET_GUEST_CID, cid_c)
+                fcntl.ioctl(vsock_fd, arch.VHOST_VSOCK_SET_GUEST_CID, cid_c)
             except IOError as e:
                 if e.errno == errno.EADDRINUSE:
                     guest_cid += 1

@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Udplite_ipv6(base.TypedDeviceBase):
-
     """
     Create new Udplite_ipv6 xml instances
 
@@ -17,16 +16,22 @@ class Udplite_ipv6(base.TypedDeviceBase):
         attrs: libvirt_xml.nwfilter_protocols.Udplite_ipv6.Attr instance
     """
 
-    __slots__ = ('attrs',)
+    __slots__ = ("attrs",)
 
-    def __init__(self, type_name='file', virsh_instance=base.base.virsh):
-        accessors.XMLElementNest('attrs', self, parent_xpath='/',
-                                 tag_name='udplite_ipv6', subclass=self.Attr,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        super(Udplite_ipv6, self).__init__(protocol_tag='udplite-ipv6',
-                                           type_name=type_name,
-                                           virsh_instance=virsh_instance)
+    def __init__(self, type_name="file", virsh_instance=base.base.virsh):
+        accessors.XMLElementNest(
+            "attrs",
+            self,
+            parent_xpath="/",
+            tag_name="udplite_ipv6",
+            subclass=self.Attr,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        super(Udplite_ipv6, self).__init__(
+            protocol_tag="udplite-ipv6",
+            type_name=type_name,
+            virsh_instance=virsh_instance,
+        )
 
     def new_attr(self, **dargs):
         """
@@ -48,7 +53,7 @@ class Udplite_ipv6(base.TypedDeviceBase):
                  attributes.
         """
         try:
-            udplite_node = self.xmltreefile.reroot('/udplite-ipv6')
+            udplite_node = self.xmltreefile.reroot("/udplite-ipv6")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udplite_node.getroot()
@@ -57,7 +62,6 @@ class Udplite_ipv6(base.TypedDeviceBase):
         return udplite_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Udplite_ipv6 attribute XML class
 
@@ -81,63 +85,146 @@ class Udplite_ipv6(base.TypedDeviceBase):
         ipsetflags: flags for the IPSet; requires ipset attribute
         """
 
-        __slots__ = ('srcmacaddr', 'srcmacmask', 'dstmacaddr', 'dstmacmask',
-                     'srcipaddr', 'srcipmask', 'dstipaddr', 'dstipmask',
-                     'srcipfrom', 'srcipto', 'dstipfrom', 'dstipto',
-                     'dscp', 'comment', 'state', 'ipset', 'ipsetflags')
+        __slots__ = (
+            "srcmacaddr",
+            "srcmacmask",
+            "dstmacaddr",
+            "dstmacmask",
+            "srcipaddr",
+            "srcipmask",
+            "dstipaddr",
+            "dstipmask",
+            "srcipfrom",
+            "srcipto",
+            "dstipfrom",
+            "dstipto",
+            "dscp",
+            "comment",
+            "state",
+            "ipset",
+            "ipsetflags",
+        )
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLAttribute('srcmacaddr', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcmacaddr')
-            accessors.XMLAttribute('srcmacmask', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcmacmask')
-            accessors.XMLAttribute('dstmacaddr', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstmacaddr')
-            accessors.XMLAttribute('dstmacmask', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstmacmask')
-            accessors.XMLAttribute('srcipaddr', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcipaddr')
-            accessors.XMLAttribute('srcipmask', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcipmask')
-            accessors.XMLAttribute('dstipaddr', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstipaddr')
-            accessors.XMLAttribute('dstipmask', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstipmask')
-            accessors.XMLAttribute('srcipfrom', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcipfrom')
-            accessors.XMLAttribute('srcipto', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='srcipto')
-            accessors.XMLAttribute('dstipfrom', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstipfrom')
-            accessors.XMLAttribute('dstipto', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dstipto')
-            accessors.XMLAttribute('dscp', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='dscp')
-            accessors.XMLAttribute('comment', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='comment')
-            accessors.XMLAttribute('state', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='state')
-            accessors.XMLAttribute('ipset', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='ipset')
-            accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
-                                   tag_name='udplite-ipv6',
-                                   attribute='ipsetflags')
+            accessors.XMLAttribute(
+                "srcmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcmacaddr",
+            )
+            accessors.XMLAttribute(
+                "srcmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcmacmask",
+            )
+            accessors.XMLAttribute(
+                "dstmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstmacaddr",
+            )
+            accessors.XMLAttribute(
+                "dstmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstmacmask",
+            )
+            accessors.XMLAttribute(
+                "srcipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcipaddr",
+            )
+            accessors.XMLAttribute(
+                "srcipmask",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcipmask",
+            )
+            accessors.XMLAttribute(
+                "dstipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstipaddr",
+            )
+            accessors.XMLAttribute(
+                "dstipmask",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstipmask",
+            )
+            accessors.XMLAttribute(
+                "srcipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcipfrom",
+            )
+            accessors.XMLAttribute(
+                "srcipto",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="srcipto",
+            )
+            accessors.XMLAttribute(
+                "dstipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstipfrom",
+            )
+            accessors.XMLAttribute(
+                "dstipto",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dstipto",
+            )
+            accessors.XMLAttribute(
+                "dscp",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="dscp",
+            )
+            accessors.XMLAttribute(
+                "comment",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="comment",
+            )
+            accessors.XMLAttribute(
+                "state",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="state",
+            )
+            accessors.XMLAttribute(
+                "ipset",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="ipset",
+            )
+            accessors.XMLAttribute(
+                "ipsetflags",
+                self,
+                parent_xpath="/",
+                tag_name="udplite-ipv6",
+                attribute="ipsetflags",
+            )
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<udplite-ipv6/>'
+            self.xml = "<udplite-ipv6/>"

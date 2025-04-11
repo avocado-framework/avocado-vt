@@ -5,15 +5,13 @@ Program that calculates several hashes for a given CD image.
 :copyright: Red Hat 2008-2009
 """
 
-import os
-import sys
 import logging
 import optparse
+import os
+import sys
 
 from avocado.utils import crypto
-
 from logging_config import LoggingConfig
-
 
 if __name__ == "__main__":
     log_cfg = LoggingConfig(set_fmt=False)
@@ -40,7 +38,15 @@ if __name__ == "__main__":
             continue
 
         logging.info("Hash values for file %s", os.path.basename(filename))
-        logging.info("    md5    (1m): %s", crypto.hash_file(filename, 1024 * 1024, algorithm="md5"))
-        logging.info("    sha1   (1m): %s", crypto.hash_file(filename, 1024 * 1024, algorithm="sha1"))
+        logging.info(
+            "    md5    (1m): %s",
+            crypto.hash_file(filename, 1024 * 1024, algorithm="md5"),
+        )
+        logging.info(
+            "    sha1   (1m): %s",
+            crypto.hash_file(filename, 1024 * 1024, algorithm="sha1"),
+        )
         logging.info("    md5  (full): %s", crypto.hash_file(filename, algorithm="md5"))
-        logging.info("    sha1 (full): %s", crypto.hash_file(filename, algorithm="sha1"))
+        logging.info(
+            "    sha1 (full): %s", crypto.hash_file(filename, algorithm="sha1")
+        )

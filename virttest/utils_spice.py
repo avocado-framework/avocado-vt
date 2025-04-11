@@ -2,22 +2,23 @@
 Common spice test utility functions.
 
 """
-import os
+
 import logging
-import time
+import os
 import sys
+import time
 
 from aexpect import ShellCmdError, ShellStatusError
 from avocado.core import exceptions
 
-from . import utils_net, utils_misc
+from . import utils_misc, utils_net
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class RVConnectError(Exception):
-
     """Exception raised in case that remote-viewer fails to connect"""
+
     pass
 
 
@@ -51,22 +52,20 @@ def kill_app(vm_name, app_name, params, env):
     vm = env.get_vm(params[vm_name])
 
     vm.verify_alive()
-    vm_session = vm.wait_for_login(
-        timeout=int(params.get("login_timeout", 360)))
+    vm_session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
     LOG.info("Try to kill %s", app_name)
     if vm.params.get("os_type") == "linux":
-        vm_session.cmd("pkill %s" % app_name
-                       .split(os.path.sep)[-1])
+        vm_session.cmd("pkill %s" % app_name.split(os.path.sep)[-1])
     elif vm.params.get("os_type") == "windows":
-        vm_session.cmd_output("taskkill /F /IM %s" % app_name
-                              .split('\\')[-1])
+        vm_session.cmd_output("taskkill /F /IM %s" % app_name.split("\\")[-1])
     vm.verify_alive()
     vm_session.close()
 
 
-def verify_established(client_vm, host, port, rv_binary,
-                       tls_port=None, secure_channels=None):
+def verify_established(
+    client_vm, host, port, rv_binary, tls_port=None, secure_channels=None
+):
     """
     Parses netstat output for established connection on host:port
     :param client_session - vm.wait_for_login()
@@ -84,8 +83,10 @@ def verify_established(client_vm, host, port, rv_binary,
         cmd = "netstat -n"
 
     else:
-        cmd = ('(netstat -pn 2>&1| grep "^tcp.*:.*%s.*ESTABLISHED.*%s.*")' %
-               (host, rv_binary))
+        cmd = '(netstat -pn 2>&1| grep "^tcp.*:.*%s.*ESTABLISHED.*%s.*")' % (
+            host,
+            rv_binary,
+        )
     netstat_out = client_session.cmd_output(cmd)
     LOG.info("netstat output: %s", netstat_out)
 
@@ -98,19 +99,19 @@ def verify_established(client_vm, host, port, rv_binary,
         LOG.error("Not enough channels were open")
         raise RVConnectError()
     if secure_channels:
-        if tls_count < len(secure_channels.split(',')):
+        if tls_count < len(secure_channels.split(",")):
             LOG.error("Not enough secure channels open")
             raise RVConnectError()
-    for line in netstat_out.split('\n'):
-        if ((port in line and "ESTABLISHED" not in line) or
-                (tls_port in line and "ESTABLISHED" not in line)):
+    for line in netstat_out.split("\n"):
+        if (port in line and "ESTABLISHED" not in line) or (
+            tls_port in line and "ESTABLISHED" not in line
+        ):
             LOG.error("Failed to get established connection from netstat")
             raise RVConnectError()
     if "ESTABLISHED" not in netstat_out:
         LOG.error("Failed to get established connection from netstat")
         raise RVConnectError()
-    LOG.info("%s connection to %s:%s successful.",
-             rv_binary, host, port)
+    LOG.info("%s connection to %s:%s successful.", rv_binary, host, port)
 
     client_session.close()
 
@@ -124,16 +125,18 @@ def start_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd start"
     try:
-        guest_session.cmd(cmd, print_func=LOG.info,
-                          timeout=test_timeout)
+        guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     except ShellStatusError:
-        LOG.debug("Status code of \"%s\" was not obtained, most likely"
-                  "due to a problem with colored output" % cmd)
+        LOG.debug(
+            'Status code of "%s" was not obtained, most likely'
+            "due to a problem with colored output" % cmd
+        )
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Start failed")
 
-    LOG.debug("------------ End of guest checking for Spice Vdagent"
-              " Daemon ------------")
+    LOG.debug(
+        "------------ End of guest checking for Spice Vdagent" " Daemon ------------"
+    )
     wait_timeout(3)
 
 
@@ -146,15 +149,13 @@ def restart_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd restart"
     try:
-        guest_session.cmd(cmd, print_func=LOG.info,
-                          timeout=test_timeout)
+        guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't restart spice vdagent process")
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
-    LOG.debug("------------ End of Spice Vdagent"
-              " Daemon  Restart ------------")
+    LOG.debug("------------ End of Spice Vdagent" " Daemon  Restart ------------")
     wait_timeout(3)
 
 
@@ -167,18 +168,20 @@ def stop_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd stop"
     try:
-        guest_session.cmd(cmd, print_func=LOG.info,
-                          timeout=test_timeout)
+        guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     except ShellStatusError:
-        LOG.debug("Status code of \"%s\" was not obtained, most likely"
-                  "due to a problem with colored output" % cmd)
+        LOG.debug(
+            'Status code of "%s" was not obtained, most likely'
+            "due to a problem with colored output" % cmd
+        )
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't turn off spice vdagent process")
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
-    LOG.debug("------------ End of guest checking for Spice Vdagent"
-              " Daemon ------------")
+    LOG.debug(
+        "------------ End of guest checking for Spice Vdagent" " Daemon ------------"
+    )
     wait_timeout(3)
 
 
@@ -194,8 +197,10 @@ def verify_vdagent(guest_session, test_timeout):
     try:
         guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     finally:
-        LOG.debug("----------- End of guest check to see if vdagent "
-                  "package is available ------------")
+        LOG.debug(
+            "----------- End of guest check to see if vdagent "
+            "package is available ------------"
+        )
     wait_timeout(3)
 
 
@@ -210,18 +215,16 @@ def get_vdagent_status(vm_session, test_timeout):
 
     wait_timeout(3)
     try:
-        output = vm_session.cmd(
-            cmd, print_func=LOG.info, timeout=test_timeout)
+        output = vm_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     except ShellCmdError:
         # getting the status of vdagent stopped returns 3, which results in a
         # ShellCmdError
-        return ("stopped")
+        return "stopped"
     except Exception:
         print("Unexpected error:", sys.exc_info()[0])
-        raise exceptions.TestFail(
-            "Failed attempting to get status of spice-vdagentd")
+        raise exceptions.TestFail("Failed attempting to get status of spice-vdagentd")
     wait_timeout(3)
-    return (output)
+    return output
 
 
 def verify_virtio(guest_session, test_timeout):
@@ -235,12 +238,13 @@ def verify_virtio(guest_session, test_timeout):
     try:
         guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     finally:
-        LOG.debug("------------ End of guest check of the Virtio-Serial"
-                  " Driver------------")
+        LOG.debug(
+            "------------ End of guest check of the Virtio-Serial" " Driver------------"
+        )
     wait_timeout(3)
 
 
-def install_rv_win(client, host_path, client_path='C:\\virt-viewer.msi'):
+def install_rv_win(client, host_path, client_path="C:\\virt-viewer.msi"):
     """
     Install remote-viewer on a windows client
 
@@ -249,11 +253,13 @@ def install_rv_win(client, host_path, client_path='C:\\virt-viewer.msi'):
     :param client_path: Location of installer after copying
     """
     session = client.wait_for_login(
-        timeout=int(client.params.get("login_timeout", 360)))
+        timeout=int(client.params.get("login_timeout", 360))
+    )
     client.copy_files_to(host_path, client_path)
     try:
-        session.cmd_output('start /wait msiexec /i ' + client_path +
-                           ' INSTALLDIR="C:\\virt-viewer"')
+        session.cmd_output(
+            "start /wait msiexec /i " + client_path + ' INSTALLDIR="C:\\virt-viewer"'
+        )
     except Exception:
         pass
 
@@ -266,8 +272,9 @@ def install_usbclerk_win(client, host_path, client_path="C:\\usbclerk.msi"):
     :param host_path:   Location of installer on host
     :param client_path: Location of installer after copying
     """
-    session = client.wait_for_login(timeout=int(
-                                    client.params.get("login_timeout", 360)))
+    session = client.wait_for_login(
+        timeout=int(client.params.get("login_timeout", 360))
+    )
     client.copy_files_to(host_path, client_path)
     try:
         session.cmd_output("start /wait msiexec /i " + client_path + " /qn")
@@ -281,7 +288,7 @@ def clear_interface(vm, login_timeout=360, timeout=5):
 
     :param vm:      VM where cleaning is required
     """
-#   kill remote-viewer window if it is open
+    #   kill remote-viewer window if it is open
     if vm.params.get("os_type") == "windows":
         session = vm.wait_for_login()
         try:
@@ -299,10 +306,11 @@ def clear_interface_linux(vm, login_timeout, timeout):
     :param vm:      VM where cleaning is required
     """
     LOG.info("restarting X/gdm on: %s", vm.name)
-    session = vm.wait_for_login(username="root", password="123456",
-                                timeout=login_timeout)
+    session = vm.wait_for_login(
+        username="root", password="123456", timeout=login_timeout
+    )
 
-    if "release 7" in session.cmd('cat /etc/redhat-release'):
+    if "release 7" in session.cmd("cat /etc/redhat-release"):
         command = "gdm"
         pgrep_process = "'^gdm$'"
     else:
@@ -312,8 +320,7 @@ def clear_interface_linux(vm, login_timeout, timeout):
     try:
         pid = session.cmd("pgrep %s" % pgrep_process)
         session.cmd("killall %s" % command)
-        utils_misc.wait_for(lambda: _is_pid_alive(session, pid), 10,
-                            timeout, 0.2)
+        utils_misc.wait_for(lambda: _is_pid_alive(session, pid), 10, timeout, 0.2)
     except Exception:
         pass
 
@@ -341,22 +348,25 @@ def deploy_epel_repo(guest_session, params):
         else:
             arch = arch[:-1]
         if "release 5" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
-                   "pub/epel/epel-release-latest-5.noarch.rpm")
-            LOG.info("Installing epel repository to %s",
-                     params.get("guest_vm"))
+            cmd = (
+                "yum -y localinstall https://dl.fedoraproject.org/"
+                "pub/epel/epel-release-latest-5.noarch.rpm"
+            )
+            LOG.info("Installing epel repository to %s", params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         elif "release 6" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
-                   "pub/epel/epel-release-latest-6.noarch.rpm")
-            LOG.info("Installing epel repository to %s",
-                     params.get("guest_vm"))
+            cmd = (
+                "yum -y localinstall https://dl.fedoraproject.org/"
+                "pub/epel/epel-release-latest-6.noarch.rpm"
+            )
+            LOG.info("Installing epel repository to %s", params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         elif "release 7" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
-                   "pub/epel/epel-release-latest-7.noarch.rpm")
-            LOG.info("Installing epel repository to %s",
-                     params.get("guest_vm"))
+            cmd = (
+                "yum -y localinstall https://dl.fedoraproject.org/"
+                "pub/epel/epel-release-latest-7.noarch.rpm"
+            )
+            LOG.info("Installing epel repository to %s", params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         else:
             raise Exception("Unsupported RHEL guest")
@@ -374,11 +384,13 @@ def gen_rv_file(params, guest_vm, host_subj=None, cacert=None):
     full_screen = params.get("full_screen")
     proxy = params.get("spice_proxy")
 
-    rv_file = open('rv_file.vv', 'w')
-    rv_file.write("[virt-viewer]\n" +
-                  "type=%s\n" % params.get("display") +
-                  "host=%s\n" % utils_net.get_host_ip_address(params) +
-                  "port=%s\n" % guest_vm.get_spice_var("spice_port"))
+    rv_file = open("rv_file.vv", "w")
+    rv_file.write(
+        "[virt-viewer]\n"
+        + "type=%s\n" % params.get("display")
+        + "host=%s\n" % utils_net.get_host_ip_address(params)
+        + "port=%s\n" % guest_vm.get_spice_var("spice_port")
+    )
 
     ticket = params.get("spice_password", None)
     ticket_send = params.get("spice_password_send", None)
@@ -391,15 +403,14 @@ def gen_rv_file(params, guest_vm, host_subj=None, cacert=None):
         rv_file.write("password=%s\n" % ticket)
 
     if guest_vm.get_spice_var("spice_ssl") == "yes":
-        rv_file.write("tls-port=%s\n" %
-                      guest_vm.get_spice_var("spice_tls_port"))
+        rv_file.write("tls-port=%s\n" % guest_vm.get_spice_var("spice_tls_port"))
         rv_file.write("tls-ciphers=DEFAULT\n")
     if host_subj:
         rv_file.write("host-subject=%s\n" % host_subj)
     if cacert:
         cert = open(cacert)
         ca = cert.read()
-        ca = ca.replace('\n', r'\n')
+        ca = ca.replace("\n", r"\n")
         rv_file.write("ca=%s\n" % ca)
     if full_screen == "yes":
         rv_file.write("fullscreen=1\n")

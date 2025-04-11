@@ -5,6 +5,6 @@ except NameError:
 
 while True:
     in_put = _input("")
-    if in_put in ['exit', 'quit']:
+    if in_put in ["exit", "quit"]:
         print("Bye")
         break

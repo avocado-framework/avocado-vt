@@ -11,14 +11,13 @@ import six
 # Exceptions
 #
 class DeviceError(Exception):
+    """General device exception"""
 
-    """ General device exception """
     pass
 
 
 class DeviceInsertError(DeviceError):
-
-    """ Fail to insert device """
+    """Fail to insert device"""
 
     def __init__(self, device, reason, vmdev):
         self.device = device
@@ -27,14 +26,21 @@ class DeviceInsertError(DeviceError):
         self.issue = "insert"
 
     def __str__(self):
-        return ("Failed to %s device:\n%s\nBecause:\n%s\nList of VM devices:\n"
-                "%s\n%s" % (self.issue, self.device.str_long(), self.reason,
-                            self.vmdev.str_short(), self.vmdev.str_bus_long()))
+        return (
+            "Failed to %s device:\n%s\nBecause:\n%s\nList of VM devices:\n"
+            "%s\n%s"
+            % (
+                self.issue,
+                self.device.str_long(),
+                self.reason,
+                self.vmdev.str_short(),
+                self.vmdev.str_bus_long(),
+            )
+        )
 
 
 class DeviceRemoveError(DeviceInsertError):
-
-    """ Fail to remove device """
+    """Fail to remove device"""
 
     def __init__(self, device, reason, vmdev):
         DeviceInsertError.__init__(self, device, reason, vmdev)
@@ -42,8 +48,7 @@ class DeviceRemoveError(DeviceInsertError):
 
 
 class DeviceHotplugError(DeviceInsertError):
-
-    """ Fail to hotplug device """
+    """Fail to hotplug device"""
 
     def __init__(self, device, reason, vmdev, ver_out=None):
         DeviceInsertError.__init__(self, device, reason, vmdev)
@@ -52,8 +57,7 @@ class DeviceHotplugError(DeviceInsertError):
 
 
 class DeviceUnplugError(DeviceHotplugError):
-
-    """ Fail to unplug device """
+    """Fail to unplug device"""
 
     def __init__(self, device, reason, vmdev):
         DeviceHotplugError.__init__(self, device, reason, vmdev)
@@ -64,10 +68,10 @@ class DeviceUnplugError(DeviceHotplugError):
 # Utilities
 #
 def none_or_int(value):
-    """ Helper function which returns None or int() """
+    """Helper function which returns None or int()"""
     if isinstance(value, int):
         return value
-    elif not value:   # "", None, False
+    elif not value:  # "", None, False
         return None
     elif isinstance(value, six.string_types) and value.isdigit():
         return int(value)

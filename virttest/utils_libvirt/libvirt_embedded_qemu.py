@@ -1,16 +1,15 @@
 """
 Classes and functions for embedded qemu driver.
 """
-import re
+
 import logging
+import re
 
 import aexpect
 from avocado.core import exceptions
-from avocado.utils import path
-from avocado.utils import process
+from avocado.utils import path, process
 
-from virttest import utils_split_daemons
-from virttest import utils_misc
+from virttest import utils_misc, utils_split_daemons
 
 try:
     path.find_command("virt-qemu-run")
@@ -18,26 +17,24 @@ try:
 except path.CmdNotFoundError:
     EMBEDDEDQEMU = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class EmbeddedQemuSession(object):
-
     """
     Interaction embeddedQemu session can start a qemu process.
     """
 
-    def __init__(self,
-                 logging_handler=None,
-                 logging_params=(),
-                 logging_pattern=r'.*'):
+    def __init__(self, logging_handler=None, logging_params=(), logging_pattern=r".*"):
         """
         :param logging_handler: Callback function to handle logging
         :param logging_params: Where log is stored
         :param logging_pattern: Regex for filtering specific log lines
         """
         if not utils_split_daemons.is_modular_daemon():
-            raise exceptions.TestCancel("Embedded qemu driver needs modular daemon mode.")
+            raise exceptions.TestCancel(
+                "Embedded qemu driver needs modular daemon mode."
+            )
         self.tail = None
         self.running = False
         self.service_exec = "virt-qemu-run"
@@ -56,7 +53,7 @@ class EmbeddedQemuSession(object):
             if re.match(self.logging_pattern, line):
                 self.logging_handler(line, *self.logging_params)
 
-    def start(self, arg_str='', wait_for_working=True):
+    def start(self, arg_str="", wait_for_working=True):
         """
         Start embeddedqemu session.
 
@@ -64,9 +61,9 @@ class EmbeddedQemuSession(object):
         :param wait_for_working: Whether wait for embeddedqemu finish loading
         """
         self.tail = aexpect.Tail(
-                "%s %s" % (self.service_exec, arg_str),
-                output_func=self._output_handler,
-            )
+            "%s %s" % (self.service_exec, arg_str),
+            output_func=self._output_handler,
+        )
         self.running = True
 
         if wait_for_working:
@@ -78,7 +75,7 @@ class EmbeddedQemuSession(object):
 
         :param timeout: Max wait time
         """
-        LOG.debug('Waiting for %s to work', self.service_exec)
+        LOG.debug("Waiting for %s to work", self.service_exec)
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -88,7 +85,7 @@ class EmbeddedQemuSession(object):
         """
         Check if embeddedqemu is start by return status of 'virsh list'
         """
-        cmd = 'pgrep qemu | wc -l'
+        cmd = "pgrep qemu | wc -l"
         output = int(process.run(cmd, shell=True).stdout_text.strip())
         if output - self.qemu_pro_num == 2:
             self.running = True

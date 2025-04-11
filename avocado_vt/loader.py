@@ -22,10 +22,7 @@ import os
 
 from avocado.core import output
 
-from virttest import cartesian_config
-from virttest import data_dir
-from virttest import standalone_test
-from virttest import storage
+from virttest import cartesian_config, data_dir, standalone_test, storage
 from virttest.compat import get_opt, set_opt
 
 from .discovery import DiscoveryMixIn
@@ -33,6 +30,7 @@ from .test import VirtTest
 
 try:
     from avocado.core import loader
+
     AVOCADO_LOADER_AVAILABLE = True
 except ImportError:
     AVOCADO_LOADER_AVAILABLE = False
@@ -45,23 +43,24 @@ def guest_listing(config, guest_name_parser=None):
     """
     List available guest operating systems and info about image availability
     """
-    if get_opt(config, 'vt.type') == 'lvsb':
+    if get_opt(config, "vt.type") == "lvsb":
         raise ValueError("No guest types available for lvsb testing")
-    LOG.debug("Using %s for guest images\n",
-              os.path.join(data_dir.get_data_dir(), 'images'))
+    LOG.debug(
+        "Using %s for guest images\n", os.path.join(data_dir.get_data_dir(), "images")
+    )
     LOG.info("Available guests in config:")
     if guest_name_parser is None:
         guest_name_parser = standalone_test.get_guest_name_parser(config)
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
-        machine_type = get_opt(config, 'vt.common.machine_type')
-        name = params['name'].replace('.%s' % machine_type, '')
+        machine_type = get_opt(config, "vt.common.machine_type")
+        name = params["name"].replace(".%s" % machine_type, "")
         if os.path.isfile(image_name):
             out = name
         else:
             missing = "(missing %s)" % os.path.basename(image_name)
-            out = (name + " " + output.TERM_SUPPORT.warn_header_str(missing))
+            out = name + " " + output.TERM_SUPPORT.warn_header_str(missing)
         LOG.debug(out)
     LOG.debug("")
 
@@ -70,35 +69,34 @@ def arch_listing(config, guest_name_parser=None):
     """
     List available machine/archs for given guest operating systems
     """
-    guest_os = get_opt(config, 'vt.guest_os')
+    guest_os = get_opt(config, "vt.guest_os")
     if guest_os is not None:
-        extra = " for guest os \"%s\"" % guest_os
+        extra = ' for guest os "%s"' % guest_os
     else:
         extra = ""
     LOG.info("Available arch profiles%s", extra)
     if guest_name_parser is None:
         guest_name_parser = standalone_test.get_guest_name_parser(config)
-    machine_type = get_opt(config, 'vt.common.machine_type')
+    machine_type = get_opt(config, "vt.common.machine_type")
     for params in guest_name_parser.get_dicts():
-        LOG.debug(params['name'].replace('.%s' % machine_type, ''))
+        LOG.debug(params["name"].replace(".%s" % machine_type, ""))
     LOG.debug("")
 
 
 class NotAvocadoVTTest(object):
-
     """
     Not an Avocado-vt test (for reporting purposes)
     """
 
 
 if AVOCADO_LOADER_AVAILABLE:
-    class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
 
+    class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
         """
         Avocado loader plugin to load avocado-vt tests
         """
 
-        name = 'vt'
+        name = "vt"
 
         def __init__(self, config, extra_params):
             """
@@ -111,32 +109,32 @@ if AVOCADO_LOADER_AVAILABLE:
             # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
             # keep making the old name available for compatibility with
             # new and old releases
-            if hasattr(self, 'config'):
-                self.args = self.config   # pylint: disable=E0203
+            if hasattr(self, "config"):
+                self.args = self.config  # pylint: disable=E0203
             # And in case an older Avocado is used, the Loader class will
             # contain an "args" attribute instead
             else:
-                self.config = self.args   # pylint: disable=E0203
+                self.config = self.args  # pylint: disable=E0203
             if vt_extra_params:
                 # We don't want to override the original config
                 self.config = copy.deepcopy(self.config)
-                extra = get_opt(self.config, 'vt.extra_params')
+                extra = get_opt(self.config, "vt.extra_params")
                 if extra is not None:
                     extra += vt_extra_params
                 else:
                     extra = vt_extra_params
-                set_opt(self.config, 'vt.extra_params', extra)
+                set_opt(self.config, "vt.extra_params", extra)
 
         def get_extra_listing(self):
-            if get_opt(self.config, 'vt.list_guests'):
+            if get_opt(self.config, "vt.list_guests"):
                 config = copy.copy(self.config)
-                set_opt(config, 'vt.config', None)
-                set_opt(config, 'vt.guest_os', None)
+                set_opt(config, "vt.config", None)
+                set_opt(config, "vt.guest_os", None)
                 guest_listing(config)
-            if get_opt(self.config, 'vt.list_archs'):
+            if get_opt(self.config, "vt.list_archs"):
                 config = copy.copy(self.config)
-                set_opt(config, 'vt.common.machine_type', None)
-                set_opt(config, 'vt.common.arch', None)
+                set_opt(config, "vt.common.machine_type", None)
+                set_opt(config, "vt.common.arch", None)
                 arch_listing(config)
 
         @staticmethod
@@ -147,7 +145,7 @@ if AVOCADO_LOADER_AVAILABLE:
             :returns: a dictionary with the test class as key and description
                       as value.
             """
-            return {VirtTest: 'VT', NotAvocadoVTTest: "!VT"}
+            return {VirtTest: "VT", NotAvocadoVTTest: "!VT"}
 
         @staticmethod
         def get_decorator_mapping():
@@ -158,8 +156,10 @@ if AVOCADO_LOADER_AVAILABLE:
                      function as value.
             """
             term_support = output.TermSupport()
-            return {VirtTest: term_support.healthy_str,
-                    NotAvocadoVTTest: term_support.fail_header_str}
+            return {
+                VirtTest: term_support.healthy_str,
+                NotAvocadoVTTest: term_support.fail_header_str,
+            }
 
         @staticmethod
         def _report_bad_discovery(name, reason, which_tests):
@@ -184,8 +184,9 @@ if AVOCADO_LOADER_AVAILABLE:
                 # the other test plugins to handle the URL.
                 except cartesian_config.ParserError as details:
                     return self._report_bad_discovery(url, details, which_tests)
-            elif (which_tests is loader.DiscoverMode.DEFAULT and
-                  not get_opt(self.config, 'vt.config')):
+            elif which_tests is loader.DiscoverMode.DEFAULT and not get_opt(
+                self.config, "vt.config"
+            ):
                 # By default don't run anything unless vt.config provided
                 return []
             # Create test_suite
@@ -193,6 +194,5 @@ if AVOCADO_LOADER_AVAILABLE:
             for params in (_ for _ in cartesian_parser.get_dicts()):
                 test_suite.append((VirtTest, self.convert_parameters(params)))
             if which_tests is loader.DiscoverMode.ALL and not test_suite:
-                return self._report_bad_discovery(url, "No matching tests",
-                                                  which_tests)
+                return self._report_bad_discovery(url, "No matching tests", which_tests)
             return test_suite

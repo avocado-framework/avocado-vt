@@ -5,6 +5,7 @@ Available functions:
 - get_image_filename: Get the device path from vdpa.
 
 """
+
 from virttest import utils_vdpa
 
 
@@ -21,4 +22,4 @@ def get_image_filename(name):
     :rtype: str
     """
     path = utils_vdpa.get_vdpa_dev_file_by_name(name)
-    return 'vdpa://%s' % path
+    return "vdpa://%s" % path

@@ -5,25 +5,27 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
+
 import collections
 import json
 import logging
 import os
 import re
-import six
 import string
+
+import six
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import utils_misc
-from virttest import virt_vm
-from virttest import storage
-from virttest import nvme
-from virttest import data_dir
-from virttest import error_context
+from virttest import data_dir, error_context, nvme, storage, utils_misc, virt_vm
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def filename_to_file_opts(filename):
@@ -31,172 +33,190 @@ def filename_to_file_opts(filename):
     file_opts = {}
     if not filename:
         file_opts = {}
-    elif filename.startswith('iscsi:'):
+    elif filename.startswith("iscsi:"):
         filename_pattern = re.compile(
-            r'iscsi://((?P<user>.+?):(?P<password>.+?)@)?(?P<portal>.+)/(?P<target>.+?)/(?P<lun>\d+)')
-        matches = filename_pattern.match(filename)
-        if matches:
-            if (matches.group('portal') is not None
-                    and matches.group('target') is not None
-                    and matches.group('lun') is not None):
-                # required options for iscsi
-                file_opts = {'driver': 'iscsi',
-                             'transport': 'tcp',
-                             'portal': matches.group('portal'),
-                             'target': matches.group('target'),
-                             'lun': int(matches.group('lun'))}
-                if matches.group('user') is not None:
-                    # optional option
-                    file_opts['user'] = matches.group('user')
-    elif filename.startswith('rbd:'):
-        filename_pattern = re.compile(
-            r'rbd:(?P<pool>.+?)/(?P<namespace>.+?(?=/))?/?(?P<image>[^:]+)'
-            r'(:conf=(?P<conf>.+))?'
+            r"iscsi://((?P<user>.+?):(?P<password>.+?)@)?(?P<portal>.+)/(?P<target>.+?)/(?P<lun>\d+)"
         )
         matches = filename_pattern.match(filename)
         if matches:
-            if (matches.group('pool') is not None
-                    and matches.group('image') is not None):
-                # required options for rbd
-                file_opts = {'driver': 'rbd',
-                             'pool': matches.group('pool'),
-                             'image': matches.group('image')}
-                if matches.group('conf') is not None:
+            if (
+                matches.group("portal") is not None
+                and matches.group("target") is not None
+                and matches.group("lun") is not None
+            ):
+                # required options for iscsi
+                file_opts = {
+                    "driver": "iscsi",
+                    "transport": "tcp",
+                    "portal": matches.group("portal"),
+                    "target": matches.group("target"),
+                    "lun": int(matches.group("lun")),
+                }
+                if matches.group("user") is not None:
                     # optional option
-                    file_opts['conf'] = matches.group('conf')
-                if matches.group('namespace') is not None:
-                    # optional option
-                    file_opts['namespace'] = matches.group('namespace')
-    elif filename.startswith('gluster'):
+                    file_opts["user"] = matches.group("user")
+    elif filename.startswith("rbd:"):
         filename_pattern = re.compile(
-            r'gluster\+?(?P<type>.+)?://((?P<host>[^/]+?)(:(?P<port>\d+))?)?/'
-            r'(?P<volume>.+?)/(?P<path>[^,?]+)'
-            r'(\?socket=(?P<socket>[^,]+))?'
+            r"rbd:(?P<pool>.+?)/(?P<namespace>.+?(?=/))?/?(?P<image>[^:]+)"
+            r"(:conf=(?P<conf>.+))?"
+        )
+        matches = filename_pattern.match(filename)
+        if matches:
+            if matches.group("pool") is not None and matches.group("image") is not None:
+                # required options for rbd
+                file_opts = {
+                    "driver": "rbd",
+                    "pool": matches.group("pool"),
+                    "image": matches.group("image"),
+                }
+                if matches.group("conf") is not None:
+                    # optional option
+                    file_opts["conf"] = matches.group("conf")
+                if matches.group("namespace") is not None:
+                    # optional option
+                    file_opts["namespace"] = matches.group("namespace")
+    elif filename.startswith("gluster"):
+        filename_pattern = re.compile(
+            r"gluster\+?(?P<type>.+)?://((?P<host>[^/]+?)(:(?P<port>\d+))?)?/"
+            r"(?P<volume>.+?)/(?P<path>[^,?]+)"
+            r"(\?socket=(?P<socket>[^,]+))?"
         )
         matches = filename_pattern.match(filename)
         if matches:
             servers = []
-            transport = 'inet' if not matches.group('type') or matches.group('type') == 'tcp' else matches.group('type')
+            transport = (
+                "inet"
+                if not matches.group("type") or matches.group("type") == "tcp"
+                else matches.group("type")
+            )
 
-            if matches.group('host'):
+            if matches.group("host"):
                 # 'IPv4/hostname' or '[IPv6 address]'
-                host = matches.group('host').strip('[]')
+                host = matches.group("host").strip("[]")
 
                 # port should be set for both qemu-img and qemu-kvm
-                port = matches.group('port') if matches.group('port') else '0'
+                port = matches.group("port") if matches.group("port") else "0"
 
-                servers.append({'type': transport,
-                                'host': host,
-                                'port': port})
-            elif matches.group('socket'):
-                servers.append({'type': transport,
-                                'path': matches.group('socket')})
+                servers.append({"type": transport, "host": host, "port": port})
+            elif matches.group("socket"):
+                servers.append({"type": transport, "path": matches.group("socket")})
 
-            if matches.group('volume') and matches.group('path') and servers:
+            if matches.group("volume") and matches.group("path") and servers:
                 # required options for gluster
-                file_opts = {'driver': 'gluster',
-                             'volume': matches.group('volume'),
-                             'path': matches.group('path')}
-                file_opts.update({'server.{i}.{k}'.format(i=i, k=k): v
-                                  for i, server in enumerate(servers)
-                                  for k, v in six.iteritems(server)})
-    elif re.match(r'nbd(\+\w+)?://', filename):
+                file_opts = {
+                    "driver": "gluster",
+                    "volume": matches.group("volume"),
+                    "path": matches.group("path"),
+                }
+                file_opts.update(
+                    {
+                        "server.{i}.{k}".format(i=i, k=k): v
+                        for i, server in enumerate(servers)
+                        for k, v in six.iteritems(server)
+                    }
+                )
+    elif re.match(r"nbd(\+\w+)?://", filename):
         filename_pattern = re.compile(
-            r'nbd(\+(?:.+))?://((?P<host>[^/:?]+)(:(?P<port>\d+))?)?'
-            r'(/(?P<export>[^?]+))?'
-            r'(\?socket=(?P<socket>.+))?'
+            r"nbd(\+(?:.+))?://((?P<host>[^/:?]+)(:(?P<port>\d+))?)?"
+            r"(/(?P<export>[^?]+))?"
+            r"(\?socket=(?P<socket>.+))?"
         )
         matches = filename_pattern.match(filename)
         if matches:
             server = {}
-            host = matches.group('host')
-            sock = matches.group('socket')
+            host = matches.group("host")
+            sock = matches.group("socket")
 
             if host:
                 # 10890 is the default port for tcp connection
-                port = matches.group('port') if matches.group(
-                    'port') else '10809'
-                server = {'server.type': 'inet',
-                          'server.host': host,
-                          'server.port': port}
+                port = matches.group("port") if matches.group("port") else "10809"
+                server = {
+                    "server.type": "inet",
+                    "server.host": host,
+                    "server.port": port,
+                }
             elif sock:
-                server = {'server.type': 'unix', 'server.path': sock}
+                server = {"server.type": "unix", "server.path": sock}
 
             if server:
                 # server is required
-                file_opts = {'driver': 'nbd'}
+                file_opts = {"driver": "nbd"}
                 file_opts.update(server)
 
-                if matches.group('export'):
-                    file_opts['export'] = matches.group('export')
-    elif filename.startswith('nvme:'):
+                if matches.group("export"):
+                    file_opts["export"] = matches.group("export")
+    elif filename.startswith("nvme:"):
         addr, namespace = nvme.parse_uri(filename)
-        file_opts = {'driver': 'nvme', 'device': addr, 'namespace': int(namespace)}
-    elif filename.startswith('ssh:'):
+        file_opts = {"driver": "nvme", "device": addr, "namespace": int(namespace)}
+    elif filename.startswith("ssh:"):
         filename_pattern = re.compile(
-            r'ssh://((?P<user>.+)@)?(?P<host>[^/:?]+)(:(?P<port>\d+))?'
-            r'(?P<path>/[^?]+)'
-            r'(\?host_key_check=(?P<host_key_check>.+))?'
+            r"ssh://((?P<user>.+)@)?(?P<host>[^/:?]+)(:(?P<port>\d+))?"
+            r"(?P<path>/[^?]+)"
+            r"(\?host_key_check=(?P<host_key_check>.+))?"
         )
         matches = filename_pattern.match(filename)
         if matches:
             matches = matches.groupdict()
-            if matches['host'] is not None and matches['path'] is not None:
+            if matches["host"] is not None and matches["path"] is not None:
                 # required ssh options
                 file_opts = {
-                    'driver': 'ssh',
-                    'server.host': matches['host'],
-                    'server.port': matches['port'] if matches['port'] else 22,
-                    'path': matches['path']
+                    "driver": "ssh",
+                    "server.host": matches["host"],
+                    "server.port": matches["port"] if matches["port"] else 22,
+                    "path": matches["path"],
                 }
 
-                if matches['user'] is not None:
-                    file_opts['user'] = matches['user']
+                if matches["user"] is not None:
+                    file_opts["user"] = matches["user"]
 
                 # options in qemu-kvm are different from uri
-                if matches['host_key_check'] is not None:
-                    if matches['host_key_check'] == 'no':
-                        file_opts['host-key-check.mode'] = 'none'
-                    elif matches['host_key_check'] == 'yes':
-                        file_opts['host-key-check.mode'] = 'known_hosts'
+                if matches["host_key_check"] is not None:
+                    if matches["host_key_check"] == "no":
+                        file_opts["host-key-check.mode"] = "none"
+                    elif matches["host_key_check"] == "yes":
+                        file_opts["host-key-check.mode"] = "known_hosts"
                     else:
-                        m = re.match(r'(?P<type>md5|sha1):(?P<hash>.+)',
-                                     matches['host_key_check']).groupdict()
-                        file_opts.update({
-                            'host-key-check.mode': 'hash',
-                            'host-key-check.type': m['type'],
-                            'host-key-check.hash': m['hash']
-                        })
-    elif re.match(r'(http|https|ftp|ftps)://', filename):
+                        m = re.match(
+                            r"(?P<type>md5|sha1):(?P<hash>.+)",
+                            matches["host_key_check"],
+                        ).groupdict()
+                        file_opts.update(
+                            {
+                                "host-key-check.mode": "hash",
+                                "host-key-check.type": m["type"],
+                                "host-key-check.hash": m["hash"],
+                            }
+                        )
+    elif re.match(r"(http|https|ftp|ftps)://", filename):
         filename_pattern = re.compile(
-            r'(?P<protocol>.+?)://((?P<user>.+?)(:(?P<password>.+?))?@)?'
-            r'(?P<server>.+?)/(?P<path>.+)')
+            r"(?P<protocol>.+?)://((?P<user>.+?)(:(?P<password>.+?))?@)?"
+            r"(?P<server>.+?)/(?P<path>.+)"
+        )
         matches = filename_pattern.match(filename)
         if matches:
             matches = matches.groupdict()
-            if all((matches['protocol'], matches['server'], matches['path'])):
+            if all((matches["protocol"], matches["server"], matches["path"])):
                 # required libcurl options, note server can be hostname:port
                 file_opts = {
-                    'driver': matches['protocol'],
-                    'url': '{protocol}://{server}/{path}'.format(
-                        protocol=matches['protocol'],
-                        server=matches['server'],
-                        path=matches['path']
-                    )
+                    "driver": matches["protocol"],
+                    "url": "{protocol}://{server}/{path}".format(
+                        protocol=matches["protocol"],
+                        server=matches["server"],
+                        path=matches["path"],
+                    ),
                 }
 
-                if matches['user'] is not None:
-                    file_opts['username'] = matches['user']
+                if matches["user"] is not None:
+                    file_opts["username"] = matches["user"]
     # FIXME: vdpa is a customized protocol instead of a standard protocol.
     elif filename.startswith("vdpa:"):
         # filename[7:] mean: remove the prefix "vdpa://"
-        file_opts = {'driver': 'virtio-blk-vhost-vdpa',
-                     'path': filename[7:]}
+        file_opts = {"driver": "virtio-blk-vhost-vdpa", "path": filename[7:]}
     # FIXME: Judge the host device by the string starts with "/dev/".
-    elif filename.startswith('/dev/'):
-        file_opts = {'driver': 'host_device', 'filename': filename}
+    elif filename.startswith("/dev/"):
+        file_opts = {"driver": "host_device", "filename": filename}
     else:
-        file_opts = {'driver': 'file', 'filename': filename}
+        file_opts = {"driver": "file", "filename": filename}
 
     if not file_opts:
         raise ValueError("Wrong filename %s" % filename)
@@ -225,55 +245,62 @@ def _get_image_meta(image, params, root_dir):
 
     auth_info = storage.StorageAuth.auth_info_define_by_params(image, params)
     if auth_info is not None:
-        if auth_info.storage_type == 'ceph':
+        if auth_info.storage_type == "ceph":
             if auth_info.data:
                 # qemu-img needs secret object only for ceph access
-                meta['file']['password-secret'] = auth_info.aid
-        elif auth_info.storage_type == 'iscsi-direct':
+                meta["file"]["password-secret"] = auth_info.aid
+        elif auth_info.storage_type == "iscsi-direct":
             if auth_info.data:
                 # '-b json' demands password
                 # note that image creation doesn't support secret object
-                meta['file']['password'] = auth_info.data
+                meta["file"]["password"] = auth_info.data
             if auth_info.iscsi_initiator:
-                meta['file']['initiator-name'] = auth_info.iscsi_initiator
-        elif auth_info.storage_type == 'glusterfs-direct':
+                meta["file"]["initiator-name"] = auth_info.iscsi_initiator
+        elif auth_info.storage_type == "glusterfs-direct":
             if auth_info.debug:
-                meta['file']['debug'] = int(auth_info.debug)
+                meta["file"]["debug"] = int(auth_info.debug)
             if auth_info.logfile:
-                meta['file']['logfile'] = auth_info.logfile
+                meta["file"]["logfile"] = auth_info.logfile
 
             peers = []
             for peer in auth_info.peers:
-                if 'path' in peer:
+                if "path" in peer:
                     # access storage with unix domain socket
-                    peers.append({'type': 'unix', 'path': peer['path']})
+                    peers.append({"type": "unix", "path": peer["path"]})
                 else:
                     # access storage with hostname/ip + port
-                    peers.append({'host': peer['host'],
-                                  'type': peer.get('type', 'inet'),
-                                  'port': '%s' % peer.get('port', '0')})
-            meta['file'].update({'server.{i}.{k}'.format(i=i + 1, k=k): v
-                                 for i, server in enumerate(peers)
-                                 for k, v in six.iteritems(server)})
-        elif auth_info.storage_type == 'nbd':
+                    peers.append(
+                        {
+                            "host": peer["host"],
+                            "type": peer.get("type", "inet"),
+                            "port": "%s" % peer.get("port", "0"),
+                        }
+                    )
+            meta["file"].update(
+                {
+                    "server.{i}.{k}".format(i=i + 1, k=k): v
+                    for i, server in enumerate(peers)
+                    for k, v in six.iteritems(server)
+                }
+            )
+        elif auth_info.storage_type == "nbd":
             # qemu-img, as a client, accesses nbd storage
             if auth_info.tls_creds:
-                meta['file']['tls-creds'] = auth_info.aid
+                meta["file"]["tls-creds"] = auth_info.aid
             if auth_info.reconnect_delay:
-                meta['file']['reconnect-delay'] = auth_info.reconnect_delay
-        elif auth_info.storage_type == 'curl':
+                meta["file"]["reconnect-delay"] = auth_info.reconnect_delay
+        elif auth_info.storage_type == "curl":
             mapping = {
-                'password-secret': (auth_info.data, auth_info.aid),
-                'sslverify': (auth_info.sslverify, auth_info.sslverify),
-                'cookie-secret': (auth_info.cookie,
-                                  auth_info.cookie.aid
-                                  if auth_info.cookie else ''),
-                'readahead': (auth_info.readahead, auth_info.readahead),
-                'timeout': (auth_info.timeout, auth_info.timeout)
+                "password-secret": (auth_info.data, auth_info.aid),
+                "sslverify": (auth_info.sslverify, auth_info.sslverify),
+                "cookie-secret": (
+                    auth_info.cookie,
+                    auth_info.cookie.aid if auth_info.cookie else "",
+                ),
+                "readahead": (auth_info.readahead, auth_info.readahead),
+                "timeout": (auth_info.timeout, auth_info.timeout),
             }
-            meta['file'].update({
-                k: v[1] for k, v in six.iteritems(mapping) if v[0]
-            })
+            meta["file"].update({k: v[1] for k, v in six.iteritems(mapping) if v[0]})
     filters = params.get("image_filter_drivers", "").split()
     # Stack them reversed, so the first filter on the list
     # will be on top of the rest of filters
@@ -294,6 +321,7 @@ def get_image_json(image, params, root_dir):
 
 def get_image_opts(image, params, root_dir):
     """Generate image-opts."""
+
     def _dict_to_dot(dct):
         """Convert dictionary to dot representation."""
         flat = []
@@ -308,7 +336,7 @@ def get_image_opts(image, params, root_dir):
                     prefix.pop()
                 stack.pop()
                 continue
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, Mapping):
                 prefix.append(key)
                 stack.append(six.iteritems(value))
             else:
@@ -316,45 +344,50 @@ def get_image_opts(image, params, root_dir):
         return flat
 
     meta = _get_image_meta(image, params, root_dir)
-    return ",".join(["%s=%s" % (attr, value) for
-                     attr, value in _dict_to_dot(meta)])
+    return ",".join(["%s=%s" % (attr, value) for attr, value in _dict_to_dot(meta)])
 
 
 def get_image_repr(image, params, root_dir, representation=None):
     """Get image representation."""
-    mapping = {"filename": lambda i, p, r: storage.get_image_filename(p, r),
-               "json": get_image_json,
-               "opts": get_image_opts}
+    mapping = {
+        "filename": lambda i, p, r: storage.get_image_filename(p, r),
+        "json": get_image_json,
+        "opts": get_image_opts,
+    }
     func = mapping.get(representation, None)
     if func is None:
-        image_secret = storage.ImageSecret.image_secret_define_by_params(
-            image, params)
+        image_secret = storage.ImageSecret.image_secret_define_by_params(image, params)
 
         access_needed = False
-        auth_info = storage.StorageAuth.auth_info_define_by_params(image,
-                                                                   params)
+        auth_info = storage.StorageAuth.auth_info_define_by_params(image, params)
         if auth_info is not None:
-            if auth_info.storage_type == 'ceph':
+            if auth_info.storage_type == "ceph":
                 # only ceph access needs secret object
                 if auth_info.data:
                     access_needed = True
-            elif auth_info.storage_type == 'iscsi-direct':
+            elif auth_info.storage_type == "iscsi-direct":
                 # url with u/p is used to access iscsi image,
                 # besides u/p, iscsi access may need initiator
                 if auth_info.iscsi_initiator:
                     access_needed = True
-            elif auth_info.storage_type == 'glusterfs-direct':
+            elif auth_info.storage_type == "glusterfs-direct":
                 # debug, logfile and other servers represent in json
                 if auth_info.debug or auth_info.logfile or auth_info.peers:
                     access_needed = True
-            elif auth_info.storage_type == 'nbd':
+            elif auth_info.storage_type == "nbd":
                 # tls-creds, reconnect_delay represent in json
                 access_needed = True
-            elif auth_info.storage_type == 'curl':
+            elif auth_info.storage_type == "curl":
                 # u/p can be included in url, while the others should be
                 # represented in json
-                if any((auth_info.sslverify, auth_info.cookie,
-                        auth_info.readahead, auth_info.timeout)):
+                if any(
+                    (
+                        auth_info.sslverify,
+                        auth_info.cookie,
+                        auth_info.readahead,
+                        auth_info.timeout,
+                    )
+                ):
                     access_needed = True
 
         func = mapping["json"] if image_secret or access_needed else mapping["filename"]
@@ -362,30 +395,30 @@ def get_image_repr(image, params, root_dir, representation=None):
 
 
 class _FilterConfigGatherer(object):
-    """ This class can be used to gather filter-specific configuration
-        from test params to generate fully-valid image_meta dicts.
-        The filter-specific image_meta should be obtained by calling
-        the gather class method.
-        This class should contain as much private methods as filters that
-        should be supported for image_meta generation. In other words,
-        each supported filter should contain a _<filter_type> implemented
-        in this class as well as a "<filter_type>": <cfg_gather_func> key/value
-        entry in the _config_gatherers dict from the gather method.
+    """This class can be used to gather filter-specific configuration
+    from test params to generate fully-valid image_meta dicts.
+    The filter-specific image_meta should be obtained by calling
+    the gather class method.
+    This class should contain as much private methods as filters that
+    should be supported for image_meta generation. In other words,
+    each supported filter should contain a _<filter_type> implemented
+    in this class as well as a "<filter_type>": <cfg_gather_func> key/value
+    entry in the _config_gatherers dict from the gather method.
     """
 
     @classmethod
     def gather(cls, filter_name, params):
-        """ Gathers filter-specific config from params and collects
-            them properly on an OrderedDict.
-            This method is in charge of calling the appropriate private
-            class method
-            :param filter_name: Name/id of the filter for which data is being
-                                gathered
-            :type filter_name: str
-            :param params: Collection of parameters from which data will be
-                           gathered
-            :type params: Ordered Dict
-            :return: Ordered Dict
+        """Gathers filter-specific config from params and collects
+        them properly on an OrderedDict.
+        This method is in charge of calling the appropriate private
+        class method
+        :param filter_name: Name/id of the filter for which data is being
+                            gathered
+        :type filter_name: str
+        :param params: Collection of parameters from which data will be
+                       gathered
+        :type params: Ordered Dict
+        :return: Ordered Dict
         """
         _config_gatherers = {"compress": cls._compress}
         filter_params = params.object_params(filter_name)
@@ -395,15 +428,17 @@ class _FilterConfigGatherer(object):
             gather_func = _config_gatherers[filter_type]
         except KeyError:
             # Filter is not supported
-            raise NotImplementedError("Image configuration meta generation "
-                                      "support hasn't been implemented for "
-                                      f"{filter_type} filter yet.")
+            raise NotImplementedError(
+                "Image configuration meta generation "
+                "support hasn't been implemented for "
+                f"{filter_type} filter yet."
+            )
         return gather_func(filter_params)
 
     @staticmethod
     def _compress(params):
-        """ Gives an empty OrderedDict (as compress filter doesn't have
-            specific attributes related to the filter)
+        """Gives an empty OrderedDict (as compress filter doesn't have
+        specific attributes related to the filter)
         """
         return collections.OrderedDict({"driver": "compress"})
 
@@ -415,6 +450,7 @@ class _ParameterAssembler(string.Formatter):
     This will automatically prepend parameter if corresponding value is passed
     to the format string.
     """
+
     sentinal = object()
 
     def __init__(self, cmd_params=None):
@@ -458,6 +494,7 @@ class _ParameterAssembler(string.Formatter):
 
 class QemuImg(storage.QemuImg):
     """KVM class for handling operations of disk/block images."""
+
     qemu_img_parameters = {
         "image_format": "-f",
         "backing_file": "-b",
@@ -482,38 +519,54 @@ class QemuImg(storage.QemuImg):
         "convert_backing_file": "-B",
         "commit_drop": "-d",
         "compare_strict_mode": "-s",
-        "compare_second_image_format": "-F"
+        "compare_second_image_format": "-F",
     }
-    create_cmd = ("create {secret_object} {tls_creds_object} {image_format} "
-                  "{backing_file} {backing_format} {unsafe!b} {options} "
-                  "{image_filename} {image_size}")
-    check_cmd = ("check {secret_object} {tls_creds_object} "
-                 "{image_opts} {image_format} "
-                 "{output_format} {check_repair} {force_share!b} "
-                 "{image_filename}")
-    convert_cmd = ("convert {secret_object} {tls_creds_object} "
-                   "{convert_compressed!b} {skip_target_image_creation} "
-                   "{image_format} {cache_mode} {source_cache_mode} "
-                   "{target_image_format} {options} {convert_sparse_size} "
-                   "{rate_limit} {convert_target_is_zero!b} "
-                   "{convert_backing_file} "
-                   "{image_filename} {target_image_filename} "
-                   "{target_image_opts}")
-    commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
-                  "{backing_file} {commit_drop!b} {image_filename} "
-                  "{rate_limit}")
-    resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
-                  "{resize_preallocation} {image_filename} {image_size}")
-    rebase_cmd = ("rebase {secret_object} {image_format} {cache_mode} "
-                  "{source_cache_mode} {unsafe!b} {backing_file} "
-                  "{backing_format} {image_filename}")
-    dd_cmd = ("dd {secret_object} {tls_creds_object} {image_format} "
-              "{target_image_format} {block_size} {count} {skip} "
-              "if={image_filename} of={target_image_filename}")
-    compare_cmd = ("compare {secret_object} {tls_creds_object} {image_format} "
-                   "{compare_second_image_format} {source_cache_mode} "
-                   "{compare_strict_mode!b} {force_share!b} "
-                   "{image_filename} {compare_second_image_filename}")
+    create_cmd = (
+        "create {secret_object} {tls_creds_object} {image_format} "
+        "{backing_file} {backing_format} {unsafe!b} {options} "
+        "{image_filename} {image_size}"
+    )
+    check_cmd = (
+        "check {secret_object} {tls_creds_object} "
+        "{image_opts} {image_format} "
+        "{output_format} {check_repair} {force_share!b} "
+        "{image_filename}"
+    )
+    convert_cmd = (
+        "convert {secret_object} {tls_creds_object} "
+        "{convert_compressed!b} {skip_target_image_creation} "
+        "{image_format} {cache_mode} {source_cache_mode} "
+        "{target_image_format} {options} {convert_sparse_size} "
+        "{rate_limit} {convert_target_is_zero!b} "
+        "{convert_backing_file} "
+        "{image_filename} {target_image_filename} "
+        "{target_image_opts}"
+    )
+    commit_cmd = (
+        "commit {secret_object} {image_format} {cache_mode} "
+        "{backing_file} {commit_drop!b} {image_filename} "
+        "{rate_limit}"
+    )
+    resize_cmd = (
+        "resize {secret_object} {image_opts} {resize_shrink!b} "
+        "{resize_preallocation} {image_filename} {image_size}"
+    )
+    rebase_cmd = (
+        "rebase {secret_object} {image_format} {cache_mode} "
+        "{source_cache_mode} {unsafe!b} {backing_file} "
+        "{backing_format} {image_filename}"
+    )
+    dd_cmd = (
+        "dd {secret_object} {tls_creds_object} {image_format} "
+        "{target_image_format} {block_size} {count} {skip} "
+        "if={image_filename} of={target_image_filename}"
+    )
+    compare_cmd = (
+        "compare {secret_object} {tls_creds_object} {image_format} "
+        "{compare_second_image_format} {source_cache_mode} "
+        "{compare_strict_mode!b} {force_share!b} "
+        "{image_filename} {compare_second_image_filename}"
+    )
 
     def __init__(self, params, root_dir, tag):
         """
@@ -526,14 +579,14 @@ class QemuImg(storage.QemuImg):
         :raise NotImplementedError: If the image type is not supported.
         """
         if params.get("storage_type") == "vhost-vdpa":
-            raise NotImplementedError("Vdpa is NOT supported to handle "
-                                      "the image!")
+            raise NotImplementedError("Vdpa is NOT supported to handle " "the image!")
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
-        q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
-                               shell=True, verbose=False)
+        q_result = process.run(
+            self.image_cmd + " -h", ignore_status=True, shell=True, verbose=False
+        )
         self.help_text = q_result.stdout_text
-        self.cap_force_share = '-U' in self.help_text
+        self.cap_force_share = "-U" in self.help_text
         self._cmd_formatter = _ParameterAssembler(self.qemu_img_parameters)
 
     def _parse_options(self, params):
@@ -543,7 +596,12 @@ class QemuImg(storage.QemuImg):
             "image_cluster_size": (None, "cluster_size", ("qcow2",)),
             "lazy_refcounts": (None, "lazy_refcounts", ("qcow2",)),
             "qcow2_compatible": (None, "compat", ("qcow2",)),
-            "image_extent_size_hint": (None, "extent_size_hint", ("qcow2", "raw", "luks"))
+            "image_extent_size_hint": (
+                None,
+                "extent_size_hint",
+                ("qcow2", "raw", "luks"),
+            ),
+            "image_compression_type": (None, "compression_type", ("qcow2",)),
         }
         image_format = params.get("image_format", "qcow2")
         options = []
@@ -563,29 +621,30 @@ class QemuImg(storage.QemuImg):
                 if opt_val:
                     if image_format == "qcow2":
                         opt_key = "encrypt.%s" % opt_key
-                    options.append("%s=%s" % (opt_key.replace("_", "-"),
-                                              str(opt_val)))
+                    options.append("%s=%s" % (opt_key.replace("_", "-"), str(opt_val)))
 
         if self.data_file:
             options.extend(
-                ("data_file=%s" % self.data_file.image_filename,
-                 "data_file_raw=%s" % params.get("image_data_file_raw", "off")))
+                (
+                    "data_file=%s" % self.data_file.image_filename,
+                    "data_file_raw=%s" % params.get("image_data_file_raw", "off"),
+                )
+            )
 
         for access_secret, secret_type in self._image_access_secret:
-            if secret_type == 'password':
+            if secret_type == "password":
                 options.append("password-secret=%s" % access_secret.aid)
-            elif secret_type == 'key':
+            elif secret_type == "key":
                 options.append("key-secret=%s" % access_secret.aid)
-            elif secret_type == 'cookie':
+            elif secret_type == "cookie":
                 options.append("cookie-secret=%s" % access_secret.aid)
 
         image_extra_params = params.get("image_extra_params")
         if image_extra_params:
-            options.append(image_extra_params.strip(','))
+            options.append(image_extra_params.strip(","))
         if params.get("has_backing_file") == "yes":
             backing_param = params.object_params("backing_file")
-            backing_file = storage.get_image_filename(backing_param,
-                                                      self.root_dir)
+            backing_file = storage.get_image_filename(backing_param, self.root_dir)
             options.append("backing_file=%s" % backing_file)
             backing_fmt = backing_param.get("image_format")
             options.append("backing_fmt=%s" % backing_fmt)
@@ -619,7 +678,7 @@ class QemuImg(storage.QemuImg):
         creds = self.image_access.image_auth if self.image_access else None
 
         if creds is not None:
-            if creds.storage_type == 'nbd':
+            if creds.storage_type == "nbd":
                 if creds.tls_creds:
                     tls_creds = creds
 
@@ -628,10 +687,12 @@ class QemuImg(storage.QemuImg):
     @property
     def _backing_access_tls_creds(self):
         tls_creds_list = []
-        creds_list = self.image_access.image_backing_auth.values() if self.image_access else []
+        creds_list = (
+            self.image_access.image_backing_auth.values() if self.image_access else []
+        )
 
         for creds in creds_list:
-            if creds.storage_type == 'nbd':
+            if creds.storage_type == "nbd":
                 if creds.tls_creds:
                     tls_creds_list.append(creds)
 
@@ -651,17 +712,17 @@ class QemuImg(storage.QemuImg):
         auth = self.image_access.image_auth if self.image_access else None
 
         if auth is not None:
-            if auth.storage_type == 'ceph':
+            if auth.storage_type == "ceph":
                 # ceph image access requires secret object by
                 # qemu-img and only 'password-secret' is supported
                 if auth.data:
-                    secrets.append((auth, 'password'))
-            elif auth.storage_type == 'curl':
+                    secrets.append((auth, "password"))
+            elif auth.storage_type == "curl":
                 # a libcurl image can have more than one secret object
                 if auth.data:
-                    secrets.append((auth, 'password'))
+                    secrets.append((auth, "password"))
                 if auth.cookie:
-                    secrets.append((auth.cookie, 'cookie'))
+                    secrets.append((auth.cookie, "cookie"))
 
         return secrets
 
@@ -674,19 +735,21 @@ class QemuImg(storage.QemuImg):
         :return: a list of (StorageAuth object, secret type) or []
         """
         secrets = []
-        info = self.image_access.image_backing_auth.values() if self.image_access else []
+        info = (
+            self.image_access.image_backing_auth.values() if self.image_access else []
+        )
 
         for auth in info:
-            if auth.storage_type == 'ceph':
+            if auth.storage_type == "ceph":
                 # ceph image access requires secret object by
                 # qemu-img and only 'password-secret' is supported
                 if auth.data:
-                    secrets.append((auth, 'password'))
-            elif auth.storage_type == 'curl':
+                    secrets.append((auth, "password"))
+            elif auth.storage_type == "curl":
                 if auth.data:
-                    secrets.append((auth, 'password'))
+                    secrets.append((auth, "password"))
                 if auth.cookie:
-                    secrets.append((auth.cookie, 'cookie'))
+                    secrets.append((auth.cookie, "cookie"))
 
         return secrets
 
@@ -700,15 +763,19 @@ class QemuImg(storage.QemuImg):
     @property
     def _image_access_tls_creds_object(self):
         """Get the tls-creds object str of the image itself."""
-        tls_obj_str = '--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}'
+        tls_obj_str = (
+            "--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}"
+        )
         creds = self._image_access_tls_creds
-        return tls_obj_str.format(s=creds) if creds else ''
+        return tls_obj_str.format(s=creds) if creds else ""
 
     @property
     def _backing_access_tls_creds_objects(self):
         """Get all tls-creds object str of the backing images."""
         tls_creds = []
-        tls_obj_str = '--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}'
+        tls_obj_str = (
+            "--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}"
+        )
 
         for creds in self._backing_access_tls_creds:
             tls_creds.append(tls_obj_str.format(s=creds))
@@ -721,11 +788,13 @@ class QemuImg(storage.QemuImg):
         secrets = []
 
         for access_secret, secret_type in self._image_access_secret:
-            secret_obj_str = ''
-            if secret_type == 'password':
-                secret_obj_str = '--object secret,id={s.aid},format={s.data_format},file={s.filename}'
-            elif secret_type == 'key' or secret_type == 'cookie':
-                secret_obj_str = '--object secret,id={s.aid},format={s.data_format},data={s.data}'
+            secret_obj_str = ""
+            if secret_type == "password":
+                secret_obj_str = "--object secret,id={s.aid},format={s.data_format},file={s.filename}"
+            elif secret_type == "key" or secret_type == "cookie":
+                secret_obj_str = (
+                    "--object secret,id={s.aid},format={s.data_format},data={s.data}"
+                )
             secrets.append(secret_obj_str.format(s=access_secret))
 
         return secrets
@@ -736,11 +805,13 @@ class QemuImg(storage.QemuImg):
         secrets = []
 
         for access_secret, secret_type in self._backing_access_secrets:
-            secret_obj_str = ''
-            if secret_type == 'password':
+            secret_obj_str = ""
+            if secret_type == "password":
                 secret_obj_str = "--object secret,id={s.aid},format={s.data_format},file={s.filename}"
-            elif secret_type == 'key' or secret_type == 'cookie':
-                secret_obj_str = "--object secret,id={s.aid},format={s.data_format},data={s.data}"
+            elif secret_type == "key" or secret_type == "cookie":
+                secret_obj_str = (
+                    "--object secret,id={s.aid},format={s.data_format},data={s.data}"
+                )
             secrets.append(secret_obj_str.format(s=access_secret))
 
         return secrets
@@ -777,35 +848,42 @@ class QemuImg(storage.QemuImg):
                preallocated(optional)
                    if preallocation when create image, allowed values: off,
                    metadata. Default is "off"
+               image_compression_type(optional)
+                   if image_compression_type when create image, allowed
+                   values: zlib, zstd
 
         :return: tuple (path to the image created, process.CmdResult object
                  containing the result of the creation command).
         """
-        if params.get(
-                "create_with_dd") == "yes" and self.image_format == "raw":
+        if params.get("create_with_dd") == "yes" and self.image_format == "raw":
             # maps K,M,G,T => (count, bs)
-            human = {'K': (1, 1),
-                     'M': (1, 1024),
-                     'G': (1024, 1024),
-                     'T': (1024, 1048576),
-                     }
+            human = {
+                "K": (1, 1),
+                "M": (1, 1024),
+                "G": (1024, 1024),
+                "T": (1024, 1048576),
+            }
             if self.size[-1] in human:
                 block_size = human[self.size[-1]][1]
                 size = int(self.size[:-1]) * human[self.size[-1]][0]
-            qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
-                            % (self.image_filename, size, block_size))
+            qemu_img_cmd = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
+                self.image_filename,
+                size,
+                block_size,
+            )
         else:
             cmd_dict = {}
             cmd_dict["image_format"] = self.image_format
             if self.base_tag:
                 # if base image has secret, use json representation
                 base_key_secrets = self.encryption_config.base_key_secrets
-                if (self.base_tag in [s.image_id for s in base_key_secrets]
-                        or self._need_auth_info(self.base_tag)):
+                if self.base_tag in [
+                    s.image_id for s in base_key_secrets
+                ] or self._need_auth_info(self.base_tag):
                     base_params = params.object_params(self.base_tag)
-                    cmd_dict["backing_file"] = "'%s'" % \
-                        get_image_json(self.base_tag, base_params,
-                                       self.root_dir)
+                    cmd_dict["backing_file"] = "'%s'" % get_image_json(
+                        self.base_tag, base_params, self.root_dir
+                    )
                 else:
                     cmd_dict["backing_file"] = self.base_image_filename
                 cmd_dict["backing_format"] = self.base_format
@@ -838,43 +916,59 @@ class QemuImg(storage.QemuImg):
             options = self._parse_options(params)
             if options:
                 cmd_dict["options"] = ",".join(options)
-            qemu_img_cmd = self.image_cmd + " " + \
-                self._cmd_formatter.format(self.create_cmd, **cmd_dict)
+            qemu_img_cmd = (
+                self.image_cmd
+                + " "
+                + self._cmd_formatter.format(self.create_cmd, **cmd_dict)
+            )
 
-        if (params.get("image_backend", "filesystem") == "filesystem"):
+        if params.get("image_backend", "filesystem") == "filesystem":
             image_dirname = os.path.dirname(self.image_filename)
             if image_dirname and not os.path.isdir(image_dirname):
-                e_msg = ("Parent directory of the image file %s does "
-                         "not exist" % self.image_filename)
+                e_msg = (
+                    "Parent directory of the image file %s does "
+                    "not exist" % self.image_filename
+                )
                 LOG.error(e_msg)
                 LOG.error("This usually means a serious setup exceptions.")
-                LOG.error("Please verify if your data dir contains the "
-                          "expected directory structure")
-                LOG.error("Backing data dir: %s",
-                          data_dir.get_backing_data_dir())
+                LOG.error(
+                    "Please verify if your data dir contains the "
+                    "expected directory structure"
+                )
+                LOG.error("Backing data dir: %s", data_dir.get_backing_data_dir())
                 LOG.error("Directory structure:")
                 for root, _, _ in os.walk(data_dir.get_backing_data_dir()):
                     LOG.error(root)
 
-                LOG.warning("We'll try to proceed by creating the dir. "
-                            "Other errors may ensue")
+                LOG.warning(
+                    "We'll try to proceed by creating the dir. "
+                    "Other errors may ensue"
+                )
                 os.makedirs(image_dirname)
 
         msg = "Create image by command: %s" % qemu_img_cmd
         error_context.context(msg, LOG.info)
         cmd_result = process.run(
-            qemu_img_cmd, shell=True, verbose=False, ignore_status=True)
+            qemu_img_cmd, shell=True, verbose=False, ignore_status=True
+        )
         if cmd_result.exit_status != 0 and not ignore_errors:
-            raise exceptions.TestError("Failed to create image %s\n%s" %
-                                       (self.image_filename, cmd_result))
+            raise exceptions.TestError(
+                "Failed to create image %s\n%s" % (self.image_filename, cmd_result)
+            )
         if self.encryption_config.key_secret:
             self.encryption_config.key_secret.save_to_file()
         cmd_result.stdout = cmd_result.stdout_text
         cmd_result.stderr = cmd_result.stderr_text
         return self.image_filename, cmd_result
 
-    def convert(self, params, root_dir, cache_mode=None,
-                source_cache_mode=None, skip_target_creation=False):
+    def convert(
+        self,
+        params,
+        root_dir,
+        cache_mode=None,
+        source_cache_mode=None,
+        skip_target_creation=False,
+    ):
         """
         Convert image
 
@@ -893,6 +987,8 @@ class QemuImg(storage.QemuImg):
                 the convert target image tag
             compressed
                 indicates that target image must be compressed
+            image_compression_type
+                indicates the type of the compression is zlib or zstd
             sparse_size
                 indicate the consecutive number of bytes contains zeros to
                 create sparse image during conversion
@@ -912,8 +1008,7 @@ class QemuImg(storage.QemuImg):
         convert_compressed = convert_params.get("convert_compressed")
         sparse_size = convert_params.get("sparse_size")
         rate_limit = convert_params.get("rate_limit")
-        convert_target_is_zero = convert_params.get_boolean(
-                "convert_target_is_zero")
+        convert_target_is_zero = convert_params.get_boolean("convert_target_is_zero")
         convert_backing_file = convert_params.get("convert_backing_file")
 
         cmd_dict = {
@@ -929,7 +1024,7 @@ class QemuImg(storage.QemuImg):
             "skip_target_image_creation": "-n" if skip_target_creation else "",
             "convert_target_is_zero": convert_target_is_zero,
             "convert_backing_file": convert_backing_file,
-            "target_image_opts": ""
+            "target_image_opts": "",
         }
 
         options = convert_image._parse_options(convert_params)
@@ -944,16 +1039,14 @@ class QemuImg(storage.QemuImg):
 
             cmd_dict.pop("target_image_format")
             cmd_dict["target_image_filename"] = ""
-            cmd_dict["target_image_opts"] = ("--target-image-opts '%s'"
-                                             % get_image_opts(
-                                                 convert_image.tag,
-                                                 convert_image.params,
-                                                 convert_image.root_dir))
+            cmd_dict["target_image_opts"] = "--target-image-opts '%s'" % get_image_opts(
+                convert_image.tag, convert_image.params, convert_image.root_dir
+            )
 
-        if (self.encryption_config.key_secret
-                or self._need_auth_info(self.tag)):
+        if self.encryption_config.key_secret or self._need_auth_info(self.tag):
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
-                self.tag, self.params, self.root_dir)
+                self.tag, self.params, self.root_dir
+            )
             cmd_dict.pop("image_format")
 
         # source images secrets(luks)
@@ -988,21 +1081,27 @@ class QemuImg(storage.QemuImg):
 
         # tls creds object of the target image
         if convert_image._image_access_tls_creds_object:
-            tls_creds_objects.append(
-                convert_image._image_access_tls_creds_object)
+            tls_creds_objects.append(convert_image._image_access_tls_creds_object)
 
         if tls_creds_objects:
             cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
-        convert_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.convert_cmd, **cmd_dict)
+        convert_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.convert_cmd, **cmd_dict)
+        )
 
         timeout = convert_params.get_numeric("image_conversion_timeout", -1)
         timeout = None if timeout == -1 else timeout
 
-        LOG.info("Convert image %s from %s to %s with timeout %s",
-                 self.image_filename, self.image_format,
-                 convert_image.image_format, timeout)
+        LOG.info(
+            "Convert image %s from %s to %s with timeout %s",
+            self.image_filename,
+            self.image_format,
+            convert_image.image_format,
+            timeout,
+        )
         process.run(convert_cmd, timeout=timeout)
         if convert_image.encryption_config.key_secret:
             convert_image.encryption_config.key_secret.save_to_file()
@@ -1022,17 +1121,20 @@ class QemuImg(storage.QemuImg):
         self.check_option("base_format")
 
         rebase_mode = params.get("rebase_mode")
-        cmd_dict = {"image_format": self.image_format,
-                    "image_filename": self.image_filename,
-                    "cache_mode": cache_mode,
-                    "source_cache_mode": source_cache_mode,
-                    "unsafe": rebase_mode == "unsafe"}
+        cmd_dict = {
+            "image_format": self.image_format,
+            "image_filename": self.image_filename,
+            "cache_mode": cache_mode,
+            "source_cache_mode": source_cache_mode,
+            "unsafe": rebase_mode == "unsafe",
+        }
         secret_objects = self._secret_objects
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
         if self.encryption_config.key_secret:
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
-                self.tag, self.params, self.root_dir)
+                self.tag, self.params, self.root_dir
+            )
             cmd_dict.pop("image_format")
         if self.base_tag:
             if self.base_tag == "null":
@@ -1044,18 +1146,25 @@ class QemuImg(storage.QemuImg):
                 self.base_format = base_image.image_format
                 if base_image.encryption_config.key_secret:
                     cmd_dict["backing_file"] = "'%s'" % get_image_json(
-                        base_image.tag, base_image.params, base_image.root_dir)
+                        base_image.tag, base_image.params, base_image.root_dir
+                    )
                 else:
                     cmd_dict["backing_file"] = base_image.image_filename
                 cmd_dict["backing_format"] = base_image.image_format
         else:
-            raise exceptions.TestError("Can not find the image parameters need"
-                                       " for rebase.")
+            raise exceptions.TestError(
+                "Can not find the image parameters need" " for rebase."
+            )
 
-        LOG.info("Rebase snapshot %s to %s..." % (self.image_filename,
-                                                  self.base_image_filename))
-        rebase_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.rebase_cmd, **cmd_dict)
+        LOG.info(
+            "Rebase snapshot %s to %s..."
+            % (self.image_filename, self.base_image_filename)
+        )
+        rebase_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.rebase_cmd, **cmd_dict)
+        )
         process.run(rebase_cmd)
 
         return self.base_tag
@@ -1071,11 +1180,13 @@ class QemuImg(storage.QemuImg):
         :param drop: drop image after commit
         """
         rate_limit = self.params.get("rate_limit")
-        cmd_dict = {"image_format": self.image_format,
-                    "image_filename": self.image_filename,
-                    "cache_mode": cache_mode,
-                    "commit_drop": drop,
-                    "rate_limit": rate_limit}
+        cmd_dict = {
+            "image_format": self.image_format,
+            "image_filename": self.image_filename,
+            "cache_mode": cache_mode,
+            "commit_drop": drop,
+            "rate_limit": rate_limit,
+        }
         secret_objects = self._secret_objects
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
@@ -1084,15 +1195,20 @@ class QemuImg(storage.QemuImg):
             base_image = QemuImg(base_params, self.root_dir, base)
             if base_image.encryption_config.key_secret:
                 cmd_dict["backing_file"] = "'%s'" % get_image_json(
-                    base, base_params, self.root_dir)
+                    base, base_params, self.root_dir
+                )
             else:
                 cmd_dict["backing_file"] = base_image.image_filename
         if self.encryption_config.key_secret:
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
-                self.tag, self.params, self.root_dir)
+                self.tag, self.params, self.root_dir
+            )
             cmd_dict.pop("image_format")
-        commit_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.commit_cmd, **cmd_dict)
+        commit_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.commit_cmd, **cmd_dict)
+        )
         LOG.info("Commit image %s" % self.image_filename)
         process.run(commit_cmd)
 
@@ -1110,8 +1226,7 @@ class QemuImg(storage.QemuImg):
         if self.snapshot_tag:
             cmd += " snapshot -c %s" % self.snapshot_image_filename
         else:
-            raise exceptions.TestError("Can not find the snapshot image"
-                                       " parameters")
+            raise exceptions.TestError("Can not find the snapshot image" " parameters")
         cmd += " %s" % self.image_filename
 
         process.run(cmd)
@@ -1132,8 +1247,7 @@ class QemuImg(storage.QemuImg):
         if self.snapshot_tag:
             cmd += " snapshot -d %s" % self.snapshot_image_filename
         else:
-            raise exceptions.TestError("Can not find the snapshot image"
-                                       " parameters")
+            raise exceptions.TestError("Can not find the snapshot image" " parameters")
         if blkdebug_cfg:
             cmd += " blkdebug:%s:%s" % (blkdebug_cfg, self.image_filename)
         else:
@@ -1166,11 +1280,12 @@ class QemuImg(storage.QemuImg):
         """
         cmd = self.image_cmd
         if self.snapshot_tag:
-            cmd += " snapshot -a %s %s" % (self.snapshot_image_filename,
-                                           self.image_filename)
+            cmd += " snapshot -a %s %s" % (
+                self.snapshot_image_filename,
+                self.image_filename,
+            )
         else:
-            raise exceptions.TestError("Can not find the snapshot image"
-                                       " parameters")
+            raise exceptions.TestError("Can not find the snapshot image" " parameters")
 
         process.run(cmd)
 
@@ -1182,18 +1297,21 @@ class QemuImg(storage.QemuImg):
         """
 
         bitmap_params = self.params.object_params(bitmap_name)
-        granularity = bitmap_params.get('bitmap_granularity')
+        granularity = bitmap_params.get("bitmap_granularity")
 
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --add -f %s %s %s" % (
-                self.image_format, self.image_filename, bitmap_name)
+                self.image_format,
+                self.image_filename,
+                bitmap_name,
+            )
             if granularity:
-                cmd += ' -g %s' % granularity
+                cmd += " -g %s" % granularity
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
@@ -1205,13 +1323,16 @@ class QemuImg(storage.QemuImg):
         """
 
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --remove -f %s %s %s" % (
-                self.image_format, self.image_filename, bitmap_name)
+                self.image_format,
+                self.image_filename,
+                bitmap_name,
+            )
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
@@ -1223,13 +1344,16 @@ class QemuImg(storage.QemuImg):
         """
 
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --clear -f %s %s %s" % (
-                self.image_format, self.image_filename, bitmap_name)
+                self.image_format,
+                self.image_filename,
+                bitmap_name,
+            )
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
@@ -1241,13 +1365,16 @@ class QemuImg(storage.QemuImg):
         """
 
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --enable -f %s %s %s" % (
-                self.image_format, self.image_filename, bitmap_name)
+                self.image_format,
+                self.image_filename,
+                bitmap_name,
+            )
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
@@ -1259,18 +1386,27 @@ class QemuImg(storage.QemuImg):
         """
 
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --disable -f %s %s %s" % (
-                self.image_format, self.image_filename, bitmap_name)
+                self.image_format,
+                self.image_filename,
+                bitmap_name,
+            )
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
-    def bitmap_merge(self, params, root_dir, bitmap_name_source,
-                     bitmap_name_target, bitmap_image_source):
+    def bitmap_merge(
+        self,
+        params,
+        root_dir,
+        bitmap_name_source,
+        bitmap_name_target,
+        bitmap_image_source,
+    ):
         """
         Merge a bitmap from source image to target image.
 
@@ -1282,18 +1418,23 @@ class QemuImg(storage.QemuImg):
         """
 
         bitmap_source_params = params.object_params(bitmap_image_source)
-        bitmap_source_image = QemuImg(bitmap_source_params, root_dir,
-                                      bitmap_image_source)
+        bitmap_source_image = QemuImg(
+            bitmap_source_params, root_dir, bitmap_image_source
+        )
         cmd = self.image_cmd
-        if self.image_format == 'qcow2':
+        if self.image_format == "qcow2":
             cmd += " bitmap --merge %s -b %s -F %s -f %s %s %s" % (
-                bitmap_name_source, bitmap_source_image.image_filename,
-                bitmap_source_image.image_format, self.image_format,
-                self.image_filename, bitmap_name_target)
+                bitmap_name_source,
+                bitmap_source_image.image_filename,
+                bitmap_source_image.image_format,
+                self.image_format,
+                self.image_filename,
+                bitmap_name_target,
+            )
         else:
             raise exceptions.TestError(
-                "Image format %s is not supported, check please." %
-                self.image_format)
+                "Image format %s is not supported, check please." % self.image_format
+            )
 
         process.run(cmd)
 
@@ -1305,10 +1446,10 @@ class QemuImg(storage.QemuImg):
         storage.file_remove(self.params, self.image_filename)
 
         if self.data_file:
-            LOG.debug("Removing external data file of image %s",
-                      self.data_file.image_filename)
-            storage.file_remove(self.data_file.params,
-                                self.data_file.image_filename)
+            LOG.debug(
+                "Removing external data file of image %s", self.data_file.image_filename
+            )
+            storage.file_remove(self.data_file.params, self.data_file.image_filename)
 
         secret_files = []
         if self.encryption_config.key_secret:
@@ -1366,7 +1507,7 @@ class QemuImg(storage.QemuImg):
             if "--backing-chain" in self.help_text:
                 cmd += " --backing-chain"
             else:
-                LOG.warn("'--backing-chain' option is not supported")
+                LOG.warning("'--backing-chain' option is not supported")
 
         if force_share:
             cmd += " -U"
@@ -1374,8 +1515,9 @@ class QemuImg(storage.QemuImg):
         image_filename = self.image_filename
         if self._need_auth_info(self.tag):
             # use json repr when access info is required
-            image_filename = "'%s'" % get_image_json(self.tag, self.params,
-                                                     self.root_dir)
+            image_filename = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir
+            )
         if os.path.exists(image_filename) or self.is_remote_image():
             cmd += " %s --output=%s" % (image_filename, output)
             output = process.run(cmd, verbose=True).stdout_text
@@ -1409,8 +1551,9 @@ class QemuImg(storage.QemuImg):
 
         return supports_cmd
 
-    def compare_images(self, image1, image2, strict_mode=False,
-                       verbose=True, force_share=False):
+    def compare_images(
+        self, image1, image2, strict_mode=False, verbose=True, force_share=False
+    ):
         """
         Compare 2 images using the appropriate tools for each virt backend.
 
@@ -1427,7 +1570,7 @@ class QemuImg(storage.QemuImg):
         compare_images = self.support_cmd("compare")
         force_share &= self.cap_force_share
         if not compare_images:
-            LOG.warn("sub-command compare not supported by qemu-img")
+            LOG.warning("sub-command compare not supported by qemu-img")
             return None
         else:
             LOG.info("Comparing images %s and %s", image1, image2)
@@ -1437,8 +1580,7 @@ class QemuImg(storage.QemuImg):
             if strict_mode:
                 compare_cmd += " -s"
             compare_cmd += " %s %s" % (image1, image2)
-            cmd_result = process.run(compare_cmd, ignore_status=True,
-                                     shell=True)
+            cmd_result = process.run(compare_cmd, ignore_status=True, shell=True)
 
             if verbose:
                 LOG.debug("Output from command: %s", cmd_result.stdout_text)
@@ -1452,8 +1594,14 @@ class QemuImg(storage.QemuImg):
 
             return cmd_result
 
-    def compare_to(self, target_image, source_cache_mode=None,
-                   strict_mode=False, force_share=False, verbose=True):
+    def compare_to(
+        self,
+        target_image,
+        source_cache_mode=None,
+        strict_mode=False,
+        force_share=False,
+        verbose=True,
+    ):
         """
         Compare to target image.
 
@@ -1465,11 +1613,14 @@ class QemuImg(storage.QemuImg):
         :return: compare result [process.CmdResult]
         """
         if not self.support_cmd("compare"):
-            LOG.warn("qemu-img subcommand compare not supported")
+            LOG.warning("qemu-img subcommand compare not supported")
             return
         force_share &= self.cap_force_share
-        LOG.info("compare image %s to image %s",
-                 self.image_filename, target_image.image_filename)
+        LOG.info(
+            "compare image %s to image %s",
+            self.image_filename,
+            target_image.image_filename,
+        )
 
         cmd_dict = {
             "image_format": self.image_format,
@@ -1513,30 +1664,32 @@ class QemuImg(storage.QemuImg):
 
         # tls creds objects of the backing images of the target
         if target_image._backing_access_tls_creds_objects:
-            tls_creds_objects.extend(
-                target_image._backing_access_tls_creds_objects)
+            tls_creds_objects.extend(target_image._backing_access_tls_creds_objects)
 
         # tls creds object of the target image
         if target_image._image_access_tls_creds_object:
-            tls_creds_objects.append(
-                target_image._image_access_tls_creds_object)
+            tls_creds_objects.append(target_image._image_access_tls_creds_object)
 
         tls_creds_objects = list(set(tls_creds_objects))
         cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
-        if (self.encryption_config.key_secret
-                or self._need_auth_info(self.tag)):
-            cmd_dict["image_filename"] = "'%s'" % \
-                get_image_json(self.tag, self.params, self.root_dir)
+        if self.encryption_config.key_secret or self._need_auth_info(self.tag):
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir
+            )
 
-        if (target_image.encryption_config.key_secret
-                or target_image._need_auth_info(target_image.tag)):
-            cmd_dict["compare_second_image_filename"] = "'%s'" % \
-                get_image_json(target_image.tag, target_image.params,
-                               target_image.root_dir)
+        if target_image.encryption_config.key_secret or target_image._need_auth_info(
+            target_image.tag
+        ):
+            cmd_dict["compare_second_image_filename"] = "'%s'" % get_image_json(
+                target_image.tag, target_image.params, target_image.root_dir
+            )
 
-        compare_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.compare_cmd, **cmd_dict)
+        compare_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.compare_cmd, **cmd_dict)
+        )
         result = process.run(compare_cmd, ignore_status=True, shell=True)
 
         if verbose:
@@ -1544,8 +1697,9 @@ class QemuImg(storage.QemuImg):
 
         return result
 
-    def check(self, params, root_dir, force_share=False, output=None,
-              check_repair=None):
+    def check(
+        self, params, root_dir, force_share=False, output=None, check_repair=None
+    ):
         """
         Check an image using the appropriate tools for each virt backend.
 
@@ -1566,14 +1720,16 @@ class QemuImg(storage.QemuImg):
         LOG.debug("Checking image file %s", image_filename)
         force_share &= self.cap_force_share
 
-        cmd_dict = {"image_filename": image_filename,
-                    "force_share": force_share,
-                    "output_format": output,
-                    "check_repair": check_repair}
-        if (self.encryption_config.key_secret
-                or self._need_auth_info(self.tag)):
+        cmd_dict = {
+            "image_filename": image_filename,
+            "force_share": force_share,
+            "output_format": output,
+            "check_repair": check_repair,
+        }
+        if self.encryption_config.key_secret or self._need_auth_info(self.tag):
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
-                self.tag, params, root_dir)
+                self.tag, params, root_dir
+            )
 
         # access secret objects of the backing images
         secret_objects = self._backing_access_secret_objects
@@ -1600,10 +1756,14 @@ class QemuImg(storage.QemuImg):
         if tls_creds_objects:
             cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
-        check_cmd = self.image_cmd + " " + self._cmd_formatter.format(
-            self.check_cmd, **cmd_dict)
-        cmd_result = process.run(check_cmd, ignore_status=True,
-                                 shell=True, verbose=False)
+        check_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.check_cmd, **cmd_dict)
+        )
+        cmd_result = process.run(
+            check_cmd, ignore_status=True, shell=True, verbose=False
+        )
 
         return cmd_result
 
@@ -1624,11 +1784,12 @@ class QemuImg(storage.QemuImg):
         """
         image_filename = self.image_filename
         LOG.debug("Checking image file %s", image_filename)
-        image_is_checkable = self.image_format in ['qcow2', 'qed']
+        image_is_checkable = self.image_format in ["qcow2", "qed"]
         force_share &= self.cap_force_share
 
-        if (storage.file_exists(params, image_filename) or
-                self.is_remote_image()) and image_is_checkable:
+        if (
+            storage.file_exists(params, image_filename) or self.is_remote_image()
+        ) and image_is_checkable:
             try:
                 # FIXME: do we really need it?
                 self.info(force_share)
@@ -1650,7 +1811,8 @@ class QemuImg(storage.QemuImg):
                 raise exceptions.TestWarn(
                     "qemu-img check not completed because of internal "
                     "errors. Some bad data in the image may have gone "
-                    "unnoticed (%s)" % image_filename)
+                    "unnoticed (%s)" % image_filename
+                )
             # Exit status 2 is data corruption for sure,
             # so fail the test
             elif cmd_result.exit_status == 2:
@@ -1667,18 +1829,20 @@ class QemuImg(storage.QemuImg):
             # Leaked clusters, they are known to be harmless to data
             # integrity
             elif cmd_result.exit_status == 3:
-                raise exceptions.TestWarn("Leaked clusters were noticed"
-                                          " during image check. No data "
-                                          "integrity problem was found "
-                                          "though. (%s)" % image_filename)
+                raise exceptions.TestWarn(
+                    "Leaked clusters were noticed"
+                    " during image check. No data "
+                    "integrity problem was found "
+                    "though. (%s)" % image_filename
+                )
         else:
             if not storage.file_exists(params, image_filename):
-                LOG.debug("Image file %s not found, skipping check",
-                          image_filename)
+                LOG.debug("Image file %s not found, skipping check", image_filename)
             elif not image_is_checkable:
                 LOG.debug(
                     "Image format %s is not checkable, skipping check",
-                    self.image_format)
+                    self.image_format,
+                )
 
     def amend(self, params, cache_mode=None, ignore_status=False):
         """
@@ -1733,7 +1897,7 @@ class QemuImg(storage.QemuImg):
         :return: process.CmdResult object containing the result of the
                 command
         """
-        cmd_list = [self.image_cmd, 'amend']
+        cmd_list = [self.image_cmd, "amend"]
         secret_objects = self._secret_objects
         if secret_objects:
             # add a secret object, use for adding and erasing password
@@ -1744,17 +1908,19 @@ class QemuImg(storage.QemuImg):
             cmd_list.append(" ".join(secret_objects))
         options = []
         for key, val in six.iteritems(params):
-            if key.startswith('amend_') and \
-                    key not in ["amend_secret_id", "amend_secret_data"]:
+            if key.startswith("amend_") and key not in [
+                "amend_secret_id",
+                "amend_secret_data",
+            ]:
                 options.append("%s=%s" % (key[6:], val))
         if cache_mode:
             cmd_list.append("-t %s" % cache_mode)
         if options:
-            cmd_list.append("-o %s" %
-                            ",".join(options).replace("extra_params=", ""))
+            cmd_list.append("-o %s" % ",".join(options).replace("extra_params=", ""))
         if self.encryption_config.key_secret:
-            cmd_list.append("'%s'" % get_image_json(self.tag,
-                                                    self.params, self.root_dir))
+            cmd_list.append(
+                "'%s'" % get_image_json(self.tag, self.params, self.root_dir)
+            )
         else:
             cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
         LOG.info("Amend image %s" % self.image_filename)
@@ -1779,12 +1945,16 @@ class QemuImg(storage.QemuImg):
         }
         if self.encryption_config.key_secret:
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
-                self.tag, self.params, self.root_dir)
+                self.tag, self.params, self.root_dir
+            )
         secret_objects = self._secret_objects
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
-        resize_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.resize_cmd, **cmd_dict)
+        resize_cmd = (
+            self.image_cmd
+            + " "
+            + self._cmd_formatter.format(self.resize_cmd, **cmd_dict)
+        )
         cmd_result = process.run(resize_cmd, ignore_status=True)
         return cmd_result
 
@@ -1796,8 +1966,12 @@ class QemuImg(storage.QemuImg):
         :return: process.CmdResult object containing the result of the
                  command
         """
-        cmd_list = [self.image_cmd, "map",
-                    ("--output=%s" % output), self.image_filename]
+        cmd_list = [
+            self.image_cmd,
+            "map",
+            ("--output=%s" % output),
+            self.image_filename,
+        ]
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
 
@@ -1813,34 +1987,39 @@ class QemuImg(storage.QemuImg):
         :return: process.CmdResult object containing the result of the
                  command
         """
-        cmd_list = [self.image_cmd, "measure", ("--output=%s" % output),
-                    ("-O %s" % target_fmt)]
+        cmd_list = [
+            self.image_cmd,
+            "measure",
+            ("--output=%s" % output),
+            ("-O %s" % target_fmt),
+        ]
 
         if target_fmt == "luks":
             target_image = self.params.get("image_measure_target", "tgt")
-            target_image_secret = self.params.get("image_secret_%s" %
-                                                  target_image, "measure")
+            target_image_secret = self.params.get(
+                "image_secret_%s" % target_image, "measure"
+            )
             target_image_params = self.params.object_params(target_image)
             target_image_params["image_format"] = "luks"
             target_image_params["image_secret"] = target_image_secret
             target_image_object = QemuImg(
-                target_image_params, self.root_dir, target_image)
+                target_image_params, self.root_dir, target_image
+            )
             cmd_list.append(target_image_object._secret_objects[-1])
-            cmd_list.append('-o key-secret=%s' %
-                            target_image_object.encryption_config.key_secret.aid)
+            cmd_list.append(
+                "-o key-secret=%s"
+                % target_image_object.encryption_config.key_secret.aid
+            )
 
         if size:
             cmd_list.append(("--size %s" % size))
         else:
             if self.encryption_config.key_secret:
                 cmd_list.append(self._secret_objects[-1])
-                image_json_str = get_image_json(self.tag,
-                                                self.params,
-                                                self.root_dir)
+                image_json_str = get_image_json(self.tag, self.params, self.root_dir)
                 cmd_list.append("'%s'" % image_json_str)
             else:
-                cmd_list.extend([("-f %s" % self.image_format),
-                                 self.image_filename])
+                cmd_list.extend([("-f %s" % self.image_format), self.image_filename])
 
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
@@ -1860,30 +2039,32 @@ class QemuImg(storage.QemuImg):
             "image_filename": self.image_filename,
             "target_image_filename": output,
             "image_format": self.image_format,
-            "target_image_format": self.image_format
+            "target_image_format": self.image_format,
         }
 
-        cmd_dict['block_size'] = 'bs=%d' % bs if bs is not None else ''
-        cmd_dict['count'] = 'count=%d' % count if count is not None else ''
-        cmd_dict['skip'] = 'skip=%d' % skip if skip is not None else ''
+        cmd_dict["block_size"] = "bs=%d" % bs if bs is not None else ""
+        cmd_dict["count"] = "count=%d" % count if count is not None else ""
+        cmd_dict["skip"] = "skip=%d" % skip if skip is not None else ""
 
         # TODO: use raw copy(-f raw -O raw) and ignore image secret and format
         # for we cannot set secret for the output
         raw_copy = True if self.encryption_config.key_secret else False
         if raw_copy:
-            cmd_dict['image_format'] = cmd_dict['target_image_format'] = 'raw'
+            cmd_dict["image_format"] = cmd_dict["target_image_format"] = "raw"
 
         # use 'json:{}' instead when accessing storage with auth
-        meta = _get_image_meta(self.tag,
-                               self.params,
-                               self.root_dir) if self._need_auth_info(self.tag) else None
+        meta = (
+            _get_image_meta(self.tag, self.params, self.root_dir)
+            if self._need_auth_info(self.tag)
+            else None
+        )
         if meta is not None:
             if raw_copy:
                 # drop image secret from meta
-                for key in ['encrypt.key-secret', 'key-secret']:
-                    if key in meta:     # pylint: disable=E1135
+                for key in ["encrypt.key-secret", "key-secret"]:
+                    if key in meta:  # pylint: disable=E1135
                         meta.pop(key)
-            meta['driver'] = cmd_dict.pop("image_format")   # pylint: disable=E1137
+            meta["driver"] = cmd_dict.pop("image_format")  # pylint: disable=E1137
             cmd_dict["image_filename"] = "'json:%s'" % json.dumps(meta)
 
         # access secret objects of the backing images
@@ -1906,8 +2087,9 @@ class QemuImg(storage.QemuImg):
         if tls_creds_objects:
             cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
-        dd_cmd = self.image_cmd + " " + \
-            self._cmd_formatter.format(self.dd_cmd, **cmd_dict)
+        dd_cmd = (
+            self.image_cmd + " " + self._cmd_formatter.format(self.dd_cmd, **cmd_dict)
+        )
 
         return process.run(dd_cmd, ignore_status=True)
 
@@ -1917,7 +2099,6 @@ class QemuImg(storage.QemuImg):
 
 
 class Iscsidev(storage.Iscsidev):
-
     """
     Class for handle iscsi devices for VM
     """
@@ -1937,16 +2118,19 @@ class Iscsidev(storage.Iscsidev):
         Access the iscsi target. And return the local raw device name.
         """
         if self.iscsidevice.logged_in():
-            LOG.warn("Session already present. Don't need to login again")
+            LOG.warning("Session already present. Don't need to login again")
         else:
             self.iscsidevice.login()
 
-        if utils_misc.wait_for(self.iscsidevice.get_device_name,
-                               self.iscsi_init_timeout):
+        if utils_misc.wait_for(
+            self.iscsidevice.get_device_name, self.iscsi_init_timeout
+        ):
             device_name = self.iscsidevice.get_device_name()
         else:
-            raise exceptions.TestError("Can not get iscsi device name in host"
-                                       " in %ss" % self.iscsi_init_timeout)
+            raise exceptions.TestError(
+                "Can not get iscsi device name in host"
+                " in %ss" % self.iscsi_init_timeout
+            )
 
         if self.device_id:
             device_name += self.device_id
@@ -1967,7 +2151,6 @@ class Iscsidev(storage.Iscsidev):
 
 
 class LVMdev(storage.LVMdev):
-
     """
     Class for handle lvm devices for VM
     """

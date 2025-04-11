@@ -5,13 +5,12 @@ Higher order classes and functions for Libvirt Sandbox (lxc) container testing
 """
 
 import datetime
-import time
 import logging
+import time
 
 from virttest import lvsb_base
 
-
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 # This utility function lets test-modules quickly create a list of all
 # sandbox aggregate types, themselves containing a list of individual
@@ -33,7 +32,7 @@ def make_sandboxes(params, env, extra_ns=None):
         namespace.update(extra_ns)  # copy in additional symbols
     names = list(namespace.keys())
     # Test may require more than one sandbox agregator class
-    pobs = params.objects('lvsb_testsandboxes')  # mandatory parameter
+    pobs = params.objects("lvsb_testsandboxes")  # mandatory parameter
     # filter out non-TestSandboxes subclasses
     for name in names:
         try:
@@ -51,8 +50,8 @@ def make_sandboxes(params, env, extra_ns=None):
 # a test module.  They simply help the test-module iterate over many
 # aggregate manager classes and the sandboxes they contain.
 
-class TestBaseSandboxes(lvsb_base.TestSandboxes):
 
+class TestBaseSandboxes(lvsb_base.TestSandboxes):
     """
     Simplistic sandbox aggregate manager
     """
@@ -64,11 +63,11 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
         super(TestBaseSandboxes, self).__init__(params, env)
         self.init_sandboxes()  # create instances of SandboxCommandBase
         # Point all of them at the same local uri
-        self.for_each(lambda sb: sb.add_optarg('-c', self.uri))
+        self.for_each(lambda sb: sb.add_optarg("-c", self.uri))
         # The flag doesn't require sandbox name
         if not self.flag:
             # Use each instances name() method to produce name argument
-            self.for_each(lambda sb: sb.add_optarg('-n', sb.name))
+            self.for_each(lambda sb: sb.add_optarg("-n", sb.name))
 
     def command_suffixes(self):
         """
@@ -104,16 +103,15 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
         self.for_each(lambda sb: sb.auto_clean(True))
         # If raise, auto_clean will make sure cleanup happens
         if bool(still_running):
-            raise lvsb_base.SandboxException("%d of %d sandboxes are still "
-                                             "running after "
-                                             "the timeout of %d seconds."
-                                             % (still_running,
-                                                self.count,
-                                                total_timeout_seconds))
+            raise lvsb_base.SandboxException(
+                "%d of %d sandboxes are still "
+                "running after "
+                "the timeout of %d seconds."
+                % (still_running, self.count, total_timeout_seconds)
+            )
         # Kill off all sandboxes, just to be safe
         self.for_each(lambda sb: sb.stop())
-        LOG.info("%d sandboxe(s) finished in %s", self.count,
-                 end - start)
+        LOG.info("%d sandboxe(s) finished in %s", self.count, end - start)
         # Return a list of stdout contents from each
         return self.for_each(lambda sb: sb.recv())
 
@@ -121,8 +119,8 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
 # TestBaseSandboxes subclasses which just runs simple default
 # options with the same command.
 
-class TestSimpleSandboxes(TestBaseSandboxes):
 
+class TestSimpleSandboxes(TestBaseSandboxes):
     """
     Executes a command with simple options
     """
@@ -139,8 +137,8 @@ class TestSimpleSandboxes(TestBaseSandboxes):
 # TestBaseSandboxes subclasses which runs complex options and allows
 # iterating for the options with the same command.
 
-class TestComplexSandboxes(TestBaseSandboxes):
 
+class TestComplexSandboxes(TestBaseSandboxes):
     """
     Executes a command with complex options
     """

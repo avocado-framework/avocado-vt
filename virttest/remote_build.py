@@ -1,18 +1,16 @@
-import os
-import re
 import hashlib
 import logging
+import os
+import re
 
 from aexpect import remote
 
 from virttest import data_dir
 
-
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class BuildError(Exception):
-
     def __init__(self, error_info):
         super(BuildError, self).__init__(error_info)
         self.error_info = error_info
@@ -23,12 +21,23 @@ class BuildError(Exception):
 
 
 class Builder(object):
-
-    def __init__(self, params, address, source, shell_client=None,
-                 shell_port=None, file_transfer_client=None,
-                 file_transfer_port=None, username=None, password=None,
-                 make_flags="", build_dir=None, build_dir_prefix=None,
-                 shell_linesep=None, shell_prompt=None):
+    def __init__(
+        self,
+        params,
+        address,
+        source,
+        shell_client=None,
+        shell_port=None,
+        file_transfer_client=None,
+        file_transfer_port=None,
+        username=None,
+        password=None,
+        make_flags="",
+        build_dir=None,
+        build_dir_prefix=None,
+        shell_linesep=None,
+        shell_prompt=None,
+    ):
         """
         :param params: Dictionary with test parameters, used to get the default
                        values of all named parameters.
@@ -60,8 +69,10 @@ class Builder(object):
             """
             extra_flags_hash = hashlib.sha1()
             extra_flags_hash.update(make_flags)
-            directory_name = "%s-%s" % (directory_prefix,
-                                        (extra_flags_hash.hexdigest())[:8])
+            directory_name = "%s-%s" % (
+                directory_prefix,
+                (extra_flags_hash.hexdigest())[:8],
+            )
             return os.path.join(build_dir, directory_name)
 
         def def_helper(arg, param, default):
@@ -74,27 +85,34 @@ class Builder(object):
         self.source = os.path.normpath(source)
         self.client = def_helper(shell_client, "shell_client", "ssh")
         self.port = def_helper(shell_port, "shell_port", "22")
-        self.file_transfer_client = def_helper(file_transfer_client,
-                                               "file_transfer_client", "scp")
-        self.file_transfer_port = def_helper(file_transfer_port,
-                                             "file_transfer_port", "22")
+        self.file_transfer_client = def_helper(
+            file_transfer_client, "file_transfer_client", "scp"
+        )
+        self.file_transfer_port = def_helper(
+            file_transfer_port, "file_transfer_port", "22"
+        )
         self.username = def_helper(username, "username", "root")
         self.password = def_helper(password, "password", "redhat")
         self.make_flags = make_flags
-        self.build_dir = def_helper(build_dir, "tmp_dir",
-                                    data_dir.get_tmp_dir())
+        self.build_dir = def_helper(build_dir, "tmp_dir", data_dir.get_tmp_dir())
         if build_dir_prefix is None:
             build_dir_prefix = os.path.basename(source)
-        self.full_build_path = full_build_path(self.build_dir,
-                                               build_dir_prefix, make_flags)
+        self.full_build_path = full_build_path(
+            self.build_dir, build_dir_prefix, make_flags
+        )
         self.linesep = def_helper(shell_linesep, "shell_linesep", "\n")
-        self.prompt = def_helper(shell_prompt, "shell_prompt",
-                                 "^\[.*\][\#\$]\s*)$")
+        self.prompt = def_helper(shell_prompt, "shell_prompt", "^\[.*\][\#\$]\s*)$")
 
-        self.session = remote.remote_login(self.client, self.address,
-                                           self.port, self.username,
-                                           self.password, self.prompt,
-                                           self.linesep, timeout=360)
+        self.session = remote.remote_login(
+            self.client,
+            self.address,
+            self.port,
+            self.username,
+            self.password,
+            self.prompt,
+            self.linesep,
+            timeout=360,
+        )
 
     def sync_directories(self):
         """
@@ -109,12 +127,13 @@ class Builder(object):
             machine.
             :param path: Path to search
             """
+
             def hash_file(file_name):
                 """
                 Calculate hex-encoded hash of a file
                 :param file_name: File to hash
                 """
-                f = open(file_name, mode='r')
+                f = open(file_name, mode="r")
                 h = hashlib.sha1()
                 while True:
                     buf = f.read(4096)
@@ -135,8 +154,7 @@ class Builder(object):
                 for file_name in file_names:
                     path = os.path.join(dir_name, file_name)
                     if os.path.isfile(path):
-                        result[
-                            os.path.relpath(path, base_path)] = hash_file(path)
+                        result[os.path.relpath(path, base_path)] = hash_file(path)
 
             result = {}
             os.path.walk(path, visit, (path, result))
@@ -152,12 +170,10 @@ class Builder(object):
             :param linesep: Line separation string for the remote system
             """
 
-            cmd = 'test \! -d %s || find %s -type f | xargs sha1sum' % (path,
-                                                                        path)
+            cmd = "test \! -d %s || find %s -type f | xargs sha1sum" % (path, path)
             status, output = session.cmd_status_output(cmd)
             if not status == 0:
-                raise BuildError("Unable to get hashes of remote files: '%s'"
-                                 % output)
+                raise BuildError("Unable to get hashes of remote files: '%s'" % output)
             result = {}
             # Output is "<sum>  <filename><linesep><sum>  <filename>..."
             for line in output.split(linesep):
@@ -172,6 +188,7 @@ class Builder(object):
             List all directories that exist in path on the local machine
             :param path: Path to search
             """
+
             def visit(arg, dir_name, file_names):
                 """
                 Callback function list all directories
@@ -191,8 +208,9 @@ class Builder(object):
 
             return result
 
-        remote_hashes = get_remote_hashes(self.full_build_path, self.session,
-                                          self.linesep)
+        remote_hashes = get_remote_hashes(
+            self.full_build_path, self.session, self.linesep
+        )
         local_hashes = get_local_hashes(self.source)
 
         to_transfer = []
@@ -203,36 +221,37 @@ class Builder(object):
 
         need_build = False
         if to_transfer:
-            LOG.info("Need to copy files to %s on target" %
-                     self.full_build_path)
+            LOG.info("Need to copy files to %s on target" % self.full_build_path)
             need_build = True
 
             # Create all directories
             dirs = list_recursive_dirnames(self.source)
             if dirs:
                 dirs_text = " ".join(dirs)
-                fmt_arg = (self.full_build_path, self.full_build_path,
-                           dirs_text)
-                cmd = 'mkdir -p %s && cd %s && mkdir -p %s' % fmt_arg
+                fmt_arg = (self.full_build_path, self.full_build_path, dirs_text)
+                cmd = "mkdir -p %s && cd %s && mkdir -p %s" % fmt_arg
             else:
-                cmd = 'mkdir -p %s' % self.full_build_path
+                cmd = "mkdir -p %s" % self.full_build_path
             status, output = self.session.cmd_status_output(cmd)
             if not status == 0:
-                raise BuildError("Unable to create remote directories: '%s'"
-                                 % output)
+                raise BuildError("Unable to create remote directories: '%s'" % output)
 
             # Copy files
             for file_name in to_transfer:
                 local_path = os.path.join(self.source, file_name)
                 remote_path = os.path.join(self.full_build_path, file_name)
-                remote.copy_files_to(self.address, self.file_transfer_client,
-                                     self.username, self.password,
-                                     self.file_transfer_port, local_path,
-                                     remote_path)
+                remote.copy_files_to(
+                    self.address,
+                    self.file_transfer_client,
+                    self.username,
+                    self.password,
+                    self.file_transfer_port,
+                    local_path,
+                    remote_path,
+                )
 
         else:
-            LOG.info("Directory %s on target already up-to-date" %
-                     self.full_build_path)
+            LOG.info("Directory %s on target already up-to-date" % self.full_build_path)
 
         return need_build
 
@@ -241,7 +260,7 @@ class Builder(object):
         Execute make on the remote system
         """
         LOG.info("Building in %s on target" % self.full_build_path)
-        cmd = 'make -C %s %s' % (self.full_build_path, self.make_flags)
+        cmd = "make -C %s %s" % (self.full_build_path, self.make_flags)
         status, output = self.session.cmd_status_output(cmd)
         if not status == 0:
             raise BuildError("Unable to make: '%s'" % output)

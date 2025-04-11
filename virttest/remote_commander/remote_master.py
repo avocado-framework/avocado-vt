@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 
-'''
+"""
 Created on Dec 6, 2013
 
 :author: jzupka, astepano
 :contact: Andrei Stepanov <astepano@redhat.com>
-'''
+"""
 
 from __future__ import division
+
+import inspect
 import sys
 import time
-import inspect
 
-from virttest.remote_commander import remote_interface
-from virttest.remote_commander import messenger
+from virttest.remote_commander import messenger, remote_interface
 
 
 def getsource(obj):
@@ -31,7 +31,6 @@ def wait_timeout(timeout):
 
 
 class CmdMaster(object):
-
     """
     Representation of BaseCmd on master side.
     """
@@ -52,7 +51,7 @@ class CmdMaster(object):
         self._results_cnt = 0
         self._stdout_cnt = 0
         self._stderr_cnt = 0
-        self.timeout = kargs.get('timeout', None)
+        self.timeout = kargs.get("timeout", None)
 
     def getbasecmd(self):
         """
@@ -140,12 +139,12 @@ class CmdMaster(object):
         self.commander = commander
         if self not in commander.cmds:
             commander.cmds[self.cmd_id] = self
-        self.commander.manage.register_cmd(self.basecmd,
-                                           remote_interface.BaseCmd.single_cmd_id)
+        self.commander.manage.register_cmd(
+            self.basecmd, remote_interface.BaseCmd.single_cmd_id
+        )
 
 
 class CmdEncapsulation(object):
-
     """
     Class parse command name   cmd.nohup.shell -> ["nohup", "shell"]
     """
@@ -170,7 +169,6 @@ class CmdEncapsulation(object):
 
 
 class CmdTimeout(remote_interface.MessengerError):
-
     """
     Raised when waiting for cmd exceeds time define by timeout.
     """
@@ -183,15 +181,14 @@ class CmdTimeout(remote_interface.MessengerError):
 
 
 class Commander(object):
-
     """
     Commander representation for transfer over network.
     """
+
     __slots__ = []
 
 
 class CommanderMaster(messenger.Messenger):
-
     """
     Class commander master is responsible for communication with commander
     slave. It invoke commands to slave part and receive messages from them.
@@ -213,8 +210,7 @@ class CommanderMaster(messenger.Messenger):
         self.write_msg("start")
         succ, msg = self.read_msg()
         if not succ or msg != "Started":
-            raise remote_interface.CommanderError("Remote commander"
-                                                  " not started.")
+            raise remote_interface.CommanderError("Remote commander" " not started.")
 
     def set_responder(self, responder):
         """
@@ -262,7 +258,7 @@ class CommanderMaster(messenger.Messenger):
         Listen on all streams included in Commander commands.
         """
         if isinstance(cmd, remote_interface.StdStream):
-            if (self.debug):
+            if self.debug:
                 print(cmd.msg)
             if cmd.isCmdMsg():
                 if isinstance(cmd, remote_interface.StdOut):
@@ -279,13 +275,18 @@ class CommanderMaster(messenger.Messenger):
         """
         Listen for errors raised from slave part of commander.
         """
-        if isinstance(cmd, (Exception, remote_interface.CommanderError,
-                            remote_interface.MessengerError)):
+        if isinstance(
+            cmd,
+            (
+                Exception,
+                remote_interface.CommanderError,
+                remote_interface.MessengerError,
+            ),
+        ):
             raise cmd
 
     def listen_queries(self, cmd):
-        """Manage queries from slave side.
-        """
+        """Manage queries from slave side."""
         if isinstance(cmd, remote_interface.CmdQuery):
             assert self.responder  # Should be set by set_responder()
             data = self.responder(*cmd.args, **cmd.kargs)
@@ -297,7 +298,7 @@ class CommanderMaster(messenger.Messenger):
         Manage basecmds from slave side.
         """
         if isinstance(cmd, remote_interface.BaseCmd):
-            if (self.debug):
+            if self.debug:
                 print(cmd.func, cmd.results, cmd._finished)
 
             if isinstance(cmd.results, Exception):
@@ -328,7 +329,7 @@ class CommanderMaster(messenger.Messenger):
         """
         self.cmds[cmd.basecmd.cmd_id] = cmd
         self.write_msg(cmd.basecmd)
-        while (1):
+        while 1:
             if cmd.basecmd.func[0] not in ["async", "nohup"]:
                 # If not async wait for finish.
                 self.wait(cmd)
@@ -357,7 +358,7 @@ class CommanderMaster(messenger.Messenger):
         for _ in w:
             r_cmd = self.listen_messenger(time_step)
             if isinstance(r_cmd, remote_interface.BaseCmd):
-                if (self.debug):
+                if self.debug:
                     print(m_cmd._stdout)
                 if r_cmd is not None and r_cmd == m_cmd.basecmd:
                     # If command which we waiting for.
@@ -388,7 +389,7 @@ class CommanderMaster(messenger.Messenger):
         if timeout is not None:
             time_step = timeout / 10.0
         w = wait_timeout(timeout)
-        while (next(w)):
+        while next(w):
             r_cmd = self.listen_messenger(time_step)
             if r_cmd is not None and r_cmd == m_cmd.basecmd:
                 return m_cmd

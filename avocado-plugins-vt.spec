@@ -10,10 +10,10 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      22035893fc26a2a84f8e7a9cb6df21f596c1cda9
+        %global commit      fc37acd5ec9b7dc2ea6d29b60729fe0ff9480e62
     %endif
     %if ! 0%{?commit_date:1}
-        %global commit_date 20230119
+        %global commit_date 20250113
     %endif
     %global shortcommit     %(c=%{commit};echo ${c:0:8})
     %global gitrel          .%{commit_date}git%{shortcommit}
@@ -31,7 +31,7 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 100.1
+Version: 109.0
 Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -104,6 +104,15 @@ Xunit output, among others.
 
 
 %changelog
+* Wed Jan 14 2025 Jan Richter <jarichte@redhat.com> - 109.0-1
+- New release
+
+* Wed Mar 20 2024 Cleber Rosa <crosa@redhat.com> - 104.0-1
+- New release
+
+* Thu Jan 25 2024 Cleber Rosa <crosa@redhat.com> - 103.0-1
+- New release
+
 * Fri May  5 2023 Xu Han <xuhan@redhat.com> - 100.1-2
 - Removed python3-devel dependency
 - Replaced passfd module with Python's built-in facility

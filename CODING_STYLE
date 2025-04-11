@@ -13,24 +13,9 @@ maintainable. (Obviously using C or whatever for writing tests is fine).
 
 Base coding style
 
-When writing python code, unless otherwise stated, stick to the python style
-guide (http://www.python.org/dev/peps/pep-0008/). We now ship a script,
-run_pep8.py, that can verify non compliances to the PEP8, with some of
-the few exceptions we allow people to do. If you see that the script
-finds problems with your code, we expect you to fix them before you
-send pull requests. In order for the script to be useful you'll have to
-use the tools provided by your distro to install the programs 'pep8' and
-'autopep8'.
-
-
-Indentation & whitespace
-
-Format your code for an 80 character wide screen.
-
-Indentation is now 4 spaces, as opposed to hard tabs (which it used to be).
-This is the Python standard.
-
-Don't leave trailing whitespace, or put whitespace on blank lines.
+The coding style for all Python code is the one enforced by black (see
+https://black.readthedocs.io/en/stable/the_black_code_style/).  The
+avocado-static-checks/check-style script can be used to verify the code style matches.
 
 
 Variable names and UpPeR cAsE

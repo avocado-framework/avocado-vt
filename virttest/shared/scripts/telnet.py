@@ -1,6 +1,6 @@
-import telnetlib
-import sys
 import os
+import sys
+import telnetlib
 
 if len(sys.argv) != 5:
     print("Usage: %s host_ip user password prompt" % sys.argv[0])
@@ -16,13 +16,13 @@ try:
 except Exception:
     print("Connection refused")
     sys.exit(1)
-output = tn.read_until('login:', 30)
+output = tn.read_until("login:", 30)
 if not output.strip():
     print("Connection timed out")
     sys.exit(1)
 tn.write(user)
 tn.write(os.linesep)
-output = tn.read_until('Password:', 10)
+output = tn.read_until("Password:", 10)
 tn.write(password)
 tn.write(os.linesep)
 output += tn.read_until(prompt, 5)

@@ -2,7 +2,8 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatbackup.html
 """
-from virttest.libvirt_xml import base, accessors, xcepts
+
+from virttest.libvirt_xml import accessors, base, xcepts
 
 
 class BackupXML(base.LibvirtXMLBase):
@@ -50,25 +51,30 @@ class BackupXML(base.LibvirtXMLBase):
             dict, keys: transport, socket, name, port
     """
 
-    __slots__ = ('mode', 'incremental', 'server', 'disks')
+    __slots__ = ("mode", "incremental", "server", "disks")
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
     __schema_name__ = "domainbackup"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute('mode', self, parent_xpath='/',
-                               tag_name='domainbackup', attribute='mode')
-        accessors.XMLElementText('incremental', self, parent_xpath='/',
-                                 tag_name='incremental')
-        accessors.XMLElementDict('server', self, parent_xpath='/',
-                                 tag_name='server')
-        accessors.XMLElementList('disks', self, parent_xpath='/disks',
-                                 marshal_from=self.marshal_from_disks,
-                                 marshal_to=self.marshal_to_disks,
-                                 has_subclass=True)
+        accessors.XMLAttribute(
+            "mode", self, parent_xpath="/", tag_name="domainbackup", attribute="mode"
+        )
+        accessors.XMLElementText(
+            "incremental", self, parent_xpath="/", tag_name="incremental"
+        )
+        accessors.XMLElementDict("server", self, parent_xpath="/", tag_name="server")
+        accessors.XMLElementList(
+            "disks",
+            self,
+            parent_xpath="/disks",
+            marshal_from=self.marshal_from_disks,
+            marshal_to=self.marshal_to_disks,
+            has_subclass=True,
+        )
         super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<domainbackup/>'
+        self.xml = "<domainbackup/>"
 
     @staticmethod
     def marshal_from_disks(item, index, libvirtxml):
@@ -76,21 +82,22 @@ class BackupXML(base.LibvirtXMLBase):
         Convert an xml object to disk tag and xml element.
         """
         if isinstance(item, BackupXML.DiskXML):
-            return 'disk', item
+            return "disk", item
         elif isinstance(item, dict):
             disk = BackupXML.DiskXML()
             disk.setup_attrs(**item)
-            return 'disk', disk
+            return "disk", disk
         else:
-            raise xcepts.LibvirtXMLError("Expected a list of DiskXML "
-                                         "instances, not a %s" % str(item))
+            raise xcepts.LibvirtXMLError(
+                "Expected a list of DiskXML " "instances, not a %s" % str(item)
+            )
 
     @staticmethod
     def marshal_to_disks(tag, new_treefile, index, libvirtxml):
         """
         Convert a disk tag xml element to an object of DiskXML.
         """
-        if tag != 'disk':
+        if tag != "disk":
             return None
         newone = BackupXML.DiskXML(virsh_instance=libvirtxml.virsh)
         newone.xmltreefile = new_treefile
@@ -126,37 +133,76 @@ class BackupXML(base.LibvirtXMLBase):
                 libvirt_xml.backup_xml.DiskXML.DiskScratch instance
         """
 
-        __slots__ = ('name', 'backup', 'exportname', 'exportbitmap',
-                     'type', 'backupmode', 'incremental', 'target',
-                     'driver', 'scratch')
+        __slots__ = (
+            "name",
+            "backup",
+            "exportname",
+            "exportbitmap",
+            "type",
+            "backupmode",
+            "incremental",
+            "target",
+            "driver",
+            "scratch",
+        )
 
         def __init__(self, virsh_instance=base.virsh):
-            accessors.XMLAttribute('name', self, parent_xpath='/',
-                                   tag_name='disk', attribute='name')
-            accessors.XMLAttribute('backup', self, parent_xpath='/',
-                                   tag_name='disk', attribute='backup')
-            accessors.XMLAttribute('exportname', self, parent_xpath='/',
-                                   tag_name='disk', attribute='exportname')
-            accessors.XMLAttribute('exportbitmap', self, parent_xpath='/',
-                                   tag_name='disk', attribute='exportbitmap')
-            accessors.XMLAttribute('type', self, parent_xpath='/',
-                                   tag_name='disk', attribute='type')
-            accessors.XMLAttribute('backupmode', self, parent_xpath='/',
-                                   tag_name='disk', attribute='backupmode')
-            accessors.XMLAttribute('incremental', self, parent_xpath='/',
-                                   tag_name='disk', attribute='incremental')
-            accessors.XMLElementNest('target', self, parent_xpath='/',
-                                     tag_name='target',
-                                     subclass=self.DiskTarget,
-                                     subclass_dargs={
-                                         'virsh_instance': virsh_instance})
-            accessors.XMLElementDict('driver', self, parent_xpath='/',
-                                     tag_name='driver')
-            accessors.XMLElementNest('scratch', self, parent_xpath='/',
-                                     tag_name='scratch',
-                                     subclass=self.DiskScratch,
-                                     subclass_dargs={
-                                         'virsh_instance': virsh_instance})
+            accessors.XMLAttribute(
+                "name", self, parent_xpath="/", tag_name="disk", attribute="name"
+            )
+            accessors.XMLAttribute(
+                "backup", self, parent_xpath="/", tag_name="disk", attribute="backup"
+            )
+            accessors.XMLAttribute(
+                "exportname",
+                self,
+                parent_xpath="/",
+                tag_name="disk",
+                attribute="exportname",
+            )
+            accessors.XMLAttribute(
+                "exportbitmap",
+                self,
+                parent_xpath="/",
+                tag_name="disk",
+                attribute="exportbitmap",
+            )
+            accessors.XMLAttribute(
+                "type", self, parent_xpath="/", tag_name="disk", attribute="type"
+            )
+            accessors.XMLAttribute(
+                "backupmode",
+                self,
+                parent_xpath="/",
+                tag_name="disk",
+                attribute="backupmode",
+            )
+            accessors.XMLAttribute(
+                "incremental",
+                self,
+                parent_xpath="/",
+                tag_name="disk",
+                attribute="incremental",
+            )
+            accessors.XMLElementNest(
+                "target",
+                self,
+                parent_xpath="/",
+                tag_name="target",
+                subclass=self.DiskTarget,
+                subclass_dargs={"virsh_instance": virsh_instance},
+            )
+            accessors.XMLElementDict(
+                "driver", self, parent_xpath="/", tag_name="driver"
+            )
+            accessors.XMLElementNest(
+                "scratch",
+                self,
+                parent_xpath="/",
+                tag_name="scratch",
+                subclass=self.DiskScratch,
+                subclass_dargs={"virsh_instance": virsh_instance},
+            )
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<disk/>"
@@ -171,18 +217,22 @@ class BackupXML(base.LibvirtXMLBase):
             encryption: libvirt_xml.backup_xml.Disk.DiskTarget.Encryption instances
             """
 
-            __slots__ = ('attrs', 'encryption')
+            __slots__ = ("attrs", "encryption")
 
             def __init__(self, virsh_instance=base.virsh):
-                accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                         tag_name='target')
-                accessors.XMLElementNest('encryption', self, parent_xpath='/',
-                                         tag_name='encryption',
-                                         subclass=self.Encryption,
-                                         subclass_dargs={
-                                             'virsh_instance': virsh_instance})
+                accessors.XMLElementDict(
+                    "attrs", self, parent_xpath="/", tag_name="target"
+                )
+                accessors.XMLElementNest(
+                    "encryption",
+                    self,
+                    parent_xpath="/",
+                    tag_name="encryption",
+                    subclass=self.Encryption,
+                    subclass_dargs={"virsh_instance": virsh_instance},
+                )
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-                self.xml = '<target/>'
+                self.xml = "<target/>"
 
             def new_encryption(self, **dargs):
                 """
@@ -204,16 +254,21 @@ class BackupXML(base.LibvirtXMLBase):
                         dict, keys: type, usage, uuid
                 """
 
-                __slots__ = ('encryption', 'secret')
+                __slots__ = ("encryption", "secret")
 
                 def __init__(self, virsh_instance=base.virsh):
-                    accessors.XMLAttribute('encryption', self, parent_xpath='/',
-                                           tag_name='encryption', attribute='format')
-                    accessors.XMLElementDict('secret', self, parent_xpath='/',
-                                             tag_name='secret')
-                    super(self.__class__, self).__init__(
-                        virsh_instance=virsh_instance)
-                    self.xml = '<encryption/>'
+                    accessors.XMLAttribute(
+                        "encryption",
+                        self,
+                        parent_xpath="/",
+                        tag_name="encryption",
+                        attribute="format",
+                    )
+                    accessors.XMLElementDict(
+                        "secret", self, parent_xpath="/", tag_name="secret"
+                    )
+                    super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                    self.xml = "<encryption/>"
 
         class DiskScratch(DiskTarget):
             """
@@ -226,15 +281,19 @@ class BackupXML(base.LibvirtXMLBase):
             encryption: libvirt_xml.backup_xml.Disk.DiskTarget.Encryption instances
             """
 
-            __slots__ = ('attrs', 'encryption')
+            __slots__ = ("attrs", "encryption")
 
             def __init__(self, virsh_instance=base.virsh):
-                accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                         tag_name='scratch')
-                accessors.XMLElementNest('encryption', self, parent_xpath='/',
-                                         tag_name='encryption',
-                                         subclass=self.Encryption,
-                                         subclass_dargs={
-                                             'virsh_instance': virsh_instance})
+                accessors.XMLElementDict(
+                    "attrs", self, parent_xpath="/", tag_name="scratch"
+                )
+                accessors.XMLElementNest(
+                    "encryption",
+                    self,
+                    parent_xpath="/",
+                    tag_name="encryption",
+                    subclass=self.Encryption,
+                    subclass_dargs={"virsh_instance": virsh_instance},
+                )
                 base.LibvirtXMLBase.__init__(self, virsh_instance=virsh_instance)
-                self.xml = '<scratch/>'
+                self.xml = "<scratch/>"

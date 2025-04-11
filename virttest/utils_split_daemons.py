@@ -1,35 +1,34 @@
 """
 Module to control split daemon service.
 """
-# pylint: disable=E0611
-import re
+
 import logging
 
-import aexpect
-from avocado.utils import process
-from avocado.utils import wait
-from avocado.core import exceptions
+# pylint: disable=E0611
+import re
 
-from virttest import libvirtd_decorator
-from virttest import remote
-from virttest import utils_misc
+import aexpect
+from avocado.core import exceptions
+from avocado.utils import process, wait
+
+from virttest import libvirtd_decorator, remote, utils_misc
 from virttest.staging import service
 from virttest.utils_gdb import GDB
 
-IS_MODULAR_DAEMON = {'local': None}
+IS_MODULAR_DAEMON = {"local": None}
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class VirtDaemonCommon(object):
-
     """
     Common class to manage libvirt split daemon service on host or guest.
     """
-    daemon_name = ''
+
+    daemon_name = ""
     virsh_cmd = "virsh -c qemu:///system list"
 
-    def __init__(self, daemon_name='', session=None):
+    def __init__(self, daemon_name="", session=None):
         """
         Initialize an service object for virt daemons.
 
@@ -47,8 +46,10 @@ class VirtDaemonCommon(object):
             runner = process.run
 
         if not self.daemon_name:
-            LOG.warning("libvirt split daemon service is not available in host, "
-                        "utils_daemons module will not function normally")
+            LOG.warning(
+                "libvirt split daemon service is not available in host, "
+                "utils_daemons module will not function normally"
+            )
         self.virtdaemon = service.Factory.create_service(self.daemon_name, run=runner)
 
     def _wait_for_start(self, timeout=60):
@@ -57,6 +58,7 @@ class VirtDaemonCommon(object):
 
         :param timeout: time out for waiting start
         """
+
         def _check_start():
             try:
                 if self.session:
@@ -66,6 +68,7 @@ class VirtDaemonCommon(object):
                 return True
             except Exception:
                 return False
+
         return utils_misc.wait_for(_check_start, timeout=timeout)
 
     @libvirtd_decorator.libvirt_version_context_aware_libvirtd_split
@@ -97,29 +100,29 @@ class VirtQemud(VirtDaemonCommon):
     """
     Class for manage virtqemud daemon service on host or guest.
     """
+
     # Override daemon name in super class.
-    daemon_name = 'virtqemud'
+    daemon_name = "virtqemud"
 
 
 class VirtProxyd(VirtDaemonCommon):
     """
     Class for manage virtproxyd daemon service on host or guest.
     """
+
     # Override daemon name in super class.
-    daemon_name = 'virtproxyd'
+    daemon_name = "virtproxyd"
 
 
 class VirtQemudSession(object):
-
     """
     Interaction virtqemud daemon session by directly call the virtqemud command.
     With gdb debugging feature can be optionally started.
     """
 
-    def __init__(self, gdb=False,
-                 logging_handler=None,
-                 logging_params=(),
-                 logging_pattern=r'.*'):
+    def __init__(
+        self, gdb=False, logging_handler=None, logging_params=(), logging_pattern=r".*"
+    ):
         """
         :param gdb: Whether call the session with gdb debugging support
         :param logging_handler: Callback function to handle logging
@@ -134,7 +137,7 @@ class VirtQemudSession(object):
         self.virtqemud_service = VirtQemud()
         self.was_running = self.virtqemud_service.is_running()
         if self.was_running:
-            LOG.debug('Stopping virtqemud service')
+            LOG.debug("Stopping virtqemud service")
             self.virtqemud_service.stop()
 
         self.logging_handler = logging_handler
@@ -142,10 +145,10 @@ class VirtQemudSession(object):
         self.logging_pattern = logging_pattern
 
         if gdb:
-            self.gdb = GDB('virtqemud')
-            self.gdb.set_callback('stop', self._stop_callback, self.bundle)
-            self.gdb.set_callback('start', self._start_callback, self.bundle)
-            self.gdb.set_callback('termination', self._termination_callback)
+            self.gdb = GDB("virtqemud")
+            self.gdb.set_callback("stop", self._stop_callback, self.bundle)
+            self.gdb.set_callback("start", self._start_callback, self.bundle)
+            self.gdb.set_callback("termination", self._termination_callback)
 
     def _output_handler(self, line):
         """
@@ -183,7 +186,7 @@ class VirtQemudSession(object):
         :param params: Parameter lists
         """
         self.running = False
-        params['stop-info'] = info
+        params["stop-info"] = info
 
     def _start_callback(self, gdb, info, params):
         """
@@ -193,19 +196,18 @@ class VirtQemudSession(object):
         :param status: Return code of exited virtqemud session
         """
         self.running = True
-        params['stop-info'] = None
+        params["stop-info"] = None
 
     def set_callback(self, callback_type, callback_func, callback_params=None):
         """
         Set a customized gdb callback function.
         """
         if self.gdb:
-            self.gdb.set_callback(
-                callback_type, callback_func, callback_params)
+            self.gdb.set_callback(callback_type, callback_func, callback_params)
         else:
             LOG.error("Only gdb session supports setting callback")
 
-    def start(self, arg_str='', wait_for_working=True):
+    def start(self, arg_str="", wait_for_working=True):
         """
         Start virtqemud session.
 
@@ -217,7 +219,7 @@ class VirtQemudSession(object):
             self.pid = self.gdb.pid
         else:
             self.tail = aexpect.Tail(
-                "%s %s" % ('virtqemud', arg_str),
+                "%s %s" % ("virtqemud", arg_str),
                 output_func=self._output_handler,
                 termination_func=self._termination_handler,
             )
@@ -244,7 +246,7 @@ class VirtQemudSession(object):
         else:
             self.tail.kill()
 
-    def restart(self, arg_str='', wait_for_working=True):
+    def restart(self, arg_str="", wait_for_working=True):
         """
         Restart the virtqemud session.
 
@@ -261,7 +263,7 @@ class VirtQemudSession(object):
 
         :param timeout: Max wait time
         """
-        LOG.debug('Waiting for virtqemud to work')
+        LOG.debug("Waiting for virtqemud to work")
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -274,7 +276,7 @@ class VirtQemudSession(object):
         if self.gdb:
             return self.gdb.back_trace()
         else:
-            LOG.warning('Can not get back trace without gdb')
+            LOG.warning("Can not get back trace without gdb")
 
     def insert_break(self, break_func):
         """
@@ -285,7 +287,7 @@ class VirtQemudSession(object):
         if self.gdb:
             return self.gdb.insert_break(break_func)
         else:
-            LOG.warning('Can not insert breakpoint without gdb')
+            LOG.warning("Can not insert breakpoint without gdb")
 
     def is_working(self):
         """
@@ -305,7 +307,7 @@ class VirtQemudSession(object):
         :param timeout: Max wait time
         :param step: Checking interval
         """
-        LOG.debug('Waiting for virtqemud to stop')
+        LOG.debug("Waiting for virtqemud to stop")
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
@@ -321,7 +323,7 @@ class VirtQemudSession(object):
 
         :param timeout: Max wait time
         """
-        LOG.debug('Waiting for virtqemud to terminate')
+        LOG.debug("Waiting for virtqemud to terminate")
         if self.gdb:
             return self.gdb.wait_for_termination(timeout=timeout)
         else:
@@ -404,20 +406,30 @@ def is_modular_daemon(session=None):
     """
     if session:
         runner = remote.RemoteRunner(session=session).run
-        host_key = runner('hostname').stdout_text.strip()
+        host_key = runner("hostname").stdout_text.strip()
         if host_key not in IS_MODULAR_DAEMON:
             IS_MODULAR_DAEMON[host_key] = None
     else:
         runner = process.run
         host_key = "local"
     if IS_MODULAR_DAEMON[host_key] is None:
-        daemons = ["virtqemud.socket", "virtinterfaced.socket",
-                   "virtnetworkd.socket", "virtnodedevd.socket",
-                   "virtnwfilterd.socket", "virtsecretd.socket",
-                   "virtstoraged.socket", "virtproxyd.socket"]
+        daemons = [
+            "virtqemud.socket",
+            "virtinterfaced.socket",
+            "virtnetworkd.socket",
+            "virtnodedevd.socket",
+            "virtnwfilterd.socket",
+            "virtsecretd.socket",
+            "virtstoraged.socket",
+            "virtproxyd.socket",
+        ]
 
-        if any([service.Factory.create_service(d, run=runner).is_enabled()
-                for d in daemons]):
+        if any(
+            [
+                service.Factory.create_service(d, run=runner).is_enabled()
+                for d in daemons
+            ]
+        ):
             IS_MODULAR_DAEMON[host_key] = True
         else:
             IS_MODULAR_DAEMON[host_key] = False
@@ -432,7 +444,9 @@ def daemon_mode_check(require_modular_daemon=True):
     :param require_modular_daemon: Whether require modular mode
     :raise: raise TestCancel if required daemon mode is different with the env
     """
-    unsupported_err_msg = "This daemon mode is not the same as the required daemon mode."
+    unsupported_err_msg = (
+        "This daemon mode is not the same as the required daemon mode."
+    )
 
     if require_modular_daemon != is_modular_daemon():
         raise exceptions.TestCancel(unsupported_err_msg)

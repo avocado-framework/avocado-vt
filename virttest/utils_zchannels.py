@@ -41,17 +41,17 @@ class SubchannelPaths(object):
     """
 
     HEADER = {
-            "Device": 0,
-            "Subchan.": 1,
-            "DevType": 2,
-            "CU Type": 3,
-            "Use": 4,
-            "PIM": 5,
-            "PAM": 6,
-            "POM": 7,
-            "CHPIDs": 8,
-            "CHPIDs_extra": 9
-            }
+        "Device": 0,
+        "Subchan.": 1,
+        "DevType": 2,
+        "CU Type": 3,
+        "Use": 4,
+        "PIM": 5,
+        "PAM": 6,
+        "POM": 7,
+        "CHPIDs": 8,
+        "CHPIDs_extra": 9,
+    }
 
     def __init__(self, session=None):
         """
@@ -66,24 +66,31 @@ class SubchannelPaths(object):
         """
         Calls lscss and stores lines
         """
-        err, out = cmd_status_output("lscss", shell=True,
-                                     session=self.session,
-                                     timeout=CMD_TIMEOUT,
-                                     verbose=VERBOSE)
+        err, out = cmd_status_output(
+            "lscss",
+            shell=True,
+            session=self.session,
+            timeout=CMD_TIMEOUT,
+            verbose=VERBOSE,
+        )
         if err:
             raise OSError("Error when running lscss: %s" % out)
         # skip header and split according to HEADER
-        self.devices = [[
-            x[:8],
-            x[9:17],
-            x[19:26],
-            x[27:34],
-            x[35:38],
-            x[40:42],
-            x[44:46],
-            x[48:50],
-            x[53:61],
-            x[62:]] for x in out.split("\n")[2:]]
+        self.devices = [
+            [
+                x[:8],
+                x[9:17],
+                x[19:26],
+                x[27:34],
+                x[35:38],
+                x[40:42],
+                x[44:46],
+                x[48:50],
+                x[53:61],
+                x[62:],
+            ]
+            for x in out.split("\n")[2:]
+        ]
 
     def get_device(self, devid=None):
         """
@@ -114,8 +121,7 @@ class SubchannelPaths(object):
         unused = [x for x in self.devices if x not in used]
         index = self.HEADER["CHPIDs"]
         for device in unused:
-            full_chpid_match = [x for x in used
-                                if x[index] == device[index]]
+            full_chpid_match = [x for x in used if x[index] == device[index]]
             if full_chpid_match:
                 continue
             return device
@@ -137,11 +143,12 @@ class ChannelPaths(object):
         """
 
         if len(chpids) % 2 != 0:
-            raise ValueError("%s is not a valid string of"
-                             " of concatenated chpids" % chpids)
+            raise ValueError(
+                "%s is not a valid string of" " of concatenated chpids" % chpids
+            )
         ids = []
         for i in range(0, len(chpids), 2):
-            ids.append("0.%s" % chpids[i:i+2])
+            ids.append("0.%s" % chpids[i : i + 2])
         return ids
 
     @staticmethod
@@ -159,13 +166,11 @@ class ChannelPaths(object):
 
         ids = ChannelPaths._split(chpids)
         for i in ids:
-            err, out = cmd_status_output("chchp -c 0 %s" % i,
-                                         shell=True,
-                                         timeout=CMD_TIMEOUT,
-                                         verbose=VERBOSE)
+            err, out = cmd_status_output(
+                "chchp -c 0 %s" % i, shell=True, timeout=CMD_TIMEOUT, verbose=VERBOSE
+            )
             if err:
-                raise OSError("Couldn't set all channel paths standby."
-                              " %s" % out)
+                raise OSError("Couldn't set all channel paths standby." " %s" % out)
 
     @staticmethod
     def set_online(chpids):
@@ -178,10 +183,8 @@ class ChannelPaths(object):
 
         ids = ChannelPaths._split(chpids)
         for i in ids:
-            err, out = cmd_status_output("chchp -c 1 %s" % i,
-                                         shell=True,
-                                         timeout=CMD_TIMEOUT,
-                                         verbose=VERBOSE)
+            err, out = cmd_status_output(
+                "chchp -c 1 %s" % i, shell=True, timeout=CMD_TIMEOUT, verbose=VERBOSE
+            )
             if err:
-                raise OSError("Couldn't set all channel paths configured."
-                              " %s" % out)
+                raise OSError("Couldn't set all channel paths configured." " %s" % out)

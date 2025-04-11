@@ -8,10 +8,10 @@
 # LICENSE_GPL_v2 which accompany this distribution.
 #
 
-import os
-import struct
-import platform
 import optparse
+import os
+import platform
+import struct
 
 try:
     import hashlib
@@ -20,44 +20,45 @@ except ImportError:
 
 
 class ShakeHandError(Exception):
-
     def __init__(self, msg):
         Exception.__init__(self, msg)
         self.msg = msg
 
     def __str__(self):
-        return ("Shake hand fail. %s" % self.msg)
+        return "Shake hand fail. %s" % self.msg
 
 
 class Md5MissMatch(Exception):
-
     def __init__(self, md5_pre, md5_post):
         Exception.__init__(self, md5_pre, md5_post)
         self.md5_pre = md5_pre
         self.md5_post = md5_post
 
     def __str__(self):
-        return ("Md5 miss match. Original md5 = %s, current md5 = %s" %
-                (self.md5_pre, self.md5_post))
+        return "Md5 miss match. Original md5 = %s, current md5 = %s" % (
+            self.md5_pre,
+            self.md5_post,
+        )
 
 
 class VirtIoChannel:
 
     # Python on Windows 7 return 'Microsoft' rather than 'Windows' as documented.
-    is_windows = (platform.system() == 'Windows') or (platform.system() == 'Microsoft')
+    is_windows = (platform.system() == "Windows") or (platform.system() == "Microsoft")
 
     def __init__(self, device_name):
         self.ack_format = "3s"
         self.ack_msg = b"ACK"
         self.hi_format = "2s"
         self.hi_msg = b"HI"
-        self.recv_msg = b'ALLRECEIVED'
+        self.recv_msg = b"ALLRECEIVED"
         if self.is_windows:
-            vport_name = '\\\\.\\Global\\' + device_name
+            vport_name = "\\\\.\\Global\\" + device_name
             from windows_support import WinBufferedReadFile
+
             self._vport = WinBufferedReadFile(vport_name)
         else:
-            vport_name = '/dev/virtio-ports/' + device_name
+            vport_name = "/dev/virtio-ports/" + device_name
             self._vport = os.open(vport_name, os.O_RDWR)
 
     def close(self):
@@ -96,7 +97,7 @@ class VirtIoChannel:
                 raise ShakeHandError("Host didn't ACK the file size message.")
             return size
         elif action == "receive":
-            txt = b''
+            txt = b""
             while len(txt) < hi_msg_len:
                 txt += self.receive(hi_msg_len)
             hi_str = struct.unpack(self.hi_format, txt)[0]
@@ -153,7 +154,7 @@ def get_md5(filename, size=None):
 
     if not size or size > fsize:
         size = fsize
-    f = open(filename, 'rb')
+    f = open(filename, "rb")
 
     md5_value = md5_init()
     while size > 0:
@@ -176,7 +177,7 @@ def receive(device, filename, p_size=1024):
     if p_size < int(size):
         p_size = int(size)
     md5_value = md5_init()
-    file_no = open(filename, 'wb')
+    file_no = open(filename, "wb")
     try:
         while recv_size < size:
             txt = vio.receive(p_size)
@@ -198,7 +199,7 @@ def send(device, filename, p_size=1024):
     vio = VirtIoChannel(device)
     vio.shake_hand(f_size, action="send")
     md5_value = md5_init()
-    file_no = open(filename, 'rb')
+    file_no = open(filename, "rb")
     try:
         while send_size < f_size:
             txt = file_no.read(p_size)
@@ -218,16 +219,34 @@ if __name__ == "__main__":
     txt = "Transfer data between guest and host through virtio serial."
     parser = optparse.OptionParser(txt)
 
-    parser.add_option("-d", "--device", dest="device",
-                      help="serial device name used in qemu command"
-                           "eg: -device virtserialport,chardev=x,name=redhat"
-                           "need use redhat here.")
-    parser.add_option("-f", "--filename", dest="filename",
-                      help="File transfer to guest or save data to.")
-    parser.add_option("-a", "--action", dest="action", default="send",
-                      help="Send data out or receive data.")
-    parser.add_option("-p", "--package", dest="package", default=1024,
-                      help="Package size during file transfer.")
+    parser.add_option(
+        "-d",
+        "--device",
+        dest="device",
+        help="serial device name used in qemu command"
+        "eg: -device virtserialport,chardev=x,name=redhat"
+        "need use redhat here.",
+    )
+    parser.add_option(
+        "-f",
+        "--filename",
+        dest="filename",
+        help="File transfer to guest or save data to.",
+    )
+    parser.add_option(
+        "-a",
+        "--action",
+        dest="action",
+        default="send",
+        help="Send data out or receive data.",
+    )
+    parser.add_option(
+        "-p",
+        "--package",
+        dest="package",
+        default=1024,
+        help="Package size during file transfer.",
+    )
 
     options, args = parser.parse_args()
 

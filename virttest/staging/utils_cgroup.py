@@ -8,25 +8,24 @@ Helpers for cgroup testing.
 """
 import logging
 import os
+import random
+import re
 import shutil
 import subprocess
 import time
-import re
-import random
-import six
 from tempfile import mkdtemp
 
+import six
 from avocado.core import exceptions
-from avocado.utils.software_manager import manager
 from avocado.utils import process
+from avocado.utils.software_manager import manager
 
 from . import service
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class Cgroup(object):
-
     """
     Cgroup handling class.
     """
@@ -61,8 +60,9 @@ class Cgroup(object):
         """
         self.root = modules.get_pwd(self.module)
         if not self.root:
-            raise exceptions.TestError("cg.initialize(): Module %s not found"
-                                       % self.module)
+            raise exceptions.TestError(
+                "cg.initialize(): Module %s not found" % self.module
+            )
 
     def __get_cgroup_pwd(self, cgroup):
         """
@@ -73,7 +73,7 @@ class Cgroup(object):
         """
         if not isinstance(cgroup, six.string_types):
             raise exceptions.TestError("cgroup type isn't string!")
-        return os.path.join(self.root, cgroup) + '/'
+        return os.path.join(self.root, cgroup) + "/"
 
     def get_cgroup_name(self, pwd=None):
         """
@@ -90,8 +90,8 @@ class Cgroup(object):
         # self.root is "/cgroup/blkio," not "/cgroup/blkio/"
         # cgroup is "/cgroup/blkio/test" or "/cgroup/blkio/test/test"
         # expected cgroup name is test or test/test
-        if pwd.startswith(self.root + '/'):
-            return pwd[len(self.root) + 1: -1]
+        if pwd.startswith(self.root + "/"):
+            return pwd[len(self.root) + 1 : -1]
         return None
 
     def get_cgroup_index(self, cgroup):
@@ -120,8 +120,9 @@ class Cgroup(object):
             parent_cgroup = self.get_cgroup_name(pwd)
             if cgroup is None:
                 range = "abcdefghijklmnopqrstuvwxyz0123456789"
-                sub_cgroup = "cgroup-" + "".join(random.sample(range +
-                                                               range.upper(), 6))
+                sub_cgroup = "cgroup-" + "".join(
+                    random.sample(range + range.upper(), 6)
+                )
             else:
                 sub_cgroup = cgroup
             if parent_cgroup is None:
@@ -155,9 +156,9 @@ class Cgroup(object):
             if cgroup and self.__get_cgroup_pwd(cgroup) in self.cgroups:
                 raise exceptions.TestFail("%s exists!" % cgroup)
             if not cgroup:
-                pwd = mkdtemp(prefix='cgroup-', dir=pwd) + '/'
+                pwd = mkdtemp(prefix="cgroup-", dir=pwd) + "/"
             else:
-                pwd = os.path.join(pwd, cgroup) + '/'
+                pwd = os.path.join(pwd, cgroup) + "/"
                 if not os.path.exists(pwd):
                     os.mkdir(pwd)
         except Exception as inst:
@@ -174,13 +175,13 @@ class Cgroup(object):
         :param args: Executed command's parameters
         """
         try:
-            cgexec_cmd = ("cgexec -g %s:%s %s %s" %
-                          (self.module, cgroup, cmd, args))
+            cgexec_cmd = "cgexec -g %s:%s %s %s" % (self.module, cgroup, cmd, args)
             status, output = process.getstatusoutput(cgexec_cmd)
             return status, output
         except process.CmdError as detail:
-            raise exceptions.TestFail("Execute %s in cgroup failed!\n%s" %
-                                      (cmd, detail))
+            raise exceptions.TestFail(
+                "Execute %s in cgroup failed!\n%s" % (cmd, detail)
+            )
 
     def rm_cgroup(self, pwd):
         """
@@ -194,8 +195,10 @@ class Cgroup(object):
             os.rmdir(pwd)
             self.cgroups.remove(pwd)
         except ValueError:
-            LOG.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
-                     "using this Cgroup")
+            LOG.warning(
+                "cg.rm_cgroup(): Removed cgroup which wasn't created"
+                "using this Cgroup"
+            )
         except Exception as inst:
             raise exceptions.TestError("cg.rm_cgroup(): %s" % inst)
 
@@ -214,7 +217,7 @@ class Cgroup(object):
         sub_cgroup_list = []
         for item in cgroup_list:
             sub_cg = item.split(":/")[-1]
-            sub_cg_path = os.path.join(self.root, sub_cg) + '/'
+            sub_cg_path = os.path.join(self.root, sub_cg) + "/"
             sub_cgroup_list.append(sub_cg_path)
         self.cgroups = sub_cgroup_list
         return self.cgroups
@@ -231,8 +234,9 @@ class Cgroup(object):
                     continue
                 self.cgdelete_cgroup(cgroup, True)
         except process.CmdError:
-            raise exceptions.TestFail("cgdelete all cgroups in %s failed!"
-                                      % self.module)
+            raise exceptions.TestFail(
+                "cgdelete all cgroups in %s failed!" % self.module
+            )
 
     def cgdelete_cgroup(self, cgroup, recursive=False):
         """
@@ -251,8 +255,7 @@ class Cgroup(object):
             process.run(cmd, ignore_status=False)
             self.cgroups.remove(cgroup_pwd)
         except process.CmdError as detail:
-            raise exceptions.TestFail("cgdelete %s failed!\n%s" %
-                                      (cgroup, detail))
+            raise exceptions.TestFail("cgdelete %s failed!\n%s" % (cgroup, detail))
 
     def cgclassify_cgroup(self, pid, cgroup):
         """
@@ -265,12 +268,12 @@ class Cgroup(object):
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)
             if cgroup_pwd not in self.cgroups:
                 raise exceptions.TestError("%s doesn't exist!" % cgroup)
-            cgclassify_cmd = ("cgclassify -g %s:%s %d" %
-                              (self.module, cgroup, pid))
+            cgclassify_cmd = "cgclassify -g %s:%s %d" % (self.module, cgroup, pid)
             process.run(cgclassify_cmd, ignore_status=False)
         except process.CmdError as detail:
-            raise exceptions.TestFail("Classify process to tasks file "
-                                      "failed!: %s" % detail)
+            raise exceptions.TestFail(
+                "Classify process to tasks file " "failed!: %s" % detail
+            )
 
     def get_pids(self, pwd=None):
         """
@@ -284,7 +287,7 @@ class Cgroup(object):
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            return [_.strip() for _ in open(os.path.join(pwd, 'tasks'), 'r')]
+            return [_.strip() for _ in open(os.path.join(pwd, "tasks"), "r")]
         except Exception as inst:
             raise exceptions.TestError("cg.get_pids(): %s" % inst)
 
@@ -296,11 +299,16 @@ class Cgroup(object):
         :return: subprocess.Popen() process
         """
         LOG.debug("cg.test(): executing parallel process '%s'", cmd)
-        cmd = self._client + ' ' + cmd
-        process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, close_fds=True,
-                                   universal_newlines=True)
+        cmd = self._client + " " + cmd
+        process = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            close_fds=True,
+            universal_newlines=True,
+        )
         return process
 
     def is_cgroup(self, pid, pwd):
@@ -312,7 +320,7 @@ class Cgroup(object):
         """
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
-        if open(os.path.join(pwd, 'tasks')).readlines().count("%d\n" % pid) > 0:
+        if open(os.path.join(pwd, "tasks")).readlines().count("%d\n" % pid) > 0:
             return 0
         else:
             return -1
@@ -336,13 +344,14 @@ class Cgroup(object):
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            with open(os.path.join(pwd, 'tasks'), 'w') as tasks:
+            with open(os.path.join(pwd, "tasks"), "w") as tasks:
                 tasks.write(str(pid))
         except Exception as inst:
             raise exceptions.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
-            raise exceptions.TestError("cg.set_cgroup(): Setting %d pid into %s "
-                                       "cgroup failed" % (pid, pwd))
+            raise exceptions.TestError(
+                "cg.set_cgroup(): Setting %d pid into %s " "cgroup failed" % (pid, pwd)
+            )
 
     def set_root_cgroup(self, pid):
         """
@@ -366,7 +375,7 @@ class Cgroup(object):
         try:
             # Remove tailing '\n' from each line
             file_link = os.path.join(pwd, prop)
-            ret = [_[:-1].replace("\t", " ") for _ in open(file_link, 'r')]
+            ret = [_[:-1].replace("\t", " ") for _ in open(file_link, "r")]
             if ret:
                 return ret
             else:
@@ -386,16 +395,17 @@ class Cgroup(object):
         _value = value
         try:
             value = str(value)
-            human = {'B': 1,
-                     'K': 1024,
-                     'M': 1048576,
-                     'G': 1073741824,
-                     'T': 1099511627776
-                     }
+            human = {
+                "B": 1,
+                "K": 1024,
+                "M": 1048576,
+                "G": 1073741824,
+                "T": 1099511627776,
+            }
             if value[-1] in human:
                 value = int(value[:-1]) * human[value[-1]]
         except Exception:
-            LOG.warn("cg.set_prop() fallback into cg.set_property.")
+            LOG.warning("cg.set_prop() fallback into cg.set_property.")
             value = _value
         self.set_property(prop, value, pwd, check, checkprop)
 
@@ -414,7 +424,7 @@ class Cgroup(object):
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            open(os.path.join(pwd, prop), 'w').write(value)
+            open(os.path.join(pwd, prop), "w").write(value)
         except Exception as inst:
             raise exceptions.TestError("cg.set_property(): %s" % inst)
 
@@ -427,9 +437,10 @@ class Cgroup(object):
             # Sanitize non printable characters before check
             check = " ".join(check.split())
             if check not in _values:
-                raise exceptions.TestError("cg.set_property(): Setting failed: "
-                                           "desired = %s, real values = %s"
-                                           % (repr(check), repr(_values)))
+                raise exceptions.TestError(
+                    "cg.set_property(): Setting failed: "
+                    "desired = %s, real values = %s" % (repr(check), repr(_values))
+                )
 
     def cgset_property(self, prop, value, pwd=None, check=True, checkprop=None):
         """
@@ -450,22 +461,21 @@ class Cgroup(object):
             cgset_cmd = "cgset -r %s='%s' %s" % (prop, value, cgroup)
             process.run(cgset_cmd, ignore_status=False)
         except process.CmdError as detail:
-            raise exceptions.TestFail(
-                "Modify %s failed!:\n%s" % (prop, detail))
+            raise exceptions.TestFail("Modify %s failed!:\n%s" % (prop, detail))
 
         if check is not False:
             if check is True:
                 check = value
             if checkprop is None:
                 checkprop = prop
-            _values = self.get_property(checkprop,
-                                        self.get_cgroup_index(cgroup))
+            _values = self.get_property(checkprop, self.get_cgroup_index(cgroup))
             # Sanitize non printable characters before check
             check = " ".join(check.split())
             if check not in _values:
-                raise exceptions.TestError("cg.set_property(): Setting failed: "
-                                           "desired = %s, real values = %s"
-                                           % (repr(check), repr(_values)))
+                raise exceptions.TestError(
+                    "cg.set_property(): Setting failed: "
+                    "desired = %s, real values = %s" % (repr(check), repr(_values))
+                )
 
     def smoke_test(self):
         """
@@ -476,17 +486,14 @@ class Cgroup(object):
 
         ps = self.test("smoke")
         if ps is None:
-            raise exceptions.TestError(
-                "cg.smoke_test: Couldn't create process")
+            raise exceptions.TestError("cg.smoke_test: Couldn't create process")
 
-        if (ps.poll() is not None):
-            raise exceptions.TestError(
-                "cg.smoke_test: Process died unexpectidly")
+        if ps.poll() is not None:
+            raise exceptions.TestError("cg.smoke_test: Process died unexpectidly")
 
         # New process should be a root member
         if self.is_root_cgroup(ps.pid):
-            raise exceptions.TestError(
-                "cg.smoke_test: Process is not a root member")
+            raise exceptions.TestError("cg.smoke_test: Process is not a root member")
 
         # Change the cgroup
         self.set_cgroup(ps.pid, pwd)
@@ -497,8 +504,9 @@ class Cgroup(object):
         except exceptions.TestError:
             pass
         else:
-            raise exceptions.TestError("cg.smoke_test: Unexpected successful"
-                                       " deletion of the used cgroup")
+            raise exceptions.TestError(
+                "cg.smoke_test: Unexpected successful" " deletion of the used cgroup"
+            )
 
         # Return the process into the root cgroup
         self.set_root_cgroup(ps.pid)
@@ -507,15 +515,13 @@ class Cgroup(object):
         self.rm_cgroup(pwd)
 
         # Finish the process
-        ps.stdin.write('\n')
+        ps.stdin.write("\n")
         time.sleep(2)
-        if (ps.poll() is None):
-            raise exceptions.TestError(
-                "cg.smoke_test: Process is not finished")
+        if ps.poll() is None:
+            raise exceptions.TestError("cg.smoke_test: Process is not finished")
 
 
 class CgroupModules(object):
-
     """
     Handles the list of different cgroup filesystems.
     """
@@ -526,7 +532,7 @@ class CgroupModules(object):
         self.modules.append([])
         self.modules.append([])
         if mountdir is None:
-            self.mountdir = mkdtemp(prefix='cgroup-') + '/'
+            self.mountdir = mkdtemp(prefix="cgroup-") + "/"
             self.rm_mountdir = True
         else:
             self.mountdir = mountdir
@@ -539,17 +545,19 @@ class CgroupModules(object):
         for i in range(len(self.modules[0])):
             if self.modules[2][i]:
                 try:
-                    process.system('umount %s -l' % self.modules[1][i])
+                    process.system("umount %s -l" % self.modules[1][i])
                 except Exception as failure_detail:
-                    LOG.warn("CGM: Couldn't unmount %s directory: %s",
-                             self.modules[1][i], failure_detail)
+                    LOG.warning(
+                        "CGM: Couldn't unmount %s directory: %s",
+                        self.modules[1][i],
+                        failure_detail,
+                    )
         try:
             if self.rm_mountdir:
                 # If delete /cgroup/, this action will break cgroup service.
                 shutil.rmtree(self.mountdir)
         except Exception:
-            LOG.warn(
-                "CGM: Couldn't remove the %s directory", self.mountdir)
+            LOG.warning("CGM: Couldn't remove the %s directory", self.mountdir)
 
     def init(self, _modules):
         """
@@ -561,22 +569,22 @@ class CgroupModules(object):
         """
         LOG.debug("Desired cgroup modules: %s", _modules)
         mounts = []
-        with open('/proc/mounts', 'r') as proc_mounts:
+        with open("/proc/mounts", "r") as proc_mounts:
             line = proc_mounts.readline().split()
             while line:
-                if line[2] == 'cgroup':
+                if line[2] == "cgroup":
                     mounts.append(line)
                 line = proc_mounts.readline().split()
 
         for module in _modules:
             # Is it already mounted?
             i = False
-            _module = set(module.split(','))
+            _module = set(module.split(","))
             for mount in mounts:
                 # 'memory' or 'memory,cpuset'
-                if _module.issubset(mount[3].split(',')):
+                if _module.issubset(mount[3].split(",")):
                     self.modules[0].append(module)
-                    self.modules[1].append(mount[1] + '/')
+                    self.modules[1].append(mount[1] + "/")
                     self.modules[2].append(False)
                     i = True
                     break
@@ -585,8 +593,7 @@ class CgroupModules(object):
                 module_path = os.path.join(self.mountdir, module)
                 if not os.path.exists(module_path):
                     os.mkdir(module_path)
-                cmd = ('mount -t cgroup -o %s %s %s' %
-                       (module, module, module_path))
+                cmd = "mount -t cgroup -o %s %s %s" % (module, module, module_path)
                 try:
                     process.run(cmd)
                     self.modules[0].append(module)
@@ -620,18 +627,18 @@ def get_load_per_cpu(_stats=None):
              [[user, nice, system, ...],[user, nice, system, ...], ...]
     """
     stats = []
-    with open('/proc/stat', 'r') as f:
+    with open("/proc/stat", "r") as f:
         f_stat = f.readlines()
 
     if _stats:
         for line in range(len(_stats)):
             l_stat = []
             for i in range(len(_stats[line])):
-                l_stat.append(int(f_stat[line].split()[i+1]) - _stats[line][i])
+                l_stat.append(int(f_stat[line].split()[i + 1]) - _stats[line][i])
             stats.append(l_stat)
     else:
         for line in f_stat:
-            if line.startswith('cpu'):
+            if line.startswith("cpu"):
                 stats.append([int(v) for v in line.split()[1:]])
     return stats
 
@@ -649,12 +656,10 @@ def get_cgroup_mountpoint(controller, mount_file="/proc/mounts"):
     f_cgcon = open(mount_file, "rU")
     cgconf_txt = f_cgcon.read()
     f_cgcon.close()
-    mntpt = re.findall(
-        r"\s(\S*cgroup/\S*%s(?=[,\ ])\S*)" % controller, cgconf_txt)
+    mntpt = re.findall(r"\s(\S*cgroup/\S*%s(?=[,\ ])\S*)" % controller, cgconf_txt)
     if len(mntpt) == 0:
         # Controller is not supported if not found in mount table.
-        raise exceptions.TestError(
-            "Doesn't support controller <%s>" % controller)
+        raise exceptions.TestError("Doesn't support controller <%s>" % controller)
     return mntpt[0]
 
 
@@ -672,8 +677,16 @@ def get_all_controllers():
             controller_sub_list = controller.split(",")
             controller_list += controller_sub_list
     except process.CmdError:
-        controller_list = ['cpuacct', 'cpu', 'memory', 'cpuset',
-                           'devices', 'freezer', 'blkio', 'netcls']
+        controller_list = [
+            "cpuacct",
+            "cpu",
+            "memory",
+            "cpuset",
+            "devices",
+            "freezer",
+            "blkio",
+            "netcls",
+        ]
     return controller_list
 
 
@@ -690,22 +703,23 @@ def resolve_task_cgroup_path(pid, controller):
 
     proc_cgroup = "/proc/%d/cgroup" % pid
     if not os.path.isfile(proc_cgroup):
-        raise NameError('File %s does not exist\n Check whether cgroup \
-                                    installed in the system' % proc_cgroup)
+        raise NameError(
+            "File %s does not exist\n Check whether cgroup \
+                                    installed in the system"
+            % proc_cgroup
+        )
 
     try:
-        proc_file = open(proc_cgroup, 'r')
+        proc_file = open(proc_cgroup, "r")
         proc_cgroup_txt = proc_file.read()
     finally:
         proc_file.close()
 
-    mount_path = re.findall(
-        r":\S*%s(?=[,:])\S*:(\S*)\n" % controller, proc_cgroup_txt)
+    mount_path = re.findall(r":\S*%s(?=[,:])\S*:(\S*)\n" % controller, proc_cgroup_txt)
     return os.path.join(root_path, mount_path[0].strip("/"))
 
 
 class CgconfigService(object):
-
     """
     Cgconfig service class.
     """
@@ -720,7 +734,7 @@ class CgconfigService(object):
         # Please refer to
         # https://bugzilla.redhat.com/show_bug.cgi?format=multiple&id=882887
         mgr = manager.SoftwareManager()
-        if not mgr.install('libcgroup-tools'):
+        if not mgr.install("libcgroup-tools"):
             exceptions.TestError("Failed to install libcgroup-tools on host")
         self._service_manager = service.Factory.create_service("cgconfig")
 

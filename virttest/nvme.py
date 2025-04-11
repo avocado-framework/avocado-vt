@@ -7,6 +7,7 @@ Available functions:
 - parse_uri: Parse the URI from NVMe image filename.
 
 """
+
 import re
 
 from avocado.utils import process
@@ -28,7 +29,7 @@ def get_image_filename(address, namespace):
              e.g: nvme://0000:44:00.0/1
     :rtype: str
     """
-    return 'nvme://%s/%s' % (address, namespace)
+    return "nvme://%s/%s" % (address, namespace)
 
 
 def file_exists(params, filename):
@@ -44,7 +45,7 @@ def file_exists(params, filename):
     """
     cmd = "%s info %s" % (utils_misc.get_qemu_img_binary(params), filename)
     o = process.run(cmd, 60, False, True).stdout_text.strip()
-    return params.get('image_format') in o
+    return params.get("image_format") in o
 
 
 def parse_uri(filename):
@@ -56,4 +57,4 @@ def parse_uri(filename):
     :return: The tuples: (address, namespace)
     :rtype: tuple
     """
-    return re.match(r'nvme://(\w+:\w+:\w+\.\w+)/(\w+)', filename).groups()
+    return re.match(r"nvme://(\w+:\w+:\w+\.\w+)/(\w+)", filename).groups()

@@ -4,22 +4,25 @@ Installer code that implement KVM specific bits.
 See BaseInstaller class in base_installer.py for interface details.
 """
 
-import os
 import logging
+import os
 
 from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import base_installer
 
-__all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
-           'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
+__all__ = [
+    "GitRepoInstaller",
+    "LocalSourceDirInstaller",
+    "LocalSourceTarInstaller",
+    "RemoteSourceTarInstaller",
+]
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class QEMUBaseInstaller(base_installer.BaseInstaller):
-
     """
     Base class for KVM installations
     """
@@ -29,16 +32,16 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
     # We'll look for one of these binaries when linking the QEMU binary
     # to the test directory
     #
-    qemu_system = 'qemu-system-' + process.run('uname -i').stdout_text
-    ACCEPTABLE_QEMU_BIN_NAMES = ['qemu-kvm', 'qemu-system-ppc64', qemu_system]
+    qemu_system = "qemu-system-" + process.run("uname -i").stdout_text
+    ACCEPTABLE_QEMU_BIN_NAMES = ["qemu-kvm", "qemu-system-ppc64", qemu_system]
 
     #
     # The default names for the binaries
     #
-    QEMU_BIN = 'qemu'
-    QEMU_IMG_BIN = 'qemu-img'
-    QEMU_IO_BIN = 'qemu-io'
-    QEMU_FS_PROXY_BIN = 'virtfs-proxy-helper'
+    QEMU_BIN = "qemu"
+    QEMU_IMG_BIN = "qemu-img"
+    QEMU_IO_BIN = "qemu-io"
+    QEMU_FS_PROXY_BIN = "virtfs-proxy-helper"
 
     def _kill_qemu_processes(self):
         """
@@ -61,12 +64,10 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
         qemu_path = os.path.join(self.test_builddir, self.QEMU_BIN)
         qemu_img_path = os.path.join(self.test_builddir, self.QEMU_IMG_BIN)
         qemu_io_path = os.path.join(self.test_builddir, self.QEMU_IO_BIN)
-        qemu_fs_proxy_path = os.path.join(self.test_builddir,
-                                          self.QEMU_FS_PROXY_BIN)
+        qemu_fs_proxy_path = os.path.join(self.test_builddir, self.QEMU_FS_PROXY_BIN)
 
         # clean up previous links, if they exist
-        for path in (qemu_path, qemu_img_path, qemu_io_path,
-                     qemu_fs_proxy_path):
+        for path in (qemu_path, qemu_img_path, qemu_io_path, qemu_fs_proxy_path):
             if os.path.lexists(path):
                 os.unlink(path)
 
@@ -87,8 +88,7 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
         :return: None
         """
-        unittest_src = os.path.join(self.install_prefix,
-                                    'share', 'qemu', 'tests')
+        unittest_src = os.path.join(self.install_prefix, "share", "qemu", "tests")
         unittest_dst = os.path.join(self.test_builddir, "unittests")
 
         if os.path.lexists(unittest_dst):
@@ -107,16 +107,15 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
         result = None
 
         for name in self.ACCEPTABLE_QEMU_BIN_NAMES:
-            qemu_bin_name = os.path.join(self.install_prefix, 'bin', name)
+            qemu_bin_name = os.path.join(self.install_prefix, "bin", name)
             if os.path.isfile(qemu_bin_name):
                 result = qemu_bin_name
                 break
 
         if result is not None:
-            LOG.debug('Found QEMU binary at %s', result)
+            LOG.debug("Found QEMU binary at %s", result)
         else:
-            LOG.debug('Could not find QEMU binary at prefix %s',
-                      self.install_prefix)
+            LOG.debug("Could not find QEMU binary at prefix %s", self.install_prefix)
 
         return result
 
@@ -126,14 +125,14 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
         :return: full path of qemu-img binary or None if not found
         """
-        qemu_img_bin_name = os.path.join(self.install_prefix,
-                                         'bin', self.QEMU_IMG_BIN)
+        qemu_img_bin_name = os.path.join(self.install_prefix, "bin", self.QEMU_IMG_BIN)
         if os.path.isfile(qemu_img_bin_name):
-            LOG.debug('Found qemu-img binary at %s', qemu_img_bin_name)
+            LOG.debug("Found qemu-img binary at %s", qemu_img_bin_name)
             return qemu_img_bin_name
         else:
-            LOG.debug('Could not find qemu-img binary at prefix %s',
-                      self.install_prefix)
+            LOG.debug(
+                "Could not find qemu-img binary at prefix %s", self.install_prefix
+            )
             return None
 
     def _qemu_io_bin_exists_at_prefix(self):
@@ -142,14 +141,12 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
         :return: full path of qemu-io binary or None if not found
         """
-        qemu_io_bin_name = os.path.join(self.install_prefix,
-                                        'bin', self.QEMU_IO_BIN)
+        qemu_io_bin_name = os.path.join(self.install_prefix, "bin", self.QEMU_IO_BIN)
         if os.path.isfile(qemu_io_bin_name):
-            LOG.debug('Found qemu-io binary at %s', qemu_io_bin_name)
+            LOG.debug("Found qemu-io binary at %s", qemu_io_bin_name)
             return qemu_io_bin_name
         else:
-            LOG.debug('Could not find qemu-io binary at prefix %s',
-                      self.install_prefix)
+            LOG.debug("Could not find qemu-io binary at prefix %s", self.install_prefix)
             return None
 
     def _qemu_fs_proxy_bin_exists_at_prefix(self):
@@ -158,14 +155,16 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
         :return: full path of qemu fs proxy binary or None if not found
         """
-        qemu_fs_proxy_bin_name = os.path.join(self.install_prefix,
-                                              'bin', self.QEMU_FS_PROXY_BIN)
+        qemu_fs_proxy_bin_name = os.path.join(
+            self.install_prefix, "bin", self.QEMU_FS_PROXY_BIN
+        )
         if os.path.isfile(qemu_fs_proxy_bin_name):
-            LOG.debug('Found qemu fs proxy binary at %s', qemu_fs_proxy_bin_name)
+            LOG.debug("Found qemu fs proxy binary at %s", qemu_fs_proxy_bin_name)
             return qemu_fs_proxy_bin_name
         else:
-            LOG.debug('Could not find qemu fs proxy binary at prefix %s',
-                      self.install_prefix)
+            LOG.debug(
+                "Could not find qemu fs proxy binary at prefix %s", self.install_prefix
+            )
             return None
 
     def _create_symlink_qemu(self):
@@ -179,32 +178,31 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
         qemu_dst = os.path.join(self.test_builddir, self.QEMU_BIN)
         qemu_img_dst = os.path.join(self.test_builddir, self.QEMU_IMG_BIN)
         qemu_io_dst = os.path.join(self.test_builddir, self.QEMU_IO_BIN)
-        qemu_fs_proxy_dst = os.path.join(self.test_builddir,
-                                         self.QEMU_FS_PROXY_BIN)
+        qemu_fs_proxy_dst = os.path.join(self.test_builddir, self.QEMU_FS_PROXY_BIN)
 
         qemu_bin = self._qemu_bin_exists_at_prefix()
         if qemu_bin is not None:
             os.symlink(qemu_bin, qemu_dst)
         else:
-            raise exceptions.TestError('Invalid qemu path')
+            raise exceptions.TestError("Invalid qemu path")
 
         qemu_img_bin = self._qemu_img_bin_exists_at_prefix()
         if qemu_img_bin is not None:
             os.symlink(qemu_img_bin, qemu_img_dst)
         else:
-            raise exceptions.TestError('Invalid qemu-img path')
+            raise exceptions.TestError("Invalid qemu-img path")
 
         qemu_io_bin = self._qemu_io_bin_exists_at_prefix()
         if qemu_io_bin is not None:
             os.symlink(qemu_io_bin, qemu_io_dst)
         else:
-            raise exceptions.TestError('Invalid qemu-io path')
+            raise exceptions.TestError("Invalid qemu-io path")
 
         qemu_fs_proxy_bin = self._qemu_fs_proxy_bin_exists_at_prefix()
         if qemu_fs_proxy_bin is not None:
             os.symlink(qemu_fs_proxy_bin, qemu_fs_proxy_dst)
         else:
-            LOG.warning('Qemu fs proxy path %s not found on source dir')
+            LOG.warning("Qemu fs proxy path %s not found on source dir")
 
     def _install_phase_init(self):
         """
@@ -215,11 +213,11 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
 
         :return: None
         """
-        if 'unit' in self.name:
+        if "unit" in self.name:
             self._cleanup_link_unittest()
             self._create_symlink_unittest()
 
-        elif 'qemu' in self.name:
+        elif "qemu" in self.name:
             self._cleanup_links_qemu()
             self._create_symlink_qemu()
 
@@ -234,37 +232,39 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
         super(QEMUBaseInstaller, self).uninstall()
 
 
-class GitRepoInstaller(QEMUBaseInstaller,
-                       base_installer.GitRepoInstaller):
-
+class GitRepoInstaller(QEMUBaseInstaller, base_installer.GitRepoInstaller):
     """
     Installer that deals with source code on Git repositories
     """
+
     pass
 
 
-class LocalSourceDirInstaller(QEMUBaseInstaller,
-                              base_installer.LocalSourceDirInstaller):
-
+class LocalSourceDirInstaller(
+    QEMUBaseInstaller, base_installer.LocalSourceDirInstaller
+):
     """
     Installer that deals with source code on local directories
     """
+
     pass
 
 
-class LocalSourceTarInstaller(QEMUBaseInstaller,
-                              base_installer.LocalSourceTarInstaller):
-
+class LocalSourceTarInstaller(
+    QEMUBaseInstaller, base_installer.LocalSourceTarInstaller
+):
     """
     Installer that deals with source code on local tarballs
     """
+
     pass
 
 
-class RemoteSourceTarInstaller(QEMUBaseInstaller,
-                               base_installer.RemoteSourceTarInstaller):
-
+class RemoteSourceTarInstaller(
+    QEMUBaseInstaller, base_installer.RemoteSourceTarInstaller
+):
     """
     Installer that deals with source code on remote tarballs
     """
+
     pass

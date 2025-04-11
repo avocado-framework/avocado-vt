@@ -1,15 +1,13 @@
 import logging
+from abc import ABCMeta, abstractmethod
+
 import six
 
-from abc import ABCMeta
-from abc import abstractmethod
-
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 @six.add_metaclass(ABCMeta)
 class Setuper(object):
-
     """
     Virtual base abstraction of setuper.
     """
@@ -41,7 +39,6 @@ class Setuper(object):
 
 
 class SetupManager(object):
-
     """
     Setup Manager implementation.
 
@@ -71,8 +68,7 @@ class SetupManager(object):
         :param setuper_cls: Setuper class.
         """
         if not self.__setup_args:
-            raise RuntimeError("Tried to register setuper "
-                               "without initialization")
+            raise RuntimeError("Tried to register setuper " "without initialization")
         if not issubclass(setuper_cls, Setuper):
             raise ValueError("Not supported setuper class")
         self.__setupers.append(setuper_cls(*self.__setup_args))

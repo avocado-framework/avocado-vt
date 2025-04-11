@@ -15,94 +15,203 @@
 # Author: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
 
 
-import re
 import json
 import logging
-import platform
-import time
 import os
+import platform
+import re
+import time
 import uuid
 import xml.etree.ElementTree as ET
 
-
-from avocado.utils import cpu as utils
-from avocado.utils.software_manager import manager
-from avocado.utils import process
-from avocado.utils import path
 from avocado.core import exceptions
-from virttest import utils_misc
-from virttest import libvirt_version
-from virttest import data_dir
+from avocado.utils import cpu as utils
+from avocado.utils import path, process
+from avocado.utils.software_manager import manager
 
+from virttest import data_dir, libvirt_version, utils_misc
 
 # lazy imports for dependencies that are not needed in all modes of use
 # (as the cpu module is generic to qemu vm use only, libvirt is optional)
 from virttest._wrappers import lazy_import
+
 virsh = lazy_import("virttest.virsh")
 libvirt_xml = lazy_import("virttest.libvirt_xml")
 
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 ARCH = platform.machine()
 
-CPU_TYPES = {"AuthenticAMD": ["EPYC-Genoa", "EPYC-Milan", "EPYC-Rome", "EPYC",
-                              "Opteron_G5", "Opteron_G4", "Opteron_G3",
-                              "Opteron_G2", "Opteron_G1"],
-             "GenuineIntel": ["SapphireRapids", "Snowridge", "Cooperlake",
-                              "Icelake-Server", "Icelake-Server-noTSX",
-                              "Icelake-Client", "Icelake-Client-noTSX",
-                              "Cascadelake-Server", "Cascadelake-Server-noTSX",
-                              "Skylake-Server", "Skylake-Server-noTSX-IBRS",
-                              "Skylake-Client", "Skylake-Client-noTSX-IBRS",
-                              "Broadwell", "Broadwell-noTSX",
-                              "Haswell", "Haswell-noTSX", "IvyBridge",
-                              "SandyBridge", "Westmere", "Nehalem",
-                              "Penryn", "Conroe"]}
-CPU_TYPES_RE = {"EPYC-Genoa": "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
-                "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2,gfni,avx512_vnni,"
-                "avx512_bitalg,avx512_vpopcntdq,avx512_bf16",
-                "EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
-                "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
-                "EPYC": "avx2,adx,bmi2,sha_ni",
-                "Opteron_G5": "f16c,fma4,xop,tbm",
-                "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
-                               "sse4.1|sse4_1,cx16,ssse3,sse4a"),
-                "Opteron_G3": "cx16,sse4a",
-                "Opteron_G2": "cx16",
-                "Opteron_G1": "",
-                "SapphireRapids": ("serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
-                                   "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
-                                   "avx512_fp16,hle,rtm,taa-no"),
-                "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote",
-                "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
-                "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
-                "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
-                "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                   "avx512vbmi,avx512_vbmi2|avx512vbmi2,hle,rtm"
-                                   "gfni,vaes,vpclmulqdq,avx512_vnni,hle,rtm"),
-                "Icelake-Client-noTSX": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                         "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
-                                         "gfni,vaes,vpclmulqdq,avx512_vnni"),
-                "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                       "avx512vl,clflushopt,avx512_vnni,hle,rtm"),
-                "Cascadelake-Server-noTSX": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                             "avx512vl,clflushopt,avx512_vnni"),
-                "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
-                "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
-                "Skylake-Client": "xgetbv1,pcid,hle,rtm",
-                "Skylake-Client-noTSX-IBRS": "xgetbv1,pcid",
-                "Broadwell": "adx,rdseed,3dnowprefetch,hle,rtm",
-                "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
-                "Haswell": "fma,avx2,movbe,hle,rtm",
-                "Haswell-noTSX": "fma,avx2,movbe",
-                "IvyBridge": "f16c,fsgsbase,erms",
-                "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
-                                "cx16,ssse3"),
-                "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                "Penryn": "sse4.1|sse4_1,cx16,ssse3",
-                "Conroe": "ssse3"}
+CPU_TYPES = {
+    "AuthenticAMD": [
+        "EPYC-Genoa-v1",
+        "EPYC-Genoa",
+        "EPYC-Milan-v2",
+        "EPYC-Milan-v1",
+        "EPYC-Milan",
+        "EPYC-Rome-v4",
+        "EPYC-Rome-v3",
+        "EPYC-Rome-v2",
+        "EPYC-Rome-v1",
+        "EPYC-Rome",
+        "EPYC-v4",
+        "EPYC-v3",
+        "EPYC-v2",
+        "EPYC-v1",
+        "EPYC",
+        "Opteron_G5",
+        "Opteron_G4",
+        "Opteron_G3",
+        "Opteron_G2",
+        "Opteron_G1",
+    ],
+    "GenuineIntel": [
+        "SapphireRapids-v3",
+        "SapphireRapids-v2",
+        "SapphireRapids-v1",
+        "SapphireRapids",
+        "Snowridge",
+        "Cooperlake-v2",
+        "Cooperlake-v1",
+        "Cooperlake",
+        "Icelake-Server-v7",
+        "Icelake-Server-v6",
+        "Icelake-Server-v5",
+        "Icelake-Server-v4",
+        "Icelake-Server-v3",
+        "Icelake-Server-v2",
+        "Icelake-Server-v1",
+        "Icelake-Server",
+        "Icelake-Server-noTSX",
+        "Icelake-Client",
+        "Icelake-Client-noTSX",
+        "Cascadelake-Server",
+        "Cascadelake-Server-noTSX",
+        "Skylake-Server",
+        "Skylake-Server-noTSX-IBRS",
+        "Skylake-Client",
+        "Skylake-Client-noTSX-IBRS",
+        "Broadwell",
+        "Broadwell-noTSX",
+        "Haswell",
+        "Haswell-noTSX",
+        "IvyBridge",
+        "SandyBridge",
+        "Westmere",
+        "Nehalem",
+        "Penryn",
+        "Conroe",
+    ],
+}
+CPU_TYPES_RE = {
+    "EPYC-Genoa-v1": (
+        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
+        "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
+    ),
+    "EPYC-Genoa": (
+        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
+        "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
+    ),
+    "EPYC-Milan-v2": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku,vaes,vpclmulqdq",
+    "EPYC-Milan-v1": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
+    "EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
+    "EPYC-Rome-v4": "rdpid,wbnoinvd,stibp,clwb,umip,ibrs",
+    "EPYC-Rome-v3": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
+    "EPYC-Rome-v2": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
+    "EPYC-Rome-v1": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves",
+    "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves",
+    "EPYC-v4": "avx2,adx,bmi2,sha_ni,ibpb,perfctr_core,clzero,xsaveerptr,xsaves",
+    "EPYC-v3": "avx2,adx,bmi2,sha_ni,ibpb,perfctr_core,clzero,xsaveerptr,xsaves",
+    "EPYC-v2": "avx2,adx,bmi2,sha_ni,ibpb",
+    "EPYC-v1": "avx2,adx,bmi2,sha_ni",
+    "EPYC": "avx2,adx,bmi2,sha_ni",
+    "Opteron_G5": "f16c,fma4,xop,tbm",
+    "Opteron_G4": (
+        "fma4,xop,avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a"
+    ),
+    "Opteron_G3": "cx16,sse4a",
+    "Opteron_G2": "cx16",
+    "Opteron_G1": "",
+    "SapphireRapids-v3": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no,ss,tsc_adjust,cldemote,movdiri,movdir64b"
+    ),
+    "SapphireRapids-v2": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no"
+    ),
+    "SapphireRapids-v1": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no"
+    ),
+    "SapphireRapids": (
+        "serialize,tsxldtrk|tsx-ldtrk,amx_bf16,"
+        "amx_tile,amx_int8,avx512_bf16,avx_vnni,"
+        "avx512_fp16,hle,rtm,taa-no"
+    ),
+    "Snowridge": "split_lock_detect,gfni,movdiri,movdiri64b,cldemote,mpx",
+    "Cooperlake-v2": "avx512_bf16,stibp,arch_capabilities,hle,rtm,xsaves",
+    "Cooperlake-v1": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
+    "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
+    "Icelake-Server-v7": (
+        "avx512_vnni,la57,clflushopt,hle,rtm,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm,hle,rtm"
+    ),
+    "Icelake-Server-v6": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v5": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,xsaves,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v4": (
+        "avx512_vnni,la57,clflushopt,arch_capabilities,"
+        "taa-no,sha_ni,avx512ifma,rdpid,fsrm"
+    ),
+    "Icelake-Server-v3": "avx512_vnni,la57,clflushopt,arch_capabilities,taa-no",
+    "Icelake-Server-v2": "avx512_vnni,la57,clflushopt",
+    "Icelake-Server-v1": "avx512_vnni,la57,clflushopt,hle,rtm",
+    "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
+    "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
+    "Icelake-Client": (
+        "avx512_vpopcntdq|avx512-vpopcntdq,"
+        "avx512vbmi,avx512_vbmi2|avx512vbmi2,hle,rtm"
+        "gfni,vaes,vpclmulqdq,avx512_vnni,hle,rtm"
+    ),
+    "Icelake-Client-noTSX": (
+        "avx512_vpopcntdq|avx512-vpopcntdq,"
+        "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
+        "gfni,vaes,vpclmulqdq,avx512_vnni"
+    ),
+    "Cascadelake-Server": (
+        "avx512f,avx512dq,avx512bw,avx512cd,avx512vl,clflushopt,avx512_vnni,hle,rtm"
+    ),
+    "Cascadelake-Server-noTSX": (
+        "avx512f,avx512dq,avx512bw,avx512cd,avx512vl,"
+        "clflushopt,avx512_vnni,arch_capabilities"
+    ),
+    "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
+    "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
+    "Skylake-Client": "xgetbv1,pcid,hle,rtm",
+    "Skylake-Client-noTSX-IBRS": "xgetbv1,pcid",
+    "Broadwell": "adx,rdseed,3dnowprefetch,hle,rtm",
+    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
+    "Haswell": "fma,avx2,movbe,hle,rtm",
+    "Haswell-noTSX": "fma,avx2,movbe",
+    "IvyBridge": "f16c,fsgsbase,erms",
+    "SandyBridge": "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
+    "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+    "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+    "Penryn": "sse4.1|sse4_1,cx16,ssse3",
+    "Conroe": "ssse3",
+}
 
 
 class UnsupportedCPU(exceptions.TestError):
@@ -118,21 +227,20 @@ def get_cpu_xmldata(vm, options=""):
 
     :return: vcpu count details on xml
     """
-    cpu_xmldata = {'current_vcpu': 0, 'vcpu': None,
-                   'mtype': None, 'vcpus': None}
+    cpu_xmldata = {"current_vcpu": 0, "vcpu": None, "mtype": None, "vcpus": None}
     # Grab a dump of the guest - if we're using the --config,
     # then get an --inactive dump.
     extra_opts = ""
     if "--config" in options or vm.is_dead():
         extra_opts = "--inactive"
     vm_xml = libvirt_xml.VMXML.new_from_dumpxml(vm.name, extra_opts)
-    cpu_xmldata['mtype'] = vm_xml.os.machine
+    cpu_xmldata["mtype"] = vm_xml.os.machine
     try:
-        cpu_xmldata['current_vcpu'] = int(vm_xml.current_vcpu)
+        cpu_xmldata["current_vcpu"] = int(vm_xml.current_vcpu)
     except libvirt_xml.xcepts.LibvirtXMLNotFoundError:
         LOG.debug("current vcpu value not present in xml, set as max value")
-        cpu_xmldata['current_vcpu'] = int(vm_xml.vcpu)
-    cpu_xmldata['vcpu'] = int(vm_xml.vcpu)
+        cpu_xmldata["current_vcpu"] = int(vm_xml.vcpu)
+    cpu_xmldata["vcpu"] = int(vm_xml.vcpu)
     return cpu_xmldata
 
 
@@ -147,20 +255,19 @@ def hotplug_supported(vm_name, mtype):
     """
     supported = False
     if "ppc64" in platform.machine():
-        cmd = '{\"execute\":\"query-machines\"}'
-        json_result = virsh.qemu_monitor_command(vm_name, cmd, "--pretty",
-                                                 debug=False)
+        cmd = '{"execute":"query-machines"}'
+        json_result = virsh.qemu_monitor_command(vm_name, cmd, "--pretty", debug=False)
         try:
             result = json.loads(json_result.stdout_text)
         except Exception:
             # Failure to parse json output and default support to False
             # TODO: Handle for failure cases
             return supported
-        for item in result['return']:
+        for item in result["return"]:
             try:
-                if item['name'] == mtype:
+                if item["name"] == mtype:
                     try:
-                        if item['hotpluggable-cpus'] == 'True':
+                        if item["hotpluggable-cpus"] == "True":
                             supported = True
                     except KeyError:
                         pass
@@ -182,9 +289,10 @@ def affinity_from_vcpuinfo(vm):
     :return: affinity list of VM
     """
     output = virsh.vcpuinfo(vm.name).stdout_text.rstrip()
-    affinity = re.findall('CPU Affinity: +[-y]+', output)
-    total_affinity = [list(vcpu_affinity.split()[-1].strip())
-                      for vcpu_affinity in affinity]
+    affinity = re.findall("CPU Affinity: +[-y]+", output)
+    total_affinity = [
+        list(vcpu_affinity.split()[-1].strip()) for vcpu_affinity in affinity
+    ]
     return total_affinity
 
 
@@ -197,19 +305,24 @@ def affinity_from_xml(vm):
 
     :return: dict of affinity of VM
     """
-    host_cpu_count = utils.total_count() if hasattr(utils, 'total_count') else utils.total_cpus_count()
+    host_cpu_count = (
+        utils.total_count()
+        if hasattr(utils, "total_count")
+        else utils.total_cpus_count()
+    )
     xml_affinity_list = []
     xml_affinity = {}
     try:
         vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
-        xml_affinity_list = vmxml['cputune'].vcpupins
+        xml_affinity_list = vmxml["cputune"].vcpupins
     except libvirt_xml.xcepts.LibvirtXMLNotFoundError:
         LOG.debug("No <cputune> element find in domain xml")
         return xml_affinity
     # Store xml_affinity_list to a dict
     for vcpu in xml_affinity_list:
-        xml_affinity[vcpu['vcpu']] = cpus_string_to_affinity_list(vcpu['cpuset'],
-                                                                  host_cpu_count)
+        xml_affinity[vcpu["vcpu"]] = cpus_string_to_affinity_list(
+            vcpu["cpuset"], host_cpu_count
+        )
     return xml_affinity
 
 
@@ -224,14 +337,20 @@ def affinity_from_vcpupin(vm, vcpu=None, options=None):
     """
     vcpupin_output = {}
     vcpupin_affinity = {}
-    host_cpu_count = utils.total_count() if hasattr(utils, 'total_count') else utils.total_cpus_count()
+    host_cpu_count = (
+        utils.total_count()
+        if hasattr(utils, "total_count")
+        else utils.total_cpus_count()
+    )
     result = virsh.vcpupin(vm.name, vcpu=vcpu, options=options, debug=True)
-    for vcpu in result.stdout_text.strip().split('\n')[2:]:
+    for vcpu in result.stdout_text.strip().split("\n")[2:]:
         # On newer version of libvirt, there is no ':' in
         # vcpupin output anymore
-        vcpupin_output[int(vcpu.split()[0].rstrip(':'))] = vcpu.split()[1]
+        vcpupin_output[int(vcpu.split()[0].rstrip(":"))] = vcpu.split()[1]
     for vcpu in vcpupin_output:
-        vcpupin_affinity[vcpu] = cpus_string_to_affinity_list(vcpupin_output[vcpu], host_cpu_count)
+        vcpupin_affinity[vcpu] = cpus_string_to_affinity_list(
+            vcpupin_output[vcpu], host_cpu_count
+        )
     return vcpupin_affinity
 
 
@@ -246,7 +365,11 @@ def affinity_from_proc(vm):
     pid = vm.get_pid()
     proc_affinity = {}
     vcpu_pids = []
-    host_cpu_count = utils.total_count() if hasattr(utils, 'total_count') else utils.total_cpus_count()
+    host_cpu_count = (
+        utils.total_count()
+        if hasattr(utils, "total_count")
+        else utils.total_cpus_count()
+    )
     vcpu_pids = vm.get_vcpus_pid()
     for vcpu in range(len(vcpu_pids)):
         output = cpu_allowed_list_by_task(pid, vcpu_pids[vcpu])
@@ -264,41 +387,44 @@ def get_vcpucount_details(vm, options):
 
     :return: tuple of result and dict of vcpucount output values
     """
-    vcpucount_details = {'max_config': None, 'max_live': None,
-                         'cur_config': None, 'cur_live': None,
-                         'guest_live': None}
+    vcpucount_details = {
+        "max_config": None,
+        "max_live": None,
+        "cur_config": None,
+        "cur_live": None,
+        "guest_live": None,
+    }
 
-    result = virsh.vcpucount(vm.name, options, ignore_status=True,
-                             debug=True)
+    result = virsh.vcpucount(vm.name, options, ignore_status=True, debug=True)
     if result.exit_status:
         LOG.debug("vcpu count command failed")
         return (result, vcpucount_details)
 
     if options:
         stdout = result.stdout_text.strip()
-        if 'guest' in options:
-            vcpucount_details['guest_live'] = int(stdout)
-        elif 'config' in options:
-            if 'maximum' in options:
-                vcpucount_details['max_config'] = int(stdout)
+        if "guest" in options:
+            vcpucount_details["guest_live"] = int(stdout)
+        elif "config" in options:
+            if "maximum" in options:
+                vcpucount_details["max_config"] = int(stdout)
             else:
-                vcpucount_details['cur_config'] = int(stdout)
-        elif 'live' in options:
-            if 'maximum' in options:
-                vcpucount_details['max_live'] = int(stdout)
+                vcpucount_details["cur_config"] = int(stdout)
+        elif "live" in options:
+            if "maximum" in options:
+                vcpucount_details["max_live"] = int(stdout)
             else:
-                vcpucount_details['cur_live'] = int(stdout)
+                vcpucount_details["cur_live"] = int(stdout)
     else:
-        output = result.stdout_text.strip().split('\n')
+        output = result.stdout_text.strip().split("\n")
         for item in output:
-            if ('maximum' in item) and ('config' in item):
-                vcpucount_details['max_config'] = int(item.split()[2].strip())
-            elif ('maximum' in item) and ('live' in item):
-                vcpucount_details['max_live'] = int(item.split()[2].strip())
-            elif ('current' in item) and ('config' in item):
-                vcpucount_details['cur_config'] = int(item.split()[2].strip())
-            elif ('current' in item) and ('live' in item):
-                vcpucount_details['cur_live'] = int(item.split()[2].strip())
+            if ("maximum" in item) and ("config" in item):
+                vcpucount_details["max_config"] = int(item.split()[2].strip())
+            elif ("maximum" in item) and ("live" in item):
+                vcpucount_details["max_live"] = int(item.split()[2].strip())
+            elif ("current" in item) and ("config" in item):
+                vcpucount_details["cur_config"] = int(item.split()[2].strip())
+            elif ("current" in item) and ("live" in item):
+                vcpucount_details["cur_live"] = int(item.split()[2].strip())
             else:
                 pass
     return (result, vcpucount_details)
@@ -314,14 +440,20 @@ def check_affinity(vm, expect_vcpupin):
     :return: True if affinity matches from different virsh API outputs,
              False if not
     """
-    host_cpu_count = utils.total_count() if hasattr(utils, 'total_count') else utils.total_cpus_count()
+    host_cpu_count = (
+        utils.total_count()
+        if hasattr(utils, "total_count")
+        else utils.total_cpus_count()
+    )
     affinity_xml = affinity_from_xml(vm)
     affinity_vcpupin = affinity_from_vcpupin(vm)
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
     result = True
 
     for vcpu in list(expect_vcpupin.keys()):
-        expect_affinity = cpus_string_to_affinity_list(str(expect_vcpupin[vcpu]), host_cpu_count)
+        expect_affinity = cpus_string_to_affinity_list(
+            str(expect_vcpupin[vcpu]), host_cpu_count
+        )
         # Check for vcpuinfo affinity
         if affinity_vcpuinfo[int(vcpu)] != expect_affinity:
             LOG.error("CPU affinity in virsh vcpuinfo output is unexpected")
@@ -360,26 +492,38 @@ def check_vcpucount(vm, exp_vcpu, option="", guest_agent=False):
     if vcresult.stderr_text:
         result = False
     if vcpucount_option == "--guest" and guest_agent:
-        if vcpucount_result['guest_live'] != exp_vcpu['guest_live']:
-            LOG.error("Virsh vcpucount output is unexpected\nExpected: "
-                      "%s\nActual: %s", exp_vcpu, vcpucount_result)
+        if vcpucount_result["guest_live"] != exp_vcpu["guest_live"]:
+            LOG.error(
+                "Virsh vcpucount output is unexpected\nExpected: " "%s\nActual: %s",
+                exp_vcpu,
+                vcpucount_result,
+            )
             result = False
     else:
         # Check for config option results
         if vm.is_dead():
-            if (exp_vcpu['max_config'] != vcpucount_result['max_config'] or
-                    exp_vcpu['cur_config'] != vcpucount_result['cur_config']):
-                LOG.error("Virsh vcpucount output is unexpected\nExpected"
-                          ":%s\nActual:%s", exp_vcpu, vcpucount_result)
+            if (
+                exp_vcpu["max_config"] != vcpucount_result["max_config"]
+                or exp_vcpu["cur_config"] != vcpucount_result["cur_config"]
+            ):
+                LOG.error(
+                    "Virsh vcpucount output is unexpected\nExpected" ":%s\nActual:%s",
+                    exp_vcpu,
+                    vcpucount_result,
+                )
                 result = False
         else:
-            if (exp_vcpu['max_config'] != vcpucount_result['max_config'] or
-                    exp_vcpu['max_live'] != vcpucount_result['max_live'] or
-                    exp_vcpu['cur_config'] != vcpucount_result['cur_config'] or
-                    exp_vcpu['cur_live'] != vcpucount_result['cur_live']):
-                LOG.error("Virsh vcpucount output is unexpected\n "
-                          "Expected:%s\nActual:%s", exp_vcpu,
-                          vcpucount_result)
+            if (
+                exp_vcpu["max_config"] != vcpucount_result["max_config"]
+                or exp_vcpu["max_live"] != vcpucount_result["max_live"]
+                or exp_vcpu["cur_config"] != vcpucount_result["cur_config"]
+                or exp_vcpu["cur_live"] != vcpucount_result["cur_live"]
+            ):
+                LOG.error(
+                    "Virsh vcpucount output is unexpected\n " "Expected:%s\nActual:%s",
+                    exp_vcpu,
+                    vcpucount_result,
+                )
                 result = False
     if result:
         LOG.debug("Command vcpucount check pass")
@@ -398,15 +542,18 @@ def check_vcpuinfo(vm, exp_vcpu):
     result = True
     # Decide based on vm alive status to check actual vcpu count
     if vm.is_alive():
-        idx = 'cur_live'
+        idx = "cur_live"
     else:
-        idx = 'cur_config'
+        idx = "cur_config"
 
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
     vcpuinfo_num = len(affinity_vcpuinfo)
     if vcpuinfo_num != exp_vcpu[idx]:
-        LOG.error("Vcpu number in virsh vcpuinfo is unexpected\n"
-                  "Expected: %s\nActual: %s", exp_vcpu[idx], vcpuinfo_num)
+        LOG.error(
+            "Vcpu number in virsh vcpuinfo is unexpected\n" "Expected: %s\nActual: %s",
+            exp_vcpu[idx],
+            vcpuinfo_num,
+        )
         result = False
     else:
         LOG.debug("Command vcpuinfo check pass")
@@ -430,17 +577,22 @@ def check_xmlcount(vm, exp_vcpu, option):
         exp_key = "cur_config"
     else:
         exp_key = "cur_live"
-    if cpu_xml['current_vcpu'] != exp_vcpu[exp_key]:
-        if cpu_xml['current_vcpu'] != exp_vcpu['cur_config']:
-            LOG.error("currrent vcpu number mismatch in xml\n"
-                      "Expected: %s\nActual:%s", exp_vcpu[exp_key],
-                      cpu_xml['current_vcpu'])
+    if cpu_xml["current_vcpu"] != exp_vcpu[exp_key]:
+        if cpu_xml["current_vcpu"] != exp_vcpu["cur_config"]:
+            LOG.error(
+                "currrent vcpu number mismatch in xml\n" "Expected: %s\nActual:%s",
+                exp_vcpu[exp_key],
+                cpu_xml["current_vcpu"],
+            )
             result = False
         else:
             LOG.debug("current vcpu count in xml check pass")
-    if cpu_xml['vcpu'] != exp_vcpu['max_config']:
-        LOG.error("vcpu count mismatch in xml\nExpected: %s\nActual: %s",
-                  exp_vcpu['max_config'], cpu_xml['vcpu'])
+    if cpu_xml["vcpu"] != exp_vcpu["max_config"]:
+        LOG.error(
+            "vcpu count mismatch in xml\nExpected: %s\nActual: %s",
+            exp_vcpu["max_config"],
+            cpu_xml["vcpu"],
+        )
         result = False
     else:
         LOG.debug("vcpu count in xml check pass")
@@ -457,8 +609,12 @@ def get_cpustats(vm, cpu=None):
     {0:[vcputime,emulatortime,cputime]
     ..
     'total':[cputime]}
-     """
-    host_cpu_online = utils.online_list() if hasattr(utils, 'online_list') else utils.cpu_online_list()
+    """
+    host_cpu_online = (
+        utils.online_list()
+        if hasattr(utils, "online_list")
+        else utils.cpu_online_list()
+    )
     cpustats = {}
     if cpu:
         cpustats[cpu] = []
@@ -469,9 +625,11 @@ def get_cpustats(vm, cpu=None):
             return None
         output = result.stdout_text.strip().split()
         if re.match("CPU%s" % cpu, output[0]):
-            cpustats[cpu] = [float(output[5]),  # vcputime
-                             float(output[2]) - float(output[5]),  # emulator
-                             float(output[2])]  # cputime
+            cpustats[cpu] = [
+                float(output[5]),  # vcputime
+                float(output[2]) - float(output[5]),  # emulator
+                float(output[2]),
+            ]  # cputime
 
     else:
         for i in range(len(host_cpu_online)):
@@ -483,9 +641,11 @@ def get_cpustats(vm, cpu=None):
                 return None
             output = result.stdout_text.strip().split()
             if re.match("CPU%s" % host_cpu_online[i], output[0]):
-                cpustats[host_cpu_online[i]] = [float(output[5]),
-                                                float(output[2]) - float(output[5]),
-                                                float(output[2])]
+                cpustats[host_cpu_online[i]] = [
+                    float(output[5]),
+                    float(output[2]) - float(output[5]),
+                    float(output[2]),
+                ]
     result = virsh.cpu_stats(vm.name, "--total")
     cpustats["total"] = []
     if result.exit_status != 0:
@@ -520,25 +680,32 @@ def check_vcpu_domstats(vm, exp_vcpu):
     cur_vcpu = int(get_domstats(vm, "vcpu.current"))
     max_vcpu = int(get_domstats(vm, "vcpu.maximum"))
     if vm.is_alive():
-        exp_cur_vcpu = exp_vcpu['cur_live']
-        exp_cur_max = exp_vcpu['max_live']
+        exp_cur_vcpu = exp_vcpu["cur_live"]
+        exp_cur_max = exp_vcpu["max_live"]
     else:
-        exp_cur_vcpu = exp_vcpu['cur_config']
-        exp_cur_max = exp_vcpu['max_config']
+        exp_cur_vcpu = exp_vcpu["cur_config"]
+        exp_cur_max = exp_vcpu["max_config"]
     if exp_cur_vcpu != cur_vcpu:
         status = False
-        LOG.error("Mismatch in current vcpu in domstats output, "
-                  "Expected: %s Actual: %s", exp_cur_vcpu, cur_vcpu)
+        LOG.error(
+            "Mismatch in current vcpu in domstats output, " "Expected: %s Actual: %s",
+            exp_cur_vcpu,
+            cur_vcpu,
+        )
     if exp_cur_max != max_vcpu:
         status = False
-        LOG.error("Mismatch in maximum vcpu in domstats output, Expected:"
-                  " %s Actual: %s", exp_cur_max, max_vcpu)
+        LOG.error(
+            "Mismatch in maximum vcpu in domstats output, Expected:" " %s Actual: %s",
+            exp_cur_max,
+            max_vcpu,
+        )
 
     return status
 
 
-def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False,
-                     check_numa=True):
+def check_vcpu_value(
+    vm, exp_vcpu, vcpupin=None, option="", guest_agent=False, check_numa=True
+):
     """
     Check domain vcpu, including vcpucount, vcpuinfo, vcpupin, vcpu number and
     cputune in domain xml, vcpu number inside the domain.
@@ -583,11 +750,15 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False,
         final_result = False
 
     if vm.is_alive() and (not vm.is_paused()) and "live" in option:
-        vcpu_hotplug_timeout = 120  # maximum time to wait for a hotplug event to complete
+        vcpu_hotplug_timeout = (
+            120  # maximum time to wait for a hotplug event to complete
+        )
         # 1.5 Check inside the guest
-        if not utils_misc.wait_for(lambda: check_if_vm_vcpu_match(exp_vcpu['guest_live'],
-                                                                  vm),
-                                   vcpu_hotplug_timeout, text="wait for vcpu online"):
+        if not utils_misc.wait_for(
+            lambda: check_if_vm_vcpu_match(exp_vcpu["guest_live"], vm),
+            vcpu_hotplug_timeout,
+            text="wait for vcpu online",
+        ):
             logging.debug("check_if_vm_vcpu_match failed")
             final_result = False
         # 1.6 Check guest numa
@@ -643,7 +814,7 @@ def guest_numa_check(vm, exp_vcpu):
     status = True
     for node in range(node_num_xml):
         try:
-            node_cpu_xml = vmxml.cpu.numa_cell[node]['cpus']
+            node_cpu_xml = vmxml.cpu.numa_cell[node]["cpus"]
             node_cpu_xml = cpus_parser(node_cpu_xml)
         except (TypeError, libvirt_xml.xcepts.LibvirtXMLNotFoundError):
             try:
@@ -652,7 +823,7 @@ def guest_numa_check(vm, exp_vcpu):
                 node_cpu_xml = vmxml.vcpu
             node_cpu_xml = list(range(int(node_cpu_xml)))
         try:
-            node_mem_xml = vmxml.cpu.numa_cell[node]['memory']
+            node_mem_xml = vmxml.cpu.numa_cell[node]["memory"]
         except (TypeError, libvirt_xml.xcepts.LibvirtXMLNotFoundError):
             node_mem_xml = vmxml.memory
         node_mem_guest = int(vm.get_totalmem_sys(node=node))
@@ -670,18 +841,29 @@ def guest_numa_check(vm, exp_vcpu):
         # Check cpu
         if node_cpu_xml != node_cpu_guest:
             status = False
-            LOG.error("Mismatch in cpus in node %s: xml %s guest %s", node,
-                      node_cpu_xml, node_cpu_guest)
+            LOG.error(
+                "Mismatch in cpus in node %s: xml %s guest %s",
+                node,
+                node_cpu_xml,
+                node_cpu_guest,
+            )
         # Check memory
         if int(node_mem_xml) != node_mem_guest:
             status = False
-            LOG.error("Mismatch in memory in node %s: xml %s guest %s", node,
-                      node_mem_xml, node_mem_guest)
+            LOG.error(
+                "Mismatch in memory in node %s: xml %s guest %s",
+                node,
+                node_mem_xml,
+                node_mem_guest,
+            )
     # Check no. of nodes
     if exp_num_nodes != node_num_guest:
         status = False
-        LOG.error("Mismatch in numa nodes expected nodes: %s guest: %s",
-                  exp_num_nodes, node_num_guest)
+        LOG.error(
+            "Mismatch in numa nodes expected nodes: %s guest: %s",
+            exp_num_nodes,
+            node_num_guest,
+        )
     return status
 
 
@@ -749,12 +931,13 @@ def get_cpu_info(session=None):
     cpu_info = {}
     cmd = "lscpu | tee"
     if session is None:
-        output = process.run(cmd, shell=True,
-                             ignore_status=True).stdout_text.splitlines()
+        output = process.run(
+            cmd, shell=True, ignore_status=True
+        ).stdout_text.splitlines()
     else:
         try:
             output_raw = session.cmd_output(cmd)
-            output = re.sub('\n[\s]+', '', output_raw).splitlines()
+            output = re.sub("\n[\s]+", "", output_raw).splitlines()
             LOG.info("output is %s" % output)
         finally:
             session.close()
@@ -763,10 +946,10 @@ def get_cpu_info(session=None):
 
 
 class Flag(str):
-
     """
     Class for easy merge cpuflags.
     """
+
     aliases = {}
 
     def __new__(cls, flag):
@@ -793,38 +976,38 @@ class Flag(str):
 
 
 kvm_map_flags_to_test = {
-    Flag('avx'): set(['avx']),
-    Flag('sse3|pni'): set(['sse3']),
-    Flag('ssse3'): set(['ssse3']),
-    Flag('sse4.1|sse4_1|sse4.2|sse4_2'): set(['sse4']),
-    Flag('aes'): set(['aes', 'pclmul']),
-    Flag('pclmuldq'): set(['pclmul']),
-    Flag('pclmulqdq'): set(['pclmul']),
-    Flag('rdrand'): set(['rdrand']),
-    Flag('sse4a'): set(['sse4a']),
-    Flag('fma4'): set(['fma4']),
-    Flag('xop'): set(['xop']),
+    Flag("avx"): set(["avx"]),
+    Flag("sse3|pni"): set(["sse3"]),
+    Flag("ssse3"): set(["ssse3"]),
+    Flag("sse4.1|sse4_1|sse4.2|sse4_2"): set(["sse4"]),
+    Flag("aes"): set(["aes", "pclmul"]),
+    Flag("pclmuldq"): set(["pclmul"]),
+    Flag("pclmulqdq"): set(["pclmul"]),
+    Flag("rdrand"): set(["rdrand"]),
+    Flag("sse4a"): set(["sse4a"]),
+    Flag("fma4"): set(["fma4"]),
+    Flag("xop"): set(["xop"]),
 }
 
 
 kvm_map_flags_aliases = {
-    'sse4_1': 'sse4.1',
-    'sse4_2': 'sse4.2',
-    'pclmuldq': 'pclmulqdq',
-    'sse3': 'pni',
-    'ffxsr': 'fxsr_opt',
-    'xd': 'nx',
-    'i64': 'lm',
-    'psn': 'pn',
-    'clfsh': 'clflush',
-    'dts': 'ds',
-    'htt': 'ht',
-    'CMPXCHG8B': 'cx8',
-    'Page1GB': 'pdpe1gb',
-    'LahfSahf': 'lahf_lm',
-    'ExtApicSpace': 'extapic',
-    'AltMovCr8': 'cr8_legacy',
-    'cr8legacy': 'cr8_legacy'
+    "sse4_1": "sse4.1",
+    "sse4_2": "sse4.2",
+    "pclmuldq": "pclmulqdq",
+    "sse3": "pni",
+    "ffxsr": "fxsr_opt",
+    "xd": "nx",
+    "i64": "lm",
+    "psn": "pn",
+    "clfsh": "clflush",
+    "dts": "ds",
+    "htt": "ht",
+    "CMPXCHG8B": "cx8",
+    "Page1GB": "pdpe1gb",
+    "LahfSahf": "lahf_lm",
+    "ExtApicSpace": "extapic",
+    "AltMovCr8": "cr8_legacy",
+    "cr8legacy": "cr8_legacy",
 }
 
 
@@ -871,7 +1054,7 @@ def get_cpu_vendor(cpu_info="", verbose=True):
         fd.close()
     vendor = re.findall(vendor_re, cpu_info)
     if not vendor:
-        vendor = 'unknown'
+        vendor = "unknown"
     else:
         vendor = vendor[0]
     if verbose:
@@ -886,10 +1069,10 @@ def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     :param qemu_binary: qemu-kvm binary file path
     :return: flags list
     """
-    out = process.run("%s -cpu ?" % qemu_binary).stdout.decode(errors='replace')
+    out = process.run("%s -cpu ?" % qemu_binary).stdout.decode(errors="replace")
     match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
     try:
-        return list(filter(None, re.split('\s', match.group(1))))
+        return list(filter(None, re.split("\s", match.group(1))))
     except AttributeError:
         pass
     return []
@@ -899,6 +1082,7 @@ def get_host_cpu_models():
     """
     Get cpu model from host cpuinfo
     """
+
     def _cpu_flags_sort(cpu_flags):
         """
         Update the cpu flags get from host to a certain order and format
@@ -917,8 +1101,8 @@ def get_host_cpu_models():
             pattern += r".+(\b%s\b)" % i
         return pattern
 
-    if ARCH in ('ppc64', 'ppc64le'):
-        return []     # remove -cpu and leave it on qemu to decide
+    if ARCH in ("ppc64", "ppc64le"):
+        return []  # remove -cpu and leave it on qemu to decide
 
     fd = open("/proc/cpuinfo")
     cpu_info = fd.read()
@@ -937,9 +1121,45 @@ def get_host_cpu_models():
                 cpu_model = cpu_type
                 cpu_support_model.append(cpu_model)
     else:
-        LOG.warn("Can not Get cpu flags from cpuinfo")
+        LOG.warning("Can not Get cpu flags from cpuinfo")
 
     return cpu_support_model
+
+
+def parse_qemu_cpu_models_modern(help_text):
+    """
+    Get all cpu models from qemu -cpu help text.
+
+    Note: not completely supported for qemu version prior to v9.0.0
+          due to not all the hardware architectures printed cpu model
+          descriptions with using the pattern below.
+
+          Available CPUs:
+          ...
+
+    :param help_text: Text produced by <qemu> -cpu '?'.
+    :return: List of cpu models.
+    """
+    header_words = ("Available", "CPUs:")
+
+    model_list = []
+    search = False
+    for line in help_text.splitlines():
+        columns = re.split(r"\s+", line)
+        if tuple(columns) == header_words:
+            search = True
+            continue
+        if search:
+            if len(columns) == 1 and not columns[0]:
+                continue
+            elif columns[0] in ("", "x86", "PowerPC", "s390"):
+                model_list.append(columns[1])
+                continue
+            else:
+                # assumed the target section only contains
+                # either model descriptions or empty lines
+                break
+    return model_list
 
 
 def extract_qemu_cpu_models(qemu_cpu_help_text):
@@ -949,6 +1169,10 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
     :param qemu_cpu_help_text: text produced by <qemu> -cpu '?'
     :return: list of cpu models
     """
+
+    if qemu_cpu_help_text.startswith("Available CPUs"):
+        return parse_qemu_cpu_models_modern(qemu_cpu_help_text)
+
     def check_model_list(pattern):
         cpu_re = re.compile(pattern)
         qemu_cpu_model_list = cpu_re.findall(qemu_cpu_help_text)
@@ -966,8 +1190,10 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
         if model_list is not None:
             return model_list
 
-    e_msg = ("CPU models reported by qemu -cpu ? not supported by avocado-vt. "
-             "Please work with us to add support for it")
+    e_msg = (
+        "CPU models reported by qemu -cpu ? not supported by avocado-vt. "
+        "Please work with us to add support for it"
+    )
     LOG.error(e_msg)
     for line in qemu_cpu_help_text.splitlines():
         LOG.error(line)
@@ -987,17 +1213,19 @@ def check_if_vm_vcpu_match(vcpu_desire, vm, connect_uri=None, session=None):
     :return: Boolean, True if actual vcpu value matches with vcpu_desire
     """
     release = vm.get_distro(connect_uri=connect_uri)
-    if release and release in ['fedora', ]:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd",
-                                       connect_uri=connect_uri)
+    if release and release in [
+        "fedora",
+    ]:
+        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd", connect_uri=connect_uri)
     else:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd",
-                                       connect_uri=connect_uri)
+        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd", connect_uri=connect_uri)
     if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
         vcpu_desire = int(vcpu_desire)
     if vcpu_desire != vcpu_actual:
-        LOG.debug("CPU quantity mismatched !!! guest said it got %s "
-                  "but we assigned %s" % (vcpu_actual, vcpu_desire))
+        LOG.debug(
+            "CPU quantity mismatched !!! guest said it got %s "
+            "but we assigned %s" % (vcpu_actual, vcpu_desire)
+        )
         return False
     LOG.info("CPU quantity matched: %s" % vcpu_actual)
     return True
@@ -1020,19 +1248,19 @@ def get_model_features(model_name):
 
     try:
         if not libvirt_version.version_compare(5, 0, 0):
-            with open(conf, 'r') as output:
+            with open(conf, "r") as output:
                 root = ET.fromstring(output.read())
                 while True:
                     # Find model in file /usr/share/libvirt/cpu_map.xml
-                    for model_n in root.findall('arch/model'):
-                        if model_n.get('name') == model_name:
+                    for model_n in root.findall("arch/model"):
+                        if model_n.get("name") == model_name:
                             model_node = model_n
-                            for feature in model_n.findall('feature'):
-                                features.append(feature.get('name'))
+                            for feature in model_n.findall("feature"):
+                                features.append(feature.get("name"))
                             break
                     # Handle nested model
-                    if model_node.find('model') is not None:
-                        model_name = model_node.find('model').get('name')
+                    if model_node.find("model") is not None:
+                        model_name = model_node.find("model").get("name")
                         continue
                     else:
                         break
@@ -1045,19 +1273,21 @@ def get_model_features(model_name):
                     with open(os.path.join(conf_dir, file_name), "r") as output:
                         model = ET.fromstring(output.read())
                         for feature in model.findall("model/feature"):
-                            features.append(feature.get('name'))
+                            features.append(feature.get("name"))
                         break
     except ET.ParseError as error:
-        LOG.warn("Configuration file %s has wrong xml format" % conf)
+        LOG.warning("Configuration file %s has wrong xml format" % conf)
         raise
     except AttributeError as elem_attr:
-        LOG.warn("No attribute %s in file %s" % (str(elem_attr), conf))
+        LOG.warning("No attribute %s in file %s" % (str(elem_attr), conf))
         raise
     except Exception:
         # Other exceptions like IOError when open/read configuration file,
         # capture here
-        LOG.warn("Some other exceptions, like configuration file is not "
-                 "found or not file: %s" % conf)
+        LOG.warning(
+            "Some other exceptions, like configuration file is not "
+            "found or not file: %s" % conf
+        )
         raise
 
     return features
@@ -1079,16 +1309,16 @@ def cpus_string_to_affinity_list(cpus_string, num_cpus):
     single_pattern = r"\d+"
     between_pattern = r"\d+-\d+"
     exclude_pattern = r"\^\d+"
-    sub_pattern = r"(%s)|(%s)|(%s)" % (exclude_pattern,
-                                       single_pattern, between_pattern)
+    sub_pattern = r"(%s)|(%s)|(%s)" % (exclude_pattern, single_pattern, between_pattern)
     pattern = r"^((%s),)*(%s)$" % (sub_pattern, sub_pattern)
     if not re.match(pattern, cpus_string):
-        LOG.debug("Cpus_string=%s is not a supported format for cpu_list."
-                  % cpus_string)
+        LOG.debug(
+            "Cpus_string=%s is not a supported format for cpu_list." % cpus_string
+        )
     # Init a list for result.
     affinity = []
     for i in range(int(num_cpus)):
-        affinity.append('-')
+        affinity.append("-")
     # Letter 'r' means all cpus.
     if cpus_string == "r":
         for i in range(len(affinity)):
@@ -1115,7 +1345,9 @@ def cpu_allowed_list_by_task(pid, tid):
     Get the Cpus_allowed_list in status of task.
     """
     cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed_list:| awk '{print $2}'" % (
-        pid, tid)
+        pid,
+        tid,
+    )
     result = process.run(cmd, ignore_status=True, shell=True)
     if result.exit_status:
         return None
@@ -1162,7 +1394,10 @@ def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
                 for item in range(0, int(count), threads):
                     if item < vcpu_count:
                         continue
-                    cmds.append("device_add host-spapr-cpu-core,id=core%d,core-id=%d" % (item, item))
+                    cmds.append(
+                        "device_add host-spapr-cpu-core,id=core%d,core-id=%d"
+                        % (item, item)
+                    )
             else:
                 for item in range(int(count), vcpu_count, threads):
                     cmds.append("device_del core%d" % item)
@@ -1184,11 +1419,10 @@ def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
                 # so, the caller should check the result.
             # hot-plug/hot-plug the CPU has maximal ID
             params = (cpu_opt, (count - 1))
-            cmds.append('{\"execute\":\"%s\",\"arguments\":{\"id\":%d}}' % params)
+            cmds.append('{"execute":"%s","arguments":{"id":%d}}' % params)
         # Execute cmds to hot(un)plug
         for cmd in cmds:
-            result = virsh.qemu_monitor_command(vm.name, cmd, cmd_type,
-                                                debug=True)
+            result = virsh.qemu_monitor_command(vm.name, cmd, cmd_type, debug=True)
             if result.exit_status != 0:
                 raise exceptions.TestFail(result.stderr_text)
             else:
@@ -1224,8 +1458,7 @@ def cpus_parser(cpulist):
                     try:
                         commas.append(int(cpulist))
                     except ValueError:
-                        LOG.error("The cpulist has to be an "
-                                  "integer. (%s)", cpulist)
+                        LOG.error("The cpulist has to be an " "integer. (%s)", cpulist)
         elif "-" in cpulist:
             tmp = re.split("-", cpulist)
             hyphens = list(range(int(tmp[0]), int(tmp[-1]) + 1))
@@ -1318,7 +1551,7 @@ def get_cpu_info_from_virsh_qemu_cli(name):
     cmd = "ps aux | grep qemu | grep -e '\s-name\s\+guest=%s\(\,\|\s\)'" % name
     output = process.getoutput(cmd, shell=True)
     cpu_line = re.findall("-cpu\s+(\S*)\s+", output)[0]
-    cpu_cmd = cpu_line.split(',', 1)
+    cpu_cmd = cpu_line.split(",", 1)
     cpu_info = {}
     cpu_info["model"] = cpu_cmd[0]
     cpu_info["flags"] = "" if len(cpu_cmd) < 2 else cpu_cmd[1]
@@ -1330,9 +1563,9 @@ def get_cpu_info_from_virsh(params):
     Try to get cpu model and features from virsh with 'host-model'
     """
     vm_arch = params["vm_arch_name"]
-    if vm_arch not in ['x86_64', 'i686']:
+    if vm_arch not in ["x86_64", "i686"]:
         raise NotImplementedError("Arch '%s' is not supported" % vm_arch)
-    machine = params.get('machine_type')
+    machine = params.get("machine_type")
     name = uuid.uuid4().hex
     try:
         path.find_command("virsh")
@@ -1349,7 +1582,11 @@ def get_cpu_info_from_virsh(params):
                 </os>
                 <cpu mode='host-model'/>
             </domain>
-          """ % (name, vm_arch, machine)
+          """ % (
+        name,
+        vm_arch,
+        machine,
+    )
     xml_file = os.path.join(data_dir.get_tmp_dir(), "temp_xml_for_cpu")
     with open(xml_file, "w") as f:
         f.write(xml)

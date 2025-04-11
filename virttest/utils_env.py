@@ -1,7 +1,8 @@
-import os
-import logging
-import threading
 import functools
+import logging
+import os
+import threading
+
 try:
     from collections import UserDict as IterableUserDict
 except ImportError:
@@ -12,15 +13,13 @@ except ImportError:
     import cPickle
 
 from aexpect import remote
-
 from avocado.core import exceptions
 
-from virttest import virt_vm
-from virttest import ip_sniffing
+from virttest import ip_sniffing, virt_vm
 
 ENV_VERSION = 1
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_env_version():
@@ -40,15 +39,16 @@ def lock_safe(function):
 
     :param function: Function to wrap.
     """
+
     @functools.wraps(function)
     def wrapper(env, *args, **kwargs):
         with env.save_lock:
             return function(env, *args, **kwargs)
+
     return wrapper
 
 
 class Env(IterableUserDict):
-
     """
     A dict-like object containing global objects used by tests.
     """
@@ -77,21 +77,21 @@ class Env(IterableUserDict):
                     if env.get("version", 0) >= version:
                         self.data = env
                     else:
-                        LOG.warn("Incompatible env file found. Not using it.")
+                        LOG.warning("Incompatible env file found. Not using it.")
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
-                    LOG.warn("Creating new, empty env file")
+                    LOG.warning("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
             except Exception as e:
-                LOG.warn("Exception thrown while loading env")
-                LOG.warn(e)
-                LOG.warn("Creating new, empty env file")
+                LOG.warning("Exception thrown while loading env")
+                LOG.warning(e)
+                LOG.warning("Creating new, empty env file")
                 self.data = empty
         else:
-            LOG.warn("Creating new, empty env file")
+            LOG.warning("Creating new, empty env file")
             self.data = empty
 
     def save(self, filename=None):
@@ -241,25 +241,29 @@ class Env(IterableUserDict):
             remote_opts = None
             session = None
             if remote_pp:
-                client = params.get('remote_shell_client', 'ssh')
-                remote_opts = (params['remote_node_address'],
-                               params.get('remote_shell_port', '22'),
-                               params['remote_node_user'],
-                               params['remote_node_password'],
-                               params.get('remote_shell_prompt', '#'))
+                client = params.get("remote_shell_client", "ssh")
+                remote_opts = (
+                    params["remote_node_address"],
+                    params.get("remote_shell_port", "22"),
+                    params["remote_node_user"],
+                    params["remote_node_password"],
+                    params.get("remote_shell_prompt", "#"),
+                )
                 session = remote.remote_login(client, *remote_opts)
             for s_cls in sniffers:
                 if s_cls.is_supported(session):
-                    self._sniffer = s_cls(self.data["address_cache"],
-                                          "ip-sniffer.log",
-                                          remote_opts)
+                    self._sniffer = s_cls(
+                        self.data["address_cache"], "ip-sniffer.log", remote_opts
+                    )
                     break
             if session:
                 session.close()
 
         if not self._sniffer:
-            raise exceptions.TestError("Can't find any supported ip sniffer! "
-                                       "%s" % [s.command for s in sniffers])
+            raise exceptions.TestError(
+                "Can't find any supported ip sniffer! "
+                "%s" % [s.command for s in sniffers]
+            )
 
         self._sniffer.start()
 

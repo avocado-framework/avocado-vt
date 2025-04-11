@@ -3,15 +3,12 @@ Module simplifying manipulation of numa & hmat related part described at
 http://libvirt.org/formatdomain.html
 """
 
-
-import logging
 import ast
-
-from avocado.core import exceptions
+import logging
 
 from virttest.libvirt_xml import vm_xml
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def create_cell_distances_xml(vmxml, params):
@@ -29,7 +26,7 @@ def create_cell_distances_xml(vmxml, params):
     for numacell_xml in cpu_xml.numa_cell:
         LOG.debug("numacell_xml:%s" % numacell_xml)
         cell_distances_xml = numacell_xml.CellDistancesXML()
-        cell_distances_xml.update({'sibling': eval(params.get('sibling%s' % i))})
+        cell_distances_xml.update({"sibling": eval(params.get("sibling%s" % i))})
         numacell_xml.distances = cell_distances_xml
         i = i + 1
         cells.append(numacell_xml)
@@ -69,8 +66,8 @@ def create_hmat_xml(vmxml, params):
         cells.append(numacell_xml)
     cpu_xml.numa_cell = cells
 
-    latency_list = eval(params.get('latency', ''))
-    bandwidth_list = eval(params.get('bandwidth', ''))
+    latency_list = eval(params.get("latency", ""))
+    bandwidth_list = eval(params.get("bandwidth", ""))
     interconnects_xml = vm_xml.VMCPUXML().InterconnectsXML()
     interconnects_xml.latency = latency_list
     interconnects_xml.bandwidth = bandwidth_list
@@ -83,60 +80,38 @@ def create_hmat_xml(vmxml, params):
     return vmxml
 
 
-def parse_numa_nodeset_to_str(numa_nodeset, node_list, ignore_error=False):
+def convert_all_nodes_to_string(node_list):
     """
-    Parse numa nodeset to a string
+    Convert the node list to a string representation.
+    For example:
+    If node list is [0, 1, 2, 3, 4], return "0-4"
+    If node list is [0, 1, 3, 4, 6], return "0-1,3-4,6"
 
-    :param numa_nodeset: str, formats supported are 'x', 'x,y', 'x-y', 'x-y,^y'
-    :param node_list: list, host numa nodes
-    :param ignore_error: no exception raised if True
-    :return: str, parsed numa nodeset
-    :raises exceptions.TestError if unsupported format of numa nodeset
+    :param node_list: list, the host numa node list
+    :return: str, the string representation of the node list
     """
 
-    def _get_first_continuous_numa_node_index(node_list):
-        """
-        Get the first continues numa node index
-        For example:
-        If node list is [0, 1, 3, 4], return 0
-        If node list is [0, 2, 3, 5], return 1
-        If node list is [1, 4, 8], return -1
+    LOG.debug("node_list=%s" % node_list)
+    node_ranges = []
+    start_node = node_list[0]
+    end_node = node_list[0]
 
-        :param node_list: list, the host numa node list
-        :return: int, the first index of continuous numa node or -1 if not exists
-        """
-        for index in range(0, len(node_list) - 1):
-            if node_list[index] + 1 == node_list[index + 1]:
-                return index
-        return -1
+    for node in node_list[1:]:
+        if node == end_node + 1:
+            end_node = node
+        else:
+            if start_node == end_node:
+                node_ranges.append(f"{start_node}")
+            else:
+                node_ranges.append(f"{start_node}-{end_node}")
+            start_node = node
+            end_node = node
 
-    LOG.debug("numa_nodeset='%s', node_list=%s" % (numa_nodeset, node_list))
-    if numa_nodeset == 'x':
-        numa_nodeset = str(node_list[0])
-    elif numa_nodeset == 'x,y':
-        numa_nodeset = ','.join(map(str, node_list))
-    elif numa_nodeset == 'x-y':
-        candidate_index = _get_first_continuous_numa_node_index(node_list)
-        if candidate_index == -1:
-            LOG.debug("No continuous numa node, use 'x,y' format instead of 'x-y' format")
-            numa_nodeset = ','.join(map(str, node_list))
-        else:
-            numa_nodeset = '%s-%s' % (str(node_list[candidate_index]),
-                                      str(node_list[candidate_index + 1]))
-    elif numa_nodeset == 'x-y,^y':
-        candidate_index = _get_first_continuous_numa_node_index(node_list)
-        if candidate_index == -1:
-            LOG.debug("No continuous numa node, use 'x,y' format instead of 'x-y' format")
-            numa_nodeset = ','.join(map(str, node_list))
-        else:
-            numa_nodeset = '%s-%s,^%s' % (str(node_list[candidate_index]),
-                                          str(node_list[candidate_index + 1]),
-                                          str(node_list[candidate_index + 1]))
-    elif ignore_error:
-        LOG.error("Supported formats are not found. No parsing happens.")
+    if start_node == end_node:
+        node_ranges.append(f"{start_node}")
     else:
-        raise exceptions.TestError("Unsupported format for numa_"
-                                   "nodeset value '%s'" % numa_nodeset)
+        node_ranges.append(f"{start_node}-{end_node}")
 
-    LOG.debug("Parse output for numa nodeset: '%s'", numa_nodeset)
-    return numa_nodeset
+    converted_numa_nodes = ",".join(node_ranges)
+    LOG.debug("Convert output for all online numa nodes: '%s'", converted_numa_nodes)
+    return converted_numa_nodes

@@ -1,11 +1,10 @@
+import logging
 import os
 import re
-import logging
 
 from avocado.utils import process
 
-
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class FS(object):
@@ -59,8 +58,9 @@ class FS(object):
         cmd = "echo %s > %s" % (value, self.fs)
         status, output = self.func(cmd)
         if status != 0:
-            LOG.error("Failed to set %s to %s, error: %s", self.fs,
-                      value, output.strip())
+            LOG.error(
+                "Failed to set %s to %s, error: %s", self.fs, value, output.strip()
+            )
             return False
         return True
 

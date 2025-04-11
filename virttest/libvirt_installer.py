@@ -4,25 +4,28 @@ Installer code that implement KVM specific bits.
 See BaseInstaller class in base_installer.py for interface details.
 """
 
+import logging
 import os
 import platform
-import logging
 
 from avocado.utils import process
+
 from virttest import base_installer
 
+__all__ = [
+    "GitRepoInstaller",
+    "LocalSourceDirInstaller",
+    "LocalSourceTarInstaller",
+    "RemoteSourceTarInstaller",
+]
 
-__all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
-           'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
-
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
-
-    '''
+    """
     Base class for libvirt installations
-    '''
+    """
 
     def _set_install_prefix(self):
         """
@@ -51,9 +54,8 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         """
         LOG.debug("Check for libvirt rpms")
         found = False
-        for fl in os.listdir('%s/RPMS/%s/' % (self.rpmbuild_path,
-                                              platform.machine())):
-            if fl.endswith('.rpm'):
+        for fl in os.listdir("%s/RPMS/%s/" % (self.rpmbuild_path, platform.machine())):
+            if fl.endswith(".rpm"):
                 found = True
         if not found:
             self.test.fail("Failed to build rpms")
@@ -65,8 +67,10 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         LOG.debug("Install libvirt rpms")
         package_install_cmd = "rpm -Uvh --nodeps --replacepkgs"
         package_install_cmd += " --replacefiles --oldpackage"
-        package_install_cmd += " %s/RPMS/%s/libvirt*" % (self.rpmbuild_path,
-                                                         platform.machine())
+        package_install_cmd += " %s/RPMS/%s/libvirt*" % (
+            self.rpmbuild_path,
+            platform.machine(),
+        )
         process.system(package_install_cmd)
 
     def _install_phase_init(self):
@@ -89,11 +93,11 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         process.system("virsh capabilities")
 
     def uninstall(self):
-        '''
+        """
         Performs the uninstallation of KVM userspace component
 
         :return: None
-        '''
+        """
         self._cleanup_links()
         super(LIBVIRTBaseInstaller, self).uninstall()
 
@@ -101,37 +105,39 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         super(LIBVIRTBaseInstaller, self).install(package=True)
 
 
-class GitRepoInstaller(LIBVIRTBaseInstaller,
-                       base_installer.GitRepoInstaller):
-
-    '''
+class GitRepoInstaller(LIBVIRTBaseInstaller, base_installer.GitRepoInstaller):
+    """
     Installer that deals with source code on Git repositories
-    '''
+    """
+
     pass
 
 
-class LocalSourceDirInstaller(LIBVIRTBaseInstaller,
-                              base_installer.LocalSourceDirInstaller):
-
+class LocalSourceDirInstaller(
+    LIBVIRTBaseInstaller, base_installer.LocalSourceDirInstaller
+):
     """
     Installer that deals with source code on local directories
     """
+
     pass
 
 
-class LocalSourceTarInstaller(LIBVIRTBaseInstaller,
-                              base_installer.LocalSourceTarInstaller):
-
+class LocalSourceTarInstaller(
+    LIBVIRTBaseInstaller, base_installer.LocalSourceTarInstaller
+):
     """
     Installer that deals with source code on local tarballs
     """
+
     pass
 
 
-class RemoteSourceTarInstaller(LIBVIRTBaseInstaller,
-                               base_installer.RemoteSourceTarInstaller):
-
+class RemoteSourceTarInstaller(
+    LIBVIRTBaseInstaller, base_installer.RemoteSourceTarInstaller
+):
     """
     Installer that deals with source code on remote tarballs
     """
+
     pass

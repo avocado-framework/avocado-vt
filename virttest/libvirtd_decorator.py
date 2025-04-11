@@ -3,15 +3,14 @@ A decorator utility functions to apply libvirtd functions.
 
 Copyright: Red Hat Inc. 2020
 """
+
 import logging
 import os
 import re
+
+from avocado.utils import astring, path, process
+
 from virttest import data_dir
-
-from avocado.utils import process
-from avocado.utils import path
-from avocado.utils import astring
-
 
 try:
     path.find_command("libvirtd")
@@ -23,15 +22,19 @@ except path.CmdNotFoundError:
     except path.CmdNotFoundError:
         LIBVIRTD = None
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def get_libvirtd_split_enable_bit():
-    base_cfg_path = os.path.join(data_dir.get_shared_dir(), 'cfg', 'base.cfg')
+    base_cfg_path = os.path.join(data_dir.get_shared_dir(), "cfg", "base.cfg")
     if os.path.isfile(base_cfg_path):
-        with open(base_cfg_path, 'r') as base_file:
+        with open(base_cfg_path, "r") as base_file:
             for line in base_file:
-                if 'enable_split_libvirtd_feature' in line and 'yes' in line and '#' not in line:
+                if (
+                    "enable_split_libvirtd_feature" in line
+                    and "yes" in line
+                    and "#" not in line
+                ):
                     return True
     else:
         LOG.info("CAN NOT find base.cfg file")
@@ -63,22 +66,28 @@ def get_libvirt_version_compare(major, minor, update, session=None):
         func = session.cmd_output
 
     if LIBVIRTD is None:
-        LOG.warn("Can not find command to dertermin libvirt version")
+        LOG.warning("Can not find command to dertermin libvirt version")
         return False
     libvirt_ver_cmd = "%s -V" % LIBVIRTD
-    LOG.warn(libvirt_ver_cmd)
+    LOG.warning(libvirt_ver_cmd)
     try:
-        regex = r'%s\s*.*[Ll]ibvirt.*\s*' % LIBVIRTD
-        regex += r'(\d+)\.(\d+)\.(\d+)'
+        regex = r"%s\s*.*[Ll]ibvirt.*\s*" % LIBVIRTD
+        regex += r"(\d+)\.(\d+)\.(\d+)"
         lines = astring.to_text(func(libvirt_ver_cmd)).splitlines()
-        LOG.warn("libvirt version value by libvirtd or virtqemud command: %s" % lines)
+        LOG.warning(
+            "libvirt version value by libvirtd or virtqemud command: %s" % lines
+        )
         for line in lines:
             match = re.search(regex, line.strip())
             if match:
-                LIBVIRT_LIB_VERSION = int(match.group(1)) * 1000000 + int(match.group(2)) * 1000 + int(match.group(3))
+                LIBVIRT_LIB_VERSION = (
+                    int(match.group(1)) * 1000000
+                    + int(match.group(2)) * 1000
+                    + int(match.group(3))
+                )
                 break
     except (ValueError, TypeError, AttributeError):
-        LOG.warn("Error determining libvirt version")
+        LOG.warning("Error determining libvirt version")
         return False
 
     compare_version = major * 1000000 + minor * 1000 + update
@@ -106,6 +115,7 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
 
     :param fn: function name.
     """
+
     def new_fn(*args, **kwargs):
         """
         Keep previous function as working before if libvirt version< 5.6.0, else do nothing
@@ -115,11 +125,18 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
         """
         check_libvirt_version()
         if not IS_LIBVIRTD_SPLIT_VERSION or not LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn("legacy start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warning(
+                "legacy start libvirtd daemon NORMALLY with function name: %s"
+                % fn.__name__
+            )
             return fn(*args, **kwargs)
         else:
-            LOG.warn("legacy start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warning(
+                "legacy start libvirtd daemon IGNORED with function name: %s"
+                % fn.__name__
+            )
             return None
+
     return new_fn
 
 
@@ -129,6 +146,7 @@ def libvirt_version_context_aware_libvirtd_split(fn):
 
     :param fn: function name.
     """
+
     def new_fn(*args, **kwargs):
         """
         Keep previous function as working before if libvirt version>= 5.6.0, else do nothing
@@ -138,9 +156,16 @@ def libvirt_version_context_aware_libvirtd_split(fn):
         """
         check_libvirt_version()
         if IS_LIBVIRTD_SPLIT_VERSION and LIBVIRTD_SPLIT_ENABLE_BIT:
-            LOG.warn("Split start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warning(
+                "Split start libvirtd daemon NORMALLY with function name: %s"
+                % fn.__name__
+            )
             return fn(*args, **kwargs)
         else:
-            LOG.warn("Split start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warning(
+                "Split start libvirtd daemon IGNORED with function name: %s"
+                % fn.__name__
+            )
             return None
+
     return new_fn

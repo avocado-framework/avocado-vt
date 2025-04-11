@@ -18,15 +18,11 @@ import time
 
 import six
 
-from . import utils_logfile
-from . import utils_misc
-from . import cartesian_config
-from . import data_dir
-
 from virttest.qemu_capabilities import Flags
 
+from . import cartesian_config, data_dir, utils_logfile, utils_misc
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class MonitorError(Exception):
@@ -34,7 +30,6 @@ class MonitorError(Exception):
 
 
 class MonitorConnectError(MonitorError):
-
     def __init__(self, monitor_name):
         MonitorError.__init__(self)
         self.monitor_name = monitor_name
@@ -44,7 +39,6 @@ class MonitorConnectError(MonitorError):
 
 
 class MonitorSocketError(MonitorError):
-
     def __init__(self, msg, e):
         Exception.__init__(self, msg, e)
         self.msg = msg
@@ -71,15 +65,13 @@ class MonitorNotSupportedError(MonitorError):
 
 
 class MonitorNotSupportedCmdError(MonitorNotSupportedError):
-
     def __init__(self, monitor, cmd):
         MonitorError.__init__(self)
         self.monitor = monitor
         self.cmd = cmd
 
     def __str__(self):
-        return ("Not supported cmd '%s' in monitor '%s'" %
-                (self.cmd, self.monitor))
+        return "Not supported cmd '%s' in monitor '%s'" % (self.cmd, self.monitor)
 
 
 class MonitorNotSupportedMigCapError(MonitorNotSupportedError):
@@ -87,19 +79,19 @@ class MonitorNotSupportedMigCapError(MonitorNotSupportedError):
 
 
 class HumanCmdError(MonitorCmdError):
-
     def __init__(self, cmd, out):
         MonitorError.__init__(self, cmd, out)
         self.cmd = cmd
         self.out = out
 
     def __str__(self):
-        return ("Human monitor command %r failed    "
-                "error message: %r)" % (self.cmd, self.out))
+        return "Human monitor command %r failed    " "error message: %r)" % (
+            self.cmd,
+            self.out,
+        )
 
 
 class QMPCmdError(MonitorCmdError):
-
     def __init__(self, cmd, qmp_args, data):
         MonitorCmdError.__init__(self, cmd, qmp_args, data)
         self.cmd = cmd
@@ -107,12 +99,14 @@ class QMPCmdError(MonitorCmdError):
         self.data = data
 
     def __str__(self):
-        return ("QMP command %r failed    (arguments: %r,    "
-                "error message: %r)" % (self.cmd, self.qmp_args, self.data))
+        return "QMP command %r failed    (arguments: %r,    " "error message: %r)" % (
+            self.cmd,
+            self.qmp_args,
+            self.data,
+        )
 
 
 class QMPEventError(MonitorError):
-
     def __init__(self, cmd, qmp_event, vm_name, name):
         MonitorError.__init__(self, cmd, qmp_event, vm_name, name)
         self.cmd = cmd
@@ -121,8 +115,12 @@ class QMPEventError(MonitorError):
         self.vm_name = vm_name
 
     def __str__(self):
-        return ("QMP event %s not received after %s (monitor '%s.%s')"
-                % (self.qmp_event, self.cmd, self.vm_name, self.name))
+        return "QMP event %s not received after %s (monitor '%s.%s')" % (
+            self.qmp_event,
+            self.cmd,
+            self.vm_name,
+            self.name,
+        )
 
 
 def get_monitor_filename(vm, monitor_name):
@@ -133,8 +131,9 @@ def get_monitor_filename(vm, monitor_name):
     :param monitor_name: The monitor name.
     :return: The string of socket file name for qemu monitor.
     """
-    return os.path.join(data_dir.get_tmp_dir(),
-                        "monitor-%s-%s" % (monitor_name, vm.instance))
+    return os.path.join(
+        data_dir.get_tmp_dir(), "monitor-%s-%s" % (monitor_name, vm.instance)
+    )
 
 
 def get_monitor_filenames(vm):
@@ -159,8 +158,10 @@ def create_monitor(vm, monitor_name, monitor_params):
     if monitor_params.get("monitor_type") == "qmp":
         if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
             # Add a "human" monitor on non-qmp version of qemu.
-            LOG.warn("QMP monitor is unsupported by %s,"
-                     " creating human monitor instead." % vm.qemu_version)
+            LOG.warning(
+                "QMP monitor is unsupported by %s,"
+                " creating human monitor instead." % vm.qemu_version
+            )
         else:
             MonitorClass = QMPMonitor
 
@@ -187,7 +188,7 @@ def wait_for_create_monitor(vm, monitor_name, monitor_params, timeout):
         try:
             return create_monitor(vm, monitor_name, monitor_params)
         except MonitorError as e:
-            LOG.warn(e)
+            LOG.warning(e)
             time.sleep(1)
     else:
         raise MonitorConnectError(monitor_name)
@@ -216,9 +217,13 @@ def x_non_x_feature(feature):
         return "x-%s" % feature
 
 
-def pick_supported_x_feature(feature, supported_features,
-                             disable_auto_x_evaluation,
-                             error_on_missing=False, feature_type="Feature"):
+def pick_supported_x_feature(
+    feature,
+    supported_features,
+    disable_auto_x_evaluation,
+    error_on_missing=False,
+    feature_type="Feature",
+):
     """
     Attempts to choose supported feature with/without "x-" prefix based
     on list of supported features.
@@ -240,8 +245,9 @@ def pick_supported_x_feature(feature, supported_features,
     if feature2 in supported_features:
         return feature2
     if error_on_missing:
-        raise MonitorNotSupportedError("%s %s, nor %s supported."
-                                       % (feature_type, feature, feature2))
+        raise MonitorNotSupportedError(
+            "%s %s, nor %s supported." % (feature_type, feature, feature2)
+        )
     # capability2 also not supported, probably negative testing,
     # return the original capability.
     return feature
@@ -263,7 +269,6 @@ class VM(object):
 
 
 class Monitor(object):
-
     """
     Common code for monitor classes.
     """
@@ -292,33 +297,33 @@ class Monitor(object):
         self.debug_log = False
         vm_pid = vm.get_pid()
         if vm_pid is None:
-            vm_pid = 'unknown'
+            vm_pid = "unknown"
         self.log_file = "%s-%s-pid-%s.log" % (name, vm.name, vm_pid)
         self.open_log_files = {}
         self._supported_migrate_capabilities = None
         self._supported_migrate_parameters = None
 
         try:
-            backend = monitor_params.get('chardev_backend', 'unix_socket')
-            if backend == 'tcp_socket':
-                self._socket = socket.socket(
-                    socket.AF_INET, socket.SOCK_STREAM)
+            backend = monitor_params.get("chardev_backend", "unix_socket")
+            if backend == "tcp_socket":
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self._socket.settimeout(self.CONNECT_TIMEOUT)
-                host = monitor_params['chardev_host']
-                port = int(monitor_params['chardev_port'])
+                host = monitor_params["chardev_host"]
+                port = int(monitor_params["chardev_port"])
                 self._socket.connect((host, port))
-            elif backend == 'unix_socket':
-                self._socket = socket.socket(
-                    socket.AF_UNIX, socket.SOCK_STREAM)
+            elif backend == "unix_socket":
+                self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self._socket.settimeout(self.CONNECT_TIMEOUT)
                 file_name = monitor_params.get("monitor_filename")
                 self._socket.connect(file_name)
             else:
-                raise NotImplementedError("Do not support the chardev backend %s."
-                                          % backend)
+                raise NotImplementedError(
+                    "Do not support the chardev backend %s." % backend
+                )
         except socket.error as details:
-            raise MonitorConnectError("Could not connect to monitor socket: %s"
-                                      % details)
+            raise MonitorConnectError(
+                "Could not connect to monitor socket: %s" % details
+            )
         self._server_closed = False
 
     def __del__(self):
@@ -326,8 +331,10 @@ class Monitor(object):
         # collected
         self._close_sock()
         if not self._acquire_lock(lock=self._log_lock):
-            raise MonitorLockError("Could not acquire exclusive lock to access"
-                                   " %s " % self.open_log_files)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to access"
+                " %s " % self.open_log_files
+            )
         try:
             del_logs = []
             for log in self.open_log_files:
@@ -410,8 +417,7 @@ class Monitor(object):
             try:
                 data = self._socket.recv(1024)
             except socket.error as e:
-                raise MonitorSocketError("Could not receive data from monitor",
-                                         e)
+                raise MonitorSocketError("Could not receive data from monitor", e)
             if not data:
                 self._server_closed = True
                 break
@@ -439,16 +445,22 @@ class Monitor(object):
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            LOG.debug("(monitor %s.%s) Sending command '%s' %s",
-                      self.vm.name, self.name, cmd, extra_str)
+            LOG.debug(
+                "(monitor %s.%s) Sending command '%s' %s",
+                self.vm.name,
+                self.name,
+                cmd,
+                extra_str,
+            )
 
     def _log_lines(self, log_str):
         """
         Record monitor cmd/output in log file.
         """
         if not self._acquire_lock(lock=self._log_lock):
-            raise MonitorLockError("Could not acquire exclusive lock to access"
-                                   " %s" % self.open_log_files)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to access" " %s" % self.open_log_files
+            )
         try:
             log = utils_logfile.get_log_filename(self.log_file)
             timestr = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -456,8 +468,7 @@ class Monitor(object):
                 if log not in self.open_log_files:
                     self.open_log_files[log] = open(log, "a")
                 for line in log_str.splitlines():
-                    self.open_log_files[log].write(
-                        "%s: %s\n" % (timestr, line))
+                    self.open_log_files[log].write("%s: %s\n" % (timestr, line))
                 self.open_log_files[log].flush()
             except Exception as err:
                 txt = "Fail to record log to %s.\n" % log
@@ -474,8 +485,7 @@ class Monitor(object):
         """
         Build args used in cmd.
         """
-        return {k.replace("_", "-"): v
-                for k, v in kargs.items() if v is not None}
+        return {k.replace("_", "-"): v for k, v in kargs.items() if v is not None}
 
     def get_workable_cmd(self, cmd):
         """
@@ -523,8 +533,7 @@ class Monitor(object):
 
     # Methods that may be implemented by subclasses:
 
-    def human_monitor_cmd(self, cmd="", timeout=None,
-                          debug=True, fd=None):
+    def human_monitor_cmd(self, cmd="", timeout=None, debug=True, fd=None):
         """
         Send HMP command
 
@@ -555,22 +564,20 @@ class Monitor(object):
 
         nodes = cls.re_numa_nodes.search(r)
         if nodes is None:
-            raise Exception(
-                "Couldn't get number of nodes from 'info numa' output")
+            raise Exception("Couldn't get number of nodes from 'info numa' output")
         nodes = int(nodes.group(1))
 
         data = [[0, set()] for i in range(nodes)]
         for nodenr, field, value in cls.re_numa_node_info.findall(r):
             nodenr = int(nodenr)
             if nodenr > nodes:
-                raise Exception(
-                    "Invalid node number on 'info numa' output: %d", nodenr)
-            if field == 'size':
-                if not value.endswith(' MB'):
+                raise Exception("Invalid node number on 'info numa' output: %d", nodenr)
+            if field == "size":
+                if not value.endswith(" MB"):
                     raise Exception("Unexpected size value: %s", value)
                 megabytes = int(value[:-3])
                 data[nodenr][0] = megabytes
-            elif field == 'cpus':
+            elif field == "cpus":
                 cpus = set([int(v) for v in value.split()])
                 data[nodenr][1] = cpus
         data = [tuple(i) for i in data]
@@ -598,7 +605,7 @@ class Monitor(object):
         Request info about blocks and return dict of parsed results
         :return: Dict of disk parameters
         """
-        info = self.info('block', debug)
+        info = self.info("block", debug)
         if isinstance(info, six.string_types):
             try:
                 return self._parse_info_block_old(info)
@@ -613,18 +620,18 @@ class Monitor(object):
         Parse output of "info block" into dict of disk params (qemu < 1.5.0)
         """
         blocks = {}
-        info = info.split('\n')
+        info = info.split("\n")
         for line in info:
             if not line.strip():
                 continue
-            line = line.split(':', 1)
+            line = line.split(":", 1)
             name = line[0].strip()
             blocks[name] = {}
-            if line[1].endswith('[not inserted]'):
-                blocks[name]['not-inserted'] = 1
+            if line[1].endswith("[not inserted]"):
+                blocks[name]["not-inserted"] = 1
                 line[1] = line[1][:-14]
-            for _ in line[1].strip().split(' '):
-                (prop, value) = _.split('=', 1)
+            for _ in line[1].strip().split(" "):
+                (prop, value) = _.split("=", 1)
                 if value.isdigit():
                     value = int(value)
                 blocks[name][prop] = value
@@ -636,54 +643,56 @@ class Monitor(object):
         Parse output of "info block" into dict of disk params (qemu >= 1.5.0)
         """
         blocks = {}
-        info = info.split('\n')
+        info = info.split("\n")
         for line in info:
             if not line.strip():
                 continue
-            if not line.startswith(' '):  # new block device
-                line = line.split(':', 1)
+            if not line.startswith(" "):  # new block device
+                line = line.split(":", 1)
                 # disregard extra info such as #(blockNNN)
-                name = line[0].split(' ', 1)[0]
+                name = line[0].split(" ", 1)[0]
                 line = line[1][1:]
                 blocks[name] = {}
                 if line == "[not inserted]":
-                    blocks[name]['not-inserted'] = 1
+                    blocks[name]["not-inserted"] = 1
                     continue
-                line = line.rsplit(' (', 1)
+                line = line.rsplit(" (", 1)
                 if len(line) == 1:  # disk_name
-                    blocks[name]['file'] = line
+                    blocks[name]["file"] = line
                 else:  # disk_name (options)
-                    blocks[name]['file'] = line[0]
-                    options = (_.strip() for _ in line[1][:-1].split(','))
+                    blocks[name]["file"] = line[0]
+                    options = (_.strip() for _ in line[1][:-1].split(","))
                     _ = False
                     for option in options:
                         if not _:  # First argument is driver (qcow2, raw, ..)
-                            blocks[name]['drv'] = option
+                            blocks[name]["drv"] = option
                             _ = True
-                        elif option == 'read-only':
-                            blocks[name]['ro'] = 1
-                        elif option == 'encrypted':
-                            blocks[name]['encrypted'] = 1
+                        elif option == "read-only":
+                            blocks[name]["ro"] = 1
+                        elif option == "encrypted":
+                            blocks[name]["encrypted"] = 1
                         else:
-                            err = ("_parse_info_block_1_5 got option '%s' "
-                                   "which is not yet mapped in autotest. "
-                                   "Please contact developers on github.com/"
-                                   "autotest." % option)
+                            err = (
+                                "_parse_info_block_1_5 got option '%s' "
+                                "which is not yet mapped in autotest. "
+                                "Please contact developers on github.com/"
+                                "autotest." % option
+                            )
                             raise NotImplementedError(err)
             else:
                 try:
-                    option, line = line.split(':', 1)
+                    option, line = line.split(":", 1)
                     option, line = option.strip(), line.strip()
                     if option == "Backing file":
-                        line = line.rsplit(' (chain depth: ')
-                        blocks[name]['backing_file'] = line[0]
-                        blocks[name]['backing_file_depth'] = int(line[1][:-1])
+                        line = line.rsplit(" (chain depth: ")
+                        blocks[name]["backing_file"] = line[0]
+                        blocks[name]["backing_file_depth"] = int(line[1][:-1])
                     elif option == "Removable device":
-                        blocks[name]['removable'] = 1
-                        if 'not locked' not in line:
-                            blocks[name]['locked'] = 1
-                        if 'try open' in line:
-                            blocks[name]['try-open'] = 1
+                        blocks[name]["removable"] = 1
+                        if "not locked" not in line:
+                            blocks[name]["locked"] = 1
+                        if "try open" in line:
+                            blocks[name]["try-open"] = 1
                 except ValueError:
                     continue
 
@@ -695,17 +704,25 @@ class Monitor(object):
         """
         blocks = {}
         for item in info:
-            if not item.get('inserted').get(
-                    'node-name') if self._enable_blockdev else not item.get('device'):
-                raise ValueError("Incorrect QMP respone, device or node-name "
-                                 "not set in info block: %s" % info)
-            name = item.get('inserted').get(
-                'node-name') if self._enable_blockdev else item.pop('device')
+            if (
+                not item.get("inserted").get("node-name")
+                if self._enable_blockdev
+                else not item.get("device")
+            ):
+                raise ValueError(
+                    "Incorrect QMP respone, device or node-name "
+                    "not set in info block: %s" % info
+                )
+            name = (
+                item.get("inserted").get("node-name")
+                if self._enable_blockdev
+                else item.pop("device")
+            )
             blocks[name] = {}
-            if 'inserted' not in item:
-                blocks[name]['not-inserted'] = True
+            if "inserted" not in item:
+                blocks[name]["not-inserted"] = True
             else:
-                for key, value in six.iteritems(item.pop('inserted', {})):
+                for key, value in six.iteritems(item.pop("inserted", {})):
                     blocks[name][key] = value
             for key, value in six.iteritems(item):
                 blocks[name][key] = value
@@ -717,8 +734,9 @@ class Monitor(object):
         """
         self._close_sock()
         if not self._acquire_lock(lock=self._log_lock):
-            raise MonitorLockError("Could not acquire exclusive lock to access"
-                                   " %s" % self.open_log_files)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to access" " %s" % self.open_log_files
+            )
         try:
             del_logs = []
             for log in self.open_log_files:
@@ -738,16 +756,14 @@ class Monitor(object):
         old_progress = 0
         while True:
             progress = self.get_migrate_progress()
-            if (progress < old_progress or
-                    progress >= target):
+            if progress < old_progress or progress >= target:
                 break
             # progress < old_progress indicates we must be on
             # another pass (we could also check the sync count)
             old_progress = progress
             time.sleep(0.1)
 
-    def _get_migrate_capability(self, capability,
-                                disable_auto_x_evaluation=True):
+    def _get_migrate_capability(self, capability, disable_auto_x_evaluation=True):
         """
         Verify the $capability is listed in migrate-capabilities. If not try
         x-/non-x- version. In case none is supported, return the original param
@@ -757,12 +773,13 @@ class Monitor(object):
                                           feature with/without "x-" prefix
         :return: migrate parameter that is hopefully supported
         """
-        return pick_supported_x_feature(capability,
-                                        self._supported_migrate_capabilities,
-                                        disable_auto_x_evaluation)
+        return pick_supported_x_feature(
+            capability, self._supported_migrate_capabilities, disable_auto_x_evaluation
+        )
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False,
-                               disable_auto_x_evaluation=True):
+    def _get_migrate_parameter(
+        self, parameter, error_on_missing=False, disable_auto_x_evaluation=True
+    ):
         """
         Verify the $parameter is listed in migrate-parameters. If not try
         x-/non-x- version. In case none is supported, return the original param
@@ -772,11 +789,13 @@ class Monitor(object):
                                           param with/without "x-" prefix
         :return: migrate parameter that is hopefully supported
         """
-        return pick_supported_x_feature(parameter,
-                                        self._supported_migrate_parameters,
-                                        disable_auto_x_evaluation,
-                                        error_on_missing,
-                                        "Migration parameter")
+        return pick_supported_x_feature(
+            parameter,
+            self._supported_migrate_parameters,
+            disable_auto_x_evaluation,
+            error_on_missing,
+            "Migration parameter",
+        )
 
 
 class HumanMonitor(Monitor):
@@ -810,16 +829,18 @@ class HumanMonitor(Monitor):
             # Find the initial (qemu) prompt
             s, o = self._read_up_to_qemu_prompt()
             if not s:
-                raise MonitorProtocolError("Could not find (qemu) prompt "
-                                           "after connecting to monitor. "
-                                           "Output so far: %r" % o)
+                raise MonitorProtocolError(
+                    "Could not find (qemu) prompt "
+                    "after connecting to monitor. "
+                    "Output so far: %r" % o
+                )
 
             self._get_supported_cmds()
 
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                LOG.warn(e)
+                LOG.warning(e)
             else:
                 raise
 
@@ -866,18 +887,18 @@ class HumanMonitor(Monitor):
             func = self._socket.sendmsg
             args = [
                 args,
-                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))]
+                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))],
             ]
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "monitor command '%s'" % cmd)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to send " "monitor command '%s'" % cmd
+            )
         try:
             try:
                 func(*args)
                 self._log_lines(cmd.decode(errors="replace"))
             except socket.error as e:
-                raise MonitorSocketError("Could not send monitor command %r" %
-                                         cmd, e)
+                raise MonitorSocketError("Could not send monitor command %r" % cmd, e)
         finally:
             self._lock.release()
 
@@ -891,7 +912,7 @@ class HumanMonitor(Monitor):
             self._supported_cmds = [c for c in cmd_list if c]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _log_response(self, cmd, resp, debug=True):
         """
@@ -902,11 +923,9 @@ class HumanMonitor(Monitor):
         :param debug: Whether to print the commands.
         """
         if self.debug_log or debug:
-            LOG.debug("(monitor %s.%s) Response to '%s'",
-                      self.vm.name, self.name, cmd)
+            LOG.debug("(monitor %s.%s) Response to '%s'", self.vm.name, self.name, cmd)
             for l in resp.splitlines():
-                LOG.debug("(monitor %s.%s)    %s",
-                          self.vm.name, self.name, l)
+                LOG.debug("(monitor %s.%s)    %s", self.vm.name, self.name, l)
 
     # Public methods
     def cmd(self, cmd, timeout=CMD_TIMEOUT, debug=True, fd=None):
@@ -924,8 +943,9 @@ class HumanMonitor(Monitor):
         """
         self._log_command(cmd, debug)
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "monitor command '%s'" % cmd)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to send " "monitor command '%s'" % cmd
+            )
 
         try:
             # Read any data that might be available
@@ -934,7 +954,8 @@ class HumanMonitor(Monitor):
             msg = cmd.encode()
             fds = (
                 [fd.fileno() if not isinstance(fd, int) else fd]
-                if fd is not None else None
+                if fd is not None
+                else None
             )
             if debug:
                 LOG.debug("Send command: %s" % cmd)
@@ -951,14 +972,15 @@ class HumanMonitor(Monitor):
                         raise HumanCmdError(cmd, o)
                 return o
             else:
-                msg = ("Could not find (qemu) prompt after command '%s'. "
-                       "Output so far: %r" % (cmd, o))
+                msg = (
+                    "Could not find (qemu) prompt after command '%s'. "
+                    "Output so far: %r" % (cmd, o)
+                )
                 raise MonitorProtocolError(msg)
         finally:
             self._lock.release()
 
-    def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT,
-                          debug=True, fd=None):
+    def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Send human monitor command directly
 
@@ -987,7 +1009,7 @@ class HumanMonitor(Monitor):
         :param status: Optional VM status, 'running' or 'paused'
         :return: return True if VM status is same as we expected
         """
-        return (status in self.get_status())
+        return status in self.get_status()
 
     # Command wrappers
     # Notes:
@@ -1027,7 +1049,7 @@ class HumanMonitor(Monitor):
                 for arg in cmdargs:
                     value = "=".join(arg.split("=")[1:])
                     if arg.split("=")[0] == "cert-subject":
-                        value = value.replace('/', ',')
+                        value = value.replace("/", ",")
                     command += " " + value
             else:
                 command = cmdline
@@ -1071,7 +1093,7 @@ class HumanMonitor(Monitor):
         return self.cmd(cmd="screendump %s" % filename, debug=debug)
 
     def system_reset(self):
-        """ Reset guest system """
+        """Reset guest system"""
         cmd = "system_reset"
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd=cmd)
@@ -1100,12 +1122,13 @@ class HumanMonitor(Monitor):
         :return: The response to the command.
         """
         cmd = "snapshot_blkdev %s %s" % (device, snapshot_file)
-        if 'format' in kwargs:
-            cmd += " %s" % kwargs['format']
+        if "format" in kwargs:
+            cmd += " %s" % kwargs["format"]
         return self.cmd(cmd)
 
-    def block_stream(self, device, speed=None, base=None,
-                     cmd="block_stream", correct=True):
+    def block_stream(
+        self, device, speed=None, base=None, cmd="block_stream", correct=True
+    ):
         """
         Start block-stream job;
 
@@ -1126,8 +1149,9 @@ class HumanMonitor(Monitor):
             cmd += " %s" % base
         return self.cmd(cmd)
 
-    def block_commit(self, device, speed=None, base=None, top=None,
-                     cmd="block_commit", correct=True):
+    def block_commit(
+        self, device, speed=None, base=None, top=None, cmd="block_commit", correct=True
+    ):
         """
         Start block-commit job
 
@@ -1152,8 +1176,9 @@ class HumanMonitor(Monitor):
             cmd += " %s" % top
         return self.cmd(cmd)
 
-    def set_block_job_speed(self, device, speed=0,
-                            cmd="block_job_set_speed", correct=True):
+    def set_block_job_speed(
+        self, device, speed=0, cmd="block_job_set_speed", correct=True
+    ):
         """
         Set limited speed for running job on the device
 
@@ -1309,7 +1334,7 @@ class HumanMonitor(Monitor):
         return job
 
     def query_jobs(self):
-        """Query block job info """
+        """Query block job info"""
         return self.query("jobs")
 
     def get_backingfile(self, device):
@@ -1329,8 +1354,9 @@ class HumanMonitor(Monitor):
             pass
         return backing_file
 
-    def block_mirror(self, device, target, sync, cmd="drive_mirror",
-                     correct=True, **kwargs):
+    def block_mirror(
+        self, device, target, sync, cmd="drive_mirror", correct=True, **kwargs
+    ):
         """
         Start mirror type block device copy job
 
@@ -1353,8 +1379,7 @@ class HumanMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         args = " %s %s %s" % (device, target, kwargs.get("format", "qcow2"))
         info = str(self.cmd("help %s" % cmd))
-        if (kwargs.get("mode", "absolute-paths")
-                == "existing") and "-n" in info:
+        if (kwargs.get("mode", "absolute-paths") == "existing") and "-n" in info:
             args = "-n %s" % args
         if (sync == "full") and "-f" in info:
             args = "-f %s" % args
@@ -1363,8 +1388,14 @@ class HumanMonitor(Monitor):
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
-    def block_reopen(self, device, new_image_file, image_format,
-                     cmd="block_job_complete", correct=True):
+    def block_reopen(
+        self,
+        device,
+        new_image_file,
+        image_format,
+        cmd="block_job_complete",
+        correct=True,
+    ):
         """
         Reopen new target image
 
@@ -1386,14 +1417,15 @@ class HumanMonitor(Monitor):
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
-    def migrate(self, uri, full_copy=False,
-                incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=None, incremental_copy=None, wait=False):
         """
         Migrate.
 
         :param uri: destination URI
         :param full_copy: If true, migrate with full disk copy
+                          (removed since qemu 9.1, don't use).
         :param incremental_copy: If true, migrate with incremental disk copy
+                                 (removed since qemu 9.1, don't use).
         :param wait: If true, wait for completion
         :return: The command's output
         """
@@ -1484,15 +1516,14 @@ class HumanMonitor(Monitor):
         """
         return self.cmd("getfd %s" % name, fd=fd)
 
-    def closefd(self, fd, name):
+    def closefd(self, name):
         """
         Close a file descriptor
 
-        :param fd: File descriptor to pass to QEMU
         :param name: File descriptor name (internal to QEMU)
         :return: The command's output
         """
-        return self.cmd("closefd %s" % name, fd=fd)
+        return self.cmd("closefd %s" % name)
 
     def system_wakeup(self):
         """
@@ -1549,24 +1580,23 @@ class HumanMonitor(Monitor):
         """
         self.verify_supported_cmd("balloon")
         normalize_data_size = utils_misc.normalize_data_size
-        size = float(normalize_data_size("%sB" % size, 'M', '1024'))
+        size = float(normalize_data_size("%sB" % size, "M", "1024"))
         return self.cmd("balloon %d" % size)
 
-    def _get_migrate_capability(self, capability,
-                                disable_auto_x_evaluation=True):
+    def _get_migrate_capability(self, capability, disable_auto_x_evaluation=True):
         if self._supported_migrate_capabilities is None:
             ret = self.query("migrate_capabilities")
             caps = []
             for line in ret.splitlines():
-                split = line.split(':', 1)
+                split = line.split(":", 1)
                 if len(split) == 2:
                     caps.append(split[0])
             self._supported_migrate_capabilities = caps
-        return super(HumanMonitor, self)._get_migrate_capability(capability,
-                                                                 disable_auto_x_evaluation)
+        return super(HumanMonitor, self)._get_migrate_capability(
+            capability, disable_auto_x_evaluation
+        )
 
-    def set_migrate_capability(self, state, capability,
-                               disable_auto_x_evaluation=True):
+    def set_migrate_capability(self, state, capability, disable_auto_x_evaluation=True):
         """
         Set the capability of migrate to state.
 
@@ -1581,18 +1611,16 @@ class HumanMonitor(Monitor):
         value = "off"
         if state:
             value = "on"
-        capability = self._get_migrate_capability(capability,
-                                                  disable_auto_x_evaluation)
+        capability = self._get_migrate_capability(capability, disable_auto_x_evaluation)
         cmd += " %s %s" % (capability, value)
         result = self.cmd(cmd)
         if result != "":
-            raise MonitorNotSupportedMigCapError("Failed to set capability"
-                                                 "%s: %s" %
-                                                 (capability, result))
+            raise MonitorNotSupportedMigCapError(
+                "Failed to set capability" "%s: %s" % (capability, result)
+            )
         return result
 
-    def get_migrate_capability(self, capability,
-                               disable_auto_x_evaluation=True):
+    def get_migrate_capability(self, capability, disable_auto_x_evaluation=True):
         """
         Get the state of migrate-capability.
 
@@ -1603,13 +1631,11 @@ class HumanMonitor(Monitor):
         :return: the state of migrate-capability.
         """
         capability_info = self.query("migrate_capabilities")
-        capability = self._get_migrate_capability(capability,
-                                                  disable_auto_x_evaluation)
+        capability = self._get_migrate_capability(capability, disable_auto_x_evaluation)
         pattern = r"%s:\s+(on|off)" % capability
         match = re.search(pattern, capability_info, re.M)
         if match is None:
-            raise MonitorNotSupportedMigCapError("Unknown capability %s" %
-                                                 capability)
+            raise MonitorNotSupportedMigCapError("Unknown capability %s" % capability)
         value = match.group(1)
         return value == "on"
 
@@ -1632,20 +1658,23 @@ class HumanMonitor(Monitor):
         value = cache_size_info.split(":")[1].split()[0].strip()
         return value
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False,
-                               disable_auto_x_evaluation=True):
+    def _get_migrate_parameter(
+        self, parameter, error_on_missing=False, disable_auto_x_evaluation=True
+    ):
         if self._supported_migrate_parameters is None:
             params = []
             for line in self.query("migrate_parameters").splitlines():
-                split = line.split(':', 1)
+                split = line.split(":", 1)
                 if len(split) == 2:
                     params.append(split[0])
             self._supported_migrate_parameters = params
         return super(HumanMonitor, self)._get_migrate_parameter(
-            parameter, error_on_missing, disable_auto_x_evaluation)
+            parameter, error_on_missing, disable_auto_x_evaluation
+        )
 
-    def set_migrate_parameter(self, parameter, value, error_on_missing=False,
-                              disable_auto_x_evaluation=True):
+    def set_migrate_parameter(
+        self, parameter, value, error_on_missing=False, disable_auto_x_evaluation=True
+    ):
         """
         Set parameters of migrate.
 
@@ -1656,8 +1685,9 @@ class HumanMonitor(Monitor):
         """
         cmd = "migrate_set_parameter"
         self.verify_supported_cmd(cmd)
-        parameter = self._get_migrate_parameter(parameter, error_on_missing,
-                                                disable_auto_x_evaluation)
+        parameter = self._get_migrate_parameter(
+            parameter, error_on_missing, disable_auto_x_evaluation
+        )
         cmd += " %s %s" % (parameter, value)
         return self.cmd(cmd)
 
@@ -1669,10 +1699,11 @@ class HumanMonitor(Monitor):
         :param disable_auto_x_evaluation: Whether to automatically choose
                                           param with/without "x-" prefix
         """
-        parameter = self._get_migrate_parameter(parameter,
-                                                disable_auto_x_evaluation=disable_auto_x_evaluation)
+        parameter = self._get_migrate_parameter(
+            parameter, disable_auto_x_evaluation=disable_auto_x_evaluation
+        )
         for line in self.query("migrate_parameters").splitlines():
-            split = line.split(':', 1)
+            split = line.split(":", 1)
             if split[0] == parameter:
                 return split[1].lstrip()
 
@@ -1720,8 +1751,12 @@ class HumanMonitor(Monitor):
         :param name: Netdev ID.
         """
         kwargs = self._build_args(**kwargs)
-        extra_args = "".join([",%s=%s" % (k, v if not isinstance(v, bool) else
-                                          "on" if v else "off") for k, v in kwargs.items()])
+        extra_args = "".join(
+            [
+                ",%s=%s" % (k, v if not isinstance(v, bool) else "on" if v else "off")
+                for k, v in kwargs.items()
+            ]
+        )
         netdev_cmd = "netdev_add type=%s,id=%s%s" % (backend, name, extra_args)
         return self.cmd(netdev_cmd)
 
@@ -1775,8 +1810,9 @@ class QMPMonitor(Monitor):
             try:
                 json
             except NameError:
-                raise MonitorNotSupportedError("QMP requires the json module "
-                                               "(Python 2.6 and up)")
+                raise MonitorNotSupportedError(
+                    "QMP requires the json module " "(Python 2.6 and up)"
+                )
 
             # Read greeting message
             end_time = time.time() + 20
@@ -1791,8 +1827,10 @@ class QMPMonitor(Monitor):
                     break
                 time.sleep(0.1)
             else:
-                raise MonitorProtocolError("No QMP greeting message received."
-                                           " Output so far: %s" % output_str)
+                raise MonitorProtocolError(
+                    "No QMP greeting message received."
+                    " Output so far: %s" % output_str
+                )
 
             # Issue qmp_capabilities
             self.cmd("qmp_capabilities")
@@ -1802,7 +1840,7 @@ class QMPMonitor(Monitor):
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                LOG.warn(e)
+                LOG.warning(e)
             else:
                 raise
 
@@ -1865,12 +1903,12 @@ class QMPMonitor(Monitor):
         :raise MonitorSocketError: Raised if a socket error occurs
         """
         func = self._socket.sendall
-        args = [data + b'\n']
+        args = [data + b"\n"]
         if fds:
             func = self._socket.sendmsg
             args = [
                 args,
-                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))]
+                [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))],
             ]
         try:
             func(*args)
@@ -1901,11 +1939,10 @@ class QMPMonitor(Monitor):
         """
         cmds = self.cmd("query-commands", debug=False)
         if cmds:
-            self._supported_cmds = [n["name"] for n in cmds if
-                                    "name" in n]
+            self._supported_cmds = [n["name"] for n in cmds if "name" in n]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _get_supported_hmp_cmds(self):
         """
@@ -1913,12 +1950,11 @@ class QMPMonitor(Monitor):
         """
         cmds = self.human_monitor_cmd("help", debug=False)
         if cmds:
-            cmd_list = re.findall(
-                r"(?:^\w+\|(\w+)\s)|(?:^(\w+?)\s)", cmds, re.M)
+            cmd_list = re.findall(r"(?:^\w+\|(\w+)\s)|(?:^(\w+?)\s)", cmds, re.M)
             self._supported_hmp_cmds = [(i + j) for i, j in cmd_list if i or j]
 
         if not self._supported_cmds:
-            LOG.warn("Could not get supported monitor cmds list")
+            LOG.warning("Could not get supported monitor cmds list")
 
     def _has_hmp_command(self, cmd):
         """
@@ -1954,8 +1990,9 @@ class QMPMonitor(Monitor):
         """
 
         def _log_output(o, indent=0):
-            LOG.debug("(monitor %s.%s)    %s%s",
-                      self.vm.name, self.name, " " * indent, o)
+            LOG.debug(
+                "(monitor %s.%s)    %s%s", self.vm.name, self.name, " " * indent, o
+            )
 
         def _dump_list(li, indent=0):
             for l in li:
@@ -1978,8 +2015,12 @@ class QMPMonitor(Monitor):
                     _log_output(o, indent)
 
         if self.debug_log or debug:
-            LOG.debug("(monitor %s.%s) Response to '%s' "
-                      "(re-formatted)", self.vm.name, self.name, cmd)
+            LOG.debug(
+                "(monitor %s.%s) Response to '%s' " "(re-formatted)",
+                self.vm.name,
+                self.name,
+                cmd,
+            )
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -2013,8 +2054,9 @@ class QMPMonitor(Monitor):
         """
         self._log_command(cmd, debug)
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "QMP command '%s'" % cmd)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to send " "QMP command '%s'" % cmd
+            )
 
         try:
             # Read any data that might be available
@@ -2025,7 +2067,8 @@ class QMPMonitor(Monitor):
             msg = cmdobj.encode()
             fds = (
                 [fd.fileno() if not isinstance(fd, int) else fd]
-                if fd is not None else None
+                if fd is not None
+                else None
             )
             if debug:
                 LOG.debug("Send command: %s" % cmdobj)
@@ -2033,10 +2076,11 @@ class QMPMonitor(Monitor):
             # Read response
             r = self._get_response(q_id, timeout)
             if r is None:
-                raise MonitorProtocolError("Received no response to QMP "
-                                           "command '%s', or received a "
-                                           "response with an incorrect id"
-                                           % cmd)
+                raise MonitorProtocolError(
+                    "Received no response to QMP "
+                    "command '%s', or received a "
+                    "response with an incorrect id" % cmd
+                )
             if "return" in r:
                 ret = r["return"]
                 if ret:
@@ -2062,16 +2106,16 @@ class QMPMonitor(Monitor):
         :raise MonitorProtocolError: Raised if no response is received
         """
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "data: %r" % data)
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to send " "data: %r" % data
+            )
 
         try:
             self._read_objects()
             self._send(data.encode())
             r = self._get_response(None, timeout)
             if r is None:
-                raise MonitorProtocolError("Received no response to data: %r" %
-                                           data)
+                raise MonitorProtocolError("Received no response to data: %r" % data)
             return r
 
         finally:
@@ -2133,11 +2177,11 @@ class QMPMonitor(Monitor):
         :return: return True if VM status is same as we expected
         """
         o = dict(self.cmd(cmd="query-status", debug=False))
-        if status == 'paused':
-            return (o['running'] is False)
-        if status == 'running':
-            return (o['running'] is True)
-        if o['status'] == status:
+        if status == "paused":
+            return o["running"] is False
+        if status == "running":
+            return o["running"] is True
+        if o["status"] == status:
             return True
         return False
 
@@ -2145,10 +2189,12 @@ class QMPMonitor(Monitor):
         """
         Send "(x-)exit-preconfig" and return the response
         """
-        feature = pick_supported_x_feature("exit-preconfig",
-                                           self._supported_cmds,
-                                           disable_auto_x_evaluation=False,
-                                           error_on_missing=True)
+        feature = pick_supported_x_feature(
+            "exit-preconfig",
+            self._supported_cmds,
+            disable_auto_x_evaluation=False,
+            error_on_missing=True,
+        )
         return self.cmd(cmd=feature)
 
     def get_events(self):
@@ -2160,8 +2206,9 @@ class QMPMonitor(Monitor):
         :raise MonitorLockError: Raised if the lock cannot be acquired
         """
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to read "
-                                   "QMP events")
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to read " "QMP events"
+            )
         try:
             self._read_objects()
             return self._events[:]
@@ -2179,8 +2226,7 @@ class QMPMonitor(Monitor):
             if e.get("event") == name:
                 return e
 
-    def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT,
-                          debug=True, fd=None):
+    def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Run human monitor command in QMP through human-monitor-command
 
@@ -2207,8 +2253,9 @@ class QMPMonitor(Monitor):
         :raise MonitorLockError: Raised if the lock cannot be acquired
         """
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to clear "
-                                   "QMP event list")
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to clear " "QMP event list"
+            )
         self._events = []
         self._lock.release()
 
@@ -2219,8 +2266,9 @@ class QMPMonitor(Monitor):
         :raise MonitorLockError: Raised if the lock cannot be acquired
         """
         if not self._acquire_lock():
-            raise MonitorLockError("Could not acquire exclusive lock to clear "
-                                   "QMP event list")
+            raise MonitorLockError(
+                "Could not acquire exclusive lock to clear " "QMP event list"
+            )
         while True:
             event = self.get_event(name)
             if event:
@@ -2271,7 +2319,7 @@ class QMPMonitor(Monitor):
                     for arg in cmdargs:
                         value = "=".join(arg.split("=")[1:])
                         if arg.split("=")[0] == "cert-subject":
-                            value = value.replace('/', ',')
+                            value = value.replace("/", ",")
 
                         command += " " + value
                 else:
@@ -2281,7 +2329,7 @@ class QMPMonitor(Monitor):
                 cmdargs = " ".join(cmdline.split()[1:]).split(",")
                 args = {}
                 for arg in cmdargs:
-                    opt = arg.split('=')
+                    opt = arg.split("=")
                     value = "=".join(opt[1:])
                     try:
                         if re.match("^[0-9]+$", value):
@@ -2289,7 +2337,7 @@ class QMPMonitor(Monitor):
                             # 1853538. And the int type convert is not absolute
                             # accurate for other values, if hit problem please
                             # check the expect type of qemu and update.
-                            if opt[0] != 'fd':
+                            if opt[0] != "fd":
                                 value = int(value)
                         elif re.match("^[0-9]+\.[0-9]*$", value):
                             value = float(value)
@@ -2300,7 +2348,7 @@ class QMPMonitor(Monitor):
                         else:
                             value = value.strip()
                         if opt[0] == "cert-subject":
-                            value = value.replace('/', ',')
+                            value = value.replace("/", ",")
                         if opt[0]:
                             args[opt[0].strip()] = value
                     except Exception:
@@ -2352,7 +2400,7 @@ class QMPMonitor(Monitor):
         return self.cmd(cmd=cmd, args=args, debug=debug)
 
     def system_reset(self):
-        """ Reset guest system """
+        """Reset guest system"""
         cmd, event = "system_reset", "RESET"
         self.verify_supported_cmd(cmd)
         self.clear_event(event)
@@ -2372,25 +2420,28 @@ class QMPMonitor(Monitor):
         """
         return self.human_monitor_cmd("sendkey %s %s" % (keystr, hold_time))
 
-    def migrate(self, uri, full_copy=False,
-                incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=None, incremental_copy=None, wait=False):
         """
         Migrate.
 
         :param uri: destination URI
         :param full_copy: If true, migrate with full disk copy
+                          (removed since qemu 9.1, don't use).
         :param incremental_copy: If true, migrate with incremental disk copy
+                                 (removed since qemu 9.1, don't use).
         :param wait: If true, wait for completion
         :return: The response to the command
         """
-        args = {"uri": uri,
-                "blk": full_copy,
-                "inc": incremental_copy}
-        args['uri'] = re.sub('"', "", args['uri'])
+        args = {"uri": uri}
+        if full_copy is not None:
+            args["blk"] = full_copy
+        if incremental_copy is not None:
+            args["inc"] = incremental_copy
+        args["uri"] = re.sub('"', "", args["uri"])
         try:
             return self.cmd("migrate", args)
         except QMPCmdError as e:
-            if e.data['class'] in ['SockConnectInprogress', 'GenericError']:
+            if e.data["class"] in ["SockConnectInprogress"]:
                 LOG.debug("Migrate socket connection still initializing...")
             else:
                 raise e
@@ -2464,17 +2515,24 @@ class QMPMonitor(Monitor):
 
         :return: The response to the command
         """
-        args = {"device": device,
-                "snapshot-file": snapshot_file}
+        args = {"device": device, "snapshot-file": snapshot_file}
         kwargs.update(args)
-        if 'format' not in kwargs:
+        if "format" not in kwargs:
             kwargs.update({"format": "qcow2"})
-        if 'mode' not in kwargs:
+        if "mode" not in kwargs:
             kwargs.update({"mode": "absolute-paths"})
         return self.cmd("blockdev-snapshot-sync", kwargs)
 
-    def block_stream(self, device, speed=None, base=None,
-                     cmd="block-stream", correct=True, **kwargs):
+    def block_stream(
+        self,
+        device,
+        speed=None,
+        base=None,
+        cmd="block-stream",
+        correct=True,
+        backing_mask_protocol=None,
+        **kwargs
+    ):
         """
         Start block-stream job;
 
@@ -2482,6 +2540,9 @@ class QMPMonitor(Monitor):
         :param speed: int type, limited speed(B/s)
         :param base: base file
         :param correct: auto correct command, correct by default
+        :param backing_mask_protocol: If true, replace any protocol mentioned
+                                      in the 'backing file format' with 'raw'
+                                      (supported since qemu 9.0).
         :param kwargs: optional keyword arguments
         :return: The command's output
         """
@@ -2493,11 +2554,21 @@ class QMPMonitor(Monitor):
             args["speed"] = speed
         if base:
             args["base"] = base
+        if backing_mask_protocol is not None:
+            args["backing-mask-protocol"] = backing_mask_protocol
         kwargs.update(args)
         return self.cmd(cmd, kwargs)
 
-    def block_commit(self, device, speed=None, base=None, top=None,
-                     cmd="block-commit", correct=True):
+    def block_commit(
+        self,
+        device,
+        speed=None,
+        base=None,
+        top=None,
+        cmd="block-commit",
+        correct=True,
+        backing_mask_protocol=None,
+    ):
         """
         Start block-commit job
 
@@ -2507,6 +2578,9 @@ class QMPMonitor(Monitor):
         :param top: top file
         :param cmd: block commit job command
         :param correct: auto correct command, correct by default
+        :param backing_mask_protocol: If true, replace any protocol mentioned
+                                      in the 'backing file format' with 'raw'
+                                      (supported since qemu 9.0).
 
         :return: The command's output
         """
@@ -2520,10 +2594,13 @@ class QMPMonitor(Monitor):
             args["base"] = base
         if top:
             args["top"] = top
+        if backing_mask_protocol is not None:
+            args["backing-mask-protocol"] = backing_mask_protocol
         return self.cmd(cmd, args)
 
-    def set_block_job_speed(self, device, speed=0,
-                            cmd="block-job-set-speed", correct=True):
+    def set_block_job_speed(
+        self, device, speed=0, cmd="block-job-set-speed", correct=True
+    ):
         """
         Set limited speed for running job on the device
 
@@ -2536,8 +2613,7 @@ class QMPMonitor(Monitor):
         if correct:
             cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
-        args = {"device": device,
-                "speed": speed}
+        args = {"device": device, "speed": speed}
         return self.cmd(cmd, args)
 
     def cancel_block_job(self, device, cmd="block-job-cancel", correct=True):
@@ -2602,7 +2678,7 @@ class QMPMonitor(Monitor):
         return job
 
     def query_jobs(self):
-        """Query block job info """
+        """Query block job info"""
         return self.query("jobs")
 
     def query_named_block_nodes(self):
@@ -2629,8 +2705,9 @@ class QMPMonitor(Monitor):
             pass
         return backing_file
 
-    def block_mirror(self, device, target, sync, cmd="drive-mirror",
-                     correct=True, **kwargs):
+    def block_mirror(
+        self, device, target, sync, cmd="drive-mirror", correct=True, **kwargs
+    ):
         """
         Start mirror type block device copy job
 
@@ -2656,8 +2733,7 @@ class QMPMonitor(Monitor):
         if correct:
             cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
-        args = {"device": device,
-                "target": target}
+        args = {"device": device, "target": target}
         if cmd.startswith("__com.redhat"):
             args["full"] = sync
         else:
@@ -2665,8 +2741,14 @@ class QMPMonitor(Monitor):
         kwargs.update(args)
         return self.cmd(cmd, kwargs)
 
-    def block_reopen(self, device, new_image_file, image_format,
-                     cmd="block-job-complete", correct=True):
+    def block_reopen(
+        self,
+        device,
+        new_image_file,
+        image_format,
+        cmd="block-job-complete",
+        correct=True,
+    ):
         """
         Reopen new target image;
 
@@ -2699,17 +2781,16 @@ class QMPMonitor(Monitor):
         args = {"fdname": name}
         return self.cmd("getfd", args, fd=fd)
 
-    def closefd(self, fd, name):
+    def closefd(self, name):
         """
         Close a file descriptor
 
-        :param fd: File descriptor to pass to QEMU
         :param name: File descriptor name (internal to QEMU)
 
         :return: The response to the command
         """
         args = {"fdname": name}
-        return self.cmd("closefd", args, fd=fd)
+        return self.cmd("closefd", args)
 
     def system_wakeup(self):
         """
@@ -2742,13 +2823,13 @@ class QMPMonitor(Monitor):
         :param node_name: Graph node name to get the image resized.
         :return: The response to the command.
         """
-        cmd = 'block_resize '
-        option = ['device', 'node-name', 'size']
+        cmd = "block_resize "
+        option = ["device", "node-name", "size"]
         value = [device, node_name, size]
         for opt, val in zip(option, value):
             if val is not None:
                 cmd += "{}={},".format(opt, val)
-        return self.send_args_cmd(cmd.rstrip(','))
+        return self.send_args_cmd(cmd.rstrip(","))
 
     def eject_cdrom(self, device, force=False):
         """
@@ -2839,8 +2920,7 @@ class QMPMonitor(Monitor):
         args = {"id": dev_id, "node-name": node_name}
         return self.cmd(cmd, args)
 
-    def blockdev_change_medium(self, dev_id, filename, fmt=None, mode=None,
-                               force=None):
+    def blockdev_change_medium(self, dev_id, filename, fmt=None, mode=None, force=None):
         """
         Changes the medium inserted into a block device by ejecting the current
         medium and loading a new image file which is inserted as the new medium
@@ -2974,17 +3054,15 @@ class QMPMonitor(Monitor):
             raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
         LOG.info("%s QMP event received" % qmp_event)
 
-    def _get_migrate_capability(self, capability,
-                                disable_auto_x_evaluation=True):
+    def _get_migrate_capability(self, capability, disable_auto_x_evaluation=True):
         if self._supported_migrate_capabilities is None:
             ret = self.query("migrate-capabilities")
-            self._supported_migrate_capabilities = set(_["capability"]
-                                                       for _ in ret)
-        return super(QMPMonitor, self)._get_migrate_capability(capability,
-                                                               disable_auto_x_evaluation)
+            self._supported_migrate_capabilities = set(_["capability"] for _ in ret)
+        return super(QMPMonitor, self)._get_migrate_capability(
+            capability, disable_auto_x_evaluation
+        )
 
-    def set_migrate_capability(self, state, capability,
-                               disable_auto_x_evaluation=True):
+    def set_migrate_capability(self, state, capability, disable_auto_x_evaluation=True):
         """
         Set the capability of migrate to state.
 
@@ -2994,8 +3072,7 @@ class QMPMonitor(Monitor):
                                           feature with/without "x-" prefix
         :raise MonitorNotSupportedMigCapError: if the capability is unsettable
         """
-        capability = self._get_migrate_capability(capability,
-                                                  disable_auto_x_evaluation)
+        capability = self._get_migrate_capability(capability, disable_auto_x_evaluation)
         cmd = "migrate-set-capabilities"
         self.verify_supported_cmd(cmd)
         args = {"capabilities": [{"state": state, "capability": capability}]}
@@ -3009,27 +3086,29 @@ class QMPMonitor(Monitor):
                 raise
             # Try it again with/without "x-" prefix
             capability2 = x_non_x_feature(capability)
-            args = {"capabilities": [{"state": state,
-                                      "capability": capability2}]}
+            args = {"capabilities": [{"state": state, "capability": capability2}]}
             try:
                 return self.cmd(cmd, args)
             except QMPCmdError as exc2:
-                LOG.debug("Error in set_migrate_capability for %s: %s",
-                          capability, exc)
-                LOG.debug("Error in set_migrate_capability for %s: "
-                          "%s", capability2, exc2)
-                if exc.data['class'] == exc2.data['class'] == 'GenericError':
-                    msg = ("set capability failed for %s (%s) as well as %s "
-                           "(%s)" % (capability, exc, capability2, exc2))
+                LOG.debug("Error in set_migrate_capability for %s: %s", capability, exc)
+                LOG.debug(
+                    "Error in set_migrate_capability for %s: " "%s", capability2, exc2
+                )
+                if exc.data["class"] == exc2.data["class"] == "GenericError":
+                    msg = "set capability failed for %s (%s) as well as %s " "(%s)" % (
+                        capability,
+                        exc,
+                        capability2,
+                        exc2,
+                    )
                     raise MonitorNotSupportedMigCapError(msg)
-                else:   # raise the non-generic-error exception
-                    if exc.data['class'] == 'GenericError':
+                else:  # raise the non-generic-error exception
+                    if exc.data["class"] == "GenericError":
                         raise exc2
                     else:
                         raise exc
 
-    def get_migrate_capability(self, capability,
-                               disable_auto_x_evaluation=True):
+    def get_migrate_capability(self, capability, disable_auto_x_evaluation=True):
         """
         Get the state of migrate-capability.
 
@@ -3038,14 +3117,12 @@ class QMPMonitor(Monitor):
         :note: automatically checks for "x-"/non-"x-" variant of the cap.
         :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
-        capability = self._get_migrate_capability(capability,
-                                                  disable_auto_x_evaluation)
+        capability = self._get_migrate_capability(capability, disable_auto_x_evaluation)
         capability_infos = self.query("migrate-capabilities")
         for item in capability_infos:
             if item["capability"] == capability:
                 return item["state"]
-        raise MonitorNotSupportedMigCapError("Unknown capability %s" %
-                                             capability)
+        raise MonitorNotSupportedMigCapError("Unknown capability %s" % capability)
 
     def set_migrate_cache_size(self, value):
         """
@@ -3064,17 +3141,19 @@ class QMPMonitor(Monitor):
         """
         return self.query("migrate-cache-size")
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False,
-                               disable_auto_x_evaluation=True):
+    def _get_migrate_parameter(
+        self, parameter, error_on_missing=False, disable_auto_x_evaluation=True
+    ):
         if self._supported_migrate_parameters is None:
             ret = self.query("migrate-parameters")
             self._supported_migrate_parameters = ret.keys()
-        return super(QMPMonitor, self)._get_migrate_parameter(parameter,
-                                                              error_on_missing,
-                                                              disable_auto_x_evaluation)
+        return super(QMPMonitor, self)._get_migrate_parameter(
+            parameter, error_on_missing, disable_auto_x_evaluation
+        )
 
-    def set_migrate_parameter(self, parameter, value, error_on_missing=False,
-                              disable_auto_x_evaluation=True):
+    def set_migrate_parameter(
+        self, parameter, value, error_on_missing=False, disable_auto_x_evaluation=True
+    ):
         """
         Set the parameters of migrate.
 
@@ -3085,8 +3164,9 @@ class QMPMonitor(Monitor):
         """
         cmd = "migrate-set-parameters"
         self.verify_supported_cmd(cmd)
-        parameter = self._get_migrate_parameter(parameter, error_on_missing,
-                                                disable_auto_x_evaluation)
+        parameter = self._get_migrate_parameter(
+            parameter, error_on_missing, disable_auto_x_evaluation
+        )
         args = {parameter: value}
         return self.cmd(cmd, args)
 
@@ -3099,8 +3179,9 @@ class QMPMonitor(Monitor):
                                           param with/without "x-" prefix
         """
         parameter_info = self.query("migrate-parameters")
-        parameter = self._get_migrate_parameter(parameter,
-                                                disable_auto_x_evaluation=disable_auto_x_evaluation)
+        parameter = self._get_migrate_parameter(
+            parameter, disable_auto_x_evaluation=disable_auto_x_evaluation
+        )
         if parameter in parameter_info:
             return parameter_info[parameter]
         return False
@@ -3128,8 +3209,7 @@ class QMPMonitor(Monitor):
                 LOG.debug("Migration progress: 0%")
                 return 0
             else:
-                raise MonitorError(
-                    "Unable to parse migration progress:\n%s" % status)
+                raise MonitorError("Unable to parse migration progress:\n%s" % status)
 
     def migrate_start_postcopy(self):
         """
@@ -3185,8 +3265,7 @@ class QMPMonitor(Monitor):
         cmd = "block-dirty-bitmap-%s" % operation
         if not self._has_command(cmd):
             cmd += "x-"
-        return self._operate_dirty_bitmap(cmd, node, name,
-                                          granularity=granularity)
+        return self._operate_dirty_bitmap(cmd, node, name, granularity=granularity)
 
     def _operate_dirty_bitmap(self, cmd, node, name, **kargs):
         """
@@ -3201,8 +3280,9 @@ class QMPMonitor(Monitor):
         args.update(self._build_args(**kargs))
         return self.cmd(cmd, args)
 
-    def block_dirty_bitmap_add(self, node, name, disabled=None,
-                               granularity=None, persistent=None):
+    def block_dirty_bitmap_add(
+        self, node, name, disabled=None, granularity=None, persistent=None
+    ):
         """
         Add a dirty bitmap.
 
@@ -3212,9 +3292,11 @@ class QMPMonitor(Monitor):
         :param granularity: segment size
         :param persistent: persistent through QEMU shutdown
         """
-        kwargs = {"granularity": granularity,
-                  "disabled": disabled,
-                  "persistent": persistent}
+        kwargs = {
+            "granularity": granularity,
+            "disabled": disabled,
+            "persistent": persistent,
+        }
         cmd = "block-dirty-bitmap-add"
         try:
             return self._operate_dirty_bitmap(cmd, node, name, **kwargs)
@@ -3320,8 +3402,9 @@ class QMPMonitor(Monitor):
         args = {"node": node, "name": bitmap}
         return self.cmd(cmd, args)
 
-    def drive_backup(self, device, target, format, sync, speed=0,
-                     mode='absolute-paths', bitmap=''):
+    def drive_backup(
+        self, device, target, format, sync, speed=0, mode="absolute-paths", bitmap=""
+    ):
         """
         Start a point-in-time copy of a block device to a new destination.
 
@@ -3341,11 +3424,13 @@ class QMPMonitor(Monitor):
         """
         cmd = "drive-backup"
         self.verify_supported_cmd(cmd)
-        args = {"device": device,
-                "target": target,
-                "format": format,
-                "sync": sync,
-                "mode": mode}
+        args = {
+            "device": device,
+            "target": target,
+            "format": format,
+            "sync": sync,
+            "mode": mode,
+        }
         if sync.lower() == "incremental":
             args["bitmap"] = bitmap
         if speed:
@@ -3365,14 +3450,14 @@ class QMPMonitor(Monitor):
         """
         cmd = "input-send-event"
         self.verify_supported_cmd(cmd)
-        args = {"events": [{
-            "type": "key",
-            "data": {
-                "down": down,
-                "key": {
-                    "type": "qcode",
-                    "data": key
-                }}}]}
+        args = {
+            "events": [
+                {
+                    "type": "key",
+                    "data": {"down": down, "key": {"type": "qcode", "data": key}},
+                }
+            ]
+        }
         return self.cmd(cmd, args)
 
     def query_mice(self):
@@ -3412,20 +3497,14 @@ class QMPMonitor(Monitor):
         """
         cmd = "nbd-server-start"
         self.verify_supported_cmd(cmd)
-        arguments = {
-            "addr": {
-                "type": server.pop("type"),
-                "data": server
-            }
-        }
+        arguments = {"addr": {"type": server.pop("type"), "data": server}}
         if tls_creds:
             arguments["tls-creds"] = tls_creds
         if tls_authz:
             arguments["tls-authz"] = tls_authz
         return self.cmd(cmd, arguments)
 
-    def nbd_server_add(self, device, export_name=None,
-                       writable=None, bitmap=None):
+    def nbd_server_add(self, device, export_name=None, writable=None, bitmap=None):
         """
         Export a block node to QEMU's embedded NBD server.
         :param device: The device name or node name to be exported
@@ -3486,7 +3565,7 @@ class QMPMonitor(Monitor):
         """
         cmd = "set-numa-node"
         self.verify_supported_cmd(cmd)
-        args = {'type': option_type}
+        args = {"type": option_type}
         args.update(self._build_args(**kwargs))
         return self.cmd(cmd, args)
 
@@ -3529,9 +3608,17 @@ class QMPMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd, props)
 
-    def block_export_add(self, uid, export_type, node_name,
-                         iothread=None, fixed_iothread=None,
-                         writable=None, writethrough=None, **kwargs):
+    def block_export_add(
+        self,
+        uid,
+        export_type,
+        node_name,
+        iothread=None,
+        fixed_iothread=None,
+        writable=None,
+        writethrough=None,
+        **kwargs
+    ):
         """
         Create a new block export. (since 5.2)
 
@@ -3559,7 +3646,7 @@ class QMPMonitor(Monitor):
         """
         cmd = "block-export-add"
         self.verify_supported_cmd(cmd)
-        arguments = {'type': export_type, 'id': uid, 'node-name': node_name}
+        arguments = {"type": export_type, "id": uid, "node-name": node_name}
         if writable is not None:
             arguments["writable"] = writable
         if writethrough is not None:
@@ -3589,9 +3676,9 @@ class QMPMonitor(Monitor):
         """
         cmd = "block-export-del"
         self.verify_supported_cmd(cmd)
-        arguments = {'id': uid}
+        arguments = {"id": uid}
         if mode:
-            arguments['mode'] = mode
+            arguments["mode"] = mode
         return self.cmd(cmd, arguments)
 
     def query_block_exports(self):
@@ -3613,8 +3700,9 @@ class QMPMonitor(Monitor):
         """
         cmd = "query-cpu-model-expansion"
         self.verify_supported_cmd(cmd)
-        return self.cmd(cmd, {"type": "full",
-                              "model": {"name": cpu_model}})["model"]["props"]
+        return self.cmd(cmd, {"type": "full", "model": {"name": cpu_model}})["model"][
+            "props"
+        ]
 
     def query_sgx(self):
         """

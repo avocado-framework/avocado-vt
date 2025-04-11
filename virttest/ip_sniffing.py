@@ -2,9 +2,9 @@
 IP sniffing facilities
 """
 
-import threading
 import logging
 import re
+import threading
 
 try:
     from collections import Iterable
@@ -12,20 +12,18 @@ except ImportError:
     from collections.abc import Iterable
 
 import aexpect
+import six
 from aexpect.remote import handle_prompts
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
-import six
-
 from virttest.utils_logfile import log_line
 from virttest.utils_version import VersionInterval
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class AddrCache(object):
-
     """
     Address cache implementation.
     """
@@ -57,8 +55,9 @@ class AddrCache(object):
             if self._data.get(hwaddr) == ipaddr:
                 return
             self._data[hwaddr] = ipaddr
-        LOG.debug("Updated HWADDR (%s)<->(%s) IP pair "
-                  "into address cache", hwaddr, ipaddr)
+        LOG.debug(
+            "Updated HWADDR (%s)<->(%s) IP pair " "into address cache", hwaddr, ipaddr
+        )
 
     def __getitem__(self, hwaddr):
         hwaddr = self._format_hwaddr(hwaddr)
@@ -118,7 +117,6 @@ class AddrCache(object):
 
 
 class Sniffer(object):
-
     """
     Virtual base class of the ip sniffer abstraction.
 
@@ -176,7 +174,7 @@ class Sniffer(object):
         try:
             log_line(self._logfile, line)
         except Exception as e:
-            LOG.warn("Can't log ip sniffer output: '%s'", e)
+            LOG.warning("Can't log ip sniffer output: '%s'", e)
         if self._output_handler(line):
             return
         # We can check whether the process is terminated unexpectedly
@@ -184,22 +182,28 @@ class Sniffer(object):
         match = self._re_sniffer_finished.match(line)
         if match:
             if match.group(1) != "0":
-                LOG.error("IP sniffer (%s) terminated unexpectedly! "
-                          "please check the log to get the details "
-                          "(status: %s)", self.command, match.group(1))
+                LOG.error(
+                    "IP sniffer (%s) terminated unexpectedly! "
+                    "please check the log to get the details "
+                    "(status: %s)",
+                    self.command,
+                    match.group(1),
+                )
 
     def _start_remote(self):
         address, port, username, password, prompt = self._remote_opts
         cmd = "%s %s" % (self.command, self.options)
         LOG.debug("Run '%s' on host '%s'", cmd, address)
-        login_cmd = ("ssh -o UserKnownHostsFile=/dev/null "
-                     "-o StrictHostKeyChecking=no "
-                     "-o PreferredAuthentications=password -p %s %s@%s" %
-                     (port, username, address))
+        login_cmd = (
+            "ssh -o UserKnownHostsFile=/dev/null "
+            "-o StrictHostKeyChecking=no "
+            "-o PreferredAuthentications=password -p %s %s@%s"
+            % (port, username, address)
+        )
 
         self._process = aexpect.ShellSession(
-            login_cmd,
-            output_func=self._output_logger_handler)
+            login_cmd, output_func=self._output_logger_handler
+        )
         handle_prompts(self._process, username, password, prompt)
         self._process.sendline(cmd)
 
@@ -209,8 +213,8 @@ class Sniffer(object):
             self._start_remote()
         else:
             self._process = aexpect.run_tail(
-                command=cmd,
-                output_func=self._output_logger_handler)
+                command=cmd, output_func=self._output_logger_handler
+            )
 
     def is_alive(self):
         """Check if the sniffer is alive."""
@@ -236,7 +240,6 @@ class Sniffer(object):
 
 
 class TcpdumpSniffer(Sniffer):
-
     """
     Tcpdump sniffer class.
     """
@@ -286,7 +289,6 @@ class TcpdumpSniffer(Sniffer):
 
 
 class TSharkSniffer(Sniffer):
-
     """
     TShark sniffer base class.
     """
@@ -314,8 +316,7 @@ class TSharkSniffer(Sniffer):
         if session:
             out = session.cmd_output(cmd)
         else:
-            out = process.system_output(cmd, verbose=False,
-                                        ignore_status=True).decode()
+            out = process.system_output(cmd, verbose=False, ignore_status=True).decode()
         matches = cls._re_version.search(out)
         if matches:
             return matches.group(1)
@@ -344,41 +345,45 @@ class TSharkSniffer(Sniffer):
         if re.match(r"[0-9a-fA-F]{1,4}:\S+", packet[0]):
             # TODO: support DHCPv6
             if not self.__dict__.setdefault("_ip6_warned", False):
-                LOG.warn("IPv6 address sniffing is not supported yet by "
-                         "using TShark, please fallback to use other "
-                         "sniffers by uninstalling TShark when testing "
-                         "with IPv6")
+                LOG.warning(
+                    "IPv6 address sniffing is not supported yet by "
+                    "using TShark, please fallback to use other "
+                    "sniffers by uninstalling TShark when testing "
+                    "with IPv6"
+                )
                 self._ip6_warned = True
             return True
 
 
 class TShark1To2(TSharkSniffer):
-
     """
     TShark sniffer class for version 1.0.0 - 2.x.x.
     """
 
-    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
-               "-E header=y -e ip.src -e ip.dst -e bootp.type -e bootp.id "
-               "-e bootp.hw.mac_addr -e bootp.ip.your -e bootp.option.dhcp "
-               "-e ipv6.src -e ipv6.dst "
-               # Positional arguments must be the last arguments
-               "'port 68 or port 546'")
+    options = (
+        "-npi any -T fields -E separator=/s -E occurrence=f "
+        "-E header=y -e ip.src -e ip.dst -e bootp.type -e bootp.id "
+        "-e bootp.hw.mac_addr -e bootp.ip.your -e bootp.option.dhcp "
+        "-e ipv6.src -e ipv6.dst "
+        # Positional arguments must be the last arguments
+        "'port 68 or port 546'"
+    )
     supported_versions = VersionInterval("[1.0.0, 3.0.0)")
 
 
 class TShark3ToLatest(TSharkSniffer):
-
     """
     TShark sniffer class for version 3.0.0 - latest.
     """
 
-    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
-               "-E header=y -e ip.src -e ip.dst -e dhcp.type -e dhcp.id "
-               "-e dhcp.hw.mac_addr -e dhcp.ip.your -e dhcp.option.dhcp "
-               "-e ipv6.src -e ipv6.dst "
-               # Positional arguments must be the last arguments
-               "'port 68 or port 546'")
+    options = (
+        "-npi any -T fields -E separator=/s -E occurrence=f "
+        "-E header=y -e ip.src -e ip.dst -e dhcp.type -e dhcp.id "
+        "-e dhcp.hw.mac_addr -e dhcp.ip.your -e dhcp.option.dhcp "
+        "-e ipv6.src -e ipv6.dst "
+        # Positional arguments must be the last arguments
+        "'port 68 or port 546'"
+    )
     supported_versions = VersionInterval("[3.0.0,)")
 
 

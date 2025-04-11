@@ -3,7 +3,9 @@ Virtualization test - vDPA related utilities
 
 :copyright: Red Hat Inc.
 """
+
 import glob
+import json
 import logging
 import os
 import time
@@ -11,15 +13,11 @@ import time
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import openvswitch
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import utils_sriov
-from virttest import utils_switchdev
+from virttest import openvswitch, utils_misc, utils_net, utils_sriov, utils_switchdev
 from virttest.utils_kernel_module import KernelModuleHandler
 from virttest.versionable_class import factory
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 VDPA_SYS_BUS_PATH = "/sys/bus/vdpa"
 VDPA_SYS_BUS_DEVS_PATH = os.path.join(VDPA_SYS_BUS_PATH, "devices")
@@ -29,6 +27,7 @@ class VDPAOvsTest(object):
     """
     Wrapper class for vDPA OVS environment configuration
     """
+
     def __init__(self, pf_pci, vf_no=4, mgmt_tool_extra=""):
         self.pf_pci = pf_pci
         self.vf_no = vf_no
@@ -37,10 +36,10 @@ class VDPAOvsTest(object):
         self.pf_pci_path = utils_misc.get_pci_path(self.pf_pci)
         utils_sriov.set_vf(self.pf_pci_path, 0)
 
-        self.pf_iface = utils_sriov.get_pf_info_by_pci(self.pf_pci).get('iface')
+        self.pf_iface = utils_sriov.get_pf_info_by_pci(self.pf_pci).get("iface")
         if not self.pf_iface:
             raise exceptions.TestCancel("NO available pf found.")
-        self.br_name = self.pf_iface+'_br'
+        self.br_name = self.pf_iface + "_br"
 
         self.ovs = factory(openvswitch.OpenVSwitchSystem)()
 
@@ -51,7 +50,7 @@ class VDPAOvsTest(object):
         """
         Load modules
         """
-        modules = ['vdpa', 'vhost_vdpa', 'mlx5_vdpa']
+        modules = ["vdpa", "vhost_vdpa", "mlx5_vdpa"]
         for module_name in modules:
             KernelModuleHandler(module_name).reload_module(True)
 
@@ -59,7 +58,7 @@ class VDPAOvsTest(object):
         """
         Unload modules
         """
-        modules = ['mlx5_vdpa', 'vhost_vdpa', 'vdpa']
+        modules = ["mlx5_vdpa", "vhost_vdpa", "vdpa"]
         for module_name in modules:
             KernelModuleHandler(module_name).unload_module()
 
@@ -106,9 +105,10 @@ class VDPAOvsTest(object):
         """
         mac_addr = utils_net.generate_mac_address_simple()
         cmd = "vdpa dev add name vdpa{} mgmtdev pci/{} mac {} {}".format(
-            idx, pci_addr, mac_addr, extra)
+            idx, pci_addr, mac_addr, extra
+        )
         process.run(cmd, shell=True)
-        self.vdpa_mac.update({'vdpa{}'.format(idx): mac_addr})
+        self.vdpa_mac.update({"vdpa{}".format(idx): mac_addr})
 
     def set_dev_managed_no(self, dev):
         """
@@ -169,7 +169,9 @@ class VDPAOvsTest(object):
         self.load_modules()
         self.ovs.init_system()
         LOG.debug("Enabling OVS HW Offload...")
-        self.ovs.ovs_vsctl(['set', 'Open_vSwitch', '.', 'other_config:hw-offload="true"'])
+        self.ovs.ovs_vsctl(
+            ["set", "Open_vSwitch", ".", 'other_config:hw-offload="true"']
+        )
         LOG.debug("Delete OVS Bridges.")
         self.del_ovs_br()
 
@@ -203,9 +205,9 @@ class VDPAOvsTest(object):
 
 
 class VDPASimulatorTest(object):
-
-    def __init__(self, sim_dev_module='vdpa_sim_net'):
+    def __init__(self, sim_dev_module="vdpa_sim_net", mgmtdev="vdpasim_net"):
         self.sim_dev_module = sim_dev_module
+        self.mgmtdev = mgmtdev
 
     def __del__(self):
         self.cleanup()
@@ -215,7 +217,7 @@ class VDPASimulatorTest(object):
         Load modules
         """
         self.unload_modules()
-        modules = ['vdpa', 'vhost_vdpa', 'vdpa_sim', self.sim_dev_module]
+        modules = ["vhost_vdpa", self.sim_dev_module]
         for module_name in modules:
             KernelModuleHandler(module_name).reload_module(True)
 
@@ -223,7 +225,7 @@ class VDPASimulatorTest(object):
         """
         Unload modules
         """
-        modules = [self.sim_dev_module, 'vdpa_sim', 'vhost_vdpa', 'vdpa']
+        modules = [self.sim_dev_module, "vhost_vdpa"]
         for module_name in modules:
             KernelModuleHandler(module_name).unload_module()
 
@@ -237,14 +239,28 @@ class VDPASimulatorTest(object):
         cmd = "vdpa dev add name vdpa{} mgmtdev {}".format(idx, dev)
         process.run(cmd, shell=True)
 
-    def setup(self):
+    def get_vdpa_dev_info(self, dev="dev"):
+        """
+        Get vDPA devices' infomation
+
+        :param dev: device type, dev(vdpa device) or mgmtdev(vdpa management device)
+        :return: devices' information
+        """
+        cmd = "vdpa {} show -j".format(dev)
+        res = process.run(cmd, shell=True, verbose=True).stdout_text
+        return json.loads(res)
+
+    def setup(self, dev_num=1):
         """
         Setup vDPA Simulator environment
+
+        :param dev_num: vdpa device number
         """
         LOG.debug("Loading vDPA Kernel modules...")
         self.load_modules()
         LOG.debug("Adding vDPA device...")
-        self.add_vdpa_dev()
+        for idx in range(dev_num):
+            self.add_vdpa_dev(idx=idx, dev=self.mgmtdev)
         LOG.info("vDPA Simulator environment setup successfully.")
 
     def cleanup(self):
@@ -255,7 +271,7 @@ class VDPASimulatorTest(object):
         LOG.info("vDPA Simulator environment recover successfully.")
 
 
-def get_vdpa_pci(driver='mlx5_core'):
+def get_vdpa_pci(driver="mlx5_core"):
     """
     Get PF's pci id by given driver
 
@@ -265,7 +281,7 @@ def get_vdpa_pci(driver='mlx5_core'):
     pf_info = utils_sriov.get_pf_info()
     for pci_info in pf_info.values():
         if pci_info.get("driver", "") == driver:
-            return pci_info.get('pci_id')
+            return pci_info.get("pci_id")
 
 
 def get_vdpa_dev_file_by_name(name):
@@ -281,8 +297,7 @@ def get_vdpa_dev_file_by_name(name):
     if not os.path.exists(sys_path):
         return None
     try:
-        sys_file_path = glob.glob(
-            os.path.join(sys_path, "vhost-vdpa*"))[0]
+        sys_file_path = glob.glob(os.path.join(sys_path, "vhost-vdpa*"))[0]
     except IndexError:
         return None
     return os.path.join("/dev", os.path.split(sys_file_path)[1])

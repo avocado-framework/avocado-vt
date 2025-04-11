@@ -3,16 +3,14 @@ SRIOV related utility functions
 """
 
 import logging
-import re
 import os
+import re
 
 from avocado.core import exceptions
 
-from virttest import utils_misc
-from virttest import utils_net
-from virttest import utils_package
+from virttest import utils_misc, utils_net, utils_package
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def find_pf(driver, session=None):
@@ -26,9 +24,9 @@ def find_pf(driver, session=None):
     """
     driver_dir = "/sys/bus/pci/drivers/%s" % driver
     cmd = "ls -d %s/000*" % driver_dir
-    s_, output = utils_misc.cmd_status_output(cmd, shell=True,
-                                              ignore_status=False,
-                                              session=session)
+    s_, output = utils_misc.cmd_status_output(
+        cmd, shell=True, ignore_status=False, session=session
+    )
     runner = None
     if session:
         runner = session.cmd
@@ -36,13 +34,15 @@ def find_pf(driver, session=None):
     pf_devices = output.splitlines()
     for pf in pf_devices:
         cmd = "ls %s/net" % pf
-        s_, tpm_iface_name = utils_misc.cmd_status_output(cmd, shell=True,
-                                                          ignore_status=False,
-                                                          session=session)
+        s_, tpm_iface_name = utils_misc.cmd_status_output(
+            cmd, shell=True, ignore_status=False, session=session
+        )
 
-        if (utils_net.get_net_if_operstate(
-           tpm_iface_name.strip(), runner=runner) == "up"):
-            pf_tmp = (tpm_iface_name.strip(), pf.strip().split('/')[-1])
+        if (
+            utils_net.get_net_if_operstate(tpm_iface_name.strip(), runner=runner)
+            == "up"
+        ):
+            pf_tmp = (tpm_iface_name.strip(), pf.strip().split("/")[-1])
             break
 
     if not pf_tmp:
@@ -65,23 +65,31 @@ def get_pf_info(session=None):
     """
     pf_info = {}
     status, output = utils_misc.cmd_status_output(
-        "lspci -D |awk '/Ethernet/ {print $1}'", shell=True, session=session)
+        "lspci -D |awk '/Ethernet/ {print $1}'", shell=True, session=session
+    )
     if status or not output:
-        raise exceptions.TestError("Unable to get Ethernet controllers. status: %s,"
-                                   "stdout: %s." % (status, output))
+        raise exceptions.TestError(
+            "Unable to get Ethernet controllers. status: %s,"
+            "stdout: %s." % (status, output)
+        )
     for pci in output.split():
-        _, output = utils_misc.cmd_status_output("lspci -v -s %s" % pci,
-                                                 shell=True,
-                                                 session=session)
+        _, output = utils_misc.cmd_status_output(
+            "lspci -v -s %s" % pci, shell=True, session=session
+        )
         if re.search("SR-IOV", output):
-            pf_driver = re.search('driver in use: (.*)', output)[1]
-            tmp_info = {'driver': pf_driver, 'pci_id': pci}
+            pf_driver = re.search("driver in use: (.*)", output)[1]
+            tmp_info = {"driver": pf_driver, "pci_id": pci}
 
             iface_name = get_iface_name(pci, session=session)
             runner = None if not session else session.cmd
-            tmp_info.update({'iface': iface_name.strip(),
-                             'status': utils_net.get_net_if_operstate(
-                                          iface_name.strip(), runner=runner)})
+            tmp_info.update(
+                {
+                    "iface": iface_name.strip(),
+                    "status": utils_net.get_net_if_operstate(
+                        iface_name.strip(), runner=runner
+                    ),
+                }
+            )
             pf_info.update({pci: tmp_info})
     LOG.debug("PF info: %s.", pf_info)
     return pf_info
@@ -89,7 +97,8 @@ def get_pf_info(session=None):
 
 def get_pf_pci(session=None):
     """
-    Get the pci id of the available(status='up') PF
+    Get the pci id of the available(status='up') PF.
+    If there is no available PF, return the first one.
 
     :param session: The session object to the host
     :return: pf's pci id, eg. 0000:05:10.1
@@ -97,7 +106,9 @@ def get_pf_pci(session=None):
     pf_info = get_pf_info(session=session)
     for pci_info in pf_info.values():
         if pci_info.get("status", "") == "up":
-            return pci_info.get('pci_id')
+            return pci_info.get("pci_id")
+    if pf_info:
+        return list(pf_info.values())[0].get("pci_id")
 
 
 def get_pf_info_by_pci(pci_id, session=None):
@@ -112,7 +123,7 @@ def get_pf_info_by_pci(pci_id, session=None):
     """
     pf_info = get_pf_info(session=session)
     for pf in pf_info.values():
-        if pf.get('pci_id') == pci_id:
+        if pf.get("pci_id") == pci_id:
             LOG.debug("PF %s details: %s.", pci_id, pf)
             return pf
 
@@ -124,9 +135,8 @@ def pci_to_addr(pci_id):
     :param pci_id: PCI ID of a device(eg. 0000:05:10.1)
     :return: address dict
     """
-    pci_list = ["0x%s" % x for x in re.split('[.:]', pci_id)]
-    return dict(zip(
-        ['domain', 'bus', 'slot', 'function', 'type'], pci_list + ['pci']))
+    pci_list = ["0x%s" % x for x in re.split("[.:]", pci_id)]
+    return dict(zip(["domain", "bus", "slot", "function", "type"], pci_list + ["pci"]))
 
 
 def get_device_name(pci_id):
@@ -136,7 +146,7 @@ def get_device_name(pci_id):
     :param pci_id: PCI ID of a device(eg. 0000:05:10.1)
     :return: Name of a device(eg. pci_0000_05_00_1)
     """
-    return '_'.join(['pci']+re.split('[.:]', pci_id))
+    return "_".join(["pci"] + re.split("[.:]", pci_id))
 
 
 def get_iface_name(pci_id, session=None):
@@ -148,8 +158,7 @@ def get_iface_name(pci_id, session=None):
     :return: The iface(eg. enp5s0f0)
     """
     cmd = "ls /sys/bus/pci/devices/%s/net" % pci_id
-    status, iface_name = utils_misc.cmd_status_output(cmd, shell=True,
-                                                      session=session)
+    status, iface_name = utils_misc.cmd_status_output(cmd, shell=True, session=session)
     if status:
         raise exceptions.TestError("Unable to get iface name of %s." % pci_id)
     iface_name_single = iface_name.split()[0]
@@ -168,8 +177,9 @@ def set_vf(pci_addr, vf_no=4, session=None, timeout=60):
     """
     LOG.debug("pci_addr is %s", pci_addr)
     cmd = "echo %s > %s/sriov_numvfs" % (vf_no, pci_addr)
-    s, o = utils_misc.cmd_status_output(cmd, shell=True, timeout=timeout,
-                                        verbose=True, session=session)
+    s, o = utils_misc.cmd_status_output(
+        cmd, shell=True, timeout=timeout, verbose=True, session=session
+    )
     return not s
 
 
@@ -184,8 +194,7 @@ def set_vf_mac(ethname, mac_addr, vf_idx=0, session=None):
     :return: The command status and output
     """
     cmd = "ip link set {0} vf {1} mac {2}".format(ethname, vf_idx, mac_addr)
-    return utils_misc.cmd_status_output(
-            cmd, shell=True, verbose=True, session=session)
+    return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, session=session)
 
 
 def get_vf_mac(ethname, vf_idx=0, session=None, is_admin=True):
@@ -207,11 +216,14 @@ def get_vf_mac(ethname, vf_idx=0, session=None, is_admin=True):
         cmd = "ip link show %s |awk '/link\/ether/ {print $2}'" % vf_iface
 
     status, vf_mac = utils_misc.cmd_status_output(
-            cmd, shell=True, verbose=True, session=session)
+        cmd, shell=True, verbose=True, session=session
+    )
 
     if status or not vf_mac:
-        raise exceptions.TestError("Unable to get VF's mac address. status: %s,"
-                                   "stdout: %s." % (status, vf_mac))
+        raise exceptions.TestError(
+            "Unable to get VF's mac address. status: %s,"
+            "stdout: %s." % (status, vf_mac)
+        )
     return vf_mac.strip()
 
 
@@ -226,10 +238,12 @@ def get_vf_pci_id(pf_pci, vf_index=0, session=None):
     """
     cmd = "readlink /sys/bus/pci/devices/{}/virtfn{}".format(pf_pci, vf_index)
     status, tmp_vf = utils_misc.cmd_status_output(
-        cmd, shell=True, verbose=True, session=session)
+        cmd, shell=True, verbose=True, session=session
+    )
     if status or not tmp_vf:
-        raise exceptions.TestError("Unable to get VF. status: %s, stdout: %s."
-                                   % (status, tmp_vf))
+        raise exceptions.TestError(
+            "Unable to get VF. status: %s, stdout: %s." % (status, tmp_vf)
+        )
     return os.path.basename(tmp_vf).strip()
 
 
@@ -243,10 +257,12 @@ def get_pci_from_iface(iface, session=None):
     """
     cmd = "ethtool -i %s | awk '/bus-info/ {print $NF}'" % iface.strip()
     status, pci = utils_misc.cmd_status_output(
-        cmd, shell=True, verbose=True, session=session)
+        cmd, shell=True, verbose=True, session=session
+    )
     if status:
-        raise exceptions.TestError("Unable to get device's pci. status: %s, "
-                                   "stdout: %s." % (status, pci))
+        raise exceptions.TestError(
+            "Unable to get device's pci. status: %s, " "stdout: %s." % (status, pci)
+        )
     return pci
 
 
@@ -266,20 +282,24 @@ def add_or_del_connection(params, session=None, is_del=False):
 
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         LOG.error("Failed to install the required package")
-    recover_cmd = 'tmux -c "ip link set {0} nomaster; ip link delete {1}; ' \
-                  'pkill dhclient; sleep 5; dhclient"'.format(
-                      pf_name, bridge_name)
+    recover_cmd = (
+        'tmux -c "ip link set {0} nomaster; ip link delete {1}; '
+        'pkill dhclient; sleep 5; dhclient"'.format(pf_name, bridge_name)
+    )
 
     if not is_del:
         utils_misc.cmd_status_output(recover_cmd, shell=True, session=session)
-        cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
-              'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
-              'sleep 5; dhclient"'.format(pf_name, bridge_name)
+        cmd = (
+            'tmux -c "ip link add name {1} type bridge; ip link set {0} up; '
+            "ip link set {0} master {1}; ip link set {1} up; dhclient -r;"
+            'sleep 5; dhclient"'.format(pf_name, bridge_name)
+        )
     else:
         cmd = recover_cmd
 
-    utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
-                                 ignore_status=False, session=session)
+    utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, ignore_status=False, session=session
+    )
 
 
 def del_connection(pf_name, bridge_name, session=None, ignore_status=False):
@@ -293,11 +313,14 @@ def del_connection(pf_name, bridge_name, session=None, ignore_status=False):
     """
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         LOG.error("Failed to install the required package")
-    cmd = 'tmux -c "ip link set {0} nomaster; ip link delete {1}; ' \
-          'pkill dhclient; sleep 5; dhclient"'.format(pf_name, bridge_name)
+    cmd = (
+        'tmux -c "ip link set {0} nomaster; ip link delete {1}; '
+        'pkill dhclient; sleep 5; dhclient"'.format(pf_name, bridge_name)
+    )
 
-    utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
-                                 ignore_status=ignore_status, session=session)
+    utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, ignore_status=ignore_status, session=session
+    )
 
 
 def add_connection(pf_name, bridge_name, session=None):
@@ -309,9 +332,12 @@ def add_connection(pf_name, bridge_name, session=None):
     :param session: The session object to the host
     """
     del_connection(pf_name, bridge_name, session=session, ignore_status=True)
-    cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
-          'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
-          'sleep 5; dhclient"'.format(pf_name, bridge_name)
+    cmd = (
+        'tmux -c "ip link add name {1} type bridge; ip link set {0} up; '
+        "ip link set {0} master {1}; ip link set {1} up; dhclient -r;"
+        'sleep 5; dhclient"'.format(pf_name, bridge_name)
+    )
 
-    utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
-                                 ignore_status=False, session=session)
+    utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, ignore_status=False, session=session
+    )

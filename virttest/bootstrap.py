@@ -1,84 +1,86 @@
-from distutils import dir_util  # virtualenv problem pylint: disable=E0611
+import glob
 import logging
 import os
-import glob
+import re
 import shutil
 import sys
-import re
+from distutils import dir_util  # virtualenv problem pylint: disable=E0611
 
-from avocado.utils import cpu
-from avocado.utils import distro
-from avocado.utils import genio
-from avocado.utils import linux_modules
+from avocado.utils import cpu, distro, genio, linux_modules
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
-from . import data_dir
-from . import asset
-from . import cartesian_config
-from . import utils_selinux
-from . import defaults
-from . import arch
+from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
-
 
 LOG = logging.getLogger("avocado.app")
 
-basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping', 'diff']
+basic_program_requirements = ["xz", "tcpdump", "nc", "ip", "arping", "diff"]
 
-recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
-                                 ('qemu-io',), ('virsh',)],
-                        'spice': [('qemu-kvm', 'kvm'), ('qemu-img',),
-                                  ('qemu-io',)],
-                        'libvirt': [('virsh',), ('virt-install',),
-                                    ('fakeroot',), ('semanage',),
-                                    ('getfattr',), ('restorecon',)],
-                        'openvswitch': [],
-                        'lvsb': [('semanage',), ('getfattr',), ('restorecon',), ('virt-sandbox')],
-                        'v2v': [],
-                        'libguestfs': [('perl',)],
-                        'virttools': []}
+recommended_programs = {
+    "qemu": [("qemu-kvm", "kvm"), ("qemu-img",), ("qemu-io",), ("virsh",)],
+    "spice": [("qemu-kvm", "kvm"), ("qemu-img",), ("qemu-io",)],
+    "libvirt": [
+        ("virsh",),
+        ("virt-install",),
+        ("fakeroot",),
+        ("semanage",),
+        ("getfattr",),
+        ("restorecon",),
+    ],
+    "openvswitch": [],
+    "lvsb": [("semanage",), ("getfattr",), ("restorecon",), ("virt-sandbox")],
+    "v2v": [],
+    "libguestfs": [("perl",)],
+    "virttools": [],
+}
 
-mandatory_programs = {'qemu': basic_program_requirements + ['gcc'],
-                      'spice': basic_program_requirements + ['gcc'],
-                      'libvirt': basic_program_requirements,
-                      'openvswitch': basic_program_requirements,
-                      'lvsb': ['virt-sandbox', 'virt-sandbox-service', 'virsh'],
-                      'v2v': basic_program_requirements,
-                      'libguestfs': basic_program_requirements,
-                      'virttools': basic_program_requirements + ['virt-install',
-                                                                 'virt-clone',
-                                                                 'virt-manager',
-                                                                 'virt-xml']}
+mandatory_programs = {
+    "qemu": basic_program_requirements + ["gcc"],
+    "spice": basic_program_requirements + ["gcc"],
+    "libvirt": basic_program_requirements,
+    "openvswitch": basic_program_requirements,
+    "lvsb": ["virt-sandbox", "virt-sandbox-service", "virsh"],
+    "v2v": basic_program_requirements,
+    "libguestfs": basic_program_requirements,
+    "virttools": basic_program_requirements
+    + ["virt-install", "virt-clone", "virt-manager", "virt-xml"],
+}
 
-mandatory_headers = {'qemu': [],
-                     'spice': [],
-                     'libvirt': [],
-                     'openvswitch': [],
-                     'v2v': [],
-                     'lvsb': [],
-                     'libguestfs': [],
-                     'virttools': []}
+mandatory_headers = {
+    "qemu": [],
+    "spice": [],
+    "libvirt": [],
+    "openvswitch": [],
+    "v2v": [],
+    "lvsb": [],
+    "libguestfs": [],
+    "virttools": [],
+}
 
-first_subtest = {'qemu': ['unattended_install', 'steps'],
-                 'spice': ['unattended_install', 'steps'],
-                 'libvirt': ['unattended_install'],
-                 'openvswitch': ['unattended_install'],
-                 'v2v': ['unattended_install'],
-                 'libguestfs': ['unattended_install'],
-                 'lvsb': [],
-                 'virttools': []}
+first_subtest = {
+    "qemu": ["unattended_install", "steps"],
+    "spice": ["unattended_install", "steps"],
+    "libvirt": ["unattended_install"],
+    "openvswitch": ["unattended_install"],
+    "v2v": ["unattended_install"],
+    "libguestfs": ["unattended_install"],
+    "lvsb": [],
+    "virttools": [],
+}
 
-last_subtest = {'qemu': ['shutdown'],
-                'spice': ['shutdown'],
-                'libvirt': ['shutdown', 'remove_guest'],
-                'openvswitch': ['shutdown'],
-                'v2v': ['shutdown'],
-                'libguestfs': ['shutdown'],
-                'lvsb': [],
-                'virttools': []}
+last_subtest = {
+    "qemu": ["shutdown"],
+    "spice": ["shutdown"],
+    "libvirt": ["shutdown", "remove_guest"],
+    "openvswitch": ["shutdown"],
+    "v2v": ["shutdown"],
+    "libguestfs": ["shutdown"],
+    "lvsb": [],
+    "virttools": [],
+}
 
-test_filter = ['__init__', 'cfg', 'dropin.py']
+test_filter = ["__init__", "cfg", "dropin.py"]
 
 
 def get_guest_os_info_list(test_name, guest_os):
@@ -90,27 +92,31 @@ def get_guest_os_info_list(test_name, guest_os):
 
     cartesian_parser = cartesian_config.Parser()
     cartesian_parser.parse_file(
-        data_dir.get_backend_cfg_path(test_name, 'guest-os.cfg'))
+        data_dir.get_backend_cfg_path(test_name, "guest-os.cfg")
+    )
     cartesian_parser.only_filter(guest_os)
     dicts = cartesian_parser.get_dicts()
 
     for params in dicts:
-        image_name = params.get('image_name', 'image').split('/')[-1]
-        shortname = params.get('shortname', guest_os)
-        os_info_list.append({'asset': image_name, 'variant': shortname})
+        image_name = params.get("image_name", "image").split("/")[-1]
+        shortname = params.get("shortname", guest_os)
+        os_info_list.append({"asset": image_name, "variant": shortname})
 
     if not os_info_list:
-        LOG.error("Could not find any assets compatible with %s for %s",
-                  guest_os, test_name)
+        LOG.error(
+            "Could not find any assets compatible with %s for %s", guest_os, test_name
+        )
         raise ValueError("Missing compatible assets for %s" % guest_os)
 
     return os_info_list
 
 
 def get_config_filter():
-    config_filter = ['__init__', ]
+    config_filter = [
+        "__init__",
+    ]
     for provider_subdir in asset.get_test_provider_subdirs():
-        config_filter.append(os.path.join('%s' % provider_subdir, 'cfg'))
+        config_filter.append(os.path.join("%s" % provider_subdir, "cfg"))
     return config_filter
 
 
@@ -122,19 +128,25 @@ def verify_recommended_programs(t_type):
             found = None
             try:
                 found = utils_path.find_command(cmd)
-                LOG.debug('%s OK', found)
+                LOG.debug("%s OK", found)
                 break
             except utils_path.CmdNotFoundError:
                 pass
         if not found:
             if len(cmd_aliases) == 1:
-                LOG.info("Recommended command %s missing. You may "
-                         "want to install it if not building from "
-                         "source.", cmd_aliases[0])
+                LOG.info(
+                    "Recommended command %s missing. You may "
+                    "want to install it if not building from "
+                    "source.",
+                    cmd_aliases[0],
+                )
             else:
-                LOG.info("Recommended command missing. You may "
-                         "want to install it if not building it from "
-                         "source. Aliases searched: %s", cmd_aliases)
+                LOG.info(
+                    "Recommended command missing. You may "
+                    "want to install it if not building it from "
+                    "source. Aliases searched: %s",
+                    cmd_aliases,
+                )
 
 
 def verify_mandatory_programs(t_type, guest_os):
@@ -142,29 +154,29 @@ def verify_mandatory_programs(t_type, guest_os):
     cmds = mandatory_programs[t_type]
     for cmd in cmds:
         try:
-            LOG.debug('%s OK', utils_path.find_command(cmd))
+            LOG.debug("%s OK", utils_path.find_command(cmd))
         except utils_path.CmdNotFoundError:
-            LOG.error("Required command %s is missing. You must "
-                      "install it", cmd)
+            LOG.error("Required command %s is missing. You must " "install it", cmd)
             failed_cmds.append(cmd)
 
     includes = mandatory_headers[t_type]
-    available_includes = glob.glob('/usr/include/*/*')
+    available_includes = glob.glob("/usr/include/*/*")
     for include in available_includes:
         include_basename = os.path.basename(include)
         if include_basename in includes:
-            LOG.debug('%s OK', include)
+            LOG.debug("%s OK", include)
             includes.pop(includes.index(include_basename))
 
     if includes:
         for include in includes:
-            LOG.error("Required include %s is missing. You may have to "
-                      "install it", include)
+            LOG.error(
+                "Required include %s is missing. You may have to " "install it", include
+            )
 
     failures = failed_cmds + includes
 
     if failures:
-        raise ValueError('Missing (cmds/includes): %s' % " ".join(failures))
+        raise ValueError("Missing (cmds/includes): %s" % " ".join(failures))
 
 
 def write_subtests_files(config_file_list, output_file_object, test_type=None):
@@ -179,13 +191,13 @@ def write_subtests_files(config_file_list, output_file_object, test_type=None):
         output_file_object.write("        variants subtest:\n")
 
     for provider_name, config_path in config_file_list:
-        config_file = open(config_path, 'r')
+        config_file = open(config_path, "r")
 
         write_test_type_line = False
         write_provider_line = False
 
         for line in config_file.readlines():
-            if line.startswith('- ') and provider_name is not None:
+            if line.startswith("- ") and provider_name is not None:
                 name, deps = line.split(":")
                 name = name[1:].strip()
                 if name[0] == "@":
@@ -195,23 +207,20 @@ def write_subtests_files(config_file_list, output_file_object, test_type=None):
             # special virt_test_type line output
             if test_type is not None:
                 if write_test_type_line:
-                    type_line = ("                virt_test_type = %s\n" %
-                                 test_type)
+                    type_line = "                virt_test_type = %s\n" % test_type
                     output_file_object.write(type_line)
-                    provider_line = ("                provider = %s\n" %
-                                     provider_name)
+                    provider_line = "                provider = %s\n" % provider_name
                     output_file_object.write(provider_line)
                     write_test_type_line = False
-                elif line.startswith('- '):
+                elif line.startswith("- "):
                     write_test_type_line = True
                 output_file_object.write("            %s" % line)
             else:
                 if write_provider_line:
-                    provider_line = ("        provider = %s\n" %
-                                     provider_name)
+                    provider_line = "        provider = %s\n" % provider_name
                     output_file_object.write(provider_line)
                     write_provider_line = False
-                elif line.startswith('- '):
+                elif line.startswith("- "):
                     write_provider_line = True
                 # regular line output
                 output_file_object.write("    %s" % line)
@@ -248,32 +257,29 @@ def get_directory_structure(rootdir, guest_file, first_variant=None):
         base_cfg = "%s.cfg" % base_folder
         base_cfg_path = os.path.join(os.path.dirname(path), base_cfg)
         if os.path.isfile(base_cfg_path):
-            base_file = open(base_cfg_path, 'r')
+            base_file = open(base_cfg_path, "r")
             for line in base_file.readlines():
                 offset = first_variant_offset + indent - 1
                 guest_file.write("%s%s" % ((4 * offset * " "), line))
         else:
             if base_folder:
                 offset = first_variant_offset + indent - 1
-                guest_file.write("%s- %s:\n" %
-                                 ((4 * offset * " "), base_folder))
+                guest_file.write("%s- %s:\n" % ((4 * offset * " "), base_folder))
         variant_printed = False
         if files:
             files.sort()
             for f in files:
                 if f.endswith(".cfg"):
-                    bf = f[:len(f) - 4]
+                    bf = f[: len(f) - 4]
                     if bf not in subdirs:
                         if not variant_printed:
                             offset = first_variant_offset + indent
-                            guest_file.write("%svariants:\n" %
-                                             ((4 * offset * " ")))
+                            guest_file.write("%svariants:\n" % ((4 * offset * " ")))
                             variant_printed = True
-                        base_file = open(os.path.join(path, f), 'r')
+                        base_file = open(os.path.join(path, f), "r")
                         for line in base_file.readlines():
                             offset = first_variant_offset + indent + 1
-                            guest_file.write("%s%s"
-                                             % ((4 * offset * " "), line))
+                            guest_file.write("%s%s" % ((4 * offset * " "), line))
         indent -= number_variants
         previous_indent = indent
 
@@ -281,44 +287,43 @@ def get_directory_structure(rootdir, guest_file, first_variant=None):
 def sync_download_dir(interactive):
     base_download_dir = data_dir.get_base_download_dir()
     download_dir = data_dir.get_download_dir()
-    LOG.debug("Copying downloadable assets file definitions from %s "
-              "into %s", base_download_dir, download_dir)
-    download_file_list = glob.glob(os.path.join(base_download_dir,
-                                                "*.ini"))
+    LOG.debug(
+        "Copying downloadable assets file definitions from %s " "into %s",
+        base_download_dir,
+        download_dir,
+    )
+    download_file_list = glob.glob(os.path.join(base_download_dir, "*.ini"))
     for src_file in download_file_list:
-        dst_file = os.path.join(download_dir,
-                                os.path.basename(src_file))
+        dst_file = os.path.join(download_dir, os.path.basename(src_file))
         if not os.path.isfile(dst_file):
             shutil.copyfile(src_file, dst_file)
         else:
             diff_cmd = "diff -Naur %s %s" % (dst_file, src_file)
-            diff_result = process.run(
-                diff_cmd, ignore_status=True, verbose=False)
+            diff_result = process.run(diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
-                LOG.debug("%s result:\n %s",
-                          diff_result.command,
-                          diff_result.stdout_text)
-                answer = genio.ask('Download file "%s" differs from "%s". '
-                                   'Overwrite?' % (dst_file, src_file),
-                                   auto=not interactive)
+                LOG.debug(
+                    "%s result:\n %s", diff_result.command, diff_result.stdout_text
+                )
+                answer = genio.ask(
+                    'Download file "%s" differs from "%s". '
+                    "Overwrite?" % (dst_file, src_file),
+                    auto=not interactive,
+                )
                 if answer == "y":
-                    LOG.debug("Restoring download file %s from sample",
-                              dst_file)
+                    LOG.debug("Restoring download file %s from sample", dst_file)
                     shutil.copyfile(src_file, dst_file)
                 else:
                     LOG.debug("Preserving existing %s file", dst_file)
             else:
-                LOG.debug('Download file %s exists, not touching',
-                          dst_file)
+                LOG.debug("Download file %s exists, not touching", dst_file)
 
 
 def create_guest_os_cfg(t_type):
-    guest_os_cfg_dir = os.path.join(data_dir.get_shared_dir(), 'cfg', 'guest-os')
-    guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
-    guest_os_cfg_file = open(guest_os_cfg_path, 'w')
+    guest_os_cfg_dir = os.path.join(data_dir.get_shared_dir(), "cfg", "guest-os")
+    guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, "guest-os.cfg")
+    guest_os_cfg_file = open(guest_os_cfg_path, "w")
     get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file, "Guest")
-    LOG.debug("Config file %s auto generated from guest OS samples",
-              guest_os_cfg_path)
+    LOG.debug("Config file %s auto generated from guest OS samples", guest_os_cfg_path)
 
 
 def host_os_get_distro_name(options, detected):
@@ -333,12 +338,12 @@ def host_os_get_distro_name(options, detected):
     :param detected: result of :class:`avocado.utils.distro.detect`
     :type detected: :class:`avocado.utils.distro.LinuxDistro`
     """
-    if get_opt(options, 'vt_host_distro_name'):
-        return get_opt(options, 'vt_host_distro_name')
-    if detected.name == 'rhel':
-        return 'RHEL'
-    elif detected.name == 'fedora':
-        return 'Fedora'
+    if get_opt(options, "vt_host_distro_name"):
+        return get_opt(options, "vt_host_distro_name")
+    if detected.name == "rhel":
+        return "RHEL"
+    elif detected.name == "fedora":
+        return "Fedora"
     return "Host_%s" % detected.name
 
 
@@ -348,27 +353,38 @@ def create_host_os_cfg(options):
             return forced
         else:
             return detected
-    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
-                                                     'host.cfg')
-    with open(host_os_cfg_path, 'w') as cfg:
+
+    host_os_cfg_path = data_dir.get_backend_cfg_path(
+        get_opt(options, "vt.type"), "host.cfg"
+    )
+    with open(host_os_cfg_path, "w") as cfg:
         detected = distro.detect()
         name = host_os_get_distro_name(options, detected)
-        version = _forced_or_detected(get_opt(options, 'vt_host_distro_version'),
-                                      "m%s" % detected.version)
-        release = _forced_or_detected(get_opt(options, 'vt_host_distro_release'),
-                                      "u%s" % detected.release)
-        arch = _forced_or_detected(get_opt(options, 'vt_host_distro_arch'),
-                                   "Host_arch_%s" % detected.arch)
-        vendor = cpu.get_vendor() if hasattr(cpu, 'get_vendor') else cpu.get_cpu_vendor_name()
+        version = _forced_or_detected(
+            get_opt(options, "vt_host_distro_version"), "m%s" % detected.version
+        )
+        release = _forced_or_detected(
+            get_opt(options, "vt_host_distro_release"), "u%s" % detected.release
+        )
+        arch = _forced_or_detected(
+            get_opt(options, "vt_host_distro_arch"), "Host_arch_%s" % detected.arch
+        )
+        vendor = (
+            cpu.get_vendor()
+            if hasattr(cpu, "get_vendor")
+            else cpu.get_cpu_vendor_name()
+        )
         family = None
-        if hasattr(cpu, 'get_family'):
+        if hasattr(cpu, "get_family"):
             try:
                 family = cpu.get_family()
             except Exception:
                 pass
-        cpu_version = cpu.get_version() if hasattr(cpu, 'get_version') else None
+        cpu_version = cpu.get_version() if hasattr(cpu, "get_version") else None
         # Replace special chars with _ to avoid bootstrap failure
-        cpu_version = re.sub(r'[^\w-]', '_', cpu_version) if cpu_version else cpu_version
+        cpu_version = (
+            re.sub(r"[^\w-]", "_", cpu_version) if cpu_version else cpu_version
+        )
 
         cfg.write("variants:\n")
         cfg.write("    - @Host:\n")
@@ -396,10 +412,12 @@ def create_host_os_cfg(options):
                 cfg.write("                        variants:\n")
                 cfg.write("                            - @%s:\n" % cpu_version)
 
-    count = [get_opt(options, 'vt_host_distro_name'),
-             get_opt(options, 'vt_host_distro_version'),
-             get_opt(options, 'vt_host_distro_release'),
-             get_opt(options, 'vt_host_distro_arch')].count(None)
+    count = [
+        get_opt(options, "vt_host_distro_name"),
+        get_opt(options, "vt_host_distro_version"),
+        get_opt(options, "vt_host_distro_release"),
+        get_opt(options, "vt_host_distro_arch"),
+    ].count(None)
     if count == 4:
         source = "distro detection"
     elif count == 0:
@@ -418,70 +436,60 @@ def create_subtests_cfg(t_type):
 
     provider_info_specific = []
     for specific_provider in provider_names_specific:
-        provider_info_specific.append(
-            asset.get_test_provider_info(specific_provider))
+        provider_info_specific.append(asset.get_test_provider_info(specific_provider))
 
     for subdir in specific_subdirs:
-        specific_test_list += data_dir.SubdirGlobList(subdir,
-                                                      '*.py',
-                                                      test_filter)
-        specific_file_list += data_dir.SubdirGlobList(subdir,
-                                                      '*.cfg',
-                                                      config_filter)
+        specific_test_list += data_dir.SubdirGlobList(subdir, "*.py", test_filter)
+        specific_file_list += data_dir.SubdirGlobList(subdir, "*.cfg", config_filter)
 
     shared_test_list = []
     shared_file_list = []
-    shared_subdirs = asset.get_test_provider_subdirs('generic')
-    shared_subdirs += asset.get_test_provider_subdirs('multi_host_migration')
-    provider_names_shared = asset.get_test_provider_names('generic')
-    provider_names_shared += asset.get_test_provider_names('multi_host_migration')
+    shared_subdirs = asset.get_test_provider_subdirs("generic")
+    shared_subdirs += asset.get_test_provider_subdirs("multi_host_migration")
+    provider_names_shared = asset.get_test_provider_names("generic")
+    provider_names_shared += asset.get_test_provider_names("multi_host_migration")
 
     provider_info_shared = []
     for shared_provider in provider_names_shared:
-        provider_info_shared.append(
-            asset.get_test_provider_info(shared_provider))
+        provider_info_shared.append(asset.get_test_provider_info(shared_provider))
 
-    if not t_type == 'lvsb':
+    if not t_type == "lvsb":
         for subdir in shared_subdirs:
-            shared_test_list += data_dir.SubdirGlobList(subdir,
-                                                        '*.py',
-                                                        test_filter)
-            shared_file_list += data_dir.SubdirGlobList(subdir,
-                                                        '*.cfg',
-                                                        config_filter)
+            shared_test_list += data_dir.SubdirGlobList(subdir, "*.py", test_filter)
+            shared_file_list += data_dir.SubdirGlobList(subdir, "*.cfg", config_filter)
 
     all_specific_test_list = []
     for test in specific_test_list:
         for p in provider_info_specific:
-            provider_base_path = p['backends'][t_type]['path']
+            provider_base_path = p["backends"][t_type]["path"]
             if provider_base_path in test:
-                provider_name = p['name']
+                provider_name = p["name"]
                 break
 
         basename = os.path.basename(test)
         if basename != "__init__.py":
-            all_specific_test_list.append("%s.%s" %
-                                          (provider_name,
-                                           basename.split(".")[0]))
+            all_specific_test_list.append(
+                "%s.%s" % (provider_name, basename.split(".")[0])
+            )
     all_shared_test_list = []
     for test in shared_test_list:
         for p in provider_info_shared:
-            if 'generic' in p['backends']:
-                provider_base_path = p['backends']['generic']['path']
+            if "generic" in p["backends"]:
+                provider_base_path = p["backends"]["generic"]["path"]
                 if provider_base_path in test:
-                    provider_name = p['name']
+                    provider_name = p["name"]
                     break
-            if 'multi_host_migration' in p['backends']:
-                provider_base_path = p['backends']['multi_host_migration']['path']
+            if "multi_host_migration" in p["backends"]:
+                provider_base_path = p["backends"]["multi_host_migration"]["path"]
                 if provider_base_path in test:
-                    provider_name = p['name']
+                    provider_name = p["name"]
                     break
 
         basename = os.path.basename(test)
         if basename != "__init__.py":
-            all_shared_test_list.append("%s.%s" %
-                                        (provider_name,
-                                         basename.split(".")[0]))
+            all_shared_test_list.append(
+                "%s.%s" % (provider_name, basename.split(".")[0])
+            )
 
     all_specific_test_list.sort()
     all_shared_test_list.sort()
@@ -494,27 +502,26 @@ def create_subtests_cfg(t_type):
     for shared_file in shared_file_list:
         provider_name = None
         for p in provider_info_shared:
-            provider_base_path = p['backends']['generic']['path']
+            provider_base_path = p["backends"]["generic"]["path"]
             if provider_base_path in shared_file:
-                provider_name = p['name']
+                provider_name = p["name"]
                 break
-            provider_base_path = p['backends']['multi_host_migration']['path']
+            provider_base_path = p["backends"]["multi_host_migration"]["path"]
             if provider_base_path in test:
-                provider_name = p['name']
+                provider_name = p["name"]
                 break
 
-        shared_file_obj = open(shared_file, 'r')
+        shared_file_obj = open(shared_file, "r")
         for line in shared_file_obj.readlines():
             line = line.strip()
             if re.match("type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())
-                values = td['type'].split(" ")
+                values = td["type"].split(" ")
                 for value in values:
                     if t_type not in non_dropin_tests:
-                        non_dropin_tests.append("%s.%s" %
-                                                (provider_name, value))
+                        non_dropin_tests.append("%s.%s" % (provider_name, value))
 
         shared_file_name = os.path.basename(shared_file)
         shared_file_name = shared_file_name.split(".")[0]
@@ -533,23 +540,22 @@ def create_subtests_cfg(t_type):
     for shared_file in specific_file_list:
         provider_name = None
         for p in provider_info_specific:
-            provider_base_path = p['backends'][t_type]['path']
+            provider_base_path = p["backends"][t_type]["path"]
             if provider_base_path in shared_file:
-                provider_name = p['name']
+                provider_name = p["name"]
                 break
 
-        shared_file_obj = open(shared_file, 'r')
+        shared_file_obj = open(shared_file, "r")
         for line in shared_file_obj.readlines():
             line = line.strip()
             if re.match("type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())
-                values = td['type'].split(" ")
+                values = td["type"].split(" ")
                 for value in values:
                     if value not in non_dropin_tests:
-                        non_dropin_tests.append("%s.%s" %
-                                                (provider_name, value))
+                        non_dropin_tests.append("%s.%s" % (provider_name, value))
 
         shared_file_name = os.path.basename(shared_file)
         shared_file_name = shared_file_name.split(".")[0]
@@ -564,11 +570,9 @@ def create_subtests_cfg(t_type):
                 tmp.append([provider_name, shared_file])
     specific_file_list = tmp
 
-    subtests_cfg = os.path.join(data_dir.get_backend_dir(t_type), 'cfg',
-                                'subtests.cfg')
-    subtests_file = open(subtests_cfg, 'w')
-    subtests_file.write(
-        "# Do not edit, auto generated file from subtests config\n")
+    subtests_cfg = os.path.join(data_dir.get_backend_dir(t_type), "cfg", "subtests.cfg")
+    subtests_file = open(subtests_cfg, "w")
+    subtests_file.write("# Do not edit, auto generated file from subtests config\n")
 
     subtests_file.write("variants subtest:\n")
     write_subtests_files(first_subtest_file, subtests_file)
@@ -577,15 +581,16 @@ def create_subtests_cfg(t_type):
     write_subtests_files(last_subtest_file, subtests_file)
 
     subtests_file.close()
-    LOG.debug("Config file %s auto generated from subtest samples",
-              subtests_cfg)
+    LOG.debug("Config file %s auto generated from subtest samples", subtests_cfg)
 
 
-def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
-                        force_update=False):
+def create_config_files(
+    test_dir, shared_dir, interactive, t_type, step=None, force_update=False
+):
     def is_file_tracked(fl):
-        tracked_result = process.run("git ls-files %s --error-unmatch" % fl,
-                                     ignore_status=True, verbose=False)
+        tracked_result = process.run(
+            "git ls-files %s --error-unmatch" % fl, ignore_status=True, verbose=False
+        )
         return tracked_result.exit_status == 0
 
     if step is None:
@@ -593,24 +598,22 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
     LOG.info("")
     step += 1
     LOG.info("%d - Generating config set", step)
-    config_file_list = data_dir.SubdirGlobList(os.path.join(test_dir, "cfg"),
-                                               "*.cfg",
-                                               get_config_filter())
+    config_file_list = data_dir.SubdirGlobList(
+        os.path.join(test_dir, "cfg"), "*.cfg", get_config_filter()
+    )
     config_file_list = [cf for cf in config_file_list if is_file_tracked(cf)]
-    config_file_list_shared = glob.glob(os.path.join(shared_dir, "cfg",
-                                                     "*.cfg"))
+    config_file_list_shared = glob.glob(os.path.join(shared_dir, "cfg", "*.cfg"))
 
     provider_info_specific = []
     provider_names_specific = asset.get_test_provider_names(t_type)
     for specific_provider in provider_names_specific:
-        provider_info_specific.append(
-            asset.get_test_provider_info(specific_provider))
+        provider_info_specific.append(asset.get_test_provider_info(specific_provider))
 
     specific_subdirs = asset.get_test_provider_subdirs(t_type)
     for subdir in specific_subdirs:
         for p in provider_info_specific:
-            if 'cartesian_configs' in p['backends'][t_type]:
-                for c in p['backends'][t_type]['cartesian_configs']:
+            if "cartesian_configs" in p["backends"][t_type]:
+                for c in p["backends"][t_type]["cartesian_configs"]:
                     cfg = os.path.join(subdir, "cfg", c)
                     config_file_list.append(cfg)
 
@@ -634,27 +637,27 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
             shutil.copyfile(src_file, dst_file)
         else:
             diff_cmd = "diff -Naur %s %s" % (dst_file, src_file)
-            diff_result = process.run(
-                diff_cmd, ignore_status=True, verbose=False)
+            diff_result = process.run(diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
-                LOG.info("%s result:\n %s",
-                         diff_result.command,
-                         diff_result.stdout_text)
-                answer = genio.ask("Config file  %s differs from %s."
-                                   "Overwrite?" % (dst_file, src_file),
-                                   auto=force_update or not interactive)
+                LOG.info(
+                    "%s result:\n %s", diff_result.command, diff_result.stdout_text
+                )
+                answer = genio.ask(
+                    "Config file  %s differs from %s."
+                    "Overwrite?" % (dst_file, src_file),
+                    auto=force_update or not interactive,
+                )
 
                 if answer == "y":
-                    LOG.debug("Restoring config file %s from sample",
-                              dst_file)
+                    LOG.debug("Restoring config file %s from sample", dst_file)
                     shutil.copyfile(src_file, dst_file)
                 else:
                     LOG.debug("Preserving existing %s file", dst_file)
             else:
                 if force_update:
-                    update_msg = 'Config file %s exists, equal to sample'
+                    update_msg = "Config file %s exists, equal to sample"
                 else:
-                    update_msg = 'Config file %s exists, not touching'
+                    update_msg = "Config file %s exists, not touching"
                 LOG.debug(update_msg, dst_file)
     return step
 
@@ -693,10 +696,10 @@ def haz_defcon(datadir, imagesdir, isosdir, tmpdir):
     tmp_type = utils_selinux.get_type_from_context(tmp_type)
 
     # hard-coded values b/c only four of them and wildly-used
-    if data_type == 'virt_var_lib_t':
-        if images_type == 'virt_image_t':
-            if isos_type == 'virt_content_t':
-                if tmp_type == 'user_tmp_t':
+    if data_type == "virt_var_lib_t":
+        if images_type == "virt_image_t":
+            if isos_type == "virt_content_t":
+                if tmp_type == "user_tmp_t":
                     return True  # No changes needed
     return False
 
@@ -736,49 +739,48 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
     could_be_slow = False
     msg = "Defining default contexts, this could take a few seconds..."
     # Changing default contexts is *slow*, avoid it if not necessary
-    if existing_data is None or existing_data != 'virt_var_lib_t':
+    if existing_data is None or existing_data != "virt_var_lib_t":
         # semanage gives errors if don't treat /usr & /usr/local the same
         data_regex = utils_selinux.transmogrify_usr_local(datadir)
         LOG.info(msg)
         could_be_slow = True
         # This applies only to datadir symlink, not sub-directories!
-        utils_selinux.set_defcon('virt_var_lib_t', data_regex)
+        utils_selinux.set_defcon("virt_var_lib_t", data_regex)
         made_changes = True
 
-    if existing_images is None or existing_images != 'virt_image_t':
+    if existing_images is None or existing_images != "virt_image_t":
         # Applies to imagesdir and everything below
         images_regex = utils_selinux.transmogrify_usr_local(imagesdir)
         images_regex = utils_selinux.transmogrify_sub_dirs(images_regex)
         if not could_be_slow:
             LOG.info(msg)
             could_be_slow = True
-        utils_selinux.set_defcon('virt_image_t', images_regex)
+        utils_selinux.set_defcon("virt_image_t", images_regex)
         made_changes = True
 
-    if existing_isos is None or existing_isos != 'virt_content_t':
+    if existing_isos is None or existing_isos != "virt_content_t":
         # Applies to isosdir and everything below
         isos_regex = utils_selinux.transmogrify_usr_local(isosdir)
         isos_regex = utils_selinux.transmogrify_sub_dirs(isos_regex)
         if not could_be_slow:
             LOG.info(msg)
             could_be_slow = True
-        utils_selinux.set_defcon('virt_content_t', isos_regex)
+        utils_selinux.set_defcon("virt_content_t", isos_regex)
         made_changes = True
 
-    if existing_tmp is None or existing_tmp != 'user_tmp_t':
+    if existing_tmp is None or existing_tmp != "user_tmp_t":
         tmp_regex = utils_selinux.transmogrify_usr_local(tmpdir)
         tmp_regex = utils_selinux.transmogrify_sub_dirs(tmp_regex)
         if not could_be_slow:
             LOG.info(msg)
             could_be_slow = True
-        utils_selinux.set_defcon('user_tmp_t', tmp_regex)
+        utils_selinux.set_defcon("user_tmp_t", tmp_regex)
         made_changes = True
 
     return made_changes
 
 
-def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
-                   interactive, selinux=False):
+def verify_selinux(datadir, imagesdir, isosdir, tmpdir, interactive, selinux=False):
     """
     Verify/Set/Warn about SELinux and default file contexts for testing.
 
@@ -796,15 +798,17 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
     needs_relabel = None
     try:
         # Raise SeCmdError if selinux not installed
-        if utils_selinux.get_status() == 'enforcing':
+        if utils_selinux.get_status() == "enforcing":
             # Check if default contexts are set
             if not haz_defcon(datadir, imagesdir, isosdir, tmpdir):
                 if selinux:
                     answer = "y"
                 else:
-                    answer = genio.ask("Setup all undefined default SE"
-                                       "Linux contexts for shared/data/?",
-                                       auto=not interactive)
+                    answer = genio.ask(
+                        "Setup all undefined default SE"
+                        "Linux contexts for shared/data/?",
+                        auto=not interactive,
+                    )
             else:
                 answer = "n"
             if answer.lower() == "y":
@@ -822,24 +826,37 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
                 needs_relabel = True
         # Disabled or Permissive mode is same result as not installed
         else:
-            LOG.info("SELinux in permissive or disabled, testing"
-                     "in enforcing mode is highly encourraged.")
+            LOG.info(
+                "SELinux in permissive or disabled, testing"
+                "in enforcing mode is highly encourraged."
+            )
     except utils_selinux.SemanageError:
         LOG.info("Could not set default SELinux contexts. Please")
         LOG.info("consider installing the semanage program then ")
         LOG.info("verifying and/or running running:")
         # Paths must be transmogrified (changed) into regular expressions
-        LOG.info("semanage fcontext --add -t virt_var_lib_t '%s'",
-                 utils_selinux.transmogrify_usr_local(datadir))
-        LOG.info("semanage fcontext --add -t virt_image_t '%s'",
-                 utils_selinux.transmogrify_usr_local(
-                     utils_selinux.transmogrify_sub_dirs(imagesdir)))
-        LOG.info("semanage fcontext --add -t virt_content_t '%s'",
-                 utils_selinux.transmogrify_usr_local(
-                     utils_selinux.transmogrify_sub_dirs(isosdir)))
-        LOG.info("semanage fcontext --add -t user_tmp_t '%s'",
-                 utils_selinux.transmogrify_usr_local(
-                     utils_selinux.transmogrify_sub_dirs(tmpdir)))
+        LOG.info(
+            "semanage fcontext --add -t virt_var_lib_t '%s'",
+            utils_selinux.transmogrify_usr_local(datadir),
+        )
+        LOG.info(
+            "semanage fcontext --add -t virt_image_t '%s'",
+            utils_selinux.transmogrify_usr_local(
+                utils_selinux.transmogrify_sub_dirs(imagesdir)
+            ),
+        )
+        LOG.info(
+            "semanage fcontext --add -t virt_content_t '%s'",
+            utils_selinux.transmogrify_usr_local(
+                utils_selinux.transmogrify_sub_dirs(isosdir)
+            ),
+        )
+        LOG.info(
+            "semanage fcontext --add -t user_tmp_t '%s'",
+            utils_selinux.transmogrify_usr_local(
+                utils_selinux.transmogrify_sub_dirs(tmpdir)
+            ),
+        )
         needs_relabel = None  # Next run will catch if relabeling needed
     except utils_selinux.SelinuxError:  # Catchall SELinux related
         LOG.info("SELinux not available, or error in command/setup.")
@@ -849,15 +866,13 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
         if selinux:
             answer = "y"
         else:
-            answer = genio.ask("Relabel from default contexts?",
-                               auto=not interactive)
-        if answer.lower() == 'y':
+            answer = genio.ask("Relabel from default contexts?", auto=not interactive)
+        if answer.lower() == "y":
             changes = utils_selinux.apply_defcon(datadir, False)
             changes += utils_selinux.apply_defcon(imagesdir, True)
             changes += utils_selinux.apply_defcon(isosdir, True)
             changes += utils_selinux.apply_defcon(tmpdir, True)
-            LOG.info("Corrected contexts on %d files/dirs",
-                     len(changes))
+            LOG.info("Corrected contexts on %d files/dirs", len(changes))
 
 
 def bootstrap(options, interactive=False):
@@ -867,23 +882,22 @@ def bootstrap(options, interactive=False):
     :param options: Command line options.
     :param interactive: Whether to ask for confirmation.
     """
-    if get_opt(options, 'yes_to_all'):
+    if get_opt(options, "yes_to_all"):
         interactive = False
 
-    vt_type = get_opt(options, 'vt.type')
+    vt_type = get_opt(options, "vt.type")
     LOG.info("Running bootstrap for %s", vt_type)
     step = 0
 
     LOG.info("")
     step += 1
     LOG.info("%d - Checking the mandatory programs and headers", step)
-    guest_os = get_opt(options, 'vt.guest_os') or defaults.DEFAULT_GUEST_OS
+    guest_os = get_opt(options, "vt.guest_os") or defaults.DEFAULT_GUEST_OS
     try:
         verify_mandatory_programs(vt_type, guest_os)
     except Exception as details:
         LOG.debug(details)
-        LOG.debug('Install the missing programs and/or headers and '
-                  're-run boostrap')
+        LOG.debug("Install the missing programs and/or headers and " "re-run boostrap")
         sys.exit(1)
 
     LOG.info("")
@@ -903,15 +917,17 @@ def bootstrap(options, interactive=False):
         action = "Downloading"
     else:
         action = "Updating"
-    if not get_opt(options, 'vt_no_downloads'):
+    if not get_opt(options, "vt_no_downloads"):
         LOG.info("")
         step += 1
         LOG.info("%d - %s the test providers from remote repos", step, action)
-        asset.download_all_test_providers(get_opt(options, 'vt_update_providers'))
+        asset.download_all_test_providers(get_opt(options, "vt_update_providers"))
     else:
         if not_downloaded:
-            LOG.warn("The following test providers have not been downloaded: %s",
-                     ", ".join(not_downloaded))
+            LOG.warning(
+                "The following test providers have not been downloaded: %s",
+                ", ".join(not_downloaded),
+            )
 
     LOG.info("")
     step += 1
@@ -925,66 +941,84 @@ def bootstrap(options, interactive=False):
             LOG.debug("Creating %s", sub_dir_path)
             os.makedirs(sub_dir_path)
         else:
-            LOG.debug("Dir %s exists, not creating",
-                      sub_dir_path)
+            LOG.debug("Dir %s exists, not creating", sub_dir_path)
 
     base_backend_dir = data_dir.get_base_backend_dir()
     local_backend_dir = data_dir.get_local_backend_dir()
     LOG.info("")
     step += 1
-    LOG.info("%d - Syncing backend dirs %s -> %s", step, base_backend_dir,
-             local_backend_dir)
+    LOG.info(
+        "%d - Syncing backend dirs %s -> %s", step, base_backend_dir, local_backend_dir
+    )
     dir_util.copy_tree(base_backend_dir, local_backend_dir)
 
     sync_download_dir(interactive)
 
     test_dir = data_dir.get_backend_dir(vt_type)
-    if vt_type == 'libvirt':
-        step = create_config_files(test_dir, shared_dir, interactive,
-                                   vt_type, step,
-                                   force_update=get_opt(options, 'vt_update_config'))
+    if vt_type == "libvirt":
+        step = create_config_files(
+            test_dir,
+            shared_dir,
+            interactive,
+            vt_type,
+            step,
+            force_update=get_opt(options, "vt_update_config"),
+        )
         create_subtests_cfg(vt_type)
         create_guest_os_cfg(vt_type)
         # Don't bother checking if changes can't be made
         if os.getuid() == 0:
-            verify_selinux(datadir,
-                           os.path.join(datadir, 'images'),
-                           os.path.join(datadir, 'isos'),
-                           data_dir.get_tmp_dir(),
-                           interactive, get_opt(options, 'vt_selinux_setup'))
+            verify_selinux(
+                datadir,
+                os.path.join(datadir, "images"),
+                os.path.join(datadir, "isos"),
+                data_dir.get_tmp_dir(),
+                interactive,
+                get_opt(options, "vt_selinux_setup"),
+            )
 
     # lvsb test doesn't use any shared configs
-    elif vt_type == 'lvsb':
+    elif vt_type == "lvsb":
         create_subtests_cfg(vt_type)
         if os.getuid() == 0:
             # Don't bother checking if changes can't be made
-            verify_selinux(datadir,
-                           os.path.join(datadir, 'images'),
-                           os.path.join(datadir, 'isos'),
-                           data_dir.get_tmp_dir(),
-                           interactive, get_opt(options, 'vt_selinux_setup'))
+            verify_selinux(
+                datadir,
+                os.path.join(datadir, "images"),
+                os.path.join(datadir, "isos"),
+                data_dir.get_tmp_dir(),
+                interactive,
+                get_opt(options, "vt_selinux_setup"),
+            )
     else:  # Some other test
-        step = create_config_files(test_dir, shared_dir, interactive,
-                                   vt_type, step,
-                                   force_update=get_opt(options, 'vt_update_config'))
+        step = create_config_files(
+            test_dir,
+            shared_dir,
+            interactive,
+            vt_type,
+            step,
+            force_update=get_opt(options, "vt_update_config"),
+        )
         create_subtests_cfg(vt_type)
         create_guest_os_cfg(vt_type)
     create_host_os_cfg(options)
 
-    if not (get_opt(options, 'vt_no_downloads') or
-            get_opt(options, 'vt_skip_verify_download_assets')):
+    if not (
+        get_opt(options, "vt_no_downloads")
+        or get_opt(options, "vt_skip_verify_download_assets")
+    ):
         LOG.info("")
         step += 1
-        LOG.info("%s - Verifying (and possibly downloading) guest image",
-                 step)
+        LOG.info("%s - Verifying (and possibly downloading) guest image", step)
         try:
             for os_info in get_guest_os_info_list(vt_type, guest_os):
-                os_asset = os_info['asset']
+                os_asset = os_info["asset"]
                 try:
-                    asset.download_asset(os_asset, interactive=interactive,
-                                         restore_image=True)
+                    asset.download_asset(
+                        os_asset, interactive=interactive, restore_image=True
+                    )
                 except AssertionError:
-                    pass    # Not all files are managed via asset
+                    pass  # Not all files are managed via asset
 
         except ValueError as details:
             LOG.error(details)
@@ -999,12 +1033,12 @@ def bootstrap(options, interactive=False):
     if check_modules:
         LOG.info("")
         step += 1
-        LOG.info("%d - Checking for modules %s", step,
-                 ", ".join(check_modules))
+        LOG.info("%d - Checking for modules %s", step, ", ".join(check_modules))
         for module in check_modules:
             if not linux_modules.module_is_loaded(module):
-                LOG.warning("Module %s is not loaded. You might want to "
-                            "load it", module)
+                LOG.warning(
+                    "Module %s is not loaded. You might want to " "load it", module
+                )
             else:
                 LOG.debug("Module %s loaded", module)
 

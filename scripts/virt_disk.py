@@ -8,56 +8,79 @@ The main use case for this tool is debugging guest installations with an
 disks just like they're created by the virt unattended test installation.
 """
 
-import sys
 import optparse
 import os
+import sys
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 from virttest import utils_disk
 
 
 class OptionParser(optparse.OptionParser):
-
     """
     App option parser
     """
 
     def __init__(self):
-        optparse.OptionParser.__init__(self,
-                                       usage=('Usage: %prog [options] '
-                                              '<image_file_name> '
-                                              '[file 1][file 2]..[file N]'))
+        optparse.OptionParser.__init__(
+            self,
+            usage=(
+                "Usage: %prog [options] "
+                "<image_file_name> "
+                "[file 1][file 2]..[file N]"
+            ),
+        )
 
-        media = optparse.OptionGroup(self, 'MEDIA SELECTION')
-        media.set_description('Choose only one of the media formats supported')
-        media.add_option('-c', '--cdrom', dest='cdrom', default=False,
-                         action='store_true',
-                         help=('create a basic cdrom image'))
-        media.add_option('-f', '--floppy', dest='floppy', default=False,
-                         action='store_true',
-                         help=('create a basic floppy image'))
-        media.add_option('--floppy-size', dest='vfd_size',
-                         action='store_true', default="1440k",
-                         help=('Floppy size (1440k or 2880k). '
-                               'defaults to %default'))
+        media = optparse.OptionGroup(self, "MEDIA SELECTION")
+        media.set_description("Choose only one of the media formats supported")
+        media.add_option(
+            "-c",
+            "--cdrom",
+            dest="cdrom",
+            default=False,
+            action="store_true",
+            help=("create a basic cdrom image"),
+        )
+        media.add_option(
+            "-f",
+            "--floppy",
+            dest="floppy",
+            default=False,
+            action="store_true",
+            help=("create a basic floppy image"),
+        )
+        media.add_option(
+            "--floppy-size",
+            dest="vfd_size",
+            action="store_true",
+            default="1440k",
+            help=("Floppy size (1440k or 2880k). " "defaults to %default"),
+        )
         self.add_option_group(media)
 
-        path = optparse.OptionGroup(self, 'PATH SELECTION')
-        path.add_option('-q', '--qemu-img', dest='qemu_img',
-                        default='/usr/bin/qemu-img',
-                        help=('qemu-img binary path. defaults to '
-                              '%default'))
-        path.add_option('-t', '--temp', dest='temp', default='/tmp',
-                        help='Path to hold temporary files. defaults to %default')
+        path = optparse.OptionGroup(self, "PATH SELECTION")
+        path.add_option(
+            "-q",
+            "--qemu-img",
+            dest="qemu_img",
+            default="/usr/bin/qemu-img",
+            help=("qemu-img binary path. defaults to " "%default"),
+        )
+        path.add_option(
+            "-t",
+            "--temp",
+            dest="temp",
+            default="/tmp",
+            help="Path to hold temporary files. defaults to %default",
+        )
         self.add_option_group(path)
 
 
 class App:
-
     """
     Virt Disk Creation App
     """
@@ -73,7 +96,7 @@ class App:
         self.options, self.args = self.opt_parser.parse_args()
         if not (self.options.cdrom or self.options.floppy):
             self.usage()
-        if (self.options.cdrom and self.options.floppy):
+        if self.options.cdrom and self.options.floppy:
             self.usage()
 
         if not len(self.args) >= 1:
@@ -85,19 +108,20 @@ class App:
     def main(self):
         self.parse_cmdline()
         if self.options.floppy:
-            self.disk = utils_disk.FloppyDisk(self.image,
-                                              self.options.qemu_img,
-                                              self.options.temp,
-                                              self.options.vfd_size)
+            self.disk = utils_disk.FloppyDisk(
+                self.image,
+                self.options.qemu_img,
+                self.options.temp,
+                self.options.vfd_size,
+            )
         elif self.options.cdrom:
-            self.disk = utils_disk.CdromDisk(self.image,
-                                             self.options.temp)
+            self.disk = utils_disk.CdromDisk(self.image, self.options.temp)
 
         for f in self.files:
             self.disk.copy_to(f)
         self.disk.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = App()
     app.main()

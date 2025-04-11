@@ -16,22 +16,22 @@
 import platform
 import re
 
-from avocado.utils import process
-from avocado.utils import wait
+from avocado.utils import process, wait
+
 from virttest import utils_numeric
 from virttest.vt_utils import filesystem
 
 PARTITION_TYPE_PRIMARY = "primary"
 
 
-def get_disks(partition=False):
+def get_disks_info(has_partition=False):
     """
     List all disks or disks with no partition.
 
-    :param partition: if true, list all disks; otherwise,
-                      list only disks with no partition
-    :type partition: boolean
-    :return: the disks info.( e.g. {kname: [kname, size, type, serial, wwn]} )
+    :param has_partition: If true, list disks info;
+                          otherwise, list disks info which do NOT have partition.
+    :type has_partition: Boolean
+    :return: The disks info.( e.g. {kname: [kname, size, type, serial, wwn]} )
     :rtype: dict
     """
     disks_dict = {}
@@ -39,33 +39,63 @@ def get_disks(partition=False):
     driver = "pci"
     if platform.machine() == "s390x":
         driver = "css0"
-    block_info = process.run('ls /sys/dev/block -l | grep "/%s"' % driver,
-                             verbose=False).stdout_text
-    for matched in re.finditer(r'/block/(\S+)\s^', block_info, re.M):
-        knames = matched.group(1).split('/')
+    block_info = process.run(
+        'ls /sys/dev/block -l | grep "/%s"' % driver,
+        verbose=False,
+        shell=True,
+    ).stdout_text
+    for matched in re.finditer(r"/block/(\S+)\s^", block_info, re.M):
+        knames = matched.group(1).split("/")
         if len(knames) == 2:
             parent_disks.add(knames[0])
-        if partition is False and knames[0] in parent_disks:
+        if has_partition is False and knames[0] in parent_disks:
             if knames[0] in disks_dict:
                 del disks_dict[knames[0]]
             continue
 
         disks_dict[knames[-1]] = [knames[-1]]
-        o = process.run('lsblk -o KNAME,SIZE | grep "%s "' % knames[-1],
-                        verbose=False).stdout_text
+        o = process.run(
+            'lsblk -o KNAME,SIZE | grep "%s "' % knames[-1],
+            verbose=False,
+            shell=True,
+        ).stdout_text
         disks_dict[knames[-1]].append(o.split()[-1])
-        o = process.run('udevadm info -q all -n %s' % knames[-1],
-                        verbose=False).stdout_text
-        for parttern in (r'DEVTYPE=(\w+)\s^', r'ID_SERIAL=(\S+)\s^',
-                         r'ID_WWN=(\S+)\s^'):
+        o = process.run(
+            "udevadm info -q all -n %s" % knames[-1],
+            verbose=False,
+            shell=True,
+        ).stdout_text
+        for parttern in (
+            r"DEVTYPE=(\w+)\s^",
+            r"ID_SERIAL=(\S+)\s^",
+            r"ID_WWN=(\S+)\s^",
+        ):
             searched = re.search(parttern, o, re.M | re.I)
-            disks_dict[knames[-1]].append(
-                searched.group(1) if searched else None)
+            disks_dict[knames[-1]].append(searched.group(1) if searched else None)
     return disks_dict
 
 
-def create_partition(did, size, start, part_type=PARTITION_TYPE_PRIMARY,
-                     timeout=360):
+def get_disks_path(partition_path=False):
+    """
+    List disk path in Linux host.
+
+    :param partition_path: If true, list disk name including partition; otherwise,
+                           list disk name excluding partition.
+    :type partition_path: Boolean
+
+    :return: The disks path in set(). ( e.g. {'/dev/sda2', '/dev/sda1', '/dev/sda'} or {'/dev/sda'} )
+    :rtype: Set
+    """
+    cmd = "ls /dev/[vhs]d*"
+    if not partition_path:
+        cmd = "%s | grep -v [0-9]$" % cmd
+    status, output = process.getstatusoutput(cmd, shell=True)
+    if status != 0:
+        raise RuntimeError("Get disks failed with output %s" % output)
+    return set(output.split())
+
+
+def create_partition(did, size, start, part_type=PARTITION_TYPE_PRIMARY, timeout=360):
     """
     Create single partition on disk.
 
@@ -89,9 +119,11 @@ def create_partition(did, size, start, part_type=PARTITION_TYPE_PRIMARY,
         driver = "pci"
         if platform.machine() == "s390x":
             driver = "css0"
-        o = process.run('ls /sys/dev/block -l | grep "/%s" | grep "%s" '
-                        '--color=never' % (driver, did),
-                        verbose=False).stdout_text
+        o = process.run(
+            'ls /sys/dev/block -l | grep "/%s" | grep "%s" '
+            "--color=never" % (driver, did),
+            verbose=False,
+        ).stdout_text
         return set(o.splitlines())
 
     size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
@@ -103,11 +135,12 @@ def create_partition(did, size, start, part_type=PARTITION_TYPE_PRIMARY,
     mkpart_cmd %= ("/dev/%s" % did, part_type, start, end)
     process.system(mkpart_cmd, verbose=False)
     process.system(partprobe_cmd, timeout=timeout, verbose=False)
-    partition_created = wait.wait_for(lambda: _list_disk_partitions() - orig_disks,
-                                      step=0.5, timeout=30)
+    partition_created = wait.wait_for(
+        lambda: _list_disk_partitions() - orig_disks, step=0.5, timeout=30
+    )
     if not partition_created:
-        raise RuntimeError('Failed to create partition.')
-    kname = partition_created.pop().split('/')[-1]
+        raise RuntimeError("Failed to create partition.")
+    kname = partition_created.pop().split("/")[-1]
     return kname
 
 
@@ -119,13 +152,16 @@ def get_partition_attrs(partition):
     :return: dict like {'start': '512B', 'end': '16106127359B',
                        'size': '16106126848B', 'type': 'primary'}
     """
-    pattern = r'(/dev/.*)p(\d+)' if "nvme" in partition else r'(/dev/.*)(\d+)'
+    pattern = r"(/dev/.*)p(\d+)" if "nvme" in partition else r"(/dev/.*)(\d+)"
     dev_name, part_num = re.match(pattern, partition).groups()
-    parted_cmd = 'parted -s %s unit B print' % dev_name
-    pattern = re.compile(r'%s\s+(?P<start>\d+\w+)\s+(?P<end>\d+\w+)\s+'
-                         r'(?P<size>\d+\w+)\s+(?P<type>\w+)' % part_num)
-    return pattern.search(process.run(parted_cmd, verbose=False).stdout_text,
-                          re.M).groupdict()
+    parted_cmd = "parted -s %s unit B print" % dev_name
+    pattern = re.compile(
+        r"%s\s+(?P<start>\d+\w+)\s+(?P<end>\d+\w+)\s+"
+        r"(?P<size>\d+\w+)\s+(?P<type>\w+)" % part_num
+    )
+    return pattern.search(
+        process.run(parted_cmd, verbose=False).stdout_text, re.M
+    ).groupdict()
 
 
 def resize_partition(partition, size):
@@ -141,19 +177,21 @@ def resize_partition(partition, size):
         filesystem.umount(partition, mountpoint, fstype=fstype)
 
     # FIXME: if nvme device need support this function.
-    dev_name, part_num = re.match(r'(/dev/.*)(\d+)', partition).groups()
-    parted_cmd = 'parted -s %s print' % dev_name
+    dev_name, part_num = re.match(r"(/dev/.*)(\d+)", partition).groups()
+    parted_cmd = "parted -s %s print" % dev_name
     part_attrs = get_partition_attrs(partition)
-    start_size = int(utils_numeric.normalize_data_size(part_attrs['start'],
-                                                       'B').split('.')[0])
-    end_size = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0])
-                - start_size)
-    process.system(' '.join((parted_cmd, 'rm %s' % part_num)), verbose=False)
-    resizepart_cmd = ' '.join((parted_cmd, 'unit B mkpart {0} {1} {2}'))
-    process.system(resizepart_cmd.format(part_attrs['type'], start_size,
-                                         end_size),
-                   verbose=False)
-    process.system('partprobe %s' % dev_name, verbose=False)
+    start_size = int(
+        utils_numeric.normalize_data_size(part_attrs["start"], "B").split(".")[0]
+    )
+    end_size = (
+        int(utils_numeric.normalize_data_size(size, "B").split(".")[0]) - start_size
+    )
+    process.system(" ".join((parted_cmd, "rm %s" % part_num)), verbose=False)
+    resizepart_cmd = " ".join((parted_cmd, "unit B mkpart {0} {1} {2}"))
+    process.system(
+        resizepart_cmd.format(part_attrs["type"], start_size, end_size), verbose=False
+    )
+    process.system("partprobe %s" % dev_name, verbose=False)
 
 
 def get_disk_size(did):
@@ -163,14 +201,18 @@ def get_disk_size(did):
     :param did: disk kname. e.g. 'sdb', 'sdc'
     :return: disk size.
     """
-    disks_info = get_disks(partition=True)
-    disk_size = disks_info['%s' % did][1]
-    return int(utils_numeric.normalize_data_size(disk_size, 'B').split('.')[0])
+    disks_info = get_disks_info(True)
+    disk_size = disks_info["%s" % did][1]
+    return int(utils_numeric.normalize_data_size(disk_size, "B").split(".")[0])
 
 
-def get_partions_list():
+def get_partitions_list():
     """
-    Get all partition lists.
+    Get all partition list.
+
+    :return: All partition list.
+             e.g. ['sda', 'sda1', 'sda2', 'dm-0', 'dm-1', 'dm-2']
+    :rtype: List
     """
     parts_cmd = "cat /proc/partitions"
     parts_out = process.run(parts_cmd, verbose=False).stdout_text
@@ -189,15 +231,46 @@ def get_disk_by_serial(serial_str):
     """
     Get disk by serial in host.
 
-    :param serial_str: ID_SERIAL of disk, string value
-    :return: Disk name if find one with serial_str, else None
+    :param serial_str: ID_SERIAL of disk, string value.
+    :type serial_str: String
+    :return: Disk name if find one with serial_str, else None.
+    :rtype: String
     """
-    parts_list = get_partions_list()
+    parts_list = get_partitions_list()
     for disk in parts_list:
-        cmd = ("udevadm info --query=all --name=/dev/{} | grep ID_SERIAL={}"
-               .format(disk, serial_str))
-        status = process.run(cmd, shell=True, ignore_status=True,
-                             verbose=False).exit_status
+        cmd = "udevadm info --query=all --name=/dev/{} | grep ID_SERIAL={}".format(
+            disk, serial_str
+        )
+        status = process.run(
+            cmd, shell=True, ignore_status=True, verbose=False
+        ).exit_status
         if not status:
             return disk
     return None
+
+
+def get_drive_path(did, timeout=120):
+    """
+    Get drive path( devname ) on host by drive serial or wwn
+
+    :param did: A drive serial( ID_SERIAL or ID_SERIAL_SHORT )
+                or a wwn( ID_WWN ).
+    :type did: String
+    :param timeout: Time out.
+    :type timeout: Integer
+
+    :return: A drive path( devname )
+    :rtype: String
+
+    :raises: An RuntimeError will be raised when cmd exit code is NOT 0.
+    """
+    cmd = "for dev_path in `ls -d /sys/block/*`; do "
+    cmd += "echo `udevadm info -q property -p $dev_path`; done"
+    status, output = process.getstatusoutput(cmd, timeout=timeout)
+    if status != 0:
+        raise RuntimeError("Command running was failed. Output: %s" % output)
+    p = r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_WWN)=%s" % did
+    dev = re.search(p, output, re.M)
+    if dev:
+        return dev.groups()[0]
+    return ""

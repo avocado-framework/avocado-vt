@@ -3,31 +3,25 @@ Virtualization test - Virtual disk related utility functions
 
 :copyright: Red Hat Inc.
 """
-import os
+
+import configparser
 import glob
-import shutil
-import stat
+import logging
+import os
 import platform
 import random
+import re
+import shutil
+import stat
 import string
 import tempfile
-import logging
-import re
-try:
-    import configparser as ConfigParser
-except ImportError:
-    import ConfigParser
 from functools import cmp_to_key
 
 from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import wait
+from avocado.utils import process, wait
 from avocado.utils.service import SpecificServiceManager
 
-from virttest import error_context
-from virttest import utils_numeric
-from virttest import utils_misc
-from virttest import remote
+from virttest import error_context, remote, utils_misc, utils_numeric
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
 PARTITION_TABLE_TYPE_GPT = "gpt"
@@ -40,10 +34,10 @@ SIZE_AVAILABLE = "available size"
 # Whether to print all shell commands called
 DEBUG = False
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
-def copytree(src, dst, overwrite=True, ignore=''):
+def copytree(src, dst, overwrite=True, ignore=""):
     """
     Copy dirs from source to target.
 
@@ -70,8 +64,7 @@ def copytree(src, dst, overwrite=True, ignore=''):
             shutil.copy(src_file, dst_dir)
 
 
-def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
-             session=None):
+def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=None):
     """
     Check is src or dst mounted.
 
@@ -84,8 +77,8 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     :return: True if mounted, else return False
     """
     mount_str = "%s %s %s" % (src, dst, fstype)
-    mount_str = mount_str.replace('None', '').strip()
-    mount_list_cmd = 'cat /proc/mounts'
+    mount_str = mount_str.replace("None", "").strip()
+    mount_list_cmd = "cat /proc/mounts"
 
     if session:
         mount_result = session.cmd_output_safe(mount_list_cmd)
@@ -102,8 +95,9 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
                 for op in options:
                     if op not in options_result:
                         if verbose:
-                            LOG.info("%s is not mounted with given"
-                                     " option %s", src, op)
+                            LOG.info(
+                                "%s is not mounted with given" " option %s", src, op
+                            )
                         return False
             if verbose:
                 LOG.info("%s is mounted", src)
@@ -125,17 +119,17 @@ def mount(src, dst, fstype=None, options=None, verbose=False, session=None):
 
     :return: if mounted return True else return False
     """
-    options = (options and [options] or [''])[0]
+    options = (options and [options] or [""])[0]
     if is_mount(src, dst, fstype, options, verbose, session):
-        if 'remount' not in options:
-            options = 'remount,%s' % options
-    cmd = ['mount']
+        if "remount" not in options:
+            options = "remount,%s" % options
+    cmd = ["mount"]
     if fstype:
-        cmd.extend(['-t', fstype])
+        cmd.extend(["-t", fstype])
     if options:
-        cmd.extend(['-o', options])
+        cmd.extend(["-o", options])
     cmd.extend([src, dst])
-    cmd = ' '.join(cmd)
+    cmd = " ".join(cmd)
     if session:
         return session.cmd_status(cmd, safe=True) == 0
     return process.system(cmd, verbose=verbose) == 0
@@ -155,6 +149,7 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
     mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
     if mounted:
         from . import utils_package
+
         package = "psmisc"
         # check package is available, if not try installing it
         if not utils_package.package_install(package):
@@ -178,8 +173,7 @@ def cleanup(folder):
 
     :param folder: Directory to be cleaned up.
     """
-    error_context.context(
-        "cleaning up unattended install directory %s" % folder)
+    error_context.context("cleaning up unattended install directory %s" % folder)
     umount(None, folder)
     if os.path.isdir(folder):
         shutil.rmtree(folder)
@@ -215,8 +209,8 @@ def get_linux_disks(session, partition=False):
     if platform.machine() == "s390x":
         driver = "css0"
     block_info = session.cmd('ls /sys/dev/block -l | grep "/%s"' % driver)
-    for matched in re.finditer(r'/block/(\S+)\s^', block_info, re.M):
-        knames = matched.group(1).split('/')
+    for matched in re.finditer(r"/block/(\S+)\s^", block_info, re.M):
+        knames = matched.group(1).split("/")
         if len(knames) == 2:
             parent_disks.add(knames[0])
         if partition is False and knames[0] in parent_disks:
@@ -227,8 +221,12 @@ def get_linux_disks(session, partition=False):
         disks_dict[knames[-1]] = [knames[-1]]
         o = session.cmd('lsblk -o KNAME,SIZE | grep "%s "' % knames[-1])
         disks_dict[knames[-1]].append(o.split()[-1])
-        o = session.cmd('udevadm info -q all -n %s' % knames[-1])
-        for parttern in (r'DEVTYPE=(\w+)\s^', r'ID_SERIAL=(\S+)\s^', r'ID_WWN=(\S+)\s^'):
+        o = session.cmd("udevadm info -q all -n %s" % knames[-1])
+        for parttern in (
+            r"DEVTYPE=(\w+)\s^",
+            r"ID_SERIAL=(\S+)\s^",
+            r"ID_WWN=(\S+)\s^",
+        ):
             searched = re.search(parttern, o, re.M | re.I)
             disks_dict[knames[-1]].append(searched.group(1) if searched else None)
     return disks_dict
@@ -246,7 +244,7 @@ def get_windows_disks_index(session, image_size, timeout=60):
     :param timeout: timeout for getting disks index.
     :return: a list with all disks index except for system disk.
     """
-    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk = "disk_" + "".join(random.sample(string.ascii_letters + string.digits, 4))
     disk_indexs = []
     list_disk_cmd = "echo list disk > " + disk
     list_disk_cmd += " && echo exit >> " + disk
@@ -260,7 +258,7 @@ def get_windows_disks_index(session, image_size, timeout=60):
         disk_size = str(int(image_size[:-1]) * 1024) + " MB"
     else:
         disk_size = image_size[:-1] + " GB"
-    regex_str = 'Disk (\d+).*?%s.*?%s' % (disk_size, disk_size)
+    regex_str = "Disk (\d+).*?%s.*?%s" % (disk_size, disk_size)
     for disk in disks.splitlines():
         if disk.startswith("  Disk"):
             o = re.findall(regex_str, disk, re.I | re.M)
@@ -276,7 +274,7 @@ def _wrap_windows_cmd(cmd):
     :param cmd: cmd to be wrapped.
     :return: wrapped cmd
     """
-    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk = "disk_" + "".join(random.sample(string.ascii_letters + string.digits, 4))
     cmd_header = "echo list disk > " + disk
     cmd_header += " && echo select disk %s >> " + disk
     cmd_footer = " echo exit >> " + disk
@@ -304,26 +302,28 @@ def update_windows_disk_attributes(session, dids, timeout=120):
     :param timeout: time for cmd execution
     :return: True or False
     """
-    detail_cmd = ' echo detail disk'
+    detail_cmd = " echo detail disk"
     detail_cmd = _wrap_windows_cmd(detail_cmd)
-    set_rw_cmd = ' echo attributes disk clear readonly'
+    set_rw_cmd = " echo attributes disk clear readonly"
     set_rw_cmd = _wrap_windows_cmd(set_rw_cmd)
-    online_cmd = ' echo online disk'
+    online_cmd = " echo online disk"
     online_cmd = _wrap_windows_cmd(online_cmd)
     for did in dids:
         LOG.info("Detail for 'Disk%s'" % did)
         details = session.cmd_output(detail_cmd % did)
         if re.search("Read.*Yes", details, re.I | re.M):
             LOG.info("Clear readonly bit on 'Disk%s'" % did)
-            status, output = session.cmd_status_output(set_rw_cmd % did,
-                                                       timeout=timeout)
+            status, output = session.cmd_status_output(
+                set_rw_cmd % did, timeout=timeout
+            )
             if status != 0:
                 LOG.error("Can not clear readonly bit: %s" % output)
                 return False
         if re.search("Status.*Offline", details, re.I | re.M):
             LOG.info("Online 'Disk%s'" % did)
-            status, output = session.cmd_status_output(online_cmd % did,
-                                                       timeout=timeout)
+            status, output = session.cmd_status_output(
+                online_cmd % did, timeout=timeout
+            )
             if status != 0:
                 LOG.error("Can not online disk: %s" % output)
                 return False
@@ -352,7 +352,7 @@ def create_partition_table_windows(session, did, labeltype):
     :param labeltype: label type for the disk.
     """
     if labeltype == PARTITION_TABLE_TYPE_GPT:
-        mklabel_cmd = ' echo convert gpt'
+        mklabel_cmd = " echo convert gpt"
         mklabel_cmd = _wrap_windows_cmd(mklabel_cmd)
         session.cmd(mklabel_cmd % did)
 
@@ -372,8 +372,9 @@ def create_partition_table(session, did, labeltype, ostype):
         create_partition_table_linux(session, did, labeltype)
 
 
-def create_partition_linux(session, did, size, start,
-                           part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+def create_partition_linux(
+    session, did, size, start, part_type=PARTITION_TYPE_PRIMARY, timeout=360
+):
     """
     Create single partition on disk in linux guest.
 
@@ -385,12 +386,15 @@ def create_partition_linux(session, did, size, start,
     :param timeout: Timeout for cmd execution in seconds.
     :return: The kname of partition created.
     """
+
     def _list_disk_partitions():
         driver = "pci"
         if platform.machine() == "s390x":
             driver = "css0"
-        o = session.cmd('ls /sys/dev/block -l | grep "/%s" | grep "%s" '
-                        '--color=never' % (driver, did))
+        o = session.cmd(
+            'ls /sys/dev/block -l | grep "/%s" | grep "%s" '
+            "--color=never" % (driver, did)
+        )
         return set(o.splitlines())
 
     size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
@@ -402,16 +406,18 @@ def create_partition_linux(session, did, size, start,
     mkpart_cmd %= ("/dev/%s" % did, part_type, start, end)
     session.cmd(mkpart_cmd)
     session.cmd(partprobe_cmd, timeout=timeout)
-    partition_created = wait.wait_for(lambda: _list_disk_partitions() - orig_disks,
-                                      step=0.5, timeout=30)
+    partition_created = wait.wait_for(
+        lambda: _list_disk_partitions() - orig_disks, step=0.5, timeout=30
+    )
     if not partition_created:
-        raise exceptions.TestError('Failed to create partition.')
-    kname = partition_created.pop().split('/')[-1]
+        raise exceptions.TestError("Failed to create partition.")
+    kname = partition_created.pop().split("/")[-1]
     return kname
 
 
-def create_partition_windows(session, did, size, start,
-                             part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+def create_partition_windows(
+    session, did, size, start, part_type=PARTITION_TYPE_PRIMARY, timeout=360
+):
     """
     Create single partition on disk in windows guest.
 
@@ -429,11 +435,12 @@ def create_partition_windows(session, did, size, start,
     mkpart_cmd = " echo create partition %s size=%s; echo list partition"
     mkpart_cmd = _wrap_windows_cmd(mkpart_cmd)
     output = session.cmd(mkpart_cmd % (did, part_type, size), timeout=timeout)
-    return re.search(r'\*\s+Partition\s+(\d+)\s+', output, re.M).group(1)
+    return re.search(r"\*\s+Partition\s+(\d+)\s+", output, re.M).group(1)
 
 
-def create_partition(session, did, size, start, ostype,
-                     part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+def create_partition(
+    session, did, size, start, ostype, part_type=PARTITION_TYPE_PRIMARY, timeout=360
+):
     """
     Create single partition on disk in windows or linux guest.
 
@@ -464,7 +471,7 @@ def delete_partition_linux(session, partition_name, timeout=360):
     if platform.machine() == "s390x":
         driver = "css0"
     ls_block_cmd = 'ls /sys/dev/block -l | grep "/%s"' % driver
-    regex = r'/block/(\S+)/%s\s^' % partition_name
+    regex = r"/block/(\S+)/%s\s^" % partition_name
     kname = re.search(regex, session.cmd(ls_block_cmd), re.M).group(1)
     list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
     output = session.cmd_output(list_disk_cmd)
@@ -474,15 +481,20 @@ def delete_partition_linux(session, partition_name, timeout=360):
         partition = re.findall(partition_name, line, re.I | re.M)
         if partition:
             if "/" in line.split()[-1]:
-                if not umount("/dev/%s" % partition_name, line.split()[-1], session=session):
+                if not umount(
+                    "/dev/%s" % partition_name, line.split()[-1], session=session
+                ):
                     err_msg = "Failed to umount partition '%s'"
                     raise exceptions.TestError(err_msg % partition_name)
             break
     session.cmd(rm_cmd % (kname, partition[0]))
     session.cmd("partprobe /dev/%s" % kname, timeout=timeout)
-    if not wait.wait_for(lambda: not re.search(
-            regex, session.cmd(ls_block_cmd), re.M), step=0.5, timeout=30):
-        raise exceptions.TestError('Failed to delete partition.')
+    if not wait.wait_for(
+        lambda: not re.search(regex, session.cmd(ls_block_cmd), re.M),
+        step=0.5,
+        timeout=30,
+    ):
+        raise exceptions.TestError("Failed to delete partition.")
 
 
 def delete_partition_windows(session, partition_name, timeout=360):
@@ -493,7 +505,7 @@ def delete_partition_windows(session, partition_name, timeout=360):
     :param partition_name: partition name. e.g. D
     :param timeout: Timeout for cmd execution in seconds.
     """
-    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk = "disk_" + "".join(random.sample(string.ascii_letters + string.digits, 4))
     delete_cmd = "echo select volume %s > " + disk
     delete_cmd += " && echo delete volume >> " + disk
     delete_cmd += " && echo exit >> " + disk
@@ -535,7 +547,9 @@ def clean_partition_linux(session, did, timeout=360):
         partition = re.findall(regex_str, line, re.I | re.M)
         if partition:
             if "/" in line.split()[-1]:
-                if not umount("/dev/%s" % line.split()[0], line.split()[-1], session=session):
+                if not umount(
+                    "/dev/%s" % line.split()[0], line.split()[-1], session=session
+                ):
                     err_msg = "Failed to umount partition '%s'"
                     raise exceptions.TestError(err_msg % line.split()[0])
     list_partition_number = "parted -s /dev/%s print|awk '/^ / {print $1}'"
@@ -548,20 +562,22 @@ def clean_partition_linux(session, did, timeout=360):
         for number in partition_numbers:
             # Sometimes we may get wrong partition number, for example,
             # "[ 122.778138] vdc: vdc1". So we need to ignore it.
-            if number.startswith('['):
+            if number.startswith("["):
                 continue
             LOG.info("remove partition %s on %s" % (number, did))
             session.cmd(rm_cmd % (did, number))
         session.cmd("partprobe /dev/%s" % did, timeout=timeout)
-        regex = r'/block/%s/\S+\s^' % did
+        regex = r"/block/%s/\S+\s^" % did
         driver = "pci"
         if platform.machine() == "s390x":
             driver = "css0"
-        ls_block_cmd = ('ls /sys/dev/block -l | grep "/%s" | grep "%s"' %
-                        (driver, did))
-        if not wait.wait_for(lambda: not re.search(
-                regex, session.cmd(ls_block_cmd), re.M), step=0.5, timeout=30):
-            raise exceptions.TestError('Failed to clean the all partitions.')
+        ls_block_cmd = 'ls /sys/dev/block -l | grep "/%s" | grep "%s"' % (driver, did)
+        if not wait.wait_for(
+            lambda: not re.search(regex, session.cmd(ls_block_cmd), re.M),
+            step=0.5,
+            timeout=30,
+        ):
+            raise exceptions.TestError("Failed to clean the all partitions.")
 
 
 def clean_partition_windows(session, did, timeout=360):
@@ -616,8 +632,9 @@ def create_filesyetem_linux(session, partition_name, fstype, timeout=360):
     session.cmd(format_cmd, timeout=timeout)
 
 
-def create_filesystem_windows(session, partition_name, fstype,
-                              timeout=360, quick_format=True):
+def create_filesystem_windows(
+    session, partition_name, fstype, timeout=360, quick_format=True
+):
     """
     create file system in windows guest.
 
@@ -627,7 +644,7 @@ def create_filesystem_windows(session, partition_name, fstype,
     :param timeout: Timeout for cmd execution in seconds.
     :param quick_format: Whether use quick format or not.
     """
-    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk = "disk_" + "".join(random.sample(string.ascii_letters + string.digits, 4))
     format_cmd = "echo select volume %s > " + disk
     format_cmd += " && echo format fs=%s "
     if quick_format:
@@ -663,8 +680,8 @@ def _get_mpoint_fstype_linux(session, partition):
     :param partition: disk partition, like /dev/sdb1.
     :return: Tuple (mountpoint, fstype)
     """
-    mount_list = session.cmd_output('cat /proc/mounts')
-    mount_info = re.search(r'%s\s(.+?)\s(.+?)\s' % partition, mount_list)
+    mount_list = session.cmd_output("cat /proc/mounts")
+    mount_info = re.search(r"%s\s(.+?)\s(.+?)\s" % partition, mount_list)
     return mount_info.groups()
 
 
@@ -693,11 +710,13 @@ def get_partition_attrs_linux(session, partition):
     :return: dict like {'start': '512B', 'end': '16106127359B',
                        'size': '16106126848B', 'type': 'primary'}
     """
-    pattern = r'(/dev/.*)p(\d+)' if "nvme" in partition else r'(/dev/.*)(\d+)'
+    pattern = r"(/dev/.*)p(\d+)" if "nvme" in partition else r"(/dev/.*)(\d+)"
     dev_name, part_num = re.match(pattern, partition).groups()
-    parted_cmd = 'parted -s %s unit B print' % dev_name
-    pattern = re.compile(r'%s\s+(?P<start>\d+\w+)\s+(?P<end>\d+\w+)\s+'
-                         r'(?P<size>\d+\w+)\s+(?P<type>\w+)' % part_num)
+    parted_cmd = "parted -s %s unit B print" % dev_name
+    pattern = re.compile(
+        r"%s\s+(?P<start>\d+\w+)\s+(?P<end>\d+\w+)\s+"
+        r"(?P<size>\d+\w+)\s+(?P<type>\w+)" % part_num
+    )
     return pattern.search(session.cmd(parted_cmd), re.M).groupdict()
 
 
@@ -714,19 +733,22 @@ def resize_filesystem_linux(session, partition, size):
                  support transfer size with SIZE_AVAILABLE,
                  enlarge to maximun available size.
     """
+
     def get_start_size():
-        start_size = get_partition_attrs_linux(session, partition)['start']
-        return int(utils_numeric.normalize_data_size(start_size, 'B').split('.')[0])
+        start_size = get_partition_attrs_linux(session, partition)["start"]
+        return int(utils_numeric.normalize_data_size(start_size, "B").split(".")[0])
 
     def resize_xfs_fs(size):
         if size == SIZE_AVAILABLE:
-            resize_fs_cmd = 'xfs_growfs -d %s' % mountpoint
+            resize_fs_cmd = "xfs_growfs -d %s" % mountpoint
         else:
-            output = session.cmd_output('xfs_growfs -n %s' % mountpoint)
-            bsize = int(re.findall(r'data\s+=\s+bsize=(\d+)', output, re.M)[0])
-            blocks = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0]) -
-                      get_start_size()) // bsize
-            resize_fs_cmd = 'xfs_growfs -D %s %s' % (blocks, mountpoint)
+            output = session.cmd_output("xfs_growfs -n %s" % mountpoint)
+            bsize = int(re.findall(r"data\s+=\s+bsize=(\d+)", output, re.M)[0])
+            blocks = (
+                int(utils_numeric.normalize_data_size(size, "B").split(".")[0])
+                - get_start_size()
+            ) // bsize
+            resize_fs_cmd = "xfs_growfs -D %s %s" % (blocks, mountpoint)
         session.cmd(resize_fs_cmd)
 
     def resize_ext_fs(size):
@@ -735,23 +757,28 @@ def resize_filesystem_linux(session, partition, size):
             umount(partition, mountpoint, fstype=fstype, session=session)
             flag = True
 
-        session.cmd('e2fsck -f %s' % partition)
+        session.cmd("e2fsck -f %s" % partition)
 
         if size == SIZE_AVAILABLE:
-            resize_fs_cmd = 'resize2fs %s' % partition
+            resize_fs_cmd = "resize2fs %s" % partition
         else:
-            output = session.cmd_output('tune2fs -l %s | grep -i block' % partition)
-            bsize = int(re.findall(r'Block size:\s+(\d+)', output, re.M)[0])
-            size = ((int(utils_numeric.normalize_data_size(size, 'B').split(".")[0]) -
-                     get_start_size()) // bsize) * bsize
-            size = utils_numeric.normalize_data_size(str(size).split(".")[0], 'K')
-            resize_fs_cmd = 'resize2fs %s %sK' % (partition, int(size.split(".")[0]))
+            output = session.cmd_output("tune2fs -l %s | grep -i block" % partition)
+            bsize = int(re.findall(r"Block size:\s+(\d+)", output, re.M)[0])
+            size = (
+                (
+                    int(utils_numeric.normalize_data_size(size, "B").split(".")[0])
+                    - get_start_size()
+                )
+                // bsize
+            ) * bsize
+            size = utils_numeric.normalize_data_size(str(size).split(".")[0], "K")
+            resize_fs_cmd = "resize2fs %s %sK" % (partition, int(size.split(".")[0]))
         session.cmd(resize_fs_cmd)
         if flag:
             mount(partition, mountpoint, fstype=fstype, session=session)
 
     mountpoint, fstype = _get_mpoint_fstype_linux(session, partition)
-    if fstype == 'xfs':
+    if fstype == "xfs":
         resize_xfs_fs(size)
     elif fstype.startswith("ext"):
         resize_ext_fs(size)
@@ -775,22 +802,24 @@ def resize_partition_linux(session, partition, size):
         flag = True
 
     # FIXME: if nvme device need support this function.
-    dev_name, part_num = re.match(r'(/dev/.*)(\d+)', partition).groups()
-    parted_cmd = 'parted -s %s print' % dev_name
+    dev_name, part_num = re.match(r"(/dev/.*)(\d+)", partition).groups()
+    parted_cmd = "parted -s %s print" % dev_name
     part_attrs = get_partition_attrs_linux(session, partition)
-    start_size = int(utils_numeric.normalize_data_size(part_attrs['start'],
-                                                       'B').split('.')[0])
-    end_size = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0])
-                - start_size)
-    session.cmd(' '.join((parted_cmd, 'rm %s' % part_num)))
-    resizepart_cmd = ' '.join((parted_cmd, 'unit B mkpart {0} {1} {2}'))
-    session.cmd(resizepart_cmd.format(part_attrs['type'], start_size, end_size))
-    session.cmd('partprobe %s' % dev_name)
+    start_size = int(
+        utils_numeric.normalize_data_size(part_attrs["start"], "B").split(".")[0]
+    )
+    end_size = (
+        int(utils_numeric.normalize_data_size(size, "B").split(".")[0]) - start_size
+    )
+    session.cmd(" ".join((parted_cmd, "rm %s" % part_num)))
+    resizepart_cmd = " ".join((parted_cmd, "unit B mkpart {0} {1} {2}"))
+    session.cmd(resizepart_cmd.format(part_attrs["type"], start_size, end_size))
+    session.cmd("partprobe %s" % dev_name)
 
-    if fstype == 'xfs':
-        session.cmd('xfs_repair -n %s' % partition)
+    if fstype == "xfs":
+        session.cmd("xfs_repair -n %s" % partition)
     elif fstype.startswith("ext"):
-        session.cmd('e2fsck -f %s' % partition)
+        session.cmd("e2fsck -f %s" % partition)
     else:
         raise NotImplementedError
 
@@ -808,7 +837,7 @@ def get_disk_size_windows(session, did):
     :return: disk size.
     """
     cmd = "wmic diskdrive get size, index"
-    return int(re.findall(r'%s\s+(\d+)' % did, session.cmd_output(cmd))[0])
+    return int(re.findall(r"%s\s+(\d+)" % did, session.cmd_output(cmd))[0])
 
 
 def get_disk_size_linux(session, did):
@@ -820,8 +849,8 @@ def get_disk_size_linux(session, did):
     :return: disk size.
     """
     disks_info = get_linux_disks(session, partition=True)
-    disk_size = disks_info['%s' % did][1]
-    return int(utils_numeric.normalize_data_size(disk_size, 'B').split('.')[0])
+    disk_size = disks_info["%s" % did][1]
+    return int(utils_numeric.normalize_data_size(disk_size, "B").split(".")[0])
 
 
 def get_disk_size(session, os_type, did):
@@ -850,18 +879,19 @@ def get_drive_letters(session, did):
     :return: The drive letters.
     :rtype: list
     """
-    disk_script = "disk_" + ''.join(
-        random.sample(string.ascii_letters + string.digits, 4))
+    disk_script = "disk_" + "".join(
+        random.sample(string.ascii_letters + string.digits, 4)
+    )
     select_cmd = "echo select disk %s > %s " % (did, disk_script)
     detail_cmd = "echo detail disk >> %s" % disk_script
     diskpart_cmd = "diskpart /s %s" % disk_script
-    cmd = ' && '.join((select_cmd, detail_cmd, diskpart_cmd))
+    cmd = " && ".join((select_cmd, detail_cmd, diskpart_cmd))
     output = session.cmd(cmd)
 
     letter_offset = 0
     searched_ret = re.search(r"(.*Volume\s+.*Ltr.*)", output, re.I | re.M)
     if searched_ret:
-        letter_offset = searched_ret.group(1).index('Ltr') + 1
+        letter_offset = searched_ret.group(1).index("Ltr") + 1
 
     if letter_offset:
         vol_details = re.findall(r"(.*Volume\s+\d+.*Partition.*)", output, re.I | re.M)
@@ -880,18 +910,18 @@ def set_drive_letter(session, did, partition_no=1, target_letter=None):
     :return drive_letter: drive letter has been set
     """
     drive_letter = ""
-    list_partition_cmd = ' echo list partition '
+    list_partition_cmd = " echo list partition "
     list_partition_cmd = _wrap_windows_cmd(list_partition_cmd)
     details = session.cmd_output(list_partition_cmd % did)
     for line in details.splitlines():
         if re.search("Reserved", line, re.I | re.M):
             partition_no += int(line.split()[1])
-    assign_letter_cmd = ' echo select partition %s ; echo assign '
+    assign_letter_cmd = " echo select partition %s ; echo assign "
     if target_letter:
-        assign_letter_cmd += 'letter=%s' % target_letter
+        assign_letter_cmd += "letter=%s" % target_letter
     assign_letter_cmd = _wrap_windows_cmd(assign_letter_cmd)
     session.cmd(assign_letter_cmd % (did, partition_no))
-    detail_cmd = ' echo detail disk '
+    detail_cmd = " echo detail disk "
     detail_cmd = _wrap_windows_cmd(detail_cmd)
     details = session.cmd_output(detail_cmd % did)
     for line in details.splitlines():
@@ -915,7 +945,7 @@ def drop_drive_letter(session, drive_letter):
     :param session: session object to guest.
     :param drive_letter: drive letter to be removed
     """
-    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk = "disk_" + "".join(random.sample(string.ascii_letters + string.digits, 4))
     remove_cmd = "echo select volume %s > " + disk
     remove_cmd += " && echo remove >> " + disk
     remove_cmd += " && echo exit >> " + disk
@@ -924,10 +954,17 @@ def drop_drive_letter(session, drive_letter):
     session.cmd(remove_cmd % drive_letter)
 
 
-def configure_empty_windows_disk(session, did, size, start="0M",
-                                 n_partitions=1, fstype="ntfs",
-                                 labeltype=PARTITION_TABLE_TYPE_MBR,
-                                 timeout=360, quick_format=True):
+def configure_empty_windows_disk(
+    session,
+    did,
+    size,
+    start="0M",
+    n_partitions=1,
+    fstype="ntfs",
+    labeltype=PARTITION_TABLE_TYPE_MBR,
+    timeout=360,
+    quick_format=True,
+):
     """
     Create partition on disks in windows guest, format and mount it.
     Only handle an empty disk and will create equal size partitions onto the disk.
@@ -956,29 +993,60 @@ def configure_empty_windows_disk(session, did, size, start="0M",
     for i in range(n_partitions):
         if i == 0:
             create_partition_windows(
-                session, did, str(partition_size) + size[-1],
-                str(float(start[:-1]) + reserved_size) + start[-1], timeout=timeout)
+                session,
+                did,
+                str(partition_size) + size[-1],
+                str(float(start[:-1]) + reserved_size) + start[-1],
+                timeout=timeout,
+            )
         else:
             if part_type == PARTITION_TYPE_EXTENDED:
                 create_partition_windows(
-                    session, did, str(extended_size) + size[-1], start, part_type, timeout)
+                    session,
+                    did,
+                    str(extended_size) + size[-1],
+                    start,
+                    part_type,
+                    timeout,
+                )
                 part_type = PARTITION_TYPE_LOGICAL
                 create_partition_windows(
-                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+                    session,
+                    did,
+                    str(partition_size) + size[-1],
+                    start,
+                    part_type,
+                    timeout,
+                )
             else:
                 create_partition_windows(
-                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+                    session,
+                    did,
+                    str(partition_size) + size[-1],
+                    start,
+                    part_type,
+                    timeout,
+                )
         drive_letter = set_drive_letter(session, did, partition_no=i + 1)
         if not drive_letter:
             return []
         mountpoint.append(drive_letter)
-        create_filesystem_windows(session, mountpoint[i], fstype, timeout, quick_format=quick_format)
+        create_filesystem_windows(
+            session, mountpoint[i], fstype, timeout, quick_format=quick_format
+        )
     return mountpoint
 
 
-def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
-                               fstype="ext4", labeltype=PARTITION_TABLE_TYPE_MBR,
-                               timeout=360):
+def configure_empty_linux_disk(
+    session,
+    did,
+    size,
+    start="0M",
+    n_partitions=1,
+    fstype="ext4",
+    labeltype=PARTITION_TABLE_TYPE_MBR,
+    timeout=360,
+):
     """
     Create partition on disk in linux guest, format and mount it.
     Only handle an empty disk and will create equal size partitions onto the disk.
@@ -1008,34 +1076,64 @@ def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
     for i in range(n_partitions):
         if i == 0:
             new_partition = create_partition_linux(
-                    session, did, str(partition_size) + size[-1],
-                    str(start) + size[-1], timeout=timeout)
+                session,
+                did,
+                str(partition_size) + size[-1],
+                str(start) + size[-1],
+                timeout=timeout,
+            )
         else:
             if part_type == PARTITION_TYPE_EXTENDED:
-                create_partition_linux(session, did, str(extended_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
+                create_partition_linux(
+                    session,
+                    did,
+                    str(extended_size) + size[-1],
+                    str(start) + size[-1],
+                    part_type,
+                    timeout,
+                )
                 part_type = PARTITION_TYPE_LOGICAL
                 new_partition = create_partition_linux(
-                        session, did, str(partition_size) + size[-1],
-                        str(start) + size[-1], part_type, timeout)
+                    session,
+                    did,
+                    str(partition_size) + size[-1],
+                    str(start) + size[-1],
+                    part_type,
+                    timeout,
+                )
             else:
                 new_partition = create_partition_linux(
-                        session, did, str(partition_size) + size[-1],
-                        str(start) + size[-1], part_type, timeout)
+                    session,
+                    did,
+                    str(partition_size) + size[-1],
+                    str(start) + size[-1],
+                    part_type,
+                    timeout,
+                )
         start += partition_size
         create_filesyetem_linux(session, new_partition, fstype, timeout)
         mount_dst = "/mnt/" + new_partition
         session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
-        if not mount("/dev/%s" % new_partition, mount_dst, fstype=fstype, session=session):
+        if not mount(
+            "/dev/%s" % new_partition, mount_dst, fstype=fstype, session=session
+        ):
             err_msg = "Failed to mount partition '%s'"
             raise exceptions.TestError(err_msg % new_partition)
         mountpoint.append(mount_dst)
     return mountpoint
 
 
-def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
-                         fstype=None, labeltype=PARTITION_TABLE_TYPE_MBR,
-                         timeout=360):
+def configure_empty_disk(
+    session,
+    did,
+    size,
+    ostype,
+    start="0M",
+    n_partitions=1,
+    fstype=None,
+    labeltype=PARTITION_TABLE_TYPE_MBR,
+    timeout=360,
+):
     """
     Create partition on disk in guest, format and mount it.
     Only handle an empty disk and will create equal size partitions onto the disk.
@@ -1059,12 +1157,12 @@ def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
     default_fstype = "ntfs" if (ostype == "windows") else "ext4"
     fstype = fstype or default_fstype
     if ostype == "windows":
-        return configure_empty_windows_disk(session, did, size, start,
-                                            n_partitions, fstype,
-                                            labeltype, timeout)
-    return configure_empty_linux_disk(session, did, size, start,
-                                      n_partitions, fstype,
-                                      labeltype, timeout)
+        return configure_empty_windows_disk(
+            session, did, size, start, n_partitions, fstype, labeltype, timeout
+        )
+    return configure_empty_linux_disk(
+        session, did, size, start, n_partitions, fstype, labeltype, timeout
+    )
 
 
 def linux_disk_check(session, did):
@@ -1092,8 +1190,9 @@ def get_parts_list_by_path(session=None):
     """
     Get all partitions as listed on /dev/disk/by-path
     """
-    err, out = utils_misc.cmd_status_output("ls /dev/disk/by-path",
-                                            shell=True, session=session)
+    err, out = utils_misc.cmd_status_output(
+        "ls /dev/disk/by-path", shell=True, session=session
+    )
     if err:
         raise exceptions.TestError("Failed to list partitions in /dev/disk/by-path")
     r = out.split()
@@ -1163,7 +1262,7 @@ def get_first_disk(session=None):
     first_disk = ""
     disks = get_parts_list(session=session)
     for disk in disks:
-        pattern = re.compile('p[0-9]+') if 'nvme' in disk else re.compile('[0-9]+')
+        pattern = re.compile("p[0-9]+") if "nvme" in disk else re.compile("[0-9]+")
         if not pattern.findall(disk):
             first_disk = disk
             break
@@ -1180,8 +1279,9 @@ def get_disk_by_serial(serial_str, session=None):
     """
     parts_list = get_parts_list(session=session)
     for disk in parts_list:
-        cmd = ("udevadm info --query=all --name=/dev/{} | grep ID_SERIAL={}"
-               .format(disk, serial_str))
+        cmd = "udevadm info --query=all --name=/dev/{} | grep ID_SERIAL={}".format(
+            disk, serial_str
+        )
         if session:
             status = session.cmd_status(cmd)
         else:
@@ -1207,7 +1307,7 @@ def check_remote_vm_disks(params):
         linux_disk_check(remote_vm_obj, disk)
 
 
-def dd_data_to_vm_disk(session, disk, bs='1M', seek='0', count='100'):
+def dd_data_to_vm_disk(session, disk, bs="1M", seek="0", count="100"):
     """
     Generate some random data to a vm disk
 
@@ -1224,7 +1324,6 @@ def dd_data_to_vm_disk(session, disk, bs='1M', seek='0', count='100'):
 
 
 class Disk(object):
-
     """
     Abstract class for Disk objects, with the common methods implemented.
     """
@@ -1244,31 +1343,31 @@ class Disk(object):
             shutil.copyfile(src, dst)
 
     def close(self):
-        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
-                 stat.S_IROTH | stat.S_IXOTH)
+        os.chmod(
+            self.path,
+            stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH,
+        )
         cleanup(self.mount)
         LOG.debug("Disk %s successfully set", self.path)
 
 
 class FloppyDisk(Disk):
-
     """
     Represents a floppy disk. We can copy files to it, and setup it in
     convenient ways.
     """
+
     @error_context.context_aware
     def __init__(self, path, qemu_img_binary, tmpdir, vfd_size):
-        error_context.context(
-            "Creating unattended install floppy image %s" % path)
-        self.mount = tempfile.mkdtemp(prefix='floppy_virttest_', dir=tmpdir)
+        error_context.context("Creating unattended install floppy image %s" % path)
+        self.mount = tempfile.mkdtemp(prefix="floppy_virttest_", dir=tmpdir)
         self.path = path
         self.vfd_size = vfd_size
         clean_old_image(path)
         try:
-            c_cmd = '%s create -f raw %s %s' % (qemu_img_binary, path,
-                                                self.vfd_size)
+            c_cmd = "%s create -f raw %s %s" % (qemu_img_binary, path, self.vfd_size)
             process.run(c_cmd, verbose=DEBUG)
-            f_cmd = 'mkfs.msdos -s 1 %s' % path
+            f_cmd = "mkfs.msdos -s 1 %s" % path
             process.run(f_cmd, verbose=DEBUG)
         except process.CmdError as e:
             LOG.error("Error during floppy initialization: %s" % e)
@@ -1282,7 +1381,7 @@ class FloppyDisk(Disk):
         pwd = os.getcwd()
         try:
             os.chdir(self.mount)
-            path_list = glob.glob('*')
+            path_list = glob.glob("*")
             for path in path_list:
                 self.copy_to(path)
         finally:
@@ -1304,8 +1403,7 @@ class FloppyDisk(Disk):
         """
         pwd = os.getcwd()
         try:
-            m_cmd = 'mcopy -s -o -n -i %s ::/* %s' % (
-                virtio_floppy, self.mount)
+            m_cmd = "mcopy -s -o -n -i %s ::/* %s" % (virtio_floppy, self.mount)
             process.run(m_cmd, verbose=DEBUG)
         finally:
             os.chdir(pwd)
@@ -1325,24 +1423,28 @@ class FloppyDisk(Disk):
         4) Re-write the config file to the disk
         """
         self._copy_virtio_drivers(virtio_floppy)
-        txtsetup_oem = os.path.join(self.mount, 'txtsetup.oem')
+        txtsetup_oem = os.path.join(self.mount, "txtsetup.oem")
 
         if not os.path.isfile(txtsetup_oem):
-            raise IOError('File txtsetup.oem not found on the install '
-                          'floppy. Please verify if your floppy virtio '
-                          'driver image has this file')
+            raise IOError(
+                "File txtsetup.oem not found on the install "
+                "floppy. Please verify if your floppy virtio "
+                "driver image has this file"
+            )
 
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         parser.read(txtsetup_oem)
 
-        if not parser.has_section('Defaults'):
-            raise ValueError('File txtsetup.oem does not have the session '
-                             '"Defaults". Please check txtsetup.oem')
+        if not parser.has_section("Defaults"):
+            raise ValueError(
+                "File txtsetup.oem does not have the session "
+                '"Defaults". Please check txtsetup.oem'
+            )
 
-        default_driver = parser.get('Defaults', 'SCSI')
+        default_driver = parser.get("Defaults", "SCSI")
         if default_driver != virtio_oemsetup_id:
-            parser.set('Defaults', 'SCSI', virtio_oemsetup_id)
-            fp = open(txtsetup_oem, 'w')
+            parser.set("Defaults", "SCSI", virtio_oemsetup_id)
+            fp = open(txtsetup_oem, "w")
             parser.write(fp)
             fp.close()
 
@@ -1366,13 +1468,12 @@ class FloppyDisk(Disk):
 
 
 class CdromDisk(Disk):
-
     """
     Represents a CDROM disk that we can master according to our needs.
     """
 
     def __init__(self, path, tmpdir):
-        self.mount = tempfile.mkdtemp(prefix='cdrom_virttest_', dir=tmpdir)
+        self.mount = tempfile.mkdtemp(prefix="cdrom_virttest_", dir=tmpdir)
         self.tmpdir = tmpdir
         self.path = path
         clean_old_image(path)
@@ -1390,16 +1491,16 @@ class CdromDisk(Disk):
         """
         if cdrom_virtio:
             pwd = os.getcwd()
-            mnt_pnt = tempfile.mkdtemp(prefix='cdrom_virtio_', dir=self.tmpdir)
-            mount(cdrom_virtio, mnt_pnt, options='loop,ro', verbose=DEBUG)
+            mnt_pnt = tempfile.mkdtemp(prefix="cdrom_virtio_", dir=self.tmpdir)
+            mount(cdrom_virtio, mnt_pnt, options="loop,ro", verbose=DEBUG)
             try:
-                copytree(mnt_pnt, self.mount, ignore='*.vfd')
+                copytree(mnt_pnt, self.mount, ignore="*.vfd")
             finally:
                 os.chdir(pwd)
                 umount(None, mnt_pnt, verbose=DEBUG)
                 os.rmdir(mnt_pnt)
         elif virtio_floppy:
-            cmd = 'mcopy -s -o -n -i %s ::/* %s' % (virtio_floppy, self.mount)
+            cmd = "mcopy -s -o -n -i %s ::/* %s" % (virtio_floppy, self.mount)
             process.run(cmd, verbose=DEBUG)
 
     def setup_virtio_win2008(self, virtio_floppy, cdrom_virtio):
@@ -1418,86 +1519,90 @@ class CdromDisk(Disk):
         if os.path.isfile(cdrom_virtio) or os.path.isfile(virtio_floppy):
             self._copy_virtio_drivers(virtio_floppy, cdrom_virtio)
         else:
-            LOG.debug("No virtio floppy/cdrom present, not needed for this OS "
-                      "anyway")
+            LOG.debug(
+                "No virtio floppy/cdrom present, not needed for this OS " "anyway"
+            )
 
     @error_context.context_aware
     def close(self):
-        error_context.context(
-            "Creating unattended install CD image %s" % self.path)
-        g_cmd = ('mkisofs -o %s -max-iso9660-filenames '
-                 '-relaxed-filenames -D --input-charset iso8859-1 '
-                 '%s' % (self.path, self.mount))
+        error_context.context("Creating unattended install CD image %s" % self.path)
+        g_cmd = (
+            "mkisofs -o %s -max-iso9660-filenames "
+            "-relaxed-filenames -D --input-charset iso8859-1 "
+            "%s" % (self.path, self.mount)
+        )
         process.run(g_cmd, verbose=DEBUG)
 
-        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
-                 stat.S_IROTH | stat.S_IXOTH)
+        os.chmod(
+            self.path,
+            stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH,
+        )
         cleanup(self.mount)
-        LOG.debug("unattended install CD image %s successfully created",
-                  self.path)
+        LOG.debug("unattended install CD image %s successfully created", self.path)
 
 
 class CdromInstallDisk(Disk):
-
     """
     Represents a install CDROM disk that we can master according to our needs.
     """
 
     def __init__(self, path, tmpdir, source_cdrom, extra_params):
-        self.mount = tempfile.mkdtemp(prefix='cdrom_unattended_', dir=tmpdir)
+        self.mount = tempfile.mkdtemp(prefix="cdrom_unattended_", dir=tmpdir)
         self.path = path
         self.extra_params = extra_params
         self.source_cdrom = source_cdrom
         cleanup(path)
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
-        cp_cmd = ('cp -r %s/isolinux/ %s/' % (source_cdrom, self.mount))
+        cp_cmd = "cp -r %s/isolinux/ %s/" % (source_cdrom, self.mount)
         listdir = os.listdir(self.source_cdrom)
         for i in listdir:
-            if i == 'isolinux':
+            if i == "isolinux":
                 continue
-            os.symlink(os.path.join(self.source_cdrom, i),
-                       os.path.join(self.mount, i))
+            os.symlink(os.path.join(self.source_cdrom, i), os.path.join(self.mount, i))
         process.run(cp_cmd)
 
     def get_answer_file_path(self, filename):
-        return os.path.join(self.mount, 'isolinux', filename)
+        return os.path.join(self.mount, "isolinux", filename)
 
     @error_context.context_aware
     def close(self):
-        error_context.context(
-            "Creating unattended install CD image %s" % self.path)
-        if os.path.exists(os.path.join(self.mount, 'isolinux')):
+        error_context.context("Creating unattended install CD image %s" % self.path)
+        if os.path.exists(os.path.join(self.mount, "isolinux")):
             # bootable cdrom
-            f = open(os.path.join(self.mount, 'isolinux', 'isolinux.cfg'), 'w')
-            f.write('default /isolinux/vmlinuz append initrd=/isolinux/'
-                    'initrd.img %s\n' % self.extra_params)
+            f = open(os.path.join(self.mount, "isolinux", "isolinux.cfg"), "w")
+            f.write(
+                "default /isolinux/vmlinuz append initrd=/isolinux/"
+                "initrd.img %s\n" % self.extra_params
+            )
             f.close()
-            boot = '-b isolinux/isolinux.bin'
+            boot = "-b isolinux/isolinux.bin"
         else:
             # Not a bootable CDROM, using -kernel instead (eg.: arm64)
-            boot = ''
+            boot = ""
 
-        m_cmd = ('mkisofs -o %s %s -c isolinux/boot.cat -no-emul-boot '
-                 '-boot-load-size 4 -boot-info-table -f -R -J -V -T %s'
-                 % (self.path, boot, self.mount))
+        m_cmd = (
+            "mkisofs -o %s %s -c isolinux/boot.cat -no-emul-boot "
+            "-boot-load-size 4 -boot-info-table -f -R -J -V -T %s"
+            % (self.path, boot, self.mount)
+        )
         process.run(m_cmd)
-        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
-                 stat.S_IROTH | stat.S_IXOTH)
+        os.chmod(
+            self.path,
+            stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH,
+        )
         cleanup(self.mount)
         cleanup(self.source_cdrom)
-        LOG.debug("unattended install CD image %s successfully created",
-                  self.path)
+        LOG.debug("unattended install CD image %s successfully created", self.path)
 
 
 class GuestFSModiDisk(object):
-
     """
     class of guest disk using guestfs lib to do some operation(like read/write)
     on guest disk:
     """
 
-    def __init__(self, disk, backend='direct'):
+    def __init__(self, disk, backend="direct"):
         """
         :params disk: target disk image.
         :params backend: let libguestfs creates/connects to backend daemon
@@ -1511,12 +1616,15 @@ class GuestFSModiDisk(object):
             import guestfs
         except ImportError:
             from virttest.utils_package import package_install
+
             if not package_install("python*-libguestfs"):
-                raise exceptions.TestSkipError('We need python-libguestfs (or '
-                                               'the equivalent for your '
-                                               'distro) for this particular '
-                                               'feature (modifying guest '
-                                               'files with libguestfs)')
+                raise exceptions.TestSkipError(
+                    "We need python-libguestfs (or "
+                    "the equivalent for your "
+                    "distro) for this particular "
+                    "feature (modifying guest "
+                    "files with libguestfs)"
+                )
             try:
                 import guestfs
             except ImportError:
@@ -1529,9 +1637,9 @@ class GuestFSModiDisk(object):
         libvirtd = SpecificServiceManager("libvirtd")
         libvirtd_status = libvirtd.status()
         if libvirtd_status is None:
-            raise exceptions.TestError('libvirtd: service not found')
+            raise exceptions.TestError("libvirtd: service not found")
         if (not libvirtd_status) and (not libvirtd.start()):
-            raise exceptions.TestError('libvirtd: failed to start')
+            raise exceptions.TestError("libvirtd: failed to start")
         LOG.debug("Launch the disk %s, wait..." % self.disk)
         self.g.launch()
 
@@ -1567,8 +1675,7 @@ class GuestFSModiDisk(object):
                     except RuntimeError as err_msg:
                         LOG.info("%s (ignored)" % err_msg)
         else:
-            raise exceptions.TestError(
-                "inspect_vm: no operating systems found")
+            raise exceptions.TestError("inspect_vm: no operating systems found")
 
     def umount_all(self):
         LOG.debug("Umount all device partitions")
@@ -1613,8 +1720,9 @@ class GuestFSModiDisk(object):
                 else:
                     self.g.write(file_name, content)
             except Exception:
-                raise exceptions.TestError("write '%s' to file '%s' error!"
-                                           % (content, file_name))
+                raise exceptions.TestError(
+                    "write '%s' to file '%s' error!" % (content, file_name)
+                )
         finally:
             self.umount_all()
 
@@ -1632,8 +1740,7 @@ class GuestFSModiDisk(object):
             self.mount_all()
             file_content = self.g.cat(file_name)
             if file_content:
-                file_content_after_replace = re.sub(find_con, rep_con,
-                                                    file_content)
+                file_content_after_replace = re.sub(find_con, rep_con, file_content)
                 if file_content != file_content_after_replace:
                     self.g.write(file_name, file_content_after_replace)
             else:

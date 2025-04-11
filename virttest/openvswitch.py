@@ -1,23 +1,20 @@
 import logging
-import re
 import os
+import re
 import signal
 
-from avocado.utils import path
-from avocado.utils import process
-from avocado.utils import linux_modules
+from avocado.utils import linux_modules, path, process
 
-from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
+from .versionable_class import Manager, VersionableClass, factory
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 # Register to class manager.
 man = Manager(__name__)
 
 
 class ServiceManagerInterface(object):
-
     def __new__(cls, *args, **kargs):
         ServiceManagerInterface.master_class = ServiceManagerInterface
         return super(ServiceManagerInterface, cls).__new__(cls, *args, **kargs)
@@ -31,24 +28,25 @@ class ServiceManagerInterface(object):
         return open("/proc/1/comm", "r").read().strip()
 
     def stop(self, service_name):
-        raise NotImplementedError("Method 'stop' must be"
-                                  " implemented in child class")
+        raise NotImplementedError("Method 'stop' must be" " implemented in child class")
 
     def start(self, service_name):
-        raise NotImplementedError("Method 'start' must be"
-                                  " implemented in child class")
+        raise NotImplementedError(
+            "Method 'start' must be" " implemented in child class"
+        )
 
     def restart(self, service_name):
-        raise NotImplementedError("Method 'restart' must be"
-                                  " implemented in child class")
+        raise NotImplementedError(
+            "Method 'restart' must be" " implemented in child class"
+        )
 
     def status(self, service_name):
-        raise NotImplementedError("Method 'status' must be"
-                                  " implemented in child class")
+        raise NotImplementedError(
+            "Method 'status' must be" " implemented in child class"
+        )
 
 
 class ServiceManagerSysvinit(ServiceManagerInterface):
-
     @classmethod
     def _is_right_ver(cls):
         version = cls.get_version()
@@ -67,7 +65,6 @@ class ServiceManagerSysvinit(ServiceManagerInterface):
 
 
 class ServiceManagerSystemD(ServiceManagerSysvinit):
-
     @classmethod
     def _is_right_ver(cls):
         version = cls.get_version()
@@ -93,15 +90,22 @@ class ServiceManager(VersionableClass):
 
 
 class OpenVSwitchControl(object):
-
     """
     Class select the best matches control class for installed version
     of OpenVSwitch.
 
     OpenVSwtich parameters are described in man ovs-vswitchd.conf.db
     """
-    def __new__(cls, db_path=None, db_socket=None, db_pidfile=None,
-                ovs_pidfile=None, dbschema=None, install_prefix=None):
+
+    def __new__(
+        cls,
+        db_path=None,
+        db_socket=None,
+        db_pidfile=None,
+        ovs_pidfile=None,
+        dbschema=None,
+        install_prefix=None,
+    ):
         """
         Makes initialization of OpenVSwitch.
 
@@ -116,20 +120,21 @@ class OpenVSwitchControl(object):
         if not install_prefix:
             install_prefix = "/"
         if not db_path:
-            db_path = os.path.join(install_prefix,
-                                   "/etc/openvswitch/conf.db")
+            db_path = os.path.join(install_prefix, "/etc/openvswitch/conf.db")
         if not db_socket:
-            db_socket = os.path.join(install_prefix,
-                                     "/var/run/openvswitch/db.sock")
+            db_socket = os.path.join(install_prefix, "/var/run/openvswitch/db.sock")
         if not db_pidfile:
-            db_pidfile = os.path.join(install_prefix,
-                                      "/var/run/openvswitch/ovsdb-server.pid")
+            db_pidfile = os.path.join(
+                install_prefix, "/var/run/openvswitch/ovsdb-server.pid"
+            )
         if not ovs_pidfile:
-            ovs_pidfile = os.path.join(install_prefix,
-                                       "/var/run/openvswitch/ovs-vswitchd.pid")
+            ovs_pidfile = os.path.join(
+                install_prefix, "/var/run/openvswitch/ovs-vswitchd.pid"
+            )
         if not dbschema:
-            dbschema = os.path.join(install_prefix,
-                                    "/usr/share/openvswitch/vswitch.ovsschema")
+            dbschema = os.path.join(
+                install_prefix, "/usr/share/openvswitch/vswitch.ovsschema"
+            )
 
         OpenVSwitchControl.install_prefix = install_prefix
 
@@ -139,10 +144,12 @@ class OpenVSwitchControl(object):
         OpenVSwitchControl.ovs_pidfile = ovs_pidfile
 
         OpenVSwitchControl.dbschema = install_prefix, dbschema
-        os.environ["PATH"] = (os.path.join(install_prefix, "usr/bin:") +
-                              os.environ["PATH"])
-        os.environ["PATH"] = (os.path.join(install_prefix, "usr/sbin:") +
-                              os.environ["PATH"])
+        os.environ["PATH"] = (
+            os.path.join(install_prefix, "usr/bin:") + os.environ["PATH"]
+        )
+        os.environ["PATH"] = (
+            os.path.join(install_prefix, "usr/sbin:") + os.environ["PATH"]
+        )
 
         return super(OpenVSwitchControl, cls).__new__(cls)
 
@@ -154,8 +161,8 @@ class OpenVSwitchControl(object):
         if isinstance(version, int):
             return version
         try:
-            a = re.findall('^(\d+)\.?(\d+)\.?(\d+)\-?', version)[0]
-            int_ver = ''.join(a)
+            a = re.findall("^(\d+)\.?(\d+)\.?(\d+)\-?", version)[0]
+            int_ver = "".join(a)
         except Exception:
             raise ValueError("Wrong version format '%s'" % version)
         return int(int_ver)
@@ -169,11 +176,9 @@ class OpenVSwitchControl(object):
         """
         version = None
         try:
-            result = process.run("%s --version" %
-                                 path.find_command("ovs-vswitchd"))
+            result = process.run("%s --version" % path.find_command("ovs-vswitchd"))
             pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
-            version = re.search(pattern,
-                                result.stdout_text).group(1)
+            version = re.search(pattern, result.stdout_text).group(1)
         except process.CmdError:
             LOG.debug("OpenVSwitch is not available in system.")
         return version
@@ -213,11 +218,11 @@ class OpenVSwitchControl(object):
 
 
 class OpenVSwitchControlDB_140(OpenVSwitchControl):
-
     """
     Don't use this class directly. This class is automatically selected by
     OpenVSwitchControl.
     """
+
     @classmethod
     def _is_right_ver(cls):
         """
@@ -240,11 +245,11 @@ class OpenVSwitchControlDB_CNT(VersionableClass):
 
 
 class OpenVSwitchControlCli_140(OpenVSwitchControl):
-
     """
     Don't use this class directly. This class is automatically selected by
     OpenVSwitchControl.
     """
+
     @classmethod
     def _is_right_ver(cls):
         """
@@ -260,10 +265,13 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return False
 
     def ovs_vsctl(self, params, ignore_status=False):
-        return process.run('%s --db=unix:%s %s' %
-                           (path.find_command("ovs-vsctl"),
-                            self.db_socket, " ".join(params)), timeout=10,
-                           ignore_status=ignore_status, verbose=True)
+        return process.run(
+            "%s --db=unix:%s %s"
+            % (path.find_command("ovs-vsctl"), self.db_socket, " ".join(params)),
+            timeout=10,
+            ignore_status=ignore_status,
+            verbose=True,
+        )
 
     def status(self):
         return self.ovs_vsctl(["show"]).stdout_text
@@ -343,13 +351,19 @@ class OpenVSwitchControlCli_CNT(VersionableClass):
 
 
 class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
-
     """
     OpenVSwtich class.
     """
 
-    def __init__(self, db_path=None, db_socket=None, db_pidfile=None,
-                 ovs_pidfile=None, dbschema=None, install_prefix=None):
+    def __init__(
+        self,
+        db_path=None,
+        db_socket=None,
+        db_pidfile=None,
+        ovs_pidfile=None,
+        dbschema=None,
+        install_prefix=None,
+    ):
         """
         Makes initialization of OpenVSwitch.
 
@@ -377,22 +391,24 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         Check if OVS daemon is started correctly.
         """
-        working = utils_misc.program_is_alive(
-            "ovsdb-server", self.pid_files_path)
+        working = utils_misc.program_is_alive("ovsdb-server", self.pid_files_path)
         if not working:
-            LOG.error("OpenVSwitch database daemon with PID in file %s"
-                      " not working.", self.db_pidfile)
+            LOG.error(
+                "OpenVSwitch database daemon with PID in file %s" " not working.",
+                self.db_pidfile,
+            )
         return working
 
     def check_switch_daemon(self):
         """
         Check if OVS daemon is started correctly.
         """
-        working = utils_misc.program_is_alive(
-            "ovs-vswitchd", self.pid_files_path)
+        working = utils_misc.program_is_alive("ovs-vswitchd", self.pid_files_path)
         if not working:
-            LOG.error("OpenVSwitch switch daemon with PID in file %s"
-                      " not working.", self.ovs_pidfile)
+            LOG.error(
+                "OpenVSwitch switch daemon with PID in file %s" " not working.",
+                self.ovs_pidfile,
+            )
         return working
 
     def check_db_file(self):
@@ -401,8 +417,7 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         exists = os.path.exists(self.db_path)
         if not exists:
-            LOG.error("OpenVSwitch database file %s not exists.",
-                      self.db_path)
+            LOG.error("OpenVSwitch database file %s not exists.", self.db_path)
         return exists
 
     def check_db_socket(self):
@@ -411,13 +426,16 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         exists = os.path.exists(self.db_socket)
         if not exists:
-            LOG.error("OpenVSwitch database socket file %s not exists.",
-                      self.db_socket)
+            LOG.error("OpenVSwitch database socket file %s not exists.", self.db_socket)
         return exists
 
     def check(self):
-        return (self.check_db_daemon() and self.check_switch_daemon() and
-                self.check_db_file() and self.check_db_socket())
+        return (
+            self.check_db_daemon()
+            and self.check_switch_daemon()
+            and self.check_db_file()
+            and self.check_db_socket()
+        )
 
     def init_system(self):
         """
@@ -428,8 +446,7 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
             if linux_modules.load_module("openvswitch"):
                 sm.restart("openvswitch")
         except process.CmdError:
-            LOG.error("Service OpenVSwitch is probably not"
-                      " installed in system.")
+            LOG.error("Service OpenVSwitch is probably not" " installed in system.")
             raise
         self.pid_files_path = "/var/run/openvswitch/"
 
@@ -441,13 +458,20 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
 
 
 class OpenVSwitch(OpenVSwitchSystem):
-
     """
     OpenVSwtich class.
     """
 
-    def __init__(self, tmpdir, db_path=None, db_socket=None, db_pidfile=None,
-                 ovs_pidfile=None, dbschema=None, install_prefix=None):
+    def __init__(
+        self,
+        tmpdir,
+        db_path=None,
+        db_socket=None,
+        db_pidfile=None,
+        ovs_pidfile=None,
+        dbschema=None,
+        install_prefix=None,
+    ):
         """
         Makes initialization of OpenVSwitch.
 
@@ -466,32 +490,57 @@ class OpenVSwitch(OpenVSwitchSystem):
                 raise
 
     def init_db(self):
-        process.run('%s %s %s %s' %
-                    (path.find_command("ovsdb-tool"), "create",
-                     self.db_path, self.dbschema))
-        process.run('%s %s %s %s %s' %
-                    (path.find_command("ovsdb-server"),
-                     "--remote=punix:%s" % (self.db_socket),
-                     "--remote=db:Open_vSwitch,Open_vSwitch,manager_options",
-                     "--pidfile=%s" % (self.db_pidfile),
-                     "--detach --log-file %s") % (self.db_path))
+        process.run(
+            "%s %s %s %s"
+            % (path.find_command("ovsdb-tool"), "create", self.db_path, self.dbschema)
+        )
+        process.run(
+            "%s %s %s %s %s"
+            % (
+                path.find_command("ovsdb-server"),
+                "--remote=punix:%s" % (self.db_socket),
+                "--remote=db:Open_vSwitch,Open_vSwitch,manager_options",
+                "--pidfile=%s" % (self.db_pidfile),
+                "--detach --log-file %s",
+            )
+            % (self.db_path)
+        )
         self.ovs_vsctl(["--no-wait", "init"])
 
     def start_ovs_vswitchd(self):
         """
         Start ovs vswitch daemon with only 1 socket
         """
-        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
-                        ".", "other_config:dpdk-init=true"])
-        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
-                        ".", "other_config:dpdk-socket-mem='1024'"])
-        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
-                        ".", "other_config:dpdk-lcore-mask='0x1'"])
-        process.run('%s %s %s %s' %
-                    (path.find_command("ovs-vswitchd"),
-                     "--detach",
-                     "--pidfile=%s" % self.ovs_pidfile,
-                     "unix:%s" % self.db_socket))
+        self.ovs_vsctl(
+            ["--no-wait", "set", "Open_vSwitch", ".", "other_config:dpdk-init=true"]
+        )
+        self.ovs_vsctl(
+            [
+                "--no-wait",
+                "set",
+                "Open_vSwitch",
+                ".",
+                "other_config:dpdk-socket-mem='1024'",
+            ]
+        )
+        self.ovs_vsctl(
+            [
+                "--no-wait",
+                "set",
+                "Open_vSwitch",
+                ".",
+                "other_config:dpdk-lcore-mask='0x1'",
+            ]
+        )
+        process.run(
+            "%s %s %s %s"
+            % (
+                path.find_command("ovs-vswitchd"),
+                "--detach",
+                "--pidfile=%s" % self.ovs_pidfile,
+                "unix:%s" % self.db_socket,
+            )
+        )
 
     def create_bridge(self, br_name):
         """
@@ -499,11 +548,13 @@ class OpenVSwitch(OpenVSwitchSystem):
 
         :param br_name: name of bridge
         """
-        self.ovs_vsctl(["add-br", br_name, "-- set bridge", br_name,
-                        "datapath_type=netdev"])
+        self.ovs_vsctl(
+            ["add-br", br_name, "-- set bridge", br_name, "datapath_type=netdev"]
+        )
 
-    def add_ports(self, br_name, port_names, port_type="dpdkvhostuser",
-                  port_options=None):
+    def add_ports(
+        self, br_name, port_names, port_type="dpdkvhostuser", port_options=None
+    ):
         """
         Add ports into bridge
 
@@ -513,15 +564,23 @@ class OpenVSwitch(OpenVSwitchSystem):
         :param port_options: ovs add port options
         """
         for port_name in port_names.split():
-            port_list = ["add-port", br_name, port_name, "-- set Interface",
-                         port_name, "type=%s" % port_type]
+            port_list = [
+                "add-port",
+                br_name,
+                port_name,
+                "-- set Interface",
+                port_name,
+                "type=%s" % port_type,
+            ]
             if port_options:
                 port_list.extend(["options:%s" % port_options])
             self.ovs_vsctl(port_list)
 
             if port_type == "dpdkvhostuser":
-                process.run('chown qemu:qemu %s/%s' % (self.pid_files_path, port_name),
-                            shell=True)
+                process.run(
+                    "chown qemu:qemu %s/%s" % (self.pid_files_path, port_name),
+                    shell=True,
+                )
 
     def enable_multiqueue(self, port_names, size):
         """
@@ -531,8 +590,7 @@ class OpenVSwitch(OpenVSwitchSystem):
         :param size: multiqueue size, type int
         """
         for port_name in port_names.split():
-            self.ovs_vsctl(["set", "Interface", port_name,
-                            "options:n_rxq=%s" % size])
+            self.ovs_vsctl(["set", "Interface", port_name, "options:n_rxq=%s" % size])
 
     def init_new(self):
         """

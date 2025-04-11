@@ -8,9 +8,8 @@ __all__ = ["register", "run_exitfuncs", "unregister"]
 
 import traceback
 
-from avocado.core import exceptions
-
 import six
+from avocado.core import exceptions
 
 
 def run_exitfuncs(env, test_type):
@@ -50,22 +49,25 @@ def register(env, test_type, func, *targs, **kargs):
     """
     # Check for unpickable arguments
     if func.__name__ not in func.__globals__:
-        raise exceptions.TestError("Trying to register function '%s', which is not "
-                                   "declared at module scope (not in globals). "
-                                   "Please contact the test developer to fix it."
-                                   % func)
+        raise exceptions.TestError(
+            "Trying to register function '%s', which is not "
+            "declared at module scope (not in globals). "
+            "Please contact the test developer to fix it." % func
+        )
     for arg in targs:
-        if hasattr(arg, '__slots__') and not hasattr(arg, '__getstate__'):
-            raise exceptions.TestError("Trying to register exitfunction '%s' with "
-                                       "unpickable targument '%s'. Please contact "
-                                       "the test developer to fix it."
-                                       % (func, arg))
+        if hasattr(arg, "__slots__") and not hasattr(arg, "__getstate__"):
+            raise exceptions.TestError(
+                "Trying to register exitfunction '%s' with "
+                "unpickable targument '%s'. Please contact "
+                "the test developer to fix it." % (func, arg)
+            )
     for key, arg in six.iteritems(kargs):
-        if hasattr(arg, '__slots__') and not hasattr(arg, '__getstate__'):
-            raise exceptions.TestError("Trying to register exitfunction '%s' with "
-                                       "unpickable kargument '%s=%s'. Please "
-                                       "contact the test developer to fix it."
-                                       % (func, key, arg))
+        if hasattr(arg, "__slots__") and not hasattr(arg, "__getstate__"):
+            raise exceptions.TestError(
+                "Trying to register exitfunction '%s' with "
+                "unpickable kargument '%s=%s'. Please "
+                "contact the test developer to fix it." % (func, key, arg)
+            )
     exithandlers = "exithandlers__%s" % test_type
     if not env.data.get(exithandlers):
         env.data[exithandlers] = []

@@ -9,9 +9,10 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
+from virttest import utils_package
 from virttest.staging import utils_memory
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def comp_memlock(exp_memlock):
@@ -63,22 +64,27 @@ def normalize_mem_size(mem_size, mem_unit):
     """
     try:
         mem_size = float(mem_size)
-        mem_unit_idx = ['B', 'K', 'M', 'G', 'T'].index(mem_unit[0].upper())
+        mem_unit_idx = ["B", "K", "M", "G", "T"].index(mem_unit[0].upper())
     except ValueError as e:
         raise exceptions.TestError(e)
 
-    return int(mem_size * 1024 ** mem_unit_idx)
+    return int(mem_size * 1024**mem_unit_idx)
 
 
-def consume_vm_freememory(vm_session, consume_value=100000):
+def consume_vm_freememory(vm_session, consume_value=100000, repeat_times=1):
     """
     Verify the free memory of the vm can be consumed normally
 
     :param vm_session: vm session
     :param consume_value: consume value , default 100000
+    :param repeat_times: consume memory times, default 1
     """
-    vm_session.cmd_status('swapoff -a')
+    vm_session.cmd_status("swapoff -a")
     free_mem = utils_memory.freememtotal(vm_session)
-    cmd = 'memhog %dk' % (free_mem - consume_value)
+    if not utils_package.package_install("numactl", vm_session):
+        raise exceptions.TestError(
+            "Fail to install package 'numactl' which provides command 'memhog'"
+        )
+    cmd = "memhog -r%d %dk" % (repeat_times, (free_mem - consume_value))
     status, stdout = vm_session.cmd_status_output(cmd, timeout=60)
     return (status, stdout)

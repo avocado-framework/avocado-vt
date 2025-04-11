@@ -1,30 +1,28 @@
 """
 Functions and classes used for logging into guests and transferring files.
 """
+
 from __future__ import division
+
 import logging
-import time
-import re
 import os
+import re
 import shutil
 import tempfile
+import time
 
 import aexpect
 from aexpect.remote import *
-
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import data_dir
-from virttest import utils_logfile
-from virttest.remote_commander import remote_master
-from virttest.remote_commander import messenger
+from virttest import data_dir, utils_logfile
+from virttest.remote_commander import messenger, remote_master
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 class AexpectIOWrapperOut(messenger.StdIOWrapperOutBase64):
-
     """
     Basic implementation of IOWrapper for stdout
     """
@@ -39,8 +37,18 @@ class AexpectIOWrapperOut(messenger.StdIOWrapperOutBase64):
         self._obj.send(data)
 
 
-def remote_commander(client, host, port, username, password, prompt,
-                     linesep="\n", log_filename=None, timeout=10, path=None):
+def remote_commander(
+    client,
+    host,
+    port,
+    username,
+    password,
+    prompt,
+    linesep="\n",
+    log_filename=None,
+    timeout=10,
+    path=None,
+):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -64,10 +72,12 @@ def remote_commander(client, host, port, username, password, prompt,
     if path is None:
         path = data_dir.get_tmp_dir()
     if client == "ssh":
-        cmd = ("ssh -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password "
-               "-p %s %s@%s %s agent_base64" %
-               (port, username, host, os.path.join(path, "remote_runner.py")))
+        cmd = (
+            "ssh -o UserKnownHostsFile=/dev/null "
+            "-o PreferredAuthentications=password "
+            "-p %s %s@%s %s agent_base64"
+            % (port, username, host, os.path.join(path, "remote_runner.py"))
+        )
     elif client == "telnet":
         cmd = "telnet -l %s %s %s" % (username, host, port)
     elif client == "nc":
@@ -116,28 +126,31 @@ def run_remote_cmd(cmd, params, remote_runner=None, ignore_status=True):
             remote_ip = params.get("server_ip", params.get("remote_ip"))
             remote_pwd = params.get("server_pwd", params.get("remote_pwd"))
             remote_user = params.get("server_user", params.get("remote_user"))
-            remote_runner = RemoteRunner(host=remote_ip,
-                                         username=remote_user,
-                                         password=remote_pwd)
+            remote_runner = RemoteRunner(
+                host=remote_ip, username=remote_user, password=remote_pwd
+            )
 
         cmdresult = remote_runner.run(cmd, ignore_status=ignore_status)
         LOG.debug("Remote runner run result:\n%s", cmdresult)
         if cmdresult.exit_status and not ignore_status:
-            raise exceptions.TestFail("Failed to run '%s' on remote: %s"
-                                      % (cmd, cmdresult))
+            raise exceptions.TestFail(
+                "Failed to run '%s' on remote: %s" % (cmd, cmdresult)
+            )
         return cmdresult
-    except (LoginError, LoginTimeoutError,
-            LoginAuthenticationError, LoginProcessTerminatedError) as e:
+    except (
+        LoginError,
+        LoginTimeoutError,
+        LoginAuthenticationError,
+        LoginProcessTerminatedError,
+    ) as e:
         LOG.error(e)
         raise exceptions.TestError(e)
     except process.CmdError as cmderr:
         LOG.error("Remote runner run failed:\n%s", cmderr)
-        raise exceptions.TestFail("Failed to run '%s' on remote: %s"
-                                  % (cmd, cmderr))
+        raise exceptions.TestFail("Failed to run '%s' on remote: %s" % (cmd, cmderr))
 
 
 class Remote_Package(object):
-
     def __init__(self, address, client, username, password, port, remote_path):
         """
         Initialization of Remote Package class.
@@ -169,32 +182,53 @@ class Remote_Package(object):
         """
         Copy file from remote to local.
         """
-        LOG.debug("Pull remote: '%s' to local: '%s'." % (self.remote_path,
-                                                         local_path))
-        copy_files_from(self.address, self.cp_client, self.username,
-                        self.password, self.cp_port, self.remote_path,
-                        local_path, timeout=timeout)
+        LOG.debug("Pull remote: '%s' to local: '%s'." % (self.remote_path, local_path))
+        copy_files_from(
+            self.address,
+            self.cp_client,
+            self.username,
+            self.password,
+            self.cp_port,
+            self.remote_path,
+            local_path,
+            timeout=timeout,
+        )
 
     def push_file(self, local_path, timeout=600):
         """
         Copy file from local to remote.
         """
-        LOG.debug("Push local: '%s' to remote: '%s'." % (local_path,
-                                                         self.remote_path))
-        copy_files_to(self.address, self.cp_client, self.username,
-                      self.password, self.cp_port, local_path,
-                      self.remote_path, timeout=timeout)
+        LOG.debug("Push local: '%s' to remote: '%s'." % (local_path, self.remote_path))
+        copy_files_to(
+            self.address,
+            self.cp_client,
+            self.username,
+            self.password,
+            self.cp_port,
+            local_path,
+            self.remote_path,
+            timeout=timeout,
+        )
 
 
 class RemoteFile(object):
-
     """
     Class to handle the operations of file on remote host or guest.
     """
 
-    def __init__(self, address, client, username, password, port,
-                 remote_path, limit="", log_filename=None,
-                 verbose=False, timeout=600):
+    def __init__(
+        self,
+        address,
+        client,
+        username,
+        password,
+        port,
+        remote_path,
+        limit="",
+        log_filename=None,
+        verbose=False,
+        timeout=600,
+    ):
         """
         Initialization of RemoteFile class.
 
@@ -226,14 +260,14 @@ class RemoteFile(object):
 
         # Get a local_path.
         tmp_dir = data_dir.get_tmp_dir()
-        local_file = tempfile.NamedTemporaryFile(prefix=("%s_" % filename),
-                                                 dir=tmp_dir)
+        local_file = tempfile.NamedTemporaryFile(prefix=("%s_" % filename), dir=tmp_dir)
         self.local_path = local_file.name
         local_file.close()
 
         # Get a backup_path.
-        backup_file = tempfile.NamedTemporaryFile(prefix=("%s_" % filename),
-                                                  dir=tmp_dir)
+        backup_file = tempfile.NamedTemporaryFile(
+            prefix=("%s_" % filename), dir=tmp_dir
+        )
         self.backup_path = backup_file.name
         backup_file.close()
 
@@ -264,10 +298,19 @@ class RemoteFile(object):
         if self.client == "test":
             shutil.copy(self.remote_path, self.local_path)
         else:
-            copy_files_from(self.address, self.client, self.username,
-                            self.password, self.port, self.remote_path,
-                            self.local_path, self.limit, self.log_filename,
-                            self.verbose, self.timeout)
+            copy_files_from(
+                self.address,
+                self.client,
+                self.username,
+                self.password,
+                self.port,
+                self.remote_path,
+                self.local_path,
+                self.limit,
+                self.log_filename,
+                self.verbose,
+                self.timeout,
+            )
 
     def _push_file(self):
         """
@@ -276,10 +319,19 @@ class RemoteFile(object):
         if self.client == "test":
             shutil.copy(self.local_path, self.remote_path)
         else:
-            copy_files_to(self.address, self.client, self.username,
-                          self.password, self.port, self.local_path,
-                          self.remote_path, self.limit, self.log_filename,
-                          self.verbose, self.timeout)
+            copy_files_to(
+                self.address,
+                self.client,
+                self.username,
+                self.password,
+                self.port,
+                self.local_path,
+                self.remote_path,
+                self.limit,
+                self.log_filename,
+                self.verbose,
+                self.timeout,
+            )
 
     def _reset_file(self):
         """
@@ -288,10 +340,19 @@ class RemoteFile(object):
         if self.client == "test":
             shutil.copy(self.backup_path, self.remote_path)
         else:
-            copy_files_to(self.address, self.client, self.username,
-                          self.password, self.port, self.backup_path,
-                          self.remote_path, self.limit, self.log_filename,
-                          self.verbose, self.timeout)
+            copy_files_to(
+                self.address,
+                self.client,
+                self.username,
+                self.password,
+                self.port,
+                self.backup_path,
+                self.remote_path,
+                self.limit,
+                self.log_filename,
+                self.verbose,
+                self.timeout,
+            )
 
     def _read_local(self):
         """
@@ -354,7 +415,7 @@ class RemoteFile(object):
         :param length: how many lines you want to keep
         """
         lines = self._read_local()
-        lines = lines[0: length]
+        lines = lines[0:length]
         self._write_local(lines)
         self._push_file()
 
@@ -368,7 +429,7 @@ class RemoteFile(object):
         lines = self._read_local()
         for line in lines:
             for pattern in pattern_list:
-                if re.match(pattern, line.rstrip('\n')):
+                if re.match(pattern, line.rstrip("\n")):
                     lines.remove(line)
                     break
         self._write_local(lines)
@@ -395,18 +456,28 @@ class RemoteFile(object):
 
 
 class RemoteRunner(object):
-
     """
     Class to provide a utils.run-like method to execute command on
     remote host or guest. Provide a similar interface with utils.run
     on local.
     """
 
-    def __init__(self, client="ssh", host=None, port="22", username="root",
-                 password=None, prompt=r"[\#\$]\s*$", linesep="\n",
-                 log_filename=None, timeout=240, internal_timeout=10,
-                 session=None, preferred_authentication='password',
-                 log_function=None):
+    def __init__(
+        self,
+        client="ssh",
+        host=None,
+        port="22",
+        username="root",
+        password=None,
+        prompt=r"[\#\$]\s*$",
+        linesep="\n",
+        log_filename=None,
+        timeout=240,
+        internal_timeout=10,
+        session=None,
+        preferred_authentication="password",
+        log_function=None,
+    ):
         """
         Initialization of RemoteRunner. Init a session login to remote host or
         guest.
@@ -432,13 +503,21 @@ class RemoteRunner(object):
         """
         if session is None:
             if host is None:
-                raise exceptions.TestError(
-                    "Neither host, nor session was defined!")
-            self.session = wait_for_login(client, host, port, username,
-                                          password, prompt, linesep,
-                                          log_filename, log_function,
-                                          timeout, internal_timeout,
-                                          preferred_authentication=preferred_authentication)
+                raise exceptions.TestError("Neither host, nor session was defined!")
+            self.session = wait_for_login(
+                client,
+                host,
+                port,
+                username,
+                password,
+                prompt,
+                linesep,
+                log_filename,
+                log_function,
+                timeout,
+                internal_timeout,
+                preferred_authentication=preferred_authentication,
+            )
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
@@ -459,15 +538,17 @@ class RemoteRunner(object):
         # Redirect the stdout and stderr to file, Deciding error message
         # from output, and taking off the color of output. To return the same
         # result with utils.run() function.
-        command = "%s 1>%s 2>%s" % (
-            command, self.stdout_pipe, self.stderr_pipe)
+        command = "%s 1>%s 2>%s" % (command, self.stdout_pipe, self.stderr_pipe)
         status, _ = self.session.cmd_status_output(command, timeout=timeout)
-        output = self.session.cmd_output("cat %s;rm -f %s" %
-                                         (self.stdout_pipe, self.stdout_pipe))
-        errput = self.session.cmd_output("cat %s;rm -f %s" %
-                                         (self.stderr_pipe, self.stderr_pipe))
-        cmd_result = process.CmdResult(command=command, exit_status=status,
-                                       stdout=output, stderr=errput)
+        output = self.session.cmd_output(
+            "cat %s;rm -f %s" % (self.stdout_pipe, self.stdout_pipe)
+        )
+        errput = self.session.cmd_output(
+            "cat %s;rm -f %s" % (self.stderr_pipe, self.stderr_pipe)
+        )
+        cmd_result = process.CmdResult(
+            command=command, exit_status=status, stdout=output, stderr=errput
+        )
         cmd_result.stdout = cmd_result.stdout_text
         cmd_result.stderr = cmd_result.stderr_text
         if status and (not ignore_status):
@@ -486,16 +567,25 @@ class VMManager(object):
         self.remote_pwd = params.get("server_pwd")
         self.vm_ip = params.get("vm_ip")
         self.vm_pwd = params.get("vm_pwd")
-        self.vm_user = params.get("vm_user", 'root')
+        self.vm_user = params.get("vm_user", "root")
         self.port = params.get("port", 22)
-        if not all([self.remote_host, self.remote_user, self.remote_pwd,
-                    self.vm_ip, self.vm_pwd]):
-            raise exceptions.TestError("At least one of [remote_host|"
-                                       "remote_user|remote_pwd|vm_ip|"
-                                       "vm_pwd] is invalid!")
-        self.runner = RemoteRunner(host=self.remote_host,
-                                   username=self.remote_user,
-                                   password=self.remote_pwd)
+        if not all(
+            [
+                self.remote_host,
+                self.remote_user,
+                self.remote_pwd,
+                self.vm_ip,
+                self.vm_pwd,
+            ]
+        ):
+            raise exceptions.TestError(
+                "At least one of [remote_host|"
+                "remote_user|remote_pwd|vm_ip|"
+                "vm_pwd] is invalid!"
+            )
+        self.runner = RemoteRunner(
+            host=self.remote_host, username=self.remote_user, password=self.remote_pwd
+        )
         self.cmd_output = self.cmd_output_safe
         self.cmd = self.cmd_output_safe
 
@@ -518,17 +608,18 @@ class VMManager(object):
             run_func = runner.cmd_output
             session = runner
         else:
-            raise TypeError('runner should be instance of VMManager or '
-                            'aexpect.ShellSession')
-        pri_key = '~/.ssh/id_rsa'
-        pub_key = '~/.ssh/id_rsa.pub'
+            raise TypeError(
+                "runner should be instance of VMManager or " "aexpect.ShellSession"
+            )
+        pri_key = "~/.ssh/id_rsa"
+        pub_key = "~/.ssh/id_rsa.pub"
         # Check the private key and public key file on remote host.
         cmd = f"ls {pri_key} {pub_key};echo $?"
         if isinstance(runner, RemoteRunner):
             result = run_func(cmd).stdout.strip()[-1]
         else:
             result = run_func(cmd).strip()[-1]
-        if result == '0':
+        if result == "0":
             LOG.info("SSH key pair already exist")
         else:
             LOG.debug("Create new SSH key pair")
@@ -545,8 +636,7 @@ class VMManager(object):
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
         """
-        VMManager.set_ssh_auth(self.runner, self.vm_ip,
-                               self.vm_user, self.vm_pwd)
+        VMManager.set_ssh_auth(self.runner, self.vm_ip, self.vm_user, self.vm_pwd)
 
     def check_network(self, count=5, timeout=60):
         """
@@ -572,10 +662,13 @@ class VMManager(object):
                 break
 
         if not vm_net_connectivity:
-            raise exceptions.TestFail("Failed to ping %s: %s"
-                                      % (self.vm_ip, result.stdout_text))
+            raise exceptions.TestFail(
+                "Failed to ping %s: %s" % (self.vm_ip, result.stdout_text)
+            )
 
-    def run_command(self, command, runner=None, ignore_status=False, timeout=CMD_TIMEOUT):
+    def run_command(
+        self, command, runner=None, ignore_status=False, timeout=CMD_TIMEOUT
+    ):
         """
         Run command in the VM.
 
@@ -587,17 +680,17 @@ class VMManager(object):
         :raise: exceptions.TestFail, if the command fails
         :return: CmdResult object
         """
-        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
-                                 "-o StrictHostKeyChecking=no")
-        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, self.vm_user,
-                                     self.vm_ip, command)
+        ssh_options = "%s %s" % (
+            "-o UserKnownHostsFile=/dev/null",
+            "-o StrictHostKeyChecking=no",
+        )
+        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, self.vm_user, self.vm_ip, command)
         ret = None
         try:
             ret = self.runner.run(cmd, timeout=timeout, ignore_status=ignore_status)
         except process.CmdError as detail:
             LOG.debug("Failed to run '%s' in the VM: %s", cmd, detail)
-            raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
-                                      cmd, detail)
+            raise exceptions.TestFail("Failed to run '%s' in the VM: %s", cmd, detail)
         return ret
 
     def cmd_output_safe(self, cmd, timeout=CMD_TIMEOUT):

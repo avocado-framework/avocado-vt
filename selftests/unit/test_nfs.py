@@ -1,33 +1,31 @@
 #!/usr/bin/python
-import unittest
 import os
 import sys
+import unittest
 
-from avocado.utils import path
-from avocado.utils import process
-
+from avocado.utils import path, process
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest.unittest_utils import mock
-from virttest import nfs
-from virttest import utils_misc
+from virttest import nfs, utils_misc
 from virttest.staging import service
+from virttest.unittest_utils import mock
 
 
 class FakeService(object):
-
     def __init__(self, service_name):
-        self.fake_cmds = [{"cmd": "status", "stdout": True},
-                          {"cmd": "restart", "stdout": ""}]
+        self.fake_cmds = [
+            {"cmd": "status", "stdout": True},
+            {"cmd": "restart", "stdout": ""},
+        ]
 
     def get_stdout(self, cmd):
         for fake_cmd in self.fake_cmds:
-            if fake_cmd['cmd'] == cmd:
-                return fake_cmd['stdout']
+            if fake_cmd["cmd"] == cmd:
+                return fake_cmd["stdout"]
         raise ValueError("Could not locate locate '%s' on fake cmd db" % cmd)
 
     def status(self):
@@ -38,18 +36,16 @@ class FakeService(object):
 
 
 class nfs_test(unittest.TestCase):
-
     def setup_stubs_init(self):
         path.find_command.expect_call("mount")
         path.find_command.expect_call("service")
         path.find_command.expect_call("exportfs")
-        service.Factory.create_service.expect_call("nfs").and_return(
-            FakeService("nfs"))
+        service.Factory.create_service.expect_call("nfs").and_return(FakeService("nfs"))
         service.Factory.create_service.expect_call("rpcbind").and_return(
-            FakeService("rpcbind"))
+            FakeService("rpcbind")
+        )
         mount_src = self.nfs_params.get("nfs_mount_src")
-        export_dir = (self.nfs_params.get("export_dir") or
-                      mount_src.split(":")[-1])
+        export_dir = self.nfs_params.get("export_dir") or mount_src.split(":")[-1]
         export_ip = self.nfs_params.get("export_ip", "*")
         export_options = self.nfs_params.get("export_options", "").strip()
         nfs.Exportfs.expect_new(export_dir, export_ip, export_options)
@@ -58,26 +54,27 @@ class nfs_test(unittest.TestCase):
         os.makedirs.expect_call(nfs_obj.export_dir)
         nfs_obj.exportfs.export.expect_call()
         os.makedirs.expect_call(nfs_obj.mount_dir)
-        utils_misc.mount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir,
-                                     "nfs", perm=nfs_obj.mount_options)
+        utils_misc.mount.expect_call(
+            nfs_obj.mount_src, nfs_obj.mount_dir, "nfs", perm=nfs_obj.mount_options
+        )
 
     def setup_stubs_is_mounted(self, nfs_obj):
-        utils_misc.is_mounted.expect_call(nfs_obj.mount_src,
-                                          nfs_obj.mount_dir,
-                                          "nfs").and_return(True)
+        utils_misc.is_mounted.expect_call(
+            nfs_obj.mount_src, nfs_obj.mount_dir, "nfs"
+        ).and_return(True)
 
     def setup_stubs_cleanup(self, nfs_obj):
-        utils_misc.umount.expect_call(nfs_obj.mount_src,
-                                      nfs_obj.mount_dir,
-                                      "nfs")
+        utils_misc.umount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir, "nfs")
         nfs_obj.exportfs.reset_export.expect_call()
 
     def setUp(self):
-        self.nfs_params = {"nfs_mount_dir": "/mnt/nfstest",
-                           "nfs_mount_options": "rw",
-                           "nfs_mount_src": "127.0.0.1:/mnt/nfssrc",
-                           "setup_local_nfs": "yes",
-                           "export_options": "rw,no_root_squash"}
+        self.nfs_params = {
+            "nfs_mount_dir": "/mnt/nfstest",
+            "nfs_mount_options": "rw",
+            "nfs_mount_src": "127.0.0.1:/mnt/nfssrc",
+            "setup_local_nfs": "yes",
+            "export_options": "rw,no_root_squash",
+        }
         self.god = mock.mock_god()
         self.god.stub_function(path, "find_command")
         self.god.stub_function(process, "system")

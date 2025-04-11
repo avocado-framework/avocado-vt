@@ -1,19 +1,20 @@
 from __future__ import division
-import re
-import math
+
 import logging
+import math
 import os
+import re
 
 from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import kernel_interface
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 # Returns total memory in kb
-def read_from_meminfo(key, session=None, node_id=''):
+def read_from_meminfo(key, session=None, node_id=""):
     """
     wrapper to return value from /proc/meminfo using key
 
@@ -25,14 +26,17 @@ def read_from_meminfo(key, session=None, node_id=''):
     func = process.getoutput
     if session:
         func = session.cmd_output
-    search_file = '/sys/devices/system/node/node%s/meminfo' % node_id \
-        if node_id else '/proc/meminfo'
+    search_file = (
+        "/sys/devices/system/node/node%s/meminfo" % node_id
+        if node_id
+        else "/proc/meminfo"
+    )
 
-    meminfo = func('grep %s %s' % (key, search_file))
-    return int(re.findall(r'%s:\s+(\d+)' % key, meminfo)[0])
+    meminfo = func("grep %s %s" % (key, search_file))
+    return int(re.findall(r"%s:\s+(\d+)" % key, meminfo)[0])
 
 
-def memtotal(session=None, node_id=''):
+def memtotal(session=None, node_id=""):
     """
     Method to get the memtotal from /proc/meminfo or
     /sys/devices/system/node/nodexx/meminfo
@@ -40,7 +44,7 @@ def memtotal(session=None, node_id=''):
     :param session: ShellSession Object of remote host / guest
     :param node_id: str, numa node id
     """
-    return read_from_meminfo('MemTotal', session=session, node_id=node_id)
+    return read_from_meminfo("MemTotal", session=session, node_id=node_id)
 
 
 def freememtotal(session=None):
@@ -49,7 +53,7 @@ def freememtotal(session=None):
 
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('MemFree', session=session)
+    return read_from_meminfo("MemFree", session=session)
 
 
 def rounded_memtotal(session=None):
@@ -99,8 +103,8 @@ def numa_nodes(session=None):
     base_path = "/sys/devices/system/node"
     node_avail = func("ls %s | grep 'node'" % base_path).split()
     node_paths = [os.path.join(base_path, each_node) for each_node in node_avail]
-    nodes = [int(re.sub(r'.*node(\d+)', r'\1', x)) for x in node_paths]
-    return (sorted(nodes))
+    nodes = [int(re.sub(r".*node(\d+)", r"\1", x)) for x in node_paths]
+    return sorted(nodes)
 
 
 def node_size(session=None):
@@ -110,7 +114,7 @@ def node_size(session=None):
     :param session: ShellSession Object of remote host / guest
     """
     nodes = max(len(numa_nodes(session=session)), 1)
-    return ((memtotal() * 1024) // nodes)
+    return (memtotal() * 1024) // nodes
 
 
 def get_huge_page_size(session=None):
@@ -119,7 +123,7 @@ def get_huge_page_size(session=None):
 
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('Hugepagesize', session=session)
+    return read_from_meminfo("Hugepagesize", session=session)
 
 
 def get_num_huge_pages(session=None):
@@ -128,7 +132,7 @@ def get_num_huge_pages(session=None):
 
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('HugePages_Total', session=session)
+    return read_from_meminfo("HugePages_Total", session=session)
 
 
 def get_num_huge_pages_free(session=None):
@@ -137,7 +141,7 @@ def get_num_huge_pages_free(session=None):
 
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('HugePages_Free', session=session)
+    return read_from_meminfo("HugePages_Free", session=session)
 
 
 def get_num_huge_pages_rsvd(session=None):
@@ -146,7 +150,7 @@ def get_num_huge_pages_rsvd(session=None):
 
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('HugePages_Rsvd', session=session)
+    return read_from_meminfo("HugePages_Rsvd", session=session)
 
 
 def get_num_huge_pages_surp(session=None):
@@ -154,7 +158,7 @@ def get_num_huge_pages_surp(session=None):
     Method to get surplus hugepage pages
     :param session: ShellSession Object of remote host / guest
     """
-    return read_from_meminfo('HugePages_Surp', session=session)
+    return read_from_meminfo("HugePages_Surp", session=session)
 
 
 def get_num_anon_huge_pages(pid=0, session=None):
@@ -166,10 +170,10 @@ def get_num_anon_huge_pages(pid=0, session=None):
     """
     if int(pid) > 1:
         # get AnonHugePages usage of specified process
-        return read_from_smaps(pid, 'AnonHugePages', session=session)
+        return read_from_smaps(pid, "AnonHugePages", session=session)
     else:
         # invalid pid, so return AnonHugePages of the host
-        return read_from_meminfo('AnonHugePages', session=session)
+        return read_from_meminfo("AnonHugePages", session=session)
 
 
 def get_transparent_hugepage(session=None, regex="[]"):
@@ -187,8 +191,7 @@ def get_transparent_hugepage(session=None, regex="[]"):
         thp_path = RH_THP_PATH
     else:
         raise exceptions.TestFail("transparent hugepage Not supported")
-    thp = kernel_interface.SysFS(os.path.join(thp_path, 'enabled'),
-                                 session=session)
+    thp = kernel_interface.SysFS(os.path.join(thp_path, "enabled"), session=session)
     return thp.sys_fs_value.strip(regex)
 
 
@@ -202,7 +205,7 @@ def set_num_huge_pages(num, session=None):
     func = process.system
     if session:
         func = session.cmd_status
-    return func('/sbin/sysctl vm.nr_hugepages=%d' % num) == 0
+    return func("/sbin/sysctl vm.nr_hugepages=%d" % num) == 0
 
 
 def set_transparent_hugepage(sflag, session=None):
@@ -212,7 +215,7 @@ def set_transparent_hugepage(sflag, session=None):
     :param sflag:  only can be set always, madvise or never.
     :param session: ShellSession Object of remote host / guest
     """
-    flags = ['always', 'madvise', 'never']
+    flags = ["always", "madvise", "never"]
     if sflag not in flags:
         raise exceptions.TestFail("specify wrong parameter")
     UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
@@ -223,8 +226,7 @@ def set_transparent_hugepage(sflag, session=None):
         thp_path = RH_THP_PATH
     else:
         raise exceptions.TestFail("transparent hugepage Not supported")
-    thp = kernel_interface.SysFS(os.path.join(thp_path, 'enabled'),
-                                 session=session)
+    thp = kernel_interface.SysFS(os.path.join(thp_path, "enabled"), session=session)
     thp.sys_fs_value = sflag
     if sflag not in thp.sys_fs_value:
         raise exceptions.TestFail("setting transparent_hugepage failed")
@@ -241,8 +243,7 @@ def drop_caches(session=None):
         func = session.cmd_output
     func("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
-    drop_caches = kernel_interface.ProcFS("/proc/sys/vm/drop_caches",
-                                          session=session)
+    drop_caches = kernel_interface.ProcFS("/proc/sys/vm/drop_caches", session=session)
     drop_caches.proc_fs_value = 3
 
 
@@ -278,7 +279,7 @@ def read_from_smaps(pid, key, session=None):
     func = process.getoutput
     if session:
         func = session.cmd_output
-    smaps_info = func('grep %s /proc/%s/smaps' % (key, pid))
+    smaps_info = func("grep %s /proc/%s/smaps" % (key, pid))
 
     memory_size = 0
     for each_number in re.findall("%s:\s+(\d+)" % key, smaps_info):
@@ -366,7 +367,7 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
         re_buddyinfo += "(%s)" % "|".join(nodes.split())
 
     if not re.findall(re_buddyinfo, buddy_info_content):
-        LOG.warn("Can not find Nodes %s" % nodes)
+        LOG.warning("Can not find Nodes %s" % nodes)
         return None
     re_buddyinfo += ".*?zone\s+"
     if zones == "all":
@@ -374,7 +375,7 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
     else:
         re_buddyinfo += "(%s)" % "|".join(zones.split())
     if not re.findall(re_buddyinfo, buddy_info_content):
-        LOG.warn("Can not find zones %s" % zones)
+        LOG.warning("Can not find zones %s" % zones)
         return None
     re_buddyinfo += "\s+([\s\d]+)"
 
@@ -382,10 +383,9 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
 
     if re.findall("[<>=]", chunk_sizes) and buddy_list:
         size_list = list(range(len(buddy_list[-1][-1].strip().split())))
-        chunk_sizes = [str(_) for _ in size_list if eval("%s %s" % (_,
-                                                                    chunk_sizes))]
+        chunk_sizes = [str(_) for _ in size_list if eval("%s %s" % (_, chunk_sizes))]
 
-        chunk_sizes = ' '.join(chunk_sizes)
+        chunk_sizes = " ".join(chunk_sizes)
 
     buddyinfo_dict = {}
     for chunk_size in chunk_sizes.split():
@@ -407,4 +407,4 @@ def getpagesize(session=None):
     func = process.getoutput
     if session:
         func = session.cmd_output
-    return int(func('getconf PAGE_SIZE')) // 1024
+    return int(func("getconf PAGE_SIZE")) // 1024

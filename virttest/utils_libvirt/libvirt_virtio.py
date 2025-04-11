@@ -8,10 +8,10 @@ import logging
 
 from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.devices import iommu
-from virttest.utils_test import libvirt
 from virttest.utils_libvirt import libvirt_vmxml
+from virttest.utils_test import libvirt
 
-LOG = logging.getLogger('avocado.' + __name__)
+LOG = logging.getLogger("avocado." + __name__)
 
 
 def create_iommu(iommu_dict):
@@ -34,11 +34,11 @@ def add_iommu_dev(vm, iommu_dict):
     :param vm: vm object
     :param iommu_dict: Attrs of iommu device
     """
-    libvirt_vmxml.remove_vm_devices_by_type(vm, 'iommu')
+    libvirt_vmxml.remove_vm_devices_by_type(vm, "iommu")
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
     features = vmxml.features
-    if not features.has_feature('ioapic') and iommu_dict.get('model') == "intel":
-        features.add_feature('ioapic', 'driver', 'qemu')
+    if not features.has_feature("ioapic") and iommu_dict.get("model") == "intel":
+        features.add_feature("ioapic", "driver", "qemu")
         vmxml.features = features
 
     iommu_dev = create_iommu(iommu_dict)

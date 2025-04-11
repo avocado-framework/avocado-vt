@@ -3,12 +3,11 @@ Module simplifying manipulation of XML described at
 http://libvirt.org/formatnwfilter.html
 """
 
-from virttest.libvirt_xml import base, xcepts, accessors
+from virttest.libvirt_xml import accessors, base, xcepts
 from virttest.libvirt_xml.nwfilter_protocols import librarian
 
 
 class NwfilterRulesProtocol(list):
-
     """
     List of protocol instances from classes handed out by librarian.get
     """
@@ -17,7 +16,7 @@ class NwfilterRulesProtocol(list):
     def __type_check__(other):
         try:
             # Raise error if object isn't dict-like or doesn't have key
-            device_tag = other['device_tag']
+            device_tag = other["device_tag"]
             # Check that we have support for this type
             librarian.get(device_tag)
         except (AttributeError, TypeError, xcepts.LibvirtXMLError):
@@ -49,7 +48,6 @@ class NwfilterRulesProtocol(list):
 
 
 class NwfilterXMLRules(base.LibvirtXMLBase):
-
     """
     Create new NwfilterXMLRules instance.
 
@@ -60,21 +58,36 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
         statematch: string, rule statematch
     """
 
-    __slots__ = ('rule_action', 'rule_direction', 'rule_priority',
-                 'rule_statematch')
+    __slots__ = ("rule_action", "rule_direction", "rule_priority", "rule_statematch")
 
     def __init__(self, protocol=None, virsh_instance=base.virsh):
-        accessors.XMLAttribute('rule_action', self, parent_xpath='/',
-                               tag_name='rule', attribute='action')
-        accessors.XMLAttribute('rule_direction', self, parent_xpath='/',
-                               tag_name='rule', attribute='direction')
-        accessors.XMLAttribute('rule_priority', self, parent_xpath='/',
-                               tag_name='rule', attribute='priority')
-        accessors.XMLAttribute('rule_statematch', self, parent_xpath='/',
-                               tag_name='rule', attribute='statematch')
+        accessors.XMLAttribute(
+            "rule_action", self, parent_xpath="/", tag_name="rule", attribute="action"
+        )
+        accessors.XMLAttribute(
+            "rule_direction",
+            self,
+            parent_xpath="/",
+            tag_name="rule",
+            attribute="direction",
+        )
+        accessors.XMLAttribute(
+            "rule_priority",
+            self,
+            parent_xpath="/",
+            tag_name="rule",
+            attribute="priority",
+        )
+        accessors.XMLAttribute(
+            "rule_statematch",
+            self,
+            parent_xpath="/",
+            tag_name="rule",
+            attribute="statematch",
+        )
 
         super(NwfilterXMLRules, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<rule></rule>'
+        self.xml = "<rule></rule>"
 
     def backup_rule(self):
         """
@@ -82,7 +95,7 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
 
         :return: the backup of rule instance
         """
-        backup = NwfilterXMLRules(virsh_instance=self.__dict_get__('virsh'))
+        backup = NwfilterXMLRules(virsh_instance=self.__dict_get__("virsh"))
         backup.xmltreefile = self.xmltreefile.backup_copy()
 
         return backup
@@ -126,7 +139,6 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
 
 
 class NwfilterXMLBase(base.LibvirtXMLBase):
-
     """
     Accessor methods for NwfilterXML class.
 
@@ -138,49 +150,61 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         filterrefs: list, list of dictionaries describing filterref properties
     """
 
-    __slots__ = base.LibvirtXMLBase.__slots__ + ('filter_name', 'filter_chain',
-                                                 'filter_priority',
-                                                 'uuid', 'filterrefs')
+    __slots__ = base.LibvirtXMLBase.__slots__ + (
+        "filter_name",
+        "filter_chain",
+        "filter_priority",
+        "uuid",
+        "filterrefs",
+    )
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
     __schema_name__ = "nwfilter"
 
     def __init__(self, virsh_instance=base.virsh):
-        accessors.XMLAttribute('filter_name', self, parent_xpath='/',
-                               tag_name='filter', attribute='name')
-        accessors.XMLAttribute('filter_chain', self, parent_xpath='/',
-                               tag_name='filter', attribute='chain')
-        accessors.XMLAttribute('filter_priority', self, parent_xpath='/',
-                               tag_name='filter', attribute='priority')
-        accessors.XMLElementText('uuid', self, parent_xpath='/',
-                                 tag_name='uuid')
-        accessors.XMLElementList(property_name='filterrefs',
-                                 libvirtxml=self,
-                                 parent_xpath='/',
-                                 marshal_from=self.marshal_from_filterref,
-                                 marshal_to=self.marshal_to_filterref)
+        accessors.XMLAttribute(
+            "filter_name", self, parent_xpath="/", tag_name="filter", attribute="name"
+        )
+        accessors.XMLAttribute(
+            "filter_chain", self, parent_xpath="/", tag_name="filter", attribute="chain"
+        )
+        accessors.XMLAttribute(
+            "filter_priority",
+            self,
+            parent_xpath="/",
+            tag_name="filter",
+            attribute="priority",
+        )
+        accessors.XMLElementText("uuid", self, parent_xpath="/", tag_name="uuid")
+        accessors.XMLElementList(
+            property_name="filterrefs",
+            libvirtxml=self,
+            parent_xpath="/",
+            marshal_from=self.marshal_from_filterref,
+            marshal_to=self.marshal_to_filterref,
+        )
         super(NwfilterXMLBase, self).__init__(virsh_instance=virsh_instance)
 
     @staticmethod
     def marshal_from_filterref(item, index, libvirtxml):
         """Convert a dictionary into a tag + attributes"""
-        del index           # not used
-        del libvirtxml      # not used
+        del index  # not used
+        del libvirtxml  # not used
         if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of filterref "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('filterref', dict(item))  # return copy of dict, not reference
+            raise xcepts.LibvirtXMLError(
+                "Expected a dictionary of filterref " "attributes, not a %s" % str(item)
+            )
+        return ("filterref", dict(item))  # return copy of dict, not reference
 
     @staticmethod
     def marshal_to_filterref(tag, attr_dict, index, libvirtxml):
         """Convert a tag + attributes into a dictionary"""
-        del index                    # not used
-        del libvirtxml               # not used
-        if tag != 'filterref':
-            return None              # skip this one
-        return dict(attr_dict)       # return copy of dict, not reference
+        del index  # not used
+        del libvirtxml  # not used
+        if tag != "filterref":
+            return None  # skip this one
+        return dict(attr_dict)  # return copy of dict, not reference
 
     def get_rule_index(self, rule_protocol=None):
         """
@@ -190,7 +214,7 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         :return: rule index list
         """
         rule_index = []
-        source_root = self.xmltreefile.findall('rule')
+        source_root = self.xmltreefile.findall("rule")
         for i in range(len(source_root)):
             if rule_protocol:
                 protocol_node = list(source_root[i])[0]
@@ -211,10 +235,9 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         """
         index = self.get_rule_index(rule_protocol)
         if rule_index not in index:
-            raise xcepts.LibvirtXMLError("rule index %s is not valid" %
-                                         rule_index)
-        source_root = self.xmltreefile.findall('rule')
-        rulexml = NwfilterXMLRules(virsh_instance=self.__dict_get__('virsh'))
+            raise xcepts.LibvirtXMLError("rule index %s is not valid" % rule_index)
+        source_root = self.xmltreefile.findall("rule")
+        rulexml = NwfilterXMLRules(virsh_instance=self.__dict_get__("virsh"))
         rulexml.xmltreefile = self.xmltreefile.backup_copy()
         rulexml.xmltreefile._setroot(source_root[rule_index])
         rulexml.xmltreefile.write()
@@ -228,7 +251,7 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
 
         :param rule_index: rule's index number
         """
-        source_root = self.xmltreefile.findall('rule')
+        source_root = self.xmltreefile.findall("rule")
         self.xmltreefile.remove(source_root[rule_index])
         self.xmltreefile.write()
 
@@ -240,10 +263,9 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         :param value: NwfilterXMLRules instance
         """
         if not issubclass(type(value), NwfilterXMLRules):
-            raise xcepts.LibvirtXMLError(
-                "Value must be a NwfilterXMLRules or subclass")
+            raise xcepts.LibvirtXMLError("Value must be a NwfilterXMLRules or subclass")
         try:
-            source_root = self.xmltreefile.findall('rule')
+            source_root = self.xmltreefile.findall("rule")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         if source_root[rule_index] is not None:
@@ -259,8 +281,7 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
         :param value: NwfilterXMLRules instance
         """
         if not issubclass(type(value), NwfilterXMLRules):
-            raise xcepts.LibvirtXMLError(
-                "Value must be a NwfilterXMLRules or subclass")
+            raise xcepts.LibvirtXMLError("Value must be a NwfilterXMLRules or subclass")
         root = self.xmltreefile.getroot()
         root.append(value.xmltreefile.getroot())
         self.xmltreefile.write()
@@ -284,7 +305,6 @@ class NwfilterXMLBase(base.LibvirtXMLBase):
 
 
 class NwfilterXML(NwfilterXMLBase):
-
     """
     Manipulators of a nwfilter through it's XML definition.
     """
@@ -296,7 +316,7 @@ class NwfilterXML(NwfilterXMLBase):
         Initialize new instance with empty XML
         """
         super(NwfilterXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = u"<filter></filter>"
+        self.xml = "<filter></filter>"
 
     @staticmethod
     def new_from_filter_dumpxml(uuid, options="", virsh_instance=base.virsh):
@@ -309,7 +329,7 @@ class NwfilterXML(NwfilterXMLBase):
         """
         filter_xml = NwfilterXML(virsh_instance=virsh_instance)
         result = virsh_instance.nwfilter_dumpxml(uuid, options=options)
-        filter_xml['xml'] = result.stdout_text.strip()
+        filter_xml["xml"] = result.stdout_text.strip()
 
         return filter_xml
 
@@ -320,7 +340,7 @@ class NwfilterXML(NwfilterXMLBase):
         :return: all rules dict with key as rule index number
         """
         rule_dict_attr = {}
-        rule_nodes = self.xmltreefile.findall('rule')
+        rule_nodes = self.xmltreefile.findall("rule")
         for i in range(len(rule_nodes)):
             if list(rule_nodes[i]):
                 protocol_node = list(rule_nodes[i])[0]
@@ -328,7 +348,7 @@ class NwfilterXML(NwfilterXMLBase):
                 pro_dict = dict(list(protocol_node.items()))
                 rule_dict = dict(list(rule_nodes[i].items()))
                 rule_dict.update(pro_dict)
-                rule_dict['protocol'] = protocol
+                rule_dict["protocol"] = protocol
                 rule_dict_attr[i] = rule_dict
             else:
                 rule_dict = dict(list(rule_nodes[i].items()))
@@ -336,8 +356,7 @@ class NwfilterXML(NwfilterXMLBase):
 
         return rule_dict_attr
 
-    def get_rules_dict(self, filter_name, options="",
-                       virsh_instance=base.virsh):
+    def get_rules_dict(self, filter_name, options="", virsh_instance=base.virsh):
         """
         Return all rules dict with protocol attribute for given filter
 
@@ -345,8 +364,9 @@ class NwfilterXML(NwfilterXMLBase):
         :param options: extra options
         :return: all rules dictionary with index as key
         """
-        filxml = NwfilterXML.new_from_filter_dumpxml(filter_name,
-                                                     virsh_instance=base.virsh)
+        filxml = NwfilterXML.new_from_filter_dumpxml(
+            filter_name, virsh_instance=base.virsh
+        )
         rules = filxml.get_all_rules()
 
         return rules
@@ -361,7 +381,7 @@ class NwfilterXML(NwfilterXMLBase):
         :return: NwfilterRulesProtocol instance list
         """
         protocols = NwfilterRulesProtocol()
-        all_rules = self.xmltreefile.findall('rule')
+        all_rules = self.xmltreefile.findall("rule")
 
         for i in all_rules:
             protocol_node = list(i)
@@ -371,14 +391,12 @@ class NwfilterXML(NwfilterXMLBase):
                     # only use protocol_node[0]
                     if protocol_node[0].tag == protocol:
                         protocol_class = librarian.get(protocol)
-                        new_one = protocol_class.new_from_element(
-                            protocol_node[0])
+                        new_one = protocol_class.new_from_element(protocol_node[0])
                         protocols.device_tag = protocol
                         protocols.append(new_one)
                 else:
                     protocol_class = librarian.get(protocol_node[0].tag)
-                    new_one = protocol_class.new_from_element(
-                        protocol_node[0])
+                    new_one = protocol_class.new_from_element(protocol_node[0])
                     protocols.device_tag = protocol_node[0].tag
                     protocols.append(new_one)
 

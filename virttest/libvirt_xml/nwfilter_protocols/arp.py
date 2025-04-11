@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Arp(base.TypedDeviceBase):
-
     """
     Create new Arp xml instances
 
@@ -18,15 +17,20 @@ class Arp(base.TypedDeviceBase):
     attrs: libvirt_xml.nwfilter_protocols.Arp.Attr instance
     """
 
-    __slots__ = ('attrs',)
+    __slots__ = ("attrs",)
 
-    def __init__(self, type_name='file', virsh_instance=base.base.virsh):
-        accessors.XMLElementNest('attrs', self, parent_xpath='/',
-                                 tag_name='arp', subclass=self.Attr,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        super(Arp, self).__init__(protocol_tag='arp', type_name=type_name,
-                                  virsh_instance=virsh_instance)
+    def __init__(self, type_name="file", virsh_instance=base.base.virsh):
+        accessors.XMLElementNest(
+            "attrs",
+            self,
+            parent_xpath="/",
+            tag_name="arp",
+            subclass=self.Attr,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        super(Arp, self).__init__(
+            protocol_tag="arp", type_name=type_name, virsh_instance=virsh_instance
+        )
 
     def new_attr(self, **dargs):
         """
@@ -47,7 +51,7 @@ class Arp(base.TypedDeviceBase):
         :return: None if no arp in xml, dict of arp's attributes.
         """
         try:
-            arp_node = self.xmltreefile.reroot('/arp')
+            arp_node = self.xmltreefile.reroot("/arp")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = arp_node.getroot()
@@ -56,7 +60,6 @@ class Arp(base.TypedDeviceBase):
         return arp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Arp attribute XML class
 
@@ -77,38 +80,102 @@ class Arp(base.TypedDeviceBase):
         gratuitous: string, boolean indicating whether to check for gratuitous ARP packet
         """
 
-        __slots__ = ('srcmacaddr', 'srcmacmask', 'dstmacaddr', 'dstmacmask',
-                     'hwtype', 'protocoltype', 'opcode', 'arpsrcmacaddr',
-                     'arpdstmacaddr', 'arpsrcipaddr', 'arpdstipaddr',
-                     'comment', 'gratuitous')
+        __slots__ = (
+            "srcmacaddr",
+            "srcmacmask",
+            "dstmacaddr",
+            "dstmacmask",
+            "hwtype",
+            "protocoltype",
+            "opcode",
+            "arpsrcmacaddr",
+            "arpdstmacaddr",
+            "arpsrcipaddr",
+            "arpdstipaddr",
+            "comment",
+            "gratuitous",
+        )
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLAttribute('srcmacaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='srcmacaddr')
-            accessors.XMLAttribute('srcmacmask', self, parent_xpath='/',
-                                   tag_name='arp', attribute='srcmacmask')
-            accessors.XMLAttribute('dstmacaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='dstmacaddr')
-            accessors.XMLAttribute('dstmacmask', self, parent_xpath='/',
-                                   tag_name='arp', attribute='dstmacmask')
-            accessors.XMLAttribute('hwtype', self, parent_xpath='/',
-                                   tag_name='arp', attribute='hwtype')
-            accessors.XMLAttribute('protocoltype', self, parent_xpath='/',
-                                   tag_name='arp', attribute='protocoltype')
-            accessors.XMLAttribute('opcode', self, parent_xpath='/',
-                                   tag_name='arp', attribute='opcode')
-            accessors.XMLAttribute('arpsrcmacaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='arpsrcmacaddr')
-            accessors.XMLAttribute('arpdstmacaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='arpdstmacaddr')
-            accessors.XMLAttribute('arpsrcipaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='arpsrcipaddr')
-            accessors.XMLAttribute('arpdstipaddr', self, parent_xpath='/',
-                                   tag_name='arp', attribute='arpdstipaddr')
-            accessors.XMLAttribute('comment', self, parent_xpath='/',
-                                   tag_name='arp', attribute='comment')
-            accessors.XMLAttribute('gratuitous', self, parent_xpath='/',
-                                   tag_name='arp', attribute='gratuitous')
+            accessors.XMLAttribute(
+                "srcmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="srcmacaddr",
+            )
+            accessors.XMLAttribute(
+                "srcmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="srcmacmask",
+            )
+            accessors.XMLAttribute(
+                "dstmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="dstmacaddr",
+            )
+            accessors.XMLAttribute(
+                "dstmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="dstmacmask",
+            )
+            accessors.XMLAttribute(
+                "hwtype", self, parent_xpath="/", tag_name="arp", attribute="hwtype"
+            )
+            accessors.XMLAttribute(
+                "protocoltype",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="protocoltype",
+            )
+            accessors.XMLAttribute(
+                "opcode", self, parent_xpath="/", tag_name="arp", attribute="opcode"
+            )
+            accessors.XMLAttribute(
+                "arpsrcmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="arpsrcmacaddr",
+            )
+            accessors.XMLAttribute(
+                "arpdstmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="arpdstmacaddr",
+            )
+            accessors.XMLAttribute(
+                "arpsrcipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="arpsrcipaddr",
+            )
+            accessors.XMLAttribute(
+                "arpdstipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="arpdstipaddr",
+            )
+            accessors.XMLAttribute(
+                "comment", self, parent_xpath="/", tag_name="arp", attribute="comment"
+            )
+            accessors.XMLAttribute(
+                "gratuitous",
+                self,
+                parent_xpath="/",
+                tag_name="arp",
+                attribute="gratuitous",
+            )
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<arp/>'
+            self.xml = "<arp/>"

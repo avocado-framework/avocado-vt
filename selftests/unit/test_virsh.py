@@ -1,16 +1,15 @@
 #!/usr/bin/python
 
-import unittest
 import logging
 import os
 import sys
+import unittest
 
 from avocado.utils import process
 
-
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(basedir, 'virttest')):
+if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 
@@ -21,20 +20,27 @@ def process_is_alive(name_pattern):
     So look only for command whose initial pathname ends with name.
     Name itself is an egrep pattern, so it can use | etc for variations.
     """
-    return process.system("pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
-                          ignore_status=True, shell=True) == 0
+    return (
+        process.system(
+            "pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
+            ignore_status=True,
+            shell=True,
+        )
+        == 0
+    )
 
 
 class bogusVirshFailureException(unittest.TestCase.failureException):
-
     def __init__(self, *args, **dargs):
         self.virsh_args = args
         self.virsh_dargs = dargs
 
     def __str__(self):
-        msg = ("Codepath under unittest attempted call to un-mocked virsh"
-               " method, with args: '%s' and dargs: '%s'"
-               % (self.virsh_args, self.virsh_dargs))
+        msg = (
+            "Codepath under unittest attempted call to un-mocked virsh"
+            " method, with args: '%s' and dargs: '%s'"
+            % (self.virsh_args, self.virsh_dargs)
+        )
         return msg
 
 
@@ -52,9 +58,9 @@ def FakeVirshFactory(preserve=None):
 
     if preserve is None:
         preserve = []
-    fake_virsh = virsh.Virsh(virsh_exec='/bin/false',
-                             uri='qemu:///system', debug=True,
-                             ignore_status=True)
+    fake_virsh = virsh.Virsh(
+        virsh_exec="/bin/false", uri="qemu:///system", debug=True, ignore_status=True
+    )
     # Make all virsh commands throw an exception by calling it
     for symbol in dir(virsh):
         # Get names of just closure functions by Virsh class
@@ -71,22 +77,19 @@ class ModuleLoad(unittest.TestCase):
 
 
 class ConstantsTest(ModuleLoad):
-
     def test_ModuleLoad(self):
-        self.assertTrue(hasattr(self.virsh, 'NOCLOSE'))
-        self.assertTrue(hasattr(self.virsh, 'SCREENSHOT_ERROR_COUNT'))
-        self.assertTrue(hasattr(self.virsh, 'VIRSH_COMMAND_CACHE'))
-        self.assertTrue(hasattr(self.virsh, 'VIRSH_EXEC'))
+        self.assertTrue(hasattr(self.virsh, "NOCLOSE"))
+        self.assertTrue(hasattr(self.virsh, "SCREENSHOT_ERROR_COUNT"))
+        self.assertTrue(hasattr(self.virsh, "VIRSH_COMMAND_CACHE"))
+        self.assertTrue(hasattr(self.virsh, "VIRSH_EXEC"))
 
 
 class TestVirshClosure(ModuleLoad):
-
     @staticmethod
     def somefunc(*args, **dargs):
         return (args, dargs)
 
     class SomeClass(dict):
-
         def somemethod(self):
             return "foobar"
 
@@ -102,9 +105,9 @@ class TestVirshClosure(ModuleLoad):
         VC = self.virsh.VirshClosure
         tcinst = self.SomeClass()
         vcinst = VC(self.somefunc, tcinst)
-        args, dargs = vcinst('foo')
+        args, dargs = vcinst("foo")
         self.assertEqual(len(args), 1)
-        self.assertEqual(args[0], 'foo')
+        self.assertEqual(args[0], "foo")
         self.assertEqual(len(dargs), 0)
 
     def test_fake_virsh(self):
@@ -118,59 +121,59 @@ class TestVirshClosure(ModuleLoad):
     def test_dargs(self):
         # save some typing
         VC = self.virsh.VirshClosure
-        tcinst = self.SomeClass(foo='bar')
+        tcinst = self.SomeClass(foo="bar")
         vcinst = VC(self.somefunc, tcinst)
         args, dargs = vcinst()
         self.assertEqual(len(args), 0)
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(list(dargs.keys()), ['foo'])
-        self.assertEqual(list(dargs.values()), ['bar'])
+        self.assertEqual(list(dargs.keys()), ["foo"])
+        self.assertEqual(list(dargs.values()), ["bar"])
 
     def test_args_and_dargs(self):
         # save some typing
         VC = self.virsh.VirshClosure
-        tcinst = self.SomeClass(foo='bar')
+        tcinst = self.SomeClass(foo="bar")
         vcinst = VC(self.somefunc, tcinst)
-        args, dargs = vcinst('foo')
+        args, dargs = vcinst("foo")
         self.assertEqual(len(args), 1)
-        self.assertEqual(args[0], 'foo')
+        self.assertEqual(args[0], "foo")
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(list(dargs.keys()), ['foo'])
-        self.assertEqual(list(dargs.values()), ['bar'])
+        self.assertEqual(list(dargs.keys()), ["foo"])
+        self.assertEqual(list(dargs.values()), ["bar"])
 
     def test_args_dargs_subclass(self):
         # save some typing
         VC = self.virsh.VirshClosure
-        tcinst = self.SomeClass(foo='bar')
+        tcinst = self.SomeClass(foo="bar")
         vcinst = VC(self.somefunc, tcinst)
-        args, dargs = vcinst('foo')
+        args, dargs = vcinst("foo")
         self.assertEqual(len(args), 1)
-        self.assertEqual(args[0], 'foo')
+        self.assertEqual(args[0], "foo")
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(list(dargs.keys()), ['foo'])
-        self.assertEqual(list(dargs.values()), ['bar'])
+        self.assertEqual(list(dargs.keys()), ["foo"])
+        self.assertEqual(list(dargs.values()), ["bar"])
 
     def test_update_args_dargs_subclass(self):
         # save some typing
         VC = self.virsh.VirshClosure
-        tcinst = self.SomeClass(foo='bar')
+        tcinst = self.SomeClass(foo="bar")
         vcinst = VC(self.somefunc, tcinst)
-        args, dargs = vcinst('foo')
+        args, dargs = vcinst("foo")
         self.assertEqual(len(args), 1)
-        self.assertEqual(args[0], 'foo')
+        self.assertEqual(args[0], "foo")
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(list(dargs.keys()), ['foo'])
-        self.assertEqual(list(dargs.values()), ['bar'])
+        self.assertEqual(list(dargs.keys()), ["foo"])
+        self.assertEqual(list(dargs.values()), ["bar"])
         # Update dictionary
-        tcinst['sna'] = 'fu'
+        tcinst["sna"] = "fu"
         # Is everything really the same?
-        args, dargs = vcinst('foo', 'baz')
+        args, dargs = vcinst("foo", "baz")
         self.assertEqual(len(args), 2)
-        self.assertEqual(args[0], 'foo')
-        self.assertEqual(args[1], 'baz')
+        self.assertEqual(args[0], "foo")
+        self.assertEqual(args[1], "baz")
         self.assertEqual(len(dargs), 2)
-        self.assertEqual(dargs['foo'], 'bar')
-        self.assertEqual(dargs['sna'], 'fu')
+        self.assertEqual(dargs["foo"], "bar")
+        self.assertEqual(dargs["sna"], "fu")
 
     def test_multi_inst(self):
         # save some typing
@@ -188,12 +191,11 @@ class TestVirshClosure(ModuleLoad):
         self.assertEqual(args2[0], 2)
         self.assertEqual(len(dargs1), 1)
         self.assertEqual(len(dargs2), 1)
-        self.assertEqual(dargs1['darg1'], 1)
-        self.assertEqual(dargs2['darg1'], 2)
+        self.assertEqual(dargs1["darg1"], 1)
+        self.assertEqual(dargs2["darg1"], 2)
 
 
 class ConstructorsTest(ModuleLoad):
-
     def test_VirshBase(self):
         vb = self.virsh.VirshBase()
         del vb  # keep pylint happy
@@ -204,7 +206,7 @@ class ConstructorsTest(ModuleLoad):
 
     def test_VirshPersistent(self):
         test_virsh = self.virsh.Virsh()
-        if test_virsh['virsh_exec'] == '/bin/true':
+        if test_virsh["virsh_exec"] == "/bin/true":
             return
         else:
             logging.disable(logging.INFO)
@@ -214,6 +216,7 @@ class ConstructorsTest(ModuleLoad):
     def TestVirshClosure(self):
         class MyDict(dict):
             pass
+
         vc = self.virsh.VirshClosure(None, MyDict())
         del vc  # keep pylint happy
 
@@ -224,14 +227,13 @@ class ModuleLoadCheckVirsh(unittest.TestCase):
 
     def run(self, *args, **dargs):
         test_virsh = self.virsh.Virsh()
-        if test_virsh['virsh_exec'] == '/bin/true':
+        if test_virsh["virsh_exec"] == "/bin/true":
             return  # Don't run any tests, no virsh executable was found
         else:
             super(ModuleLoadCheckVirsh, self).run(*args, **dargs)
 
 
 class SessionManagerTest(ModuleLoadCheckVirsh):
-
     def test_del_VirshPersistent(self):
         """
         Unittest for __del__ of VirshPersistent.
@@ -251,7 +253,7 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
 
         This test use VirshSession over VirshPersistent with auto_close=True.
         """
-        virsh_exec = self.virsh.Virsh()['virsh_exec']
+        virsh_exec = self.virsh.Virsh()["virsh_exec"]
         # Build a VirshSession object.
         session_1 = self.virsh.VirshSession(virsh_exec, auto_close=True)
         self.assertTrue(process_is_alive(virsh_exec))
@@ -262,7 +264,7 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         """
         Unittest for session manager of VirshPersistent.
         """
-        virsh_exec = self.virsh.Virsh()['virsh_exec']
+        virsh_exec = self.virsh.Virsh()["virsh_exec"]
         vp_1 = self.virsh.VirshPersistent()
         self.assertTrue(process_is_alive(virsh_exec))
         # Init the vp_2 with same params of vp_1.
@@ -279,32 +281,31 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
 
 
 class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
-
     def setUp(self):
         # subclasses override self.virsh
         self.VIRSH_COMMAND_CACHE = self.virsh.VIRSH_COMMAND_CACHE
 
     def test_false_command(self):
-        self.assertFalse(self.virsh.has_help_command('print'))
-        self.assertFalse(self.virsh.has_help_command('Commands:'))
-        self.assertFalse(self.virsh.has_help_command('dom'))
-        self.assertFalse(self.virsh.has_help_command('pool'))
+        self.assertFalse(self.virsh.has_help_command("print"))
+        self.assertFalse(self.virsh.has_help_command("Commands:"))
+        self.assertFalse(self.virsh.has_help_command("dom"))
+        self.assertFalse(self.virsh.has_help_command("pool"))
 
     def test_true_command(self):
-        self.assertTrue(self.virsh.has_help_command('uri'))
-        self.assertTrue(self.virsh.has_help_command('help'))
-        self.assertTrue(self.virsh.has_help_command('list'))
+        self.assertTrue(self.virsh.has_help_command("uri"))
+        self.assertTrue(self.virsh.has_help_command("help"))
+        self.assertTrue(self.virsh.has_help_command("list"))
 
     def test_no_cache(self):
         self.VIRSH_COMMAND_CACHE = None
-        self.assertTrue(self.virsh.has_help_command('uri'))
+        self.assertTrue(self.virsh.has_help_command("uri"))
         self.VIRSH_COMMAND_CACHE = []
-        self.assertTrue(self.virsh.has_help_command('uri'))
+        self.assertTrue(self.virsh.has_help_command("uri"))
 
     def test_subcommand_help(self):
-        regex = r'--command'
-        self.assertTrue(self.virsh.has_command_help_match('help', regex))
-        self.assertFalse(self.virsh.has_command_help_match('uri', regex))
+        regex = r"--command"
+        self.assertTrue(self.virsh.has_command_help_match("help", regex))
+        self.assertFalse(self.virsh.has_command_help_match("uri", regex))
 
     def test_groups_in_commands(self):
         # groups will be empty in older libvirt, but test will still work
@@ -325,7 +326,6 @@ class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
 
 
 class VirshHelpCommandTest(ModuleLoadCheckVirsh):
-
     def test_cache_command(self):
         l1 = self.virsh.help_command(cache=True)
         l2 = self.virsh.help_command()
@@ -336,7 +336,6 @@ class VirshHelpCommandTest(ModuleLoadCheckVirsh):
 
 
 class VirshClassHasHelpCommandTest(VirshHasHelpCommandTest):
-
     def setUp(self):
         logging.disable(logging.INFO)
         super(VirshClassHasHelpCommandTest, self).setUp()
@@ -344,7 +343,6 @@ class VirshClassHasHelpCommandTest(VirshHasHelpCommandTest):
 
 
 class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
-
     def setUp(self):
         logging.disable(logging.INFO)
         super(VirshPersistentClassHasHelpCommandTest, self).setUp()
@@ -363,5 +361,5 @@ class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
         self.assertFalse(process_is_alive(self.virsh.virsh_exec))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

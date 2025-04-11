@@ -6,18 +6,17 @@ Please put the configuration file service.cfg into $tests/cfg/ directory.
 :difficulty: advanced
 :copyright: 2014 Red Hat Inc.
 """
+
 import logging
 import time
 
-from avocado.utils import process
 from avocado.core import exceptions
+from avocado.utils import process
 from avocado.utils.service import SpecificServiceManager
 
-from virttest import remote
-from virttest import error_context
+from virttest import error_context, remote
 
-
-LOG = logging.getLogger('avocado.vt.examples.service')
+LOG = logging.getLogger("avocado.vt.examples.service")
 
 
 # error_context.context_aware decorator initializes context, which provides additional
@@ -37,7 +36,7 @@ def run(test, params, env):
     :param params: Dictionary with the test parameters
     :param env: Dictionary with test environment.
     """
-    if params.get('test_on_guest') == "yes":
+    if params.get("test_on_guest") == "yes":
         # error_context.context() is common method to log test steps used to verify
         # what exactly was tested.
         error_context.context("Using guest.", LOG.info)
@@ -53,8 +52,7 @@ def run(test, params, env):
     error_context.context("Initialize service manager", LOG.info)
     service = SpecificServiceManager(params["test_service"], runner)
 
-    error_context.context("Testing service %s" %
-                          params["test_service"], LOG.info)
+    error_context.context("Testing service %s" % params["test_service"], LOG.info)
     original_status = service.status()
     LOG.info("Original status=%s", original_status)
 
@@ -76,5 +74,7 @@ def run(test, params, env):
         service.start()
     time.sleep(5)
     if not service.status() is original_status:
-        raise exceptions.TestFail("Fail to restore original status of the %s "
-                                  "service" % params["test_service"])
+        raise exceptions.TestFail(
+            "Fail to restore original status of the %s "
+            "service" % params["test_service"]
+        )

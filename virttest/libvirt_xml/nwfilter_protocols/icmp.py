@@ -9,7 +9,6 @@ from virttest.libvirt_xml.nwfilter_protocols import base
 
 
 class Icmp(base.TypedDeviceBase):
-
     """
     Create new Icmp xml instances
 
@@ -17,15 +16,20 @@ class Icmp(base.TypedDeviceBase):
         attrs: libvirt_xml.nwfilter_protocols.Icmp.Attr instance
     """
 
-    __slots__ = ('attrs',)
+    __slots__ = ("attrs",)
 
-    def __init__(self, type_name='file', virsh_instance=base.base.virsh):
-        accessors.XMLElementNest('attrs', self, parent_xpath='/',
-                                 tag_name='icmp', subclass=self.Attr,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        super(Icmp, self).__init__(protocol_tag='icmp', type_name=type_name,
-                                   virsh_instance=virsh_instance)
+    def __init__(self, type_name="file", virsh_instance=base.base.virsh):
+        accessors.XMLElementNest(
+            "attrs",
+            self,
+            parent_xpath="/",
+            tag_name="icmp",
+            subclass=self.Attr,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        super(Icmp, self).__init__(
+            protocol_tag="icmp", type_name=type_name, virsh_instance=virsh_instance
+        )
 
     def new_attr(self, **dargs):
         """
@@ -46,7 +50,7 @@ class Icmp(base.TypedDeviceBase):
         :return: None if no icmp in xml, dict of icmp's attributes.
         """
         try:
-            icmp_node = self.xmltreefile.reroot('/icmp')
+            icmp_node = self.xmltreefile.reroot("/icmp")
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = icmp_node.getroot()
@@ -55,7 +59,6 @@ class Icmp(base.TypedDeviceBase):
         return icmp_attr
 
     class Attr(base.base.LibvirtXMLBase):
-
         """
         Icmp attribute XML class
 
@@ -81,51 +84,130 @@ class Icmp(base.TypedDeviceBase):
         ipsetflags: flags for the IPSet; requires ipset attribute
         """
 
-        __slots__ = ('srcmacaddr', 'srcmacmask', 'dstmacaddr', 'dstmacmask',
-                     'srcipaddr', 'srcipmask', 'dstipaddr', 'dstipmask',
-                     'srcipfrom', 'srcipto', 'dstipfrom', 'dstipto',
-                     'type', 'code', 'dscp', 'comment', 'state', 'ipset',
-                     'ipsetflags')
+        __slots__ = (
+            "srcmacaddr",
+            "srcmacmask",
+            "dstmacaddr",
+            "dstmacmask",
+            "srcipaddr",
+            "srcipmask",
+            "dstipaddr",
+            "dstipmask",
+            "srcipfrom",
+            "srcipto",
+            "dstipfrom",
+            "dstipto",
+            "type",
+            "code",
+            "dscp",
+            "comment",
+            "state",
+            "ipset",
+            "ipsetflags",
+        )
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLAttribute('srcmacaddr', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcmacaddr')
-            accessors.XMLAttribute('srcmacmask', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcmacmask')
-            accessors.XMLAttribute('dstmacaddr', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstmacaddr')
-            accessors.XMLAttribute('dstmacmask', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstmacmask')
-            accessors.XMLAttribute('srcipaddr', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcipaddr')
-            accessors.XMLAttribute('srcipmask', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcipmask')
-            accessors.XMLAttribute('dstipaddr', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstipaddr')
-            accessors.XMLAttribute('dstipmask', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstipmask')
-            accessors.XMLAttribute('srcipfrom', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcipfrom')
-            accessors.XMLAttribute('srcipto', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='srcipto')
-            accessors.XMLAttribute('dstipfrom', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstipfrom')
-            accessors.XMLAttribute('dstipto', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dstipto')
-            accessors.XMLAttribute('type', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='type')
-            accessors.XMLAttribute('code', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='code')
-            accessors.XMLAttribute('dscp', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='dscp')
-            accessors.XMLAttribute('comment', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='comment')
-            accessors.XMLAttribute('state', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='state')
-            accessors.XMLAttribute('ipset', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='ipset')
-            accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
-                                   tag_name='icmp', attribute='ipsetflags')
+            accessors.XMLAttribute(
+                "srcmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="srcmacaddr",
+            )
+            accessors.XMLAttribute(
+                "srcmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="srcmacmask",
+            )
+            accessors.XMLAttribute(
+                "dstmacaddr",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="dstmacaddr",
+            )
+            accessors.XMLAttribute(
+                "dstmacmask",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="dstmacmask",
+            )
+            accessors.XMLAttribute(
+                "srcipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="srcipaddr",
+            )
+            accessors.XMLAttribute(
+                "srcipmask",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="srcipmask",
+            )
+            accessors.XMLAttribute(
+                "dstipaddr",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="dstipaddr",
+            )
+            accessors.XMLAttribute(
+                "dstipmask",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="dstipmask",
+            )
+            accessors.XMLAttribute(
+                "srcipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="srcipfrom",
+            )
+            accessors.XMLAttribute(
+                "srcipto", self, parent_xpath="/", tag_name="icmp", attribute="srcipto"
+            )
+            accessors.XMLAttribute(
+                "dstipfrom",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="dstipfrom",
+            )
+            accessors.XMLAttribute(
+                "dstipto", self, parent_xpath="/", tag_name="icmp", attribute="dstipto"
+            )
+            accessors.XMLAttribute(
+                "type", self, parent_xpath="/", tag_name="icmp", attribute="type"
+            )
+            accessors.XMLAttribute(
+                "code", self, parent_xpath="/", tag_name="icmp", attribute="code"
+            )
+            accessors.XMLAttribute(
+                "dscp", self, parent_xpath="/", tag_name="icmp", attribute="dscp"
+            )
+            accessors.XMLAttribute(
+                "comment", self, parent_xpath="/", tag_name="icmp", attribute="comment"
+            )
+            accessors.XMLAttribute(
+                "state", self, parent_xpath="/", tag_name="icmp", attribute="state"
+            )
+            accessors.XMLAttribute(
+                "ipset", self, parent_xpath="/", tag_name="icmp", attribute="ipset"
+            )
+            accessors.XMLAttribute(
+                "ipsetflags",
+                self,
+                parent_xpath="/",
+                tag_name="icmp",
+                attribute="ipsetflags",
+            )
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<icmp/>'
+            self.xml = "<icmp/>"
