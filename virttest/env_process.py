@@ -11,7 +11,6 @@ import sys
 import threading
 import time
 
-import aexpect
 import six
 from aexpect import remote
 from avocado.core import exceptions
@@ -42,6 +41,7 @@ from virttest import (
 
 # lazy imports for dependencies that are not needed in all modes of use
 from virttest._wrappers import lazy_import
+from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
@@ -1009,6 +1009,7 @@ def preprocess(test, params, env):
     _setup_manager.register(BridgeConfig)
     _setup_manager.register(StorageConfig)
     _setup_manager.register(FirewalldService)
+    _setup_manager.register(KillTailThreads)
     _setup_manager.register(IPSniffer)
     _setup_manager.register(MigrationEnvSetup)
     _setup_manager.register(UnrequestedVMHandler)
@@ -1344,6 +1345,8 @@ def postprocess(test, params, env):
                 "Check either qemu build directory availablilty"
                 " or install gcovr package for qemu coverage report"
             )
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Postprocess all VMs and images
     try:
         process(
@@ -1359,6 +1362,8 @@ def postprocess(test, params, env):
         err += "\nPostprocess: %s" % str(details).replace("\\n", "\n  ")
         LOG.error(details)
 
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
     if _screendump_thread is not None:
@@ -1366,6 +1371,9 @@ def postprocess(test, params, env):
         _screendump_thread.join(30)
         _screendump_thread = None
 
+    LOG.debug("Screendump joined")
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Encode an HTML 5 compatible video from the screenshots produced
     dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
     for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
@@ -1440,6 +1448,9 @@ def postprocess(test, params, env):
         _vm_info_thread.join(10)
         _vm_info_thread = None
 
+    LOG.debug("vminfothread joined")
+    for thread in threading.enumerate():
+        LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
         for vm in env.get_all_vms():
@@ -1456,6 +1467,9 @@ def postprocess(test, params, env):
             except (remote.LoginError, virt_vm.VMError, IndexError) as e:
                 LOG.warning(e)
                 vm.destroy(gracefully=False)
+        LOG.debug("unresponsive vms killed")
+        for thread in threading.enumerate():
+            LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
 
     # Kill VMs with deleted disks
     for vm in env.get_all_vms():
@@ -1467,9 +1481,6 @@ def postprocess(test, params, env):
         if destroy and not vm.is_dead():
             LOG.debug("Image of VM %s was removed, destroying it.", vm.name)
             vm.destroy()
-
-    # Kill all aexpect tail threads
-    aexpect.kill_tail_threads()
 
     # collect sosreport of host/remote host during postprocess if enabled
     if params.get("enable_host_sosreport", "no") == "yes":

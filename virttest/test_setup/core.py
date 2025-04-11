@@ -2,6 +2,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 
 import six
+import threading
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -92,11 +93,22 @@ class SetupManager(object):
 
         :return: Errors occurred in cleanup procedures.
         """
+        for thread in threading.enumerate():
+            LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
+        LOG.debug("Starting setup manager cleanup")
         errors = []
         while self.__setupers:
+            setuper = self.__setupers.pop()
             try:
-                self.__setupers.pop().cleanup()
+                LOG.debug("cleanup %s", setuper.__class__.__name__)
+            except:
+                pass
+            try:
+                setuper.cleanup()
             except Exception as err:
                 LOG.error(str(err))
                 errors.append(str(err))
+        LOG.debug("Finished setup manager cleanup")
+        for thread in threading.enumerate():
+            LOG.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
         return errors

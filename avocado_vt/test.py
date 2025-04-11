@@ -22,6 +22,7 @@ import sys
 
 from avocado.core import exceptions, test
 from avocado.utils import process, stacktrace
+import threading
 
 from avocado_vt import utils
 from virttest import (
@@ -284,6 +285,7 @@ class VirtTest(test.Test, utils.TestUtils):
                             # pylint: disable-next=E1102
                             run_func(self, params, env)
                             self.verify_background_errors()
+                            self.log.debug("Test run and verified")
                         finally:
                             self._safe_env_save(env)
                     test_passed = True
@@ -307,10 +309,12 @@ class VirtTest(test.Test, utils.TestUtils):
 
             finally:
                 # Post-process
+                self.log.debug("Postprocessing")
                 try:
                     try:
                         params["test_passed"] = str(test_passed)
                         env_process.postprocess(self, params, env)
+                        self.log.debug("Postprocess out")
                     except:  # nopep8 Old-style exceptions are not inherited from Exception()
                         if not (
                             self._config.get("vt.omit_data_loss")
@@ -324,12 +328,15 @@ class VirtTest(test.Test, utils.TestUtils):
                                 "Exception raised during " "postprocessing: %s",
                                 sys.exc_info()[1],
                             )
+                        self.log.debug("Really?")
                 finally:
                     if (
                         self._safe_env_save(env)
                         or params.get("env_cleanup", "no") == "yes"
                     ):
+                        self.log.debug("Destroying env")
                         env.destroy()  # Force-clean as it can't be stored
+            self.log.debug("Last steps...")
 
         except Exception as e:
             if params.get("abort_on_error") != "yes":
@@ -352,5 +359,6 @@ class VirtTest(test.Test, utils.TestUtils):
                         vm.make_create_command(),
                     )
                 raise exceptions.JobError("Abort requested (%s)" % e)
-
+        for thread in threading.enumerate():
+            self.log.debug("thread %s is alive: %s", thread.name, str(thread.is_alive()))
         return test_passed
