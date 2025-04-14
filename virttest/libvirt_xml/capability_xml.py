@@ -5,6 +5,7 @@ http://libvirt.org/formatcaps.html
 
 from virttest import xml_utils
 from virttest.libvirt_xml import accessors, base, xcepts
+from virttest.libvirt_xml.vm_xml import VMCPUXML, CellCacheXML
 
 
 class CapabilityXML(base.LibvirtXMLBase):
@@ -289,9 +290,11 @@ class TopologyXML(base.LibvirtXMLBase):
             string of node cell numbers
         cell:
             list of cpu dict
+        interconnects:
+            list of latency and bandwidth
     """
 
-    __slots__ = ("num", "cell")
+    __slots__ = ("num", "cell", "interconnects")
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -303,6 +306,14 @@ class TopologyXML(base.LibvirtXMLBase):
             parent_xpath="/",
             tag_name="cells",
             attribute="num",
+        )
+        accessors.XMLElementNest(
+            property_name="interconnects",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="interconnects",
+            subclass=VMCPUXML.InterconnectsXML,
+            subclass_dargs={"virsh_instance": virsh_instance},
         )
         accessors.AllForbidden(property_name="cell", libvirtxml=self)
         super(TopologyXML, self).__init__(virsh_instance)
@@ -344,9 +355,20 @@ class CellXML(base.LibvirtXMLBase):
             string of cpus number
         cpu:
             list of cpu dict
+        cache:
+            list of cpu cache
     """
 
-    __slots__ = ("cell_id", "memory", "mem_unit", "pages", "sibling", "cpus_num", "cpu")
+    __slots__ = (
+        "cell_id",
+        "memory",
+        "mem_unit",
+        "pages",
+        "sibling",
+        "cpus_num",
+        "cpu",
+        "cache",
+    )
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -397,6 +419,14 @@ class CellXML(base.LibvirtXMLBase):
             parent_xpath="/cpus",
             marshal_from=self.marshal_from_cpu,
             marshal_to=self.marshal_to_cpu,
+        )
+        accessors.XMLElementList(
+            property_name="cache",
+            libvirtxml=self,
+            parent_xpath="/",
+            marshal_from=self.marshal_from_cache,
+            marshal_to=self.marshal_to_cache,
+            has_subclass=True,
         )
         super(CellXML, self).__init__(virsh_instance)
         self.xml = "<cell></cell>"
@@ -451,6 +481,33 @@ class CellXML(base.LibvirtXMLBase):
         if tag != "sibling":
             return None
         return dict(attr_dict)
+
+    @staticmethod
+    def marshal_from_cache(item, index, libvirtxml):
+        """
+        Convert a xml object to cache tag and xml element.
+        """
+        if isinstance(item, CellCacheXML):
+            return "cache", item
+        elif isinstance(item, dict):
+            cell_cache = CellCacheXML()
+            cell_cache.setup_attrs(**item)
+            return "cache", cell_cache
+        else:
+            raise xcepts.LibvirtXMLError(
+                "Expected a list of CellCacheXML instances, not a %s" % str(item)
+            )
+
+    @staticmethod
+    def marshal_to_cache(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a cache tag xml element to an object of CellCacheXML.
+        """
+        if tag != "cache":
+            return None  # Don't convert this item
+        newone = CellCacheXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     @staticmethod
     def marshal_from_cpu(item, index, libvirtxml):
