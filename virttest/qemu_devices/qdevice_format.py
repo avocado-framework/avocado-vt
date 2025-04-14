@@ -89,13 +89,6 @@ class _QDeviceFormatManagement(object):
                     "physical_block_size": self._str_to_dec,
                     "logical_block_size": self._str_to_dec,
                 },
-                "usb_driver": {
-                    "port": self._str,
-                    "serial": self._on,
-                    # min_io_size, opt_io_size from device ("driver": "usb-storage")
-                    "min_io_size": self._str_to_dec,
-                    "opt_io_size": self._str_to_dec,
-                },
                 "pcie-root-port": {
                     "port": self._hex_in_str_to_dec,
                 },
@@ -129,6 +122,10 @@ class _QDeviceFormatManagement(object):
                 },
                 "pvpanic": {
                     "events": self._str_to_dec,
+                },
+                "usb-storage": {
+                    "min_io_size": self._str_to_dec,
+                    "opt_io_size": self._str_to_dec,
                 },
             },
             "object": {
@@ -306,7 +303,6 @@ class _QDeviceFormatManagement(object):
         """
         dev_type = "device"
         driver = params.get("driver")
-        driver = "usb_driver" if driver.startswith("usb-") else driver
         if driver not in self._device_driver_checked:
             self._device_driver_checked.append(driver)
             if self.qemu_binary:
