@@ -106,6 +106,10 @@ QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\(
 THREAD_ERROR = False
 
 LOG = logging.getLogger("avocado." + __name__)
+import inspect
+def _log_func_name():
+    LOG.debug("SM - %s" % inspect.stack()[1][3])
+
 
 
 def preprocess_image(test, params, image_name, vm_process_status=None):
@@ -118,6 +122,7 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
                               only for keep it work with process_images()
     :note: Currently this function just creates an image if requested.
     """
+    _log_func_name()
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
 
     if not storage.preprocess_image_backend(base_dir, params, image_name):
@@ -195,6 +200,7 @@ def preprocess_vm(test, params, env, name):
     :param env: The environment (a dict-like object).
     :param name: The name of the VM object.
     """
+    _log_func_name()
     vm = env.get_vm(name)
     vm_type = params.get("vm_type")
     connect_uri = params.get("connect_uri")
@@ -518,6 +524,7 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     :param vm_process_status: (optional) vm process status like running, dead
                               or None for no vm exist.
     """
+    _log_func_name()
     if vm_process_status == "running":
         LOG.warning(
             "Skipped processing image '%s' since " "the VM is running!" % image_name
@@ -624,6 +631,7 @@ def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
 
 
 def postprocess_vm(test, params, env, name):
+    _log_func_name()
     """
     Postprocess a single VM object according to the instructions in params.
     Kill the VM if requested and get a screendump.
@@ -696,6 +704,8 @@ def postprocess_vm(test, params, env, name):
             params.get("kill_vm_libvirt") == "yes"
             and params.get("vm_type") == "libvirt"
         ):
+            LOG.debug("SM - vm.undefine in kill_vm block")
+            LOG.debug(f"SM - kill_vm {kill_vm} kill_vm_libvirt {kill_vm_libvirt}")
             vm.undefine(options=params.get("kill_vm_libvirt_options"))
 
     if vm.is_dead():
@@ -869,11 +879,13 @@ def process(
     """
 
     def _call_vm_func():
+        _log_func_name()
         for vm_name in params.objects("vms"):
             vm_params = params.object_params(vm_name)
             vm_func(test, vm_params, env, vm_name)
 
     def _call_image_func():
+        _log_func_name()
         if params.get("skip_image_processing") == "yes":
             return
 
@@ -899,6 +911,7 @@ def process(
             process_images(image_func, test, params)
 
     def _call_fs_source_func():
+        _log_func_name()
         if params.get("skip_fs_source_processing") == "yes":
             return
 
@@ -925,6 +938,7 @@ def process(
                         vm.resume()
 
     def _call_check_image_func():
+        _log_func_name()
         if params.get("skip_image_processing") == "yes":
             return
 
