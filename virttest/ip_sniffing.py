@@ -224,12 +224,16 @@ class Sniffer(object):
 
     def start(self):
         """Start sniffing."""
+        LOG.debug("SM - enter start Sniffer {self.cmd}")
         if self.is_alive():
+            LOG.debug("SM - already alive Sniffer {self.cmd}")
             return
+        LOG.debug("SM - restart Sniffer {self.cmd}")
         self.stop()
         self._start()
 
     def stop(self):
+        LOG.debug("SM - stop Sniffer {self.cmd}")
         """Stop sniffing."""
         if self._process:
             self._process.close()
