@@ -41,6 +41,7 @@ DEVICE_TYPES = [
     "filterref",
     "iommu",
     "tpm",
+    "pstore",
 ]
 
 

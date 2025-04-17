@@ -491,6 +491,7 @@ pdb
 pki
 postprocessing
 powerdown
+pstore
 pty
 pvs
 py
