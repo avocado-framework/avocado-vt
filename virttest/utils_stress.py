@@ -16,7 +16,7 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 class VMStressEvents:
-    def __init__(self, params, env):
+    def __init__(self, params, env, vms=None):
         """
         :param params: test param
         """
@@ -28,7 +28,10 @@ class VMStressEvents:
         self.event_sleep_time = int(params.get("event_sleep_time", 10))
         self.itr_sleep_time = int(params.get("itr_sleep_time", 10))
         self.ignore_status = params.get("ignore_status", "no") == "yes"
-        self.vms = env.get_all_vms()
+        if vms is None:
+            self.vms = env.get_all_vms()
+        else:
+            self.vms = vms
         self.params = params
         self.host_events = params.get("host_stress_events", "")
         if self.host_events:
