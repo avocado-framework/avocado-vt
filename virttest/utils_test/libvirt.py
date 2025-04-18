@@ -923,7 +923,7 @@ def check_actived_pool(pool_name):
     return True
 
 
-def check_vm_state(vm_name, state="paused", reason=None, uri=None):
+def check_vm_state(vm_name, state="paused", reason=None, uri=None, debug=False):
     """
     checks whether state of the vm is as expected
 
@@ -931,16 +931,17 @@ def check_vm_state(vm_name, state="paused", reason=None, uri=None):
     :param state: expected state of the VM
     :param reason: expected reason of vm state
     :param uri: connect uri
+    :param debug: if True, enable debug info
 
     :return: True if state of VM is as expected, False otherwise
     """
-    if not virsh.domain_exists(vm_name, uri=uri):
+    if not virsh.domain_exists(vm_name, uri=uri, debug=debug):
         return False
     if reason:
-        result = virsh.domstate(vm_name, extra="--reason", uri=uri)
+        result = virsh.domstate(vm_name, extra="--reason", uri=uri, debug=debug)
         expected_result = "%s (%s)" % (state.lower(), reason.lower())
     else:
-        result = virsh.domstate(vm_name, uri=uri)
+        result = virsh.domstate(vm_name, uri=uri, debug=debug)
         expected_result = state.lower()
     vm_state = result.stdout_text.strip()
     return vm_state.lower() == expected_result
