@@ -274,8 +274,10 @@ class RemoteFile(object):
         # Get file from remote.
         try:
             self._pull_file()
-        except SCPTransferFailedError:
-            # Remote file doesn't exist, create empty file on local
+        except Exception as e:
+            LOG.debug("Remote file doesn't exist.")
+            LOG.debug("Create empty file on local.")
+            LOG.debug(f"Error was {e}")
             self._write_local([])
 
         # Save a backup.
