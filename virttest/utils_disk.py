@@ -146,6 +146,8 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
 
     :return: if unmounted return True else return False
     """
+    src = os.path.realpath(src) if src else src
+    dst = os.path.realpath(dst) if dst else dst
     mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
     if mounted:
         from . import utils_package
