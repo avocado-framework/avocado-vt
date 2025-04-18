@@ -970,6 +970,7 @@ class QemuImg(object):
                 "image_format": "raw",
                 "image_size": image_size,
                 "image_raw_device": "yes",
+                "backup_dir": params.get("backup_dir", "")
             }
         )
         return cls(data_file_params, root_dir, "%s_data_file" % tag)
