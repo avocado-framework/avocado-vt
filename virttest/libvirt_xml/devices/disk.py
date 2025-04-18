@@ -887,7 +887,7 @@ class Disk(base.TypedDeviceBase):
             file:
                 string, attribute of backingStore/source tag
             datastore:
-                dict, nexted xml of backingStore/source/dataStore tag
+                dict, nested xml of backingStore/source/dataStore tag
             """
 
             __slots__ = (

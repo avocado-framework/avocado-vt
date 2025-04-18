@@ -11,7 +11,7 @@ def get_unprivileged_vm(vm_name, user, passwd, **args):
     """
     To get the instance of the given unprivileged vm.
 
-    :param vm_name: name of the unprileged vm
+    :param vm_name: name of the unprivileged vm
     :param user: name of the unprivileged user
     :param passwd: password of the unprivileged user
     :param args: other arguments
