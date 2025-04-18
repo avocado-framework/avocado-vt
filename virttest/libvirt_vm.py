@@ -2386,6 +2386,7 @@ class VM(virt_vm.BaseVM):
                                 LOG.debug("VM is down")
                                 return
                         finally:
+                            LOG.debug("SM - session.close() en libvirt_vm.destroy")
                             session.close()
             # Destroy VM directly, as 'ignore_status=True' by default, so destroy
             # a shutoff domain is also acceptable here.
@@ -2395,6 +2396,7 @@ class VM(virt_vm.BaseVM):
             virsh.destroy(self.name, destroy_opt, uri=self.connect_uri)
 
         finally:
+            LOG.debug("SM - self.cleanup_serial_console() en libvirt_vm.destroy")
             self.cleanup_serial_console()
         if free_mac_addresses:
             if self.is_persistent():
