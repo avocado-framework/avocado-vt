@@ -43,7 +43,7 @@ def _check_items(value_type, tmp_domjobinfo):
 
     :param value_type: value type, contain 'all_items', 'str_itmes' and 'int_items'
     :param tmp_domjobinfo: domain job info
-    :retrun: new domain job info
+    :return: new domain job info
     """
     if value_type in tmp_domjobinfo:
         if len(tmp_domjobinfo[value_type]) > 0:
@@ -61,7 +61,7 @@ def _get_value(expect_key, out):
 
     :param expect_key: expect key
     :param out: domain job info
-    :retrun: the value of expect key
+    :return: the value of expect key
     """
     for line in out.splitlines():
         key = line.split(":")[0]

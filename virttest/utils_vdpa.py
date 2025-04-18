@@ -241,7 +241,7 @@ class VDPASimulatorTest(object):
 
     def get_vdpa_dev_info(self, dev="dev"):
         """
-        Get vDPA devices' infomation
+        Get vDPA devices' information
 
         :param dev: device type, dev(vdpa device) or mgmtdev(vdpa management device)
         :return: devices' information

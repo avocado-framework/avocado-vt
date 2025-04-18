@@ -4184,7 +4184,7 @@ def get_default_gateway(
         LOG.error("Failed to get the default GateWay")
         return None
     # historically the function was implemented with grep and pipes
-    # therefore, there could be a multiline match with multiline
+    # therefore, there could be a multi-line match with multi-line
     # result and tests expect that
     return "\n".join(gateways)
 

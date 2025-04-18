@@ -17,7 +17,7 @@ def get_image_filename(name):
 
     :param name: the name of device
     :type name: str
-    :return: The path from vdpa in vpda protocol
+    :return: The path from vdpa in vdpa protocol
              e.g: vdpa:///dev/vhost-vdpa
     :rtype: str
     """

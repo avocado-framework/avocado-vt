@@ -1,6 +1,6 @@
 Sphinx==1.3b1
 # inspektor (static and style checks)
-pylint==2.15.10
+pylint==3.0.0
 inspektor==0.5.3
 aexpect>=1.6.4
 netifaces==0.11.0
