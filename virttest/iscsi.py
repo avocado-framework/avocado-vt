@@ -9,6 +9,7 @@ iscsi in localhost then access it.
 
 from __future__ import division
 
+import ast
 import logging
 import os
 import re
@@ -833,5 +834,240 @@ class Iscsi(object):
                 )
             iscsi_instance = IscsiTGT(params, root_dir)
         else:
-            iscsi_instance = IscsiLIO(params, root_dir)
+            iscsi_instance = (
+                MultiTargetsIscsiLIO(params, root_dir)
+                if not params.get("target") and params.get("iscsi_targets_luns")
+                else IscsiLIO(params, root_dir)
+            )
         return iscsi_instance
+
+
+class MultiTargetsIscsiLIO(IscsiLIO):
+    """
+    Iscsi class supporting multi-targets for the LIO backend used in RHEL7.
+    """
+
+    def __init__(self, params, root_dir):
+        """
+        Init the object based on the params and root_dir.
+        Note: 'iscsi_targets_luns' in params is introduced at this class.
+              The structure of 'iscsi_targets_luns':
+                iscsi_targets_luns =
+                {
+                    ${target01}: {
+                        ${lun01} : {"emulated_image": ..., ...},
+                        ${lun02} : {"emulated_image": ..., ...},
+                    },
+                    ${target02}: {
+                        ${lun01} : {"emulated_image": ..., ...},
+                        ${lun02} : {"emulated_image": ..., ...},
+                    },
+                    ...
+                }
+                For example:
+                {
+                    "iqn.2019-12.com.redhat:target01": {
+                        "portal_ip": "127.0.0.1",
+                        "lun0": { "emulated_image": "images/basefile1",
+                                  "emulated_image_size": "40G",
+                                  ...
+                                },
+                        "lun1": { "emulated_image": "images/basefile2",
+                                  "emulated_image_size": "10G",
+                                  ...
+                                },
+                    },
+                    "iqn.2019-12.com.redhat:target02": {
+                        "portal_ip": "127.0.0.1",
+                        "lun0": { "emulated_image": "images/basefile3",
+                                  "emulated_image_size": "20G",
+                                  ...
+                                },
+                        "lun1": { "emulated_image": "images/basefile4",
+                                  "emulated_image_size": "30G",
+                                  ...
+                                },
+                    },
+                }
+              If there's only one lun without any special assigned requests,
+              lun should be set to "default_lun", for example:
+                iscsi_targets_luns = {
+                    "iqn.2019-12.com.redhat:target01": {
+                        "portal_ip": "127.0.0.1",
+                        "default_lun": {
+                            "emulated_image": "images/basefile",
+                            "emulated_image_size": "40G",
+                            ...
+                        },
+                    },
+                }
+
+        :param params: parameters dict for iSCSI
+        :param root_dir: path for image
+        """
+        self._iscsi_targets_luns = ast.literal_eval(params.get("iscsi_targets_luns"))
+        # stores the iscsiLIO objects based on each targets
+        self._targets_iscsilio_mapping = {}
+        for target in self._iscsi_targets_luns:
+            single_target_param = params.deepcopy()
+            for key, val in self._iscsi_targets_luns[target].items():
+                if key in ("default_lun",) or key.startswith("lun"):
+                    for skey, sval in self._iscsi_targets_luns[target][key].items():
+                        single_target_param[skey] = sval
+                    single_target_param[key] = val
+                    single_target_param["target"] = target
+                    self._targets_iscsilio_mapping[target] = IscsiLIO(
+                        single_target_param, root_dir
+                    )
+
+    def query_targets(self, emulated_image=None, lun=None):
+        """
+        Dynamically filter the targets from image name given and lun given.
+
+        :param emulated_image: the image name. If none, do NOT check emulated_image
+        :type emulated_image: string
+        :param lun: the lun. If none, do NOT check lun
+        :type lun: string
+
+        :return: the targets in list or []
+        :rtype: list
+        """
+        cmd = "targetcli ls /iscsi 1"
+        target_info = process.run(cmd).stdout_text
+        targets = re.findall(r"iqn[\.]\S+:\S+", target_info)
+
+        filtered_targets = []
+        for target in targets:
+            cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
+            luns_info = process.run(cmd).stdout_text
+            if (
+                (not emulated_image and not lun)
+                or (emulated_image and not lun and emulated_image + ")" in luns_info)
+                or (
+                    emulated_image
+                    and lun
+                    and emulated_image + ")" in luns_info
+                    and " " + lun + " " in luns_info
+                )
+            ):
+                filtered_targets.append(target)
+        return filtered_targets
+
+    def set_chap_auth_target(self, target=None):
+        """
+        set up authentication information for every single initiator,
+        which provides the capability to define common login information
+        for all Endpoints in a TPG
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            self._targets_iscsilio_mapping[target].set_chap_auth_target()
+
+    def export_target(self, target=None):
+        """
+        Export target(s) in localhost for emulated iscsi.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            self._targets_iscsilio_mapping[target].export_target()
+
+    def delete_target(self, target=None):
+        """
+        Delete target(s) from host.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            self._targets_iscsilio_mapping[target].delete_target()
+
+    def login(self, target=None):
+        """
+        Login target. If target is None, login in with each target in this class.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            self._targets_iscsilio_mapping[target].login()
+
+    def cleanup(self, target=None, confirmed=False):
+        """
+        Clean up env after iscsi used.
+
+        :param target: the target.
+        :type target: string
+        :param confirmed: switch for cleanup all iscsi config
+        :type confirmed: bool
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            self._targets_iscsilio_mapping[target].cleanup(confirmed)
+
+    def logout(self, target=None):
+        """
+        Logout from target.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            if self._targets_iscsilio_mapping[target].logged_in():
+                iscsi_logout(self.target)
+
+    def logged_in(self, target=None):
+        """
+        Check if the session is login or not.
+
+        :param target: the target.
+        :type target: string
+
+        :return: logged in or not
+        :rtype: bool
+        """
+        if target:
+            return self._targets_iscsilio_mapping[target].logged_in()
+
+    def get_device_names(self, target=None):
+        """
+        Get device name from the target given.
+
+        :param target: the target.
+        :type target: string
+
+        :return: the mapping as the following example
+                {'iqn.xxxxxx:xxx':
+                    {'lun0': '/dev/sdd',
+                     'lun1': '/dev/sde'},
+                 'iqn.xxxxxx:xxx':
+                    {'lun0': '/dev/sdc'}
+                }
+        :rtype: dict
+        """
+        device_name = {}
+        cmd = "iscsiadm -m session -P 3"
+        outputs = process.run(cmd).stdout_text.split("Target: ")[1:]
+        pattern = r"Lun:\s*(\d+).*?disk\s+(\w+).*?running"
+        targets = [target] if target else self._targets_iscsilio_mapping.keys()
+        for target in targets:
+            for output in outputs:
+                if target + " " not in output:
+                    continue
+                m = re.findall(pattern, output, re.S)
+                for i in range(len(m)):
+                    device_name[target] = (
+                        {} if target not in device_name else device_name[target]
+                    )
+                    device_name[target].update({"lun%s" % m[i][0]: "/dev/%s" % m[i][1]})
+                break
+
+        return device_name
