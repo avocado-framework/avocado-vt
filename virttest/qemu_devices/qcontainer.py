@@ -440,7 +440,7 @@ class DevContainer(object):
 
         # QMP: block-stream/block-commit @backing-mask-protocol
         # TODO: probe cap via using the qmp command `query-qmp-schema`
-        #       instead of hardcoding the version range
+        #       instead of hard-coding the version range
         if self.__qemu_ver in VersionInterval(
             self.BLOCKJOB_BACKING_MASK_PROTOCOL_VERSION_SCOPE
         ):
