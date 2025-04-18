@@ -306,9 +306,12 @@ class _QDeviceFormatManagement(object):
         """
         dev_type = "device"
         driver = params.get("driver")
-        driver = "usb_driver" if driver.startswith("usb-") else driver
         if driver not in self._device_driver_checked:
             self._device_driver_checked.append(driver)
+            if driver.startswith("usb-"):
+                self._special_args_in_json[dev_type][driver] = (
+                    self._special_args_in_json[dev_type]["usb_driver"]
+                )
             if self.qemu_binary:
                 self._update_args_type_from_qemu(driver)
         device_args = self._special_args_in_json[dev_type]
