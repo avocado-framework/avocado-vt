@@ -304,7 +304,7 @@ class SandboxCommandBase(SandboxBase):
         if self._name is None:
             class_name = self.__class__.__name__
             class_initials = class_name.translate(None, "abcdefghijklmnopqrstuvwxyz")
-            self._name = "%s_%d" % (class_initials, self.identifier)
+            self._name = "%s_%s" % (class_initials, self.identifier)
         return self._name
 
     @staticmethod

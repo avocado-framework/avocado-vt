@@ -16,7 +16,7 @@ from avocado.utils import process
 
 def get_user_ids(user):
     """
-    Returns user uid, gid and their respective subuids and subgids
+    Returns user uid, gid and their respective sub-uids and sub-gids
     along with their names as a dictionary:
 
     {
