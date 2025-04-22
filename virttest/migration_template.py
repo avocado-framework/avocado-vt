@@ -1001,6 +1001,7 @@ class MigrationTemplate(object):
             self.objs_list.reverse()
             for obj in self.objs_list:
                 obj.__del__()
+                obj.auto_recover = False
 
         # Cleanup migrate_pre_setup
         LOG.debug("Clean up migration setup on dest host")
@@ -1030,6 +1031,11 @@ class MigrationTemplate(object):
                 session=self.remote_session,
                 cleanup=True,
             )
+
+        # Restore vm connection uri
+        for vm in self.vms:
+            if self.migrate_vm_back != "yes":
+                vm.connect_uri = "qemu:///system"
 
 
 def vm_session_handler(func):
