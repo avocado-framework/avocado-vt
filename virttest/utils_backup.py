@@ -339,10 +339,11 @@ def dump_data_to_file(data_map, source_file_path, target_file_path, driver="qcow
     :param driver: The image format of the source file
     """
     with open(target_file_path, "w"):
-        cmd = "qemu-io -f %s -c \"read -vC %s %s\" %s -r -U  | sed '$d'"
         for entry in data_map:
-            cmd %= (driver, entry["start"], entry["length"], source_file_path)
-            cmd += ">> %s" % target_file_path
+            cmd = (
+                f"qemu-io -f {driver} -c 'read -vC {entry['start']} {entry['length']}'"
+                f"{source_file_path} -r -U | sed '$d' >> {target_file_path}"
+            )
             process.run(cmd, shell=True)
 
 
