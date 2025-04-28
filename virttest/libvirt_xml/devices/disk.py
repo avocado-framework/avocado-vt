@@ -373,6 +373,12 @@ class Disk(base.TypedDeviceBase):
             "snapshot_name",
             "address",
             "dataStore",
+            "knownhosts",
+            "identity",
+            "ssl",
+            "cookies",
+            "readahead",
+            "timeout",
         )
 
         def __init__(self, virsh_instance=base.base.virsh):
@@ -449,6 +455,49 @@ class Disk(base.TypedDeviceBase):
                 subclass=Disk.dataStore,
                 subclass_dargs={"virsh_instance": virsh_instance},
             )
+            accessors.XMLAttribute(
+                "knownhosts",
+                self,
+                parent_xpath="/",
+                tag_name="knownHosts",
+                attribute="path",
+            )
+            accessors.XMLElementList(
+                "identity",
+                self,
+                parent_xpath="/",
+                marshal_from=self.marshal_from_identity,
+                marshal_to=self.marshal_to_identity,
+            )
+            accessors.XMLAttribute(
+                "ssl",
+                self,
+                parent_xpath="/",
+                tag_name="ssl",
+                attribute="verify",
+            )
+            accessors.XMLAttribute(
+                "readahead",
+                self,
+                parent_xpath="/",
+                tag_name="readahead",
+                attribute="size",
+            )
+            accessors.XMLAttribute(
+                "timeout",
+                self,
+                parent_xpath="/",
+                tag_name="timeout",
+                attribute="seconds",
+            )
+            accessors.XMLElementNest(
+                "cookies",
+                self,
+                parent_xpath="/",
+                tag_name="cookies",
+                subclass=Disk.Cookies,
+                subclass_dargs={"virsh_instance": virsh_instance},
+            )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<source/>"
 
@@ -493,6 +542,26 @@ class Disk(base.TypedDeviceBase):
             del index  # not used
             del libvirtxml  # not used
             if tag != "host":
+                return None  # skip this one
+            return dict(attr_dict)  # return copy of dict, not reference
+
+        @staticmethod
+        def marshal_from_identity(item, index, libvirtxml):
+            """Convert a dictionary into a tag + attributes"""
+            del index  # not used
+            del libvirtxml  # not used
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError(
+                    "Expected a dictionary of identity attributes, not a %s" % str(item)
+                )
+            return ("identity", dict(item))  # return copy of dict, not reference
+
+        @staticmethod
+        def marshal_to_identity(tag, attr_dict, index, libvirtxml):
+            """Convert a tag + attributes into a dictionary"""
+            del index  # not used
+            del libvirtxml  # not used
+            if tag != "identity":
                 return None  # skip this one
             return dict(attr_dict)  # return copy of dict, not reference
 
@@ -1064,3 +1133,32 @@ class Disk(base.TypedDeviceBase):
 
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = "<source/>"
+
+    class Cookies(base.base.LibvirtXMLBase):
+        """
+        Source of Cookies xml class
+
+        cookie_name:
+            string, attribute of Cookies name
+        cookie:
+            string, attribute of Cookies value
+        """
+
+        __slots__ = ("cookie_name", "cookie")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementText(
+                property_name="cookie",
+                libvirtxml=self,
+                parent_xpath="/",
+                tag_name="cookie",
+            )
+            accessors.XMLAttribute(
+                property_name="cookie_name",
+                libvirtxml=self,
+                parent_xpath="/",
+                tag_name="cookie",
+                attribute="name",
+            )
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<cookies/>"
