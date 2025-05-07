@@ -55,6 +55,7 @@ iscsi
 bool
 backend
 hotplug
+htx
 PCI
 numa
 tuple
