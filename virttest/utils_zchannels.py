@@ -109,6 +109,19 @@ class SubchannelPaths(object):
         else:
             return None
 
+    def get_first_dasd_in_use(self):
+        """
+        Returns the device info of the first DASD device in Use.
+
+        Requires get_info() to be called first.
+        :return: Device info
+        """
+        used = [x for x in self.devices if x[self.HEADER["Use"]] == "yes"]
+        for device in used:
+            if "3390" in device[self.HEADER["DevType"]]:
+                return device
+        return None
+
     def get_first_unused_and_safely_removable(self):
         """
         Returns the device info of the first unused device that
