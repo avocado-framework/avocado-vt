@@ -2795,7 +2795,8 @@ class DevContainer(object):
                     else:
                         protocol_node.set_param(key, value)
                     if format_node is not None:
-                        format_node.set_param(key, value)
+                        if key not in ("pr-manager",):
+                            format_node.set_param(key, value)
                         # suppress key if format_node presents
                         if key in ("detect-zeroes",):
                             protocol_node.set_param(key, None)
