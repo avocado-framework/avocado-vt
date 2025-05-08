@@ -3687,3 +3687,161 @@ class QMachine(QCustomDevice):
             # -machine allows empty line
             return ""
         return super()._cmdline_raw()
+
+
+class QPRHelperDev(QDaemonDev):
+    """Virtual pr-helper pseudo device."""
+
+    def __init__(self, aobject, binary, sock_path, pidfile, log_filename):
+        """
+        :param aobject: The auto object of the pr-helper daemon.
+        :type aobject: str
+        :param binary: The binary of the pr-helper daemon.
+        :type binary: str
+        :param sock_path: The sock path of the pr-helper daemon.
+        :type sock_path: str
+        :param pidfile: The PID file of the pr-helper daemon.
+        :type pidfile: str
+        :param log_filename: The filename of the pr-helper daemon log.
+        :type log_filename: str
+        """
+        super(QPRHelperDev, self).__init__(
+            "pr-helper", aobject, QUnixSocketBus(sock_path, aobject)
+        )
+        self.set_param("binary", binary)
+        self.set_param("sock_path", sock_path)
+        self.set_param("pidfile", pidfile)
+        self.set_param("log_filename", log_filename)
+
+    def _handle_log(self, line):
+        log_filename = self.get_param("log_filename")
+        try:
+            utils_logfile.log_line(log_filename, line)
+        except Exception as e:
+            LOG.warning(f"Can't log {log_filename}, output: {e}")
+
+    def start_daemon(self):
+        pr_helper_cmd = self.get_param("binary")
+        pr_helper_cmd += " -k %s" % self.get_param("sock_path")
+        pr_helper_cmd += " -f %s" % self.get_param("pidfile")
+
+        self.set_param("cmd", pr_helper_cmd)
+        self.set_param(
+            "run_bg_kwargs", {"output_func": self._handle_log, "auto_close": False}
+        )
+
+        super(QPRHelperDev, self).start_daemon()
+        if not self.is_daemon_alive() and self.daemon_process.get_status():
+            output = self.daemon_process.get_output()
+            self.close_daemon_process()
+            raise DeviceError("Failed to run pr-helper daemon: %s" % output)
+        LOG.info(
+            "Created pr-helper daemon process with parent PID %d.",
+            self.daemon_process.get_pid(),
+        )
+
+    def _get_pid(self):
+        try:
+            with open(self.get_param("pidfile")) as pid_f:
+                return int(pid_f.read().strip())
+        except FileNotFoundError:
+            return None
+
+    def _remove_pid_file(self):
+        if not os.path.exists(self.get_param("pidfile")):
+            return
+        try:
+            os.remove(self.get_param("pidfile"))
+        except FileNotFoundError:
+            pass
+
+    def stop_daemon(self):
+        try:
+            pid = self._get_pid()
+            if pid is not None and self.is_daemon_alive():
+                if not process.safe_kill(pid, signal.SIGKILL):
+                    raise DeviceError(f"Failed to stop pr-helper daemon {pid}")
+            self._remove_pid_file()
+        finally:
+            if self._daemon_process is not None:
+                self.close_daemon_process()
+
+    def __eq__(self, other):
+        if super(QPRHelperDev, self).__eq__(other):
+            return self.get_param("sock_path") == other.get_param("sock_path")
+        return False
+
+
+class QPRManagerBus(QSparseBus):
+    """PR manager virtual bus."""
+
+    def __init__(self, pr_mgr_id):
+        """
+        :param pr_mgr_id: The related QPRManager object id.
+        """
+        super(QPRManagerBus, self).__init__(
+            "pr-manager",
+            [[], []],
+            "pr_manager_bus_%s" % pr_mgr_id,
+            "PRManager",
+            pr_mgr_id,
+        )
+
+    def get_free_slot(self, addr_pattern):
+        """Return the device id as unoccupied address."""
+        return addr_pattern
+
+    def _dev2addr(self, device):
+        """Return the device id as address."""
+        return [device.get_qid()]
+
+
+class QPRManager(QObject):
+    """The pr-manager-helper object representation."""
+
+    def __init__(self, pr_manager_name, pr_manager_props=None):
+        params = dict()
+        if pr_manager_props:
+            params = pr_manager_props.copy()
+        params["id"] = pr_manager_name
+        kwargs = dict(backend="pr-manager-helper", params=params)
+        super(QPRManager, self).__init__(**kwargs)
+        self.set_aid(pr_manager_name)
+        self.pr_manager_bus = QPRManagerBus(pr_manager_name)
+        self.add_child_bus(self.pr_manager_bus)
+
+    @staticmethod
+    def _query(monitor):
+        """Return a list of persistent reservation manager."""
+        if isinstance(monitor, qemu_monitor.HumanMonitor):
+            raise DeviceError("No support to query pr-manager by hmp")
+        out = monitor.info("pr-managers", debug=False)
+        return out
+
+    def get_children(self):
+        """Get child devices, always empty."""
+        # pr-manager could be removed without unplug child devices
+        return []
+
+    def unplug_hook(self):
+        """Remove pr-manager from attached devices' params."""
+        for device in self.pr_manager_bus:
+            device.set_param(self.pr_manager_bus.bus_item, None)
+
+    def unplug_unhook(self):
+        """Reset attached devices' params."""
+        for device in self.pr_manager_bus:
+            device.set_param(self.get_qid())
+
+    def _is_attached_to_qemu(self, monitor):
+        """Check if pr-manager is in use by QEMU."""
+        out = self._query(monitor)
+        return any(self.get_qid() == pr_mgr["id"] for pr_mgr in out)
+
+    def verify_hotplug(self, out, monitor):
+        """Verify if it is plugged into VM."""
+        return self._is_attached_to_qemu(monitor)
+
+    def verify_unplug(self, out, monitor):
+        """Verify if it is unplugged from VM."""
+        return not self._is_attached_to_qemu(monitor)
