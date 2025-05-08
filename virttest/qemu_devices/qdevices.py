@@ -3687,3 +3687,59 @@ class QMachine(QCustomDevice):
             # -machine allows empty line
             return ""
         return super()._cmdline_raw()
+
+
+class QCSSBus(QSparseBus):
+    """
+    CSS Bus representation
+    """
+
+    def __init__(
+        self, busid, bus_type, aobject, cssid_len=256, ssid_len=4, devno_len=65536
+    ):
+        super(QCSSBus, self).__init__(
+            "bus",
+            [["cssid", "ssid", "devno"], [cssid_len, ssid_len, devno_len]],
+            busid,
+            bus_type,
+            aobject,
+        )
+
+    @staticmethod
+    def _addr2stor(addr):
+        """
+        Converts internal addr to storable/hashable address
+        :param addr: internal address [addr1, addr2, ...]
+        :return: storable address "addr1-addr2-..."
+        """
+        out = ""
+        for value in addr:
+            if value is None:
+                out += "*-"
+            else:
+                out += "%s-" % value
+        if out:
+            return out[:-1]
+        else:
+            return "*"
+
+    def _dev2addr(self, device):
+        """Read the values in base of 16 (hex)"""
+        addr = device.get_param("devno")
+        if isinstance(addr, int):
+            return [254, 0, addr]
+        elif not addr:  # not defined
+            return [254, 0, None]
+        elif isinstance(addr, six.string_types):
+            addr = [int(_, 16) for _ in addr.split(".", 2)]
+            if len(addr) < 2:
+                addr.insert(254, 0, 0)
+        return addr
+
+    def _set_device_props(self, device, addr):
+        """Convert addr to the format used by qtree"""
+        device.set_param("devno", f"{addr[0]:x}.{addr[1]}.{addr[2]:04x}")
+
+    def _update_device_props(self, device, addr):
+        """Always set properties"""
+        self._set_device_props(device, addr)
