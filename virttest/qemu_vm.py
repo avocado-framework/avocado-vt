@@ -2568,6 +2568,15 @@ class VM(virt_vm.BaseVM):
             set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "images")
             devices.insert(dev)
 
+        # Add object pr-manager-helper
+        for pr_mgr in params.objects("pr_managers"):
+            pr_mgr_params = params.object_params(pr_mgr)
+            devs = devices.pr_manager_object_define_by_params(pr_mgr, pr_mgr_params)
+            set_cmdline_format_by_cfg(
+                devs[-1], self._get_cmdline_format_cfg(), "images"
+            )
+            devices.insert(devs)
+
         image_devs = []
         # Add images (harddrives)
         for image_name in params.objects("images"):

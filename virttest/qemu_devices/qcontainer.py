@@ -4099,3 +4099,62 @@ class DevContainer(object):
         """
         backend, properties = "iommufd", {"id": obj_id}
         return qdevices.QObject(backend, properties)
+
+    def pr_manager_object_define_by_params(self, pr_manager_name, pr_manager_params):
+        """
+        Create the pr-manager-helper object device by the params.
+
+        :param pr_manager_name: The name of pr-manager-helper object.
+        :type pr_manager_name: str
+        :param pr_manager_params: The related params of pr-manager.
+        :type pr_manager_params: utils_params.Params
+        :return: The related list of the qemu device objects.
+        :rtype: list
+        """
+        devices = []
+
+        pr_manager_name = pr_manager_name
+        pr_manager_user_config = pr_manager_params.get_boolean("pr_manager_user_config")
+
+        pr_manager_props = dict()
+        pr_manager_props.update(
+            json.loads(pr_manager_params.get("pr_manager_props", "{}"))
+        )
+
+        pr_helper_props = dict()
+        pr_helper_props.update(
+            json.loads(pr_manager_params.get("pr_helper_props", "{}"))
+        )
+        binary = pr_helper_props.get("bin_path", "qemu-pr-helper")
+        sock_path = pr_helper_props.get("sock_path")
+        pidfile = pr_helper_props.get("pidfile")
+
+        if pr_manager_user_config:
+            if not sock_path:
+                raise DeviceError(f"Missing the sock path for {pr_manager_name}")
+            child_bus = qdevices.QUnixSocketBus(sock_path, pr_manager_name)
+            pr_helper_dev = qdevices.QDaemonDev("pr_helper", pr_manager_name, child_bus)
+        else:
+            if not sock_path:
+                sock_path = os.path.join(
+                    data_dir.get_tmp_dir(),
+                    f"pr_mgr_{self.vmname}_{pr_manager_name}.sock",
+                )
+
+            if not pidfile:
+                pidfile = os.path.join(
+                    data_dir.get_data_dir(),
+                    f"pr_mgr_{self.vmname}_{pr_manager_name}.pid",
+                )
+
+            log_filename = f"pr_manager_daemon_{self.vmname}_{pr_manager_name}.log"
+
+            pr_helper_dev = qdevices.QPRHelperDev(
+                pr_manager_name, binary, sock_path, pidfile, log_filename
+            )
+
+        devices.append(pr_helper_dev)
+        pr_mgr_dev = qdevices.QPRManager(pr_manager_name, pr_manager_props)
+        pr_mgr_dev.parent_bus = ({"busid": sock_path},)
+        devices.append(pr_mgr_dev)
+        return devices
