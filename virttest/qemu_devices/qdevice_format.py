@@ -187,6 +187,14 @@ class _QDeviceFormatManagement(object):
                     #   _str_to_dec instead of function _hex_in_str_to_dec.
                     "max-bytes": self._str_to_dec,
                 },
+                "usb-storage": {
+                    # In fact: qemu wants "on" instead of "NO_EQUAL_STRING".
+                    "serial": self._on,
+                },
+                "usb-tablet": {
+                    # In fact: qemu wants "on" instead of "NO_EQUAL_STRING".
+                    "serial": self._on,
+                },
             }
         }
         self._type_func_mapping = {
