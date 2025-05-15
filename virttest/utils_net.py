@@ -4059,7 +4059,12 @@ def get_host_iface():
 
 
 def get_default_gateway_json(
-    iface_name=False, session=None, ip_ver="ipv4", force_dhcp=False, target_iface=None
+    iface_name=False,
+    session=None,
+    ip_ver="ipv4",
+    force_dhcp=False,
+    target_iface=None,
+    timeout=30,
 ):
     """
     Get the Default Gateway or Interface of host or guest with "ip -j".
@@ -4080,35 +4085,42 @@ def get_default_gateway_json(
         raise ValueError(f"Unrecognized IP version {ip_ver}")
     run_func = session.cmd_output if session else process.getoutput
 
-    try:
-        ip_output_str = run_func(cmd).strip()
-        LOG.debug(f"ip route output:\n{ip_output_str}")
-        ip_route = json.loads(ip_output_str)
-    except Exception as why:
-        LOG.error(f'Failed to get output of "{cmd}" command. Reason: {str(why)}')
-        return None
+    def _get_default_route_list():
+        try:
+            ip_output_str = run_func(cmd).strip()
+            LOG.debug(f"ip route output:\n{ip_output_str}")
+            ip_route = json.loads(ip_output_str)
+        except Exception as why:
+            LOG.error(f'Failed to get output of "{cmd}" command. Reason: {str(why)}')
+            return None
 
-    default_route_list = [x for x in ip_route if x["dst"] == "default"]
-    if force_dhcp:
-        default_route_list = [
-            x for x in default_route_list if x.get("protocol") == "dhcp"
-        ]
-    if target_iface:
-        LOG.debug(f"Get default gateway only for: {target_iface}")
-        non_multi = [x for x in default_route_list if x.get("dev") == target_iface]
-        multi = [
-            p
-            for x in default_route_list
-            if "nexthops" in x
-            for p in x["nexthops"]
-            if p.get("dev") == target_iface
-        ]
-        default_route_list = non_multi + multi
-    LOG.debug(f"default_route_list: {default_route_list}")
+        nonlocal default_route_list
+        default_route_list = [x for x in ip_route if x["dst"] == "default"]
+        if force_dhcp:
+            default_route_list = [
+                x for x in default_route_list if x.get("protocol") == "dhcp"
+            ]
+        if target_iface:
+            LOG.debug(f"Get default gateway only for: {target_iface}")
+            non_multi = [x for x in default_route_list if x.get("dev") == target_iface]
+            multi = [
+                p
+                for x in default_route_list
+                if "nexthops" in x
+                for p in x["nexthops"]
+                if p.get("dev") == target_iface
+            ]
+            default_route_list = non_multi + multi
+        LOG.debug(f"default_route_list: {default_route_list}")
+        if not default_route_list:
+            LOG.warning("default_route_list is empty!")
 
-    if len(default_route_list) == 0:
+        return default_route_list
+
+    if not utils_misc.wait_for(_get_default_route_list, timeout, step=5):
         raise exceptions.TestError("Cannot get default gateway with given condition")
-    elif len(default_route_list) > 1:
+
+    if len(default_route_list) > 1:
         # For multiple default gateway, return the one with smaller metric
         # which has the higher priority
         default_route_list = [
