@@ -371,9 +371,9 @@ class IscsiTGT(_IscsiComm):
         target_info = process.run(cmd).stdout_text
         target_id = ""
         for line in re.split("\n", target_info):
-            if re.findall("Target\s+(\d+)", line):
-                target_id = re.findall("Target\s+(\d+)", line)[0]
-            if re.findall("Backing store path:\s+(/+.+)", line):
+            if re.findall(r"Target\s+(\d+)", line):
+                target_id = re.findall(r"Target\s+(\d+)", line)[0]
+            if re.findall(r"Backing store path:\s+(/+.+)", line):
                 if self.emulated_image in line:
                     break
         else:
@@ -414,7 +414,7 @@ class IscsiTGT(_IscsiComm):
         cmd = "tgtadm --lld iscsi --mode target --op show"
         target_info = process.run(cmd).stdout_text
         pattern = r"Target\s+\d:\s+%s" % self.target
-        pattern += ".*Account information:\s(.*)ACL information"
+        pattern += r".*Account information:\s(.*)ACL information"
         try:
             target_account = (
                 re.findall(pattern, target_info, re.S)[0].strip().splitlines()
@@ -466,7 +466,7 @@ class IscsiTGT(_IscsiComm):
                 utils_selinux.set_status("permissive")
 
             output = process.run(cmd).stdout_text
-            used_id = re.findall("Target\s+(\d+)", output)
+            used_id = re.findall(r"Target\s+(\d+)", output)
             emulated_id = 1
             while str(emulated_id) in used_id:
                 emulated_id += 1
@@ -479,7 +479,7 @@ class IscsiTGT(_IscsiComm):
             process.system(cmd)
         else:
             target_strs = re.findall(
-                "Target\s+(\d+):\s+%s$" % self.target, output, re.M
+                r"Target\s+(\d+):\s+%s$" % self.target, output, re.M
             )
             self.emulated_id = target_strs[0].split(":")[0].split()[-1]
 
@@ -500,9 +500,9 @@ class IscsiTGT(_IscsiComm):
                 r".*(Target\s+\d+:\s+%s\s*.*)$" % self.target, output, re.DOTALL
             )
             if tgt_str:
-                luns = len(re.findall("\s+LUN:\s(\d+)", tgt_str.group(1), re.M))
+                luns = len(re.findall(r"\s+LUN:\s(\d+)", tgt_str.group(1), re.M))
             else:
-                luns = len(re.findall("\s+LUN:\s(\d+)", output, re.M))
+                luns = len(re.findall(r"\s+LUN:\s(\d+)", output, re.M))
             cmd = "tgtadm --mode logicalunit --op new "
             cmd += "--tid %s --lld iscsi " % self.emulated_id
             cmd += "--lun %s " % luns
@@ -558,10 +558,10 @@ class IscsiLIO(_IscsiComm):
         target_info = process.run(cmd).stdout_text
         target = None
         for line in re.split("\n", target_info)[1:]:
-            if re.findall("o-\s\S+\s[\.]+\s\[TPGs:\s\d\]$", line):
-                # eg: iqn.2015-05.com.example:iscsi.disk
+            if re.findall(r"o-\s\S+\s[\.]+\s\[TPGs:\s\d\]$", line):
+                # eg: iqn.20xx-xx.com.example:iscsi.disk
                 try:
-                    target = re.findall("iqn[\.]\S+:\S+", line)[0]
+                    target = re.findall(r"iqn[\.]\S+:\S+", line)[0]
                 except IndexError:
                     LOG.info("No found target in %s", line)
                     continue
@@ -571,7 +571,7 @@ class IscsiLIO(_IscsiComm):
             cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
             luns_info = process.run(cmd).stdout_text
             for lun_line in re.split("\n", luns_info):
-                if re.findall("o-\slun\d+", lun_line):
+                if re.findall(r"o-\slun\d+", lun_line):
                     if self.emulated_image in lun_line:
                         break
                     else:
