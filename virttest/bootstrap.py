@@ -44,7 +44,7 @@ mandatory_programs = {
     "v2v": basic_program_requirements,
     "libguestfs": basic_program_requirements,
     "virttools": basic_program_requirements
-    + ["virt-install", "virt-clone", "virt-manager", "virt-xml"],
+    + ["virt-install", "virt-clone", "virt-xml"],
 }
 
 mandatory_headers = {
