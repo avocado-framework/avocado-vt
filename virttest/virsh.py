@@ -4960,6 +4960,17 @@ def metadata(name, uri, options="", key=None, new_metadata=None, **dargs):
     return command(cmd, **dargs)
 
 
+def hypervisor_cpu_models(options="", **dargs):
+    """
+    List CPUs available to libvirt based on hypervisor information.
+
+    :param options: extra options passed to virsh command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    return command("hypervisor-cpu-models %s" % options, **dargs)
+
+
 def cpu_models(arch, options="", **dargs):
     """
     Get the CPU models for an arch.
