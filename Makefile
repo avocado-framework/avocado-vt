@@ -52,7 +52,10 @@ check:
 	pylint --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
 
 clean:
-	$(PYTHON) setup.py clean
+	rm -rf MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD build dist
+	for pattern in "*.pyc" "__pycache__" "*.egg-info"; do \
+		find . -name "$$pattern" -exec rm -rf {} +; \
+	done
 
 develop:
 	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
