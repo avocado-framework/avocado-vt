@@ -207,7 +207,7 @@ class Nfs(object):
                 self.export_options,
                 session=self.session,
             )
-        self.mount_src = "%s:%s" % (self.setup_nfs_ip, self.export_dir)
+        self.mount_src = "%s:%s" % (self.setup_nfs_ip, self.mount_src.split(":")[-1])
 
     def is_mounted(self):
         """
