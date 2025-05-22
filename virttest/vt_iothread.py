@@ -175,9 +175,9 @@ class FullManager(IOThreadManagerBase):
 
         :param iothread: iothread.
         :type iothread: QIOThread
-        :return: the list of the iothreads.
-        :rtype: List
+        :return: the tuple of the iothreads.
+        :rtype: tuple
         """
         if iothread == "AUTO" or iothread == "auto":
-            return self.__iothreads_list
+            return tuple(self.__iothreads_list)
         raise ValueError("Not support request specific iothread!")
