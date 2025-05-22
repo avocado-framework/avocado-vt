@@ -324,9 +324,7 @@ class DevContainer(object):
             return True
         options = "--device %s,\\?" % device
         out = self.execute_qemu(options)
-        if re.findall("iothread-vq-mapping=<[^>]+>+", out) and (
-            not device.startswith("virtio-scsi-pci")
-        ):
+        if re.findall("iothread-vq-mapping=<[^>]+>+", out):
             self.__iothread_vq_mapping_supported_devices.add(device)
             return True
         return False
@@ -378,6 +376,8 @@ class DevContainer(object):
             iothreads_return = iothreads
             if not isinstance(iothreads, Sequence):
                 iothreads = (iothreads,)
+            if isinstance(device.parent_bus, dict):
+                device.parent_bus = (device.parent_bus,)
             for iothread in iothreads:
                 dev_iothread_parent = {"busid": iothread.iothread_vq_bus.busid}
                 if device.parent_bus:
@@ -2926,42 +2926,56 @@ class DevContainer(object):
             )
             for key, value in blk_extra_params:
                 devices[-1].set_param(key, value)
-        if self.is_dev_iothread_vq_supported(devices[-1]):
-            if num_queues:
-                devices[-1].set_param("num-queues", num_queues)
-            # add iothread-vq-mapping if available
-            if image_iothread_vq_mapping:
-                val = []
-                for item in image_iothread_vq_mapping.strip().split(" "):
-                    allocated_iothread = self.allocate_iothread_vq(
-                        item.split(":")[0], devices[-1]
-                    )
-                    mapping = {"iothread": allocated_iothread.get_qid()}
-                    if len(item.split(":")) == 2:
-                        vqs = [int(_) for _ in item.split(":")[-1].split(",")]
-                        mapping["vqs"] = vqs
-                    val.append(mapping)
-                # FIXME: The reason using set_param() is that the format(
-                #  Example: iothread0:0,1,2 ) can NOT be set by
-                #  Devcontainer.insert() appropriately since the contents
-                #  following after colon are lost.
-                if ":" in image_iothread_vq_mapping:
-                    devices[-1].set_param("iothread-vq-mapping", val)
 
-            if isinstance(
-                self.iothread_manager, vt_iothread.MultiPeerRoundRobinManager
-            ):
-                mapping = self.iothread_manager.pci_dev_iothread_vq_mapping
-                if devices[-1].get_qid() in mapping:
-                    num_iothread = len(mapping[devices[-1].get_qid()])
-                    for i in range(num_iothread):
-                        iothread = self.allocate_iothread_vq("auto", devices[-1])
-                        iothread.iothread_vq_bus.insert(devices[-1])
-            elif isinstance(self.iothread_manager, vt_iothread.FullManager):
-                iothreads = self.allocate_iothread_vq("auto", devices[-1])
-                if iothreads:
-                    for ioth in iothreads:
-                        ioth.iothread_vq_bus.insert(devices[-1])
+        # add iothread_vq_bus_iothread and allocate iothread vq
+        for dev in devices:
+            if self.is_dev_iothread_vq_supported(dev):
+                if num_queues:
+                    driver = dev.params.get("driver")
+                    _driver_nqueues_mapping = {
+                        "virtio-blk-pci": "num-queues",
+                        "virtio-scsi-pci": "num_queues",
+                    }
+                    if driver in _driver_nqueues_mapping.keys():
+                        dev.set_param(_driver_nqueues_mapping[driver], num_queues)
+                    else:
+                        raise DeviceError(
+                            f"Unsupported the num queues for the driver %s so far."
+                            % driver
+                        )
+                # add iothread-vq-mapping if available
+                if image_iothread_vq_mapping:
+                    val = []
+                    for item in image_iothread_vq_mapping.strip().split(" "):
+                        allocated_iothread = self.allocate_iothread_vq(
+                            item.split(":")[0], dev
+                        )
+                        mapping = {"iothread": allocated_iothread.get_qid()}
+                        if len(item.split(":")) == 2:
+                            vqs = [int(_) for _ in item.split(":")[-1].split(",")]
+                            mapping["vqs"] = vqs
+                        val.append(mapping)
+                    # FIXME: The reason using set_param() is that the format(
+                    #  Example: iothread0:0,1,2 ) can NOT be set by
+                    #  Devcontainer.insert() appropriately since the contents
+                    #  following after colon are lost.
+                    if ":" in image_iothread_vq_mapping:
+                        dev.set_param("iothread-vq-mapping", val)
+
+                if isinstance(
+                    self.iothread_manager, vt_iothread.MultiPeerRoundRobinManager
+                ):
+                    mapping = self.iothread_manager.pci_dev_iothread_vq_mapping
+                    if dev.get_qid() in mapping:
+                        num_iothread = len(mapping[dev.get_qid()])
+                        for i in range(num_iothread):
+                            iothread = self.allocate_iothread_vq("auto", dev)
+                            iothread.iothread_vq_bus.insert(dev)
+                elif isinstance(self.iothread_manager, vt_iothread.FullManager):
+                    iothreads = self.allocate_iothread_vq("auto", dev)
+                    if iothreads:
+                        for ioth in iothreads:
+                            ioth.iothread_vq_bus.insert(dev)
         return devices
 
     def images_define_by_params(
