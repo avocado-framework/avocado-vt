@@ -9,6 +9,8 @@ iscsi in localhost then access it.
 
 from __future__ import division
 
+import ast
+import copy
 import logging
 import os
 import re
@@ -371,9 +373,9 @@ class IscsiTGT(_IscsiComm):
         target_info = process.run(cmd).stdout_text
         target_id = ""
         for line in re.split("\n", target_info):
-            if re.findall("Target\s+(\d+)", line):
-                target_id = re.findall("Target\s+(\d+)", line)[0]
-            if re.findall("Backing store path:\s+(/+.+)", line):
+            if re.findall(r"Target\s+(\d+)", line):
+                target_id = re.findall(r"Target\s+(\d+)", line)[0]
+            if re.findall(r"Backing store path:\s+(/+.+)", line):
                 if self.emulated_image in line:
                     break
         else:
@@ -414,7 +416,7 @@ class IscsiTGT(_IscsiComm):
         cmd = "tgtadm --lld iscsi --mode target --op show"
         target_info = process.run(cmd).stdout_text
         pattern = r"Target\s+\d:\s+%s" % self.target
-        pattern += ".*Account information:\s(.*)ACL information"
+        pattern += r".*Account information:\s(.*)ACL information"
         try:
             target_account = (
                 re.findall(pattern, target_info, re.S)[0].strip().splitlines()
@@ -466,7 +468,7 @@ class IscsiTGT(_IscsiComm):
                 utils_selinux.set_status("permissive")
 
             output = process.run(cmd).stdout_text
-            used_id = re.findall("Target\s+(\d+)", output)
+            used_id = re.findall(r"Target\s+(\d+)", output)
             emulated_id = 1
             while str(emulated_id) in used_id:
                 emulated_id += 1
@@ -479,7 +481,7 @@ class IscsiTGT(_IscsiComm):
             process.system(cmd)
         else:
             target_strs = re.findall(
-                "Target\s+(\d+):\s+%s$" % self.target, output, re.M
+                r"Target\s+(\d+):\s+%s$" % self.target, output, re.M
             )
             self.emulated_id = target_strs[0].split(":")[0].split()[-1]
 
@@ -500,9 +502,9 @@ class IscsiTGT(_IscsiComm):
                 r".*(Target\s+\d+:\s+%s\s*.*)$" % self.target, output, re.DOTALL
             )
             if tgt_str:
-                luns = len(re.findall("\s+LUN:\s(\d+)", tgt_str.group(1), re.M))
+                luns = len(re.findall(r"\s+LUN:\s(\d+)", tgt_str.group(1), re.M))
             else:
-                luns = len(re.findall("\s+LUN:\s(\d+)", output, re.M))
+                luns = len(re.findall(r"\s+LUN:\s(\d+)", output, re.M))
             cmd = "tgtadm --mode logicalunit --op new "
             cmd += "--tid %s --lld iscsi " % self.emulated_id
             cmd += "--lun %s " % luns
@@ -558,10 +560,10 @@ class IscsiLIO(_IscsiComm):
         target_info = process.run(cmd).stdout_text
         target = None
         for line in re.split("\n", target_info)[1:]:
-            if re.findall("o-\s\S+\s[\.]+\s\[TPGs:\s\d\]$", line):
-                # eg: iqn.2015-05.com.example:iscsi.disk
+            if re.findall(r"o-\s\S+\s[\.]+\s\[TPGs:\s\d\]$", line):
+                # eg: iqn.20xx-xx.com.example:iscsi.disk
                 try:
-                    target = re.findall("iqn[\.]\S+:\S+", line)[0]
+                    target = re.findall(r"iqn[\.]\S+:\S+", line)[0]
                 except IndexError:
                     LOG.info("No found target in %s", line)
                     continue
@@ -571,7 +573,7 @@ class IscsiLIO(_IscsiComm):
             cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
             luns_info = process.run(cmd).stdout_text
             for lun_line in re.split("\n", luns_info):
-                if re.findall("o-\slun\d+", lun_line):
+                if re.findall(r"o-\slun\d+", lun_line):
                     if self.emulated_image in lun_line:
                         break
                     else:
@@ -833,5 +835,536 @@ class Iscsi(object):
                 )
             iscsi_instance = IscsiTGT(params, root_dir)
         else:
-            iscsi_instance = IscsiLIO(params, root_dir)
+            iscsi_instance = (
+                MultiPathsIscsiLIOManager(params, root_dir)
+                if not params.get("target") and params.get("iscsi_targets_luns")
+                else IscsiLIO(params, root_dir)
+            )
         return iscsi_instance
+
+
+class Backstore(object):
+    iscsi_backend = None
+
+    def __init__(self):
+        pass
+
+    def create_backstore(self):
+        raise NotImplementedError
+
+    def delete_backstore(self):
+        raise NotImplementedError
+
+
+class Fileio(Backstore):
+    """
+    Model of the fileio backend in backstore.
+    """
+
+    iscsi_backend = "fileio"
+
+    def __init__(self, params, root_dir):
+        """
+        Initialize LIO backend of backstore.
+
+        :param params: parameters for LIO backend of backstore.
+        :type params: dict
+        :param root_dir: path for image
+        :type root_dir: string
+        """
+        emulated_image = params.get("emulated_image")
+        if not emulated_image:
+            self.device = None
+            return
+
+        self.initiator = None
+        self.iscsi_lun_attrs = params.get("iscsi_lun_attrs")
+        emulated_image = params.get("emulated_image")
+        self.emulated_image = os.path.join(root_dir, emulated_image)
+        self.device = "device.%s" % os.path.basename(self.emulated_image)
+        self.emulated_id = ""
+        self.emulated_size = params.get("emulated_image_size")
+        self.unit = self.emulated_size[-1].upper()
+        self.emulated_size = self.emulated_size[:-1]
+        # maps K,M,G,T => (count, bs)
+        emulated_size = {
+            "K": (1, 1),
+            "M": (1, 1024),
+            "G": (1024, 1024),
+            "T": (1024, 1048576),
+        }
+        if self.unit in emulated_size:
+            block_size = emulated_size[self.unit][1]
+            size = int(self.emulated_size) * emulated_size[self.unit][0]
+            self.emulated_expect_size = block_size * size
+            self.create_cmd = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
+                self.emulated_image,
+                size,
+                block_size,
+            )
+        else:
+            raise exceptions.TestError(
+                "Image size provided is not in valid"
+                " format, specify proper units [K|M|G|T]"
+            )
+
+    def create_backstore(self):
+        """
+        Create fileio in backstore.
+        """
+        # create image disk
+        if not os.path.isfile(self.emulated_image):
+            process.system(self.create_cmd)
+        else:
+            emulated_image_size = os.path.getsize(self.emulated_image) // 1024
+            if emulated_image_size != self.emulated_expect_size:
+                # No need to remove, rebuild is fine
+                process.system(self.create_cmd)
+
+        LOG.debug("Create backstore: %s" % self.device)
+        # Create a backstore
+        backstore_cmd = "targetcli /backstores/%s/ create %s %s" % (
+            self.iscsi_backend,
+            self.device,
+            self.emulated_image,
+        )
+        process.run(backstore_cmd)
+
+        # Set attribute
+        if self.iscsi_lun_attrs:
+            attr_cmd = "targetcli /backstores/%s/%s set attribute %s" % (
+                self.iscsi_backend,
+                self.device,
+                self.iscsi_lun_attrs,
+            )
+            process.system(attr_cmd)
+
+        # Save configuration
+        process.system("targetcli / saveconfig")
+        LOG.debug("Done to create backstore: %s" % self.device)
+
+    def delete_backstore(self):
+        """
+        Delete fileio in backstore.
+        """
+        query_cmd = "targetcli ls /backstores/fileio/%s" % self.device
+        output = process.run(query_cmd).stdout_text
+        if "No such path" not in output:
+            LOG.debug("Delete backstore: %s" % self.device)
+            backstore_cmd = "targetcli /backstores/%s/ delete %s" % (
+                self.iscsi_backend,
+                self.device,
+            )
+            process.run(backstore_cmd)
+            # Save configuration
+            process.system("targetcli / saveconfig")
+            LOG.debug("Done to delete backstore: %s" % self.device)
+        else:
+            LOG.debug("No backstore %s found. Nothing to do!" % self.device)
+
+
+class MultiPathsIscsiLIO(IscsiLIO):
+    """
+    Iscsi class supporting multi-paths for the LIO backend.
+    """
+
+    def __init__(self, params):
+        """
+        Initialize multi-paths target in iscsi.
+        """
+        self.target = params.get("target")
+        self.export_flag = False
+        self.luns = {}
+        self.portal_ip = params.get("portal_ip", "127.0.0.1")
+        self.id = params.get("iscsi_thread_id", data_factory.generate_random_string(4))
+        self.iscsi_backend = "fileio"
+        self.devices = params.get("devices")
+
+        # CHAP AUTHENTICATION
+        self.chap_flag = False
+        self.chap_user = params.get("chap_user")
+        self.chap_passwd = params.get("chap_passwd")
+        self.enable_authentication = params.get("enable_authentication")
+        if self.chap_user and self.chap_passwd:
+            self.chap_flag = True
+
+    def get_target_id(self):
+        return NotImplementedError
+
+    def export_target(self):
+        """
+        Export target in localhost for emulated iscsi
+        """
+        selinux_mode = None
+
+        # confirm if the target exists and create iSCSI target
+        cmd = "targetcli ls /iscsi 1"
+        output = process.run(cmd).stdout_text
+        if not re.findall("%s$" % self.target, output, re.M):
+            LOG.debug("Need to export target in host")
+            # Set selinux to permissive mode to make sure
+            # iscsi target export successfully
+            if utils_selinux.is_enforcing():
+                selinux_mode = utils_selinux.get_status()
+                utils_selinux.set_status("permissive")
+            # Create an IQN with a target named target_name
+            target_cmd = "targetcli /iscsi/ create %s" % self.target
+            output = process.run(target_cmd).stdout_text
+            if "Created target" not in output:
+                raise exceptions.TestFail(
+                    "Failed to create target %s. (%s)" % (self.target, output)
+                )
+
+            check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
+            portal_info = process.run(check_portal).stdout_text
+            if "0.0.0.0:3260" not in portal_info:
+                # Create portal
+                # 0.0.0.0 means binding to INADDR_ANY
+                # and using default IP port 3260
+                portal_cmd = "targetcli /iscsi/%s/tpg1/portals/ create %s" % (
+                    self.target,
+                    "0.0.0.0",
+                )
+                output = process.run(portal_cmd).stdout_text
+                if "Created network portal" not in output:
+                    raise exceptions.TestFail("Failed to create portal. (%s)" % output)
+            if (
+                "ipv6" == utils_net.IPAddress(self.portal_ip).version
+                and self.portal_ip not in portal_info
+            ):
+                # Ipv6 portal address can't be created by default,
+                # create ipv6 portal if needed.
+                portal_cmd = "targetcli /iscsi/%s/tpg1/portals/ create %s" % (
+                    self.target,
+                    self.portal_ip,
+                )
+                output = process.run(portal_cmd).stdout_text
+                if "Created network portal" not in output:
+                    raise exceptions.TestFail("Failed to create portal. (%s)" % output)
+            # Create lun
+            for name, device in self.devices.items():
+                lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
+                dev_cmd = "create /backstores/%s/%s" % (self.iscsi_backend, device)
+                output = process.run(lun_cmd + dev_cmd).stdout_text
+                luns = re.findall(r"Created LUN (\d+).", output)
+                if not luns:
+                    raise exceptions.TestFail("Failed to create lun. (%s)" % output)
+                self.luns.update({luns[0]: device})
+
+            # Set firewall if it's enabled
+            output = process.run("firewall-cmd --state", ignore_status=True).stdout_text
+            if re.findall("^running", output, re.M):
+                # firewall is running
+                process.system("firewall-cmd --permanent --add-port=3260/tcp")
+                process.system("firewall-cmd --reload")
+
+            # Restore selinux
+            if selinux_mode is not None:
+                utils_selinux.set_status(selinux_mode)
+
+            self.export_flag = True
+        else:
+            LOG.info("Target %s has already existed!" % self.target)
+
+        if self.chap_flag:
+            # Set CHAP authentication on the exported target
+            self.set_chap_auth_target()
+            # Set CHAP authentication for initiator to login target
+            if self.portal_visible():
+                self.set_chap_auth_initiator()
+        else:
+            # To enable that so-called "demo mode" TPG operation,
+            # disable all authentication for the corresponding Endpoint.
+            # which means grant access to all initiators,
+            # so that they can access all LUNs in the TPG
+            # without further authentication.
+            auth_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
+            attr_cmd = "set attribute %s %s %s %s" % (
+                "authentication=0",
+                "demo_mode_write_protect=0",
+                "generate_node_acls=1",
+                "cache_dynamic_acls=1",
+            )
+            output = process.run(auth_cmd + attr_cmd).stdout_text
+            LOG.info("Define access rights: %s" % output)
+            # Discovery the target
+            self.portal_visible()
+
+        # Save configuration
+        process.system("targetcli / saveconfig")
+
+    def _delete_lun(self, lun):
+        """
+        Delete luns from target.
+
+        :param lun: the lun
+        :type lun: string
+        """
+        cmd = "targetcli /iscsi/%s/tpg1/luns delete %s" % (self.target, lun)
+        process.system(cmd)
+        # Save configuration
+        process.system("targetcli / saveconfig")
+
+    def delete_target(self):
+        """
+        Delete target from host.
+        """
+        # Delete lun in target
+        for lun in self.luns:
+            self._delete_lun(lun)
+
+        # Delete IQN
+        cmd = "targetcli ls /iscsi 1"
+        output = process.run(cmd).stdout_text
+        if re.findall("%s" % self.target, output, re.M):
+            del_cmd = "targetcli /iscsi delete %s" % self.target
+            process.system(del_cmd)
+
+        # Save configuration
+        process.system("targetcli / saveconfig")
+
+
+class MultiPathsIscsiLIOManager(object):
+    """
+    Iscsi class supporting multi-targets for the LIO backend used in RHEL7.
+    """
+
+    def __init__(self, params, root_dir):
+        """
+        Init the object based on the params and root_dir.
+        Note: 'iscsi_targets_luns' in params is introduced at this class.
+              The structure of 'iscsi_targets_luns':
+                iscsi_targets_luns =
+                {
+                    "luns": {
+                        "Example01": {
+                            "emulated_image": ...,
+                            "emulated_image_size": ...,
+                            "iscsi_lun_attrs": ...,
+                        },
+                        {....},
+                    },
+                    "targets" : {
+                        "iqn.xxxx-xx.xxx.xxx:target01a": {
+                            "portal_ip": ...,
+                            "binding_luns" : [....],
+                        },
+                        "iqn.xxxx-xx.xxx.xxx:target02a": {
+                            "portal_ip": ...,
+                            "binding_luns" : [...],
+                        },
+                    },
+                    {....},
+                }
+                For example:
+                    iscsi_targets_luns = '{
+                        "luns" : {
+                            "Example01": {
+                                "emulated_image": "images/basefile1a",
+                                "emulated_image_size": "1G",
+                                "iscsi_lun_attrs": "block_size=4096",
+                            },
+                            "Example02": {
+                                "emulated_image": "images/basefile2a",
+                                "emulated_image_size": "1G",
+                                "iscsi_lun_attrs": "block_size=4096",
+                            },
+                        },
+                        "targets" : {
+                            "iqn.xxxx-xx.xxx.xxx:target01a": {
+                                "portal_ip": "127.0.0.1",
+                                "binding_luns" : ["Example01"],
+                            },
+                            "iqn.xxxx-xx.xxx.xxx:target02a": {
+                                "portal_ip": "127.0.0.1",
+                                "binding_luns" : ["Example02"],
+                            },
+                        },
+                    }'
+
+        :param params: parameters dict for iSCSI
+        :type params: dict
+        :param root_dir: path for image
+        :type root_dir: string
+        """
+        self._iscsi_targets_luns = ast.literal_eval(params.get("iscsi_targets_luns"))
+        self._targets = self._iscsi_targets_luns["targets"]
+        self._luns = self._iscsi_targets_luns["luns"]
+        # stores the objects based on each luns
+        self._luns_object = {}
+        for name, cfg in self._luns.items():
+            self._luns_object[name] = backstore_type[cfg["iscsi_backend"]](
+                cfg, root_dir
+            )
+        # stores the iscsiLIO objects based on each targets
+        self._targets_object = {}
+        for name, cfg in self._targets.items():
+            single_target_param = copy.deepcopy(cfg)
+            single_target_param["target"] = name
+            single_target_param["devices"] = {}
+            for lun_name in self._targets[name]["binding_luns"]:
+                single_target_param["devices"].update(
+                    {lun_name: self._luns_object[lun_name].device}
+                )
+            self._targets_object[name] = MultiPathsIscsiLIO(single_target_param)
+
+    def export_target(self, target=None):
+        """
+        Create fileio backstores and targets.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            for name in self._targets[target]["binding_luns"]:
+                self._luns_object[name].create_backstore()
+            self._targets_object[target].export_target()
+
+    def query_targets(self, emulated_image=None, lun=None):
+        """
+        Dynamically filter the targets from image name given and lun given.
+
+        :param emulated_image: the image name. If none, do NOT check emulated_image
+        :type emulated_image: string
+        :param lun: the lun. If none, do NOT check lun
+        :type lun: string
+
+        :return: the targets in list or []
+        :rtype: list
+        """
+        cmd = "targetcli ls /iscsi 1"
+        target_info = process.run(cmd).stdout_text
+        targets = re.findall(r"iqn[\.]\S+:\S+", target_info)
+
+        filtered_targets = []
+        for target in targets:
+            cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
+            luns_info = process.run(cmd).stdout_text
+            if (
+                (not emulated_image and not lun)
+                or (emulated_image and not lun and emulated_image + ")" in luns_info)
+                or (
+                    emulated_image
+                    and lun
+                    and emulated_image + ")" in luns_info
+                    and " " + lun + " " in luns_info
+                )
+            ):
+                filtered_targets.append(target)
+        return filtered_targets
+
+    def set_chap_auth_target(self, target=None):
+        """
+        set up authentication information for every single initiator,
+        which provides the capability to define common login information
+        for all Endpoints in a TPG
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            self._targets_object[target].set_chap_auth_target()
+
+    def delete_target(self, target=None):
+        """
+        Delete target(s) from host.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            self._targets_object[target].delete_target()
+            for name in self._targets[target]["binding_luns"]:
+                self._luns_object[name].delete_backstore()
+
+    def login(self, target=None):
+        """
+        Login target. If target is None, login in with each target in this class.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            self._targets_object[target].login()
+
+    def cleanup(self, target=None, confirmed=False):
+        """
+        Clean up env after iscsi used.
+
+        :param target: the target.
+        :type target: string
+        :param confirmed: switch for cleanup all iscsi config
+        :type confirmed: bool
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            self._targets_object[target].cleanup(confirmed)
+
+    def logout(self, target=None):
+        """
+        Logout from target.
+
+        :param target: the target.
+        :type target: string
+        """
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            if self._targets_object[target].logged_in():
+                iscsi_logout(target)
+
+    def logged_in(self, target=None):
+        """
+        Check if the session is login or not.
+
+        :param target: the target.
+        :type target: string
+
+        :return: logged in or not
+        :rtype: bool
+        """
+        if target:
+            return self._targets_object[target].logged_in()
+
+    def get_device_names(self, target=None):
+        """
+        Get device name from the target given.
+
+        :param target: the target.
+        :type target: string
+
+        :return: the mapping as the following example
+                {'iqn.xxxxxx:xxx':
+                    {'lun0': '/dev/sdd',
+                     'lun1': '/dev/sde'},
+                 'iqn.xxxxxx:xxx':
+                    {'lun0': '/dev/sdc'}
+                }
+        :rtype: dict
+        """
+        device_name = {}
+        cmd = "iscsiadm -m session -P 3"
+        outputs = process.run(cmd).stdout_text.split("Target: ")[1:]
+        pattern = r"Lun:\s*(\d+).*?disk\s+(\w+).*?running"
+        targets = [target] if target else self._targets_object.keys()
+        for target in targets:
+            for output in outputs:
+                if target + " " not in output:
+                    continue
+                m = re.findall(pattern, output, re.S)
+                for i in range(len(m)):
+                    device_name[target] = (
+                        {} if target not in device_name else device_name[target]
+                    )
+                    device_name[target].update({"lun%s" % m[i][0]: "/dev/%s" % m[i][1]})
+                break
+
+        return device_name
+
+
+backstore_type = {
+    "fileio": Fileio,
+}
