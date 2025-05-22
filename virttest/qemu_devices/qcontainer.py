@@ -324,9 +324,7 @@ class DevContainer(object):
             return True
         options = "--device %s,\\?" % device
         out = self.execute_qemu(options)
-        if re.findall("iothread-vq-mapping=<[^>]+>+", out) and (
-            not device.startswith("virtio-scsi-pci")
-        ):
+        if re.findall("iothread-vq-mapping=<[^>]+>+", out):
             self.__iothread_vq_mapping_supported_devices.add(device)
             return True
         return False
