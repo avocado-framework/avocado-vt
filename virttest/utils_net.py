@@ -4059,7 +4059,12 @@ def get_host_iface():
 
 
 def get_default_gateway_json(
-    iface_name=False, session=None, ip_ver="ipv4", force_dhcp=False, target_iface=None
+    iface_name=False,
+    session=None,
+    ip_ver="ipv4",
+    force_dhcp=False,
+    target_iface=None,
+    multiple_nexthops=False,
 ):
     """
     Get the Default Gateway or Interface of host or guest with "ip -j".
@@ -4069,6 +4074,9 @@ def get_default_gateway_json(
     :param session: shell/console session if any, defaults to None
     :param ip_ver: ip version, defaults to 'ipv4'
     :param target_iface: if given, get default gateway only for this device
+    :param multiple_nexthops: True to support multiple nexthops in output of
+                        `ip -6 route`, otherwise False
+
     :return: default gateway of target iface
     """
     ip_cmd = "ip -j"
@@ -4106,9 +4114,7 @@ def get_default_gateway_json(
         default_route_list = non_multi + multi
     LOG.debug(f"default_route_list: {default_route_list}")
 
-    if len(default_route_list) == 0:
-        raise exceptions.TestError("Cannot get default gateway with given condition")
-    elif len(default_route_list) > 1:
+    if len(default_route_list) > 1:
         # For multiple default gateway, return the one with smaller metric
         # which has the higher priority
         default_route_list = [
@@ -4117,14 +4123,18 @@ def get_default_gateway_json(
             if x.get("metric", float("inf"))
             == min([y.get("metric", float("inf")) for y in default_route_list])
         ]
+        LOG.debug(f"default_route_list with the smaller metric: {default_route_list}")
 
-    default_route = default_route_list[0]
-    LOG.debug(f"Default route: {default_route}")
-
-    if iface_name and "dev" in default_route:
-        return default_route["dev"]
-    if "gateway" in default_route:
-        return default_route["gateway"]
+    if iface_name:
+        out_list = [x.get("dev") for x in default_route_list]
+    else:
+        out_list = [x.get("gateway") for x in default_route_list]
+    out = [item for item in out_list if item != None]
+    if len(out) == 0:
+        raise exceptions.TestError(
+            "Cannot get default gateway in the default route list"
+        )
+    return out if multiple_nexthops else out[0]
 
 
 def get_default_gateway(
@@ -4134,6 +4144,7 @@ def get_default_gateway(
     force_dhcp=False,
     target_iface=None,
     json=False,
+    multiple_nexthops=False,
 ):
     """
     Get the Default Gateway or Interface of host or guest.
@@ -4144,11 +4155,17 @@ def get_default_gateway(
     :param ip_ver: ip version, defaults to 'ipv4'
     :param target_iface: if given, get default gateway only for this device
     :param json: True to call get_default_gateway_json, defaults to False
+    :param multiple_nexthops: True to support multiple nexthops, otherwise False
     :return: default gateway of target iface
     """
     if json:
         return get_default_gateway_json(
-            iface_name, session, ip_ver, force_dhcp, target_iface
+            iface_name,
+            session,
+            ip_ver,
+            force_dhcp,
+            target_iface,
+            multiple_nexthops,
         )
 
     if ip_ver == "ipv4":
