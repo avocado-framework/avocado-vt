@@ -2770,7 +2770,10 @@ def get_linux_drive_path(session, did, timeout=120):
     if status != 0:
         LOG.error("Can not get drive information:\n%s" % output)
         return ""
-    p = r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_WWN)=%s" % did
+    p = (
+        r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_SCSI_SERIAL|ID_WWN)=%s"
+        % did
+    )
     dev = re.search(p, output, re.M)
     if dev:
         return dev.groups()[0]
