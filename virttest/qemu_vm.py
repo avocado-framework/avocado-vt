@@ -3158,8 +3158,8 @@ class VM(virt_vm.BaseVM):
             add_qemu_option(devices, "msg", [attr_info])
         if params.get("realtime_mlock"):
             if devices.has_option("overcommit"):
-                attr_info = ["mem-lock", params["realtime_mlock"], bool]
-                add_qemu_option(devices, "overcommit", [attr_info])
+                cmd = "-overcommit mem-lock=%s" % params["realtime_mlock"]
+                devices.insert(StrDev("overcommit", cmdline=cmd))
             else:
                 attr_info = ["mlock", params["realtime_mlock"], bool]
                 add_qemu_option(devices, "realtime", [attr_info])
