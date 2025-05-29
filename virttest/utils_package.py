@@ -2,6 +2,7 @@
 Package utility for manage package operation on host
 """
 
+import os
 import logging
 
 import aexpect
@@ -68,6 +69,10 @@ class RemotePackageMgr(object):
             self.remove_cmd = self.package_manager + " remove -y "
             self.install_cmd = self.package_manager + " install -y "
             self.clean_cmd = self.package_manager + " clean all"
+            # Inspect the image mode of RHEL/CentOS/Fedora
+            if self.package_manager == "dnf" and os.path.isdir("/ostree"):
+                self.remove_cmd += " --transient "
+                self.install_cmd += " --transient "
 
     def clean(self):
         """
