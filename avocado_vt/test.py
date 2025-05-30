@@ -18,6 +18,7 @@ Avocado VT plugin
 
 import os
 import shlex
+import shutil
 import sys
 
 from avocado.core import exceptions, test
@@ -153,6 +154,14 @@ class VirtTest(test.Test, utils.TestUtils):
             self.__exc_info = sys.exc_info()
             self.__status = self.__exc_info[1]
         finally:
+            if (
+                self.params.get("vm_type") == "libvirt"
+                and self.params.get("store_libvirt_vm_logs", "yes") == "yes"
+            ):
+                source_dir = "/var/log/libvirt/qemu"
+                file_names = os.listdir(source_dir)
+                for file_name in file_names:
+                    shutil.move(os.path.join(source_dir, file_name), self.debugdir)
             # Clean libvirtd debug logs if the test is not fail or error
             if self.params.get("libvirtd_log_cleanup", "no") == "yes":
                 if (
