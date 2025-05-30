@@ -2321,7 +2321,7 @@ class Stress(object):
         self.stress_wait_for_timeout = int(
             self.params.get("stress_wait_for_timeout", 60)
         )
-        stress_type = stress_type.split("_")[0]
+
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
         self.stress_cmds = self.params.get("stress_cmds_%s" % stress_type, stress_cmds)
@@ -2815,50 +2815,36 @@ def load_stress(
     :param download_type: currently support "git" or "file" download
     """
     fail_info = []
+    # Add stress/iozone tool in vms
     default_stress_type = stress_type
     if stress_type in ["stress_in_vms", "iozone_in_vms", "htxcmdline_in_vms"]:
         for vm in vms:
-            stress_type = params.get("stress_type_%s" % vm.name, default_stress_type)
-            if stress_type == "htxcmdline_in_vms":
-                # Add htx stress tool in vms
-                try:
-                    vstress = VMStress(
-                        vm,
-                        stress_type.split("_")[0],
-                        params,
-                        download_url,
-                        make_cmds,
-                        stress_cmds,
-                        stress_args,
-                        work_path,
-                        uninstall_cmds,
-                        download_type=download_type,
-                    )
+            current_stress_type = params.get(
+                "stress_type_%s" % vm.name, default_stress_type
+            )
+            try:
+                vstress = VMStress(
+                    vm,
+                    stress_type.split("_")[0],
+                    params,
+                    download_url,
+                    make_cmds,
+                    stress_cmds,
+                    stress_args,
+                    work_path,
+                    uninstall_cmds,
+                    download_type=download_type,
+                )
+                if current_stress_type == "htxcmdline_in_vms":
+                    # Add htx stress tool in vms
                     vstress.load_htxstress_tool()
-                except StressError as detail:
-                    fail_info.append(
-                        "Launch htxstress in %s failed: %s" % (vm.name, detail)
-                    )
-            else:
-                # Add stress/iozone tool in vms
-                try:
-                    vstress = VMStress(
-                        vm,
-                        stress_type.split("_")[0],
-                        params,
-                        download_url,
-                        make_cmds,
-                        stress_cmds,
-                        stress_args,
-                        work_path,
-                        uninstall_cmds,
-                        download_type=download_type,
-                    )
+                else:
+                    # Add stress/iozone tool in vms
                     vstress.load_stress_tool()
-                except StressError as detail:
-                    fail_info.append(
-                        "Launch stress in %s failed: %s" % (vm.name, detail)
-                    )
+            except StressError as detail:
+                fail_info.append(
+                    "Launch %s in %s failed: %s", (current_stress_type, vm.name, detail)
+                )
     # Add stress for host
     elif stress_type == "stress_on_host" or stress_type == "stress_on_remote_host":
         try:
