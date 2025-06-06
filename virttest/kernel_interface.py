@@ -32,7 +32,7 @@ class FS(object):
         check whether the fs exist in local/remote host/VM
         """
         if self.session:
-            return self.session.cmd_status("cat %s" % self.fs) == 0
+            return self.session.cmd_status("ls %s" % self.fs) == 0
         else:
             return os.path.isfile(self.fs)
 
@@ -81,6 +81,7 @@ class ProcFS(FS):
 
         :param proc_fs: proc filesystem path
         :param session: ShellSession object of remote or VM
+        self.proc_fs = proc_fs
         """
         self.proc_fs = proc_fs
         super(ProcFS, self).__init__(self.proc_fs, session=session)
