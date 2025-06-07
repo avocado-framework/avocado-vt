@@ -2759,6 +2759,7 @@ class QSparseBus(object):
         :return: True when the bus matches the specification
         :rtype: bool
         """
+        bus_spec = bus_spec[0] if isinstance(bus_spec, tuple) else bus_spec
         if type_test and bus_spec.get("type"):
             if isinstance(bus_spec["type"], (tuple, list)):
                 for bus_type in bus_spec["type"]:
