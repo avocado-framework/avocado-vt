@@ -47,27 +47,6 @@ fedora_35_task:
   run_tests_script: &run_tests_scr
     - test $VT_TYPE == "libvirt" || PATH=$HOME/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --vt-extra-params nettype=user -- io-github-autotest-qemu.boot io-github-autotest-qemu.qemu_disk_img.convert.base_to_raw io-github-autotest-qemu.commit_with_backing.default
 
-centos_8_1_task:
-  container:
-    image: quay.io/avocado-framework/avocado-vt-ci-centos-8.1
-  env:
-    matrix:
-      # Older LTS release is 92.x
-      - AVOCADO_SRC: avocado-framework<93.0
-      # Latest LTS release is 103.x
-      - AVOCADO_SRC: avocado-framework<104.0
-    matrix:
-      - SETUP: setup.py develop --user
-      - SETUP: -m pip install .
-  setup_script:
-    *setup_scr
-  bootstrap_script:
-    *bootstrap_scr
-  list_script:
-    *list_scr
-  dry_run_script:
-    *dry_run_scr
-
 avocado_devel_task:
   container:
     image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
