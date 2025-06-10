@@ -3168,10 +3168,10 @@ class VM(virt_vm.BaseVM):
         if params.get("realtime_mlock"):
             if devices.has_option("overcommit"):
                 try:
-                    realtime_mlock = params.get_boolean("realtime_mlock")
-                    attr_info = ["mem-lock", realtime_mlock, bool]
+                    attr_type = type(params.get_boolean("realtime_mlock"))
                 except ValueError:
-                    attr_info = ["mem-lock", params["realtime_mlock"], None]
+                    attr_type = None
+                attr_info = ["mem-lock", params["realtime_mlock"], attr_type]
                 add_qemu_option(devices, "overcommit", [attr_info])
             else:
                 attr_info = ["mlock", params["realtime_mlock"], bool]
