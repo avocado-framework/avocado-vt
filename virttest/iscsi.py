@@ -174,6 +174,39 @@ def iscsi_discover(portal_ip):
     return session
 
 
+def _get_create_command(emulated_image, emulated_image_size, dd_cmd):
+    """
+    Select the optimal file creation command based on system capabilities.
+
+    This function tests available file creation utilities in priority order:
+    1. fallocate (fastest, allocates actual disk blocks)
+    2. dd (fallback method, slow but reliable)
+
+    Testing is performed by creating a 1K test file and verifying the command
+    exit status. The test file is immediately removed after verification.
+
+    :param emulated_image: Full path to the image file to be created
+    :type emulated_image: str
+    :param emulated_image_size: Desired size of the image with unit suffix (e.g. '10G', '100M')
+    :type emulated_image_size: str
+    :param dd_cmd: Pre-formatted dd command string to use as fallback
+    :type dd_cmd: str
+
+    :return: Optimal file creation command for the current system
+    :rtype: str
+    """
+    # Test fallocate availability: create 1K file and check exit code
+    test_cmd = 'fallocate -l 1K %s 2>/dev/null; echo "$?"; rm -f %s' % (
+        emulated_image,
+        emulated_image,
+    )
+    if process.getstatusoutput(test_cmd)[1] == "0":
+        return "fallocate -l %s %s" % (emulated_image_size, emulated_image)
+
+    # Default to dd if fallocate is NOT available
+    return dd_cmd
+
+
 class _IscsiComm(object):
     """
     Provide an interface to complete the similar initialization
@@ -895,20 +928,26 @@ class Fileio(Backstore):
             "G": (1024, 1024),
             "T": (1024, 1048576),
         }
-        if self.unit in emulated_size:
-            block_size = emulated_size[self.unit][1]
-            size = int(self.emulated_size) * emulated_size[self.unit][0]
-            self.emulated_expect_size = block_size * size
-            self.create_cmd = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
-                self.emulated_image,
-                size,
-                block_size,
-            )
-        else:
+        if self.unit not in emulated_size:
             raise exceptions.TestError(
-                "Image size provided is not in valid"
-                " format, specify proper units [K|M|G|T]"
+                "Image size provided is not in valid format, "
+                "specify proper units [K|M|G|T]"
             )
+
+        # calculate the file size
+        block_size = emulated_size[self.unit][1]
+        size = int(self.emulated_size) * emulated_size[self.unit][0]
+        self.emulated_expect_size = block_size * size
+        dd_command = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
+            self.emulated_image,
+            size,
+            block_size,
+        )
+
+        # optimize the `create file` command
+        self.create_cmd = _get_create_command(
+            self.emulated_image, params.get("emulated_image_size"), dd_command
+        )
 
     def _existed(self):
         """
