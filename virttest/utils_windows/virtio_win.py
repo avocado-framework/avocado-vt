@@ -101,7 +101,7 @@ def drive_letter_iso(session):
 
     :return: Drive letter.
     """
-    return drive.get_hard_drive_letter(session, "virtio-win%")
+    return drive.get_hard_drive_letter(session, "virtio-win*")
 
 
 def drive_letter_vfd(session):
