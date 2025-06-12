@@ -25,6 +25,7 @@ class Hostdev(base.TypedDeviceBase):
         "teaming",
         "rom",
         "address",
+        "driver",
     )
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
@@ -74,6 +75,14 @@ class Hostdev(base.TypedDeviceBase):
             subclass_dargs={"type_name": "drive", "virsh_instance": virsh_instance},
         )
         accessors.XMLElementDict("teaming", self, parent_xpath="/", tag_name="teaming")
+        accessors.XMLElementNest(
+            "driver",
+            self,
+            parent_xpath="/",
+            tag_name="driver",
+            subclass=self.Driver,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
         super(self.__class__, self).__init__(
             device_tag="hostdev", type_name=type_name, virsh_instance=virsh_instance
         )
@@ -336,3 +345,22 @@ class Hostdev(base.TypedDeviceBase):
                 )
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = "<initiator/>"
+
+    class Driver(base.base.LibvirtXMLBase):
+        """
+        Hostdev Driver xml class.
+
+        Properties:
+
+        driver:
+            dict.
+        """
+
+        __slots__ = ("driver_attr",)
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementDict(
+                "driver_attr", self, parent_xpath="/", tag_name="driver"
+            )
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<driver/>"
