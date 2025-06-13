@@ -2321,7 +2321,7 @@ class Stress(object):
         self.stress_wait_for_timeout = int(
             self.params.get("stress_wait_for_timeout", 60)
         )
-        stress_type = stress_type.split("_")[0]
+        stress_type = stress_type.split('_')[0]
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
         self.stress_cmds = self.params.get("stress_cmds_%s" % stress_type, stress_cmds)
@@ -2401,7 +2401,7 @@ class Stress(object):
         """
         load stress tool in guest
         """
-        # install htx stress tool
+        # install htx strss tool
         remove_old_package = "cd " + self.dst_path + " && rm -rf " + self.base_name
         get_stress = "cd " + self.dst_path + " && wget " + self.download_url
         if "rpm" in self.base_name:
