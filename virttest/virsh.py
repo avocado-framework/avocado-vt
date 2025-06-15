@@ -2309,6 +2309,20 @@ def net_update(network, update_cmd, section, xml, extra="", **dargs):
     return command(cmd, **dargs)
 
 
+def net_metadata(network, uri, extra="", **dargs):
+    """
+    net-metadata - show or set network's custom XML metadata
+
+    :param network: network name or uuid.
+    :param uri: URI of the namespace.
+    :param extra: extra parameters to pass to command.
+    :param dargs: standardized virsh function API keywords.
+    :return: CmdResult instance.
+    """
+    cmd = "net-metadata %s %s %s" % (network, uri, extra)
+    return command(cmd, **dargs)
+
+
 def _pool_type_check(pool_type):
     """
     check if the pool_type is supported or not
