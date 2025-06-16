@@ -95,20 +95,23 @@ def get_pf_info(session=None):
     return pf_info
 
 
-def get_pf_pci(session=None):
+def get_pf_pci(session=None, test_pf=None):
     """
-    Get the pci id of the available(status='up') PF.
+    Get the pci id of the available(status='up') or a given PF.
     If there is no available PF, return the first one.
 
     :param session: The session object to the host
+    :param test_pf: PF to test
     :return: pf's pci id, eg. 0000:05:10.1
     """
     pf_info = get_pf_info(session=session)
     for pci_info in pf_info.values():
-        if pci_info.get("status", "") == "up":
-            return pci_info.get("pci_id")
-    if pf_info:
-        return list(pf_info.values())[0].get("pci_id")
+        if test_pf:
+            if test_pf == pci_info.get("iface"):
+                return pci_info.get("pci_id")
+        else:
+            if pci_info.get("status", "") == "up":
+                return pci_info.get("pci_id")
 
 
 def get_pf_info_by_pci(pci_id, session=None):
