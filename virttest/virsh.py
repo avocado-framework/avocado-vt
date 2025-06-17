@@ -2293,6 +2293,19 @@ def net_info(network, extra="", **dargs):
     return command("net-info %s %s" % (network, extra), **dargs)
 
 
+def net_desc(network, extra="", **dargs):
+    """
+    net-desc - show or set network's description or title.
+
+    :param network: network name or uuid.
+    :param extra: extra parameters to pass to command.
+    :param dargs: standardized virsh function API keywords.
+    :return: CmdResult instance.
+    """
+    cmd = "net-desc %s %s" % (network, extra)
+    return command(cmd, **dargs)
+
+
 def net_update(network, update_cmd, section, xml, extra="", **dargs):
     """
     Update parts of an existing network's configuration
