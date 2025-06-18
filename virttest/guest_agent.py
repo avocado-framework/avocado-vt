@@ -1057,3 +1057,14 @@ class QemuAgent(Monitor):
         cmd = "guest-network-get-route"
         self.check_has_command(cmd)
         return self.cmd(cmd)
+
+    def get_load(self):
+        """
+        Get the cpu load average of the guest by guest agent operation
+
+        :return: a list of cpu load average info such as 'load1m'
+        'load5m' and 'load15m'
+        """
+        cmd = "guest-get-load"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
