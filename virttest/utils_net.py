@@ -894,7 +894,7 @@ def raw_ping(command, timeout, session, output_func):
             status = -1
         else:
             try:
-                status = int(re.findall("\d+", o2)[0])
+                status = int(re.findall(r"\d+", o2)[0])
             except Exception:
                 status = -1
 
@@ -3594,7 +3594,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
 
     :return: ipaddress of type str
     """
-    ip_regex = "^\d+.\d+.\d+.\d+$"
+    ip_regex = r"^\d+.\d+.\d+.\d+$"
     exclude_ips = set(exclude_ips)
     if not re.match(ip_regex, network_num):
         network_num = "10.0.0.0"
@@ -3741,7 +3741,7 @@ def get_linux_mac(session, nic):
     Get MAC address by nic name
     """
     sys_path = "%s/%s" % (SYSFS_NET_PATH, nic)
-    pattern = "(\w{2}:\w{2}:\w{2}:\w{2}\:\w{2}:\w{2})"
+    pattern = r"(\w{2}:\w{2}:\w{2}:\w{2}\:\w{2}:\w{2})"
     if session.cmd_status("test -d %s" % sys_path) == 0:
         mac_index = 1
         show_mac_cmd = "cat %s/address" % sys_path
@@ -4310,7 +4310,7 @@ def map_hostname_ipaddress(hostname_ip_dict, session=None):
         if status != 0:
             LOG.error(output)
             return False
-        pattern = "%s(\s+)%s$" % (ipaddress, hostname)
+        pattern = r"%s(\s+)%s$" % (ipaddress, hostname)
         if not re.search(pattern, output):
             cmd = "echo '%s %s' >> %s" % (ipaddress, hostname, hosts_file)
             status, output = func(cmd)
