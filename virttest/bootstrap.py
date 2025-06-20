@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import re
@@ -6,9 +7,15 @@ import shutil
 import sys
 from distutils import dir_util  # virtualenv problem pylint: disable=E0611
 
+from aexpect import remote
+
 from avocado.utils import cpu, distro, genio, linux_modules
 from avocado.utils import path as utils_path
 from avocado.utils import process
+
+from virttest import remote
+from virttest.vt_cluster import cluster, node
+from virttest.vt_resmgr import resmgr
 
 from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
@@ -875,6 +882,31 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir, interactive, selinux=Fal
             LOG.info("Corrected contexts on %d files/dirs", len(changes))
 
 
+def _load_cluster_config(cluster_config):
+    """Load the cluster config"""
+    with open(cluster_config, "r") as config:
+        return json.load(config)
+
+
+def _register_hosts(hosts_configs):
+    """Register the configs of the hosts into the cluster."""
+    if hosts_configs:
+        cluster.cleanup_env()
+        for host, host_params in hosts_configs.items():
+            try:
+                _node = node.Node(host_params, host)
+                _node.setup_agent_env()
+                cluster.register_node(_node.name, _node)
+                LOG.debug("Host %s registered", host)
+            except Exception as e:
+                LOG.warning("Skipping host %s due to setup error: %s", host, e)
+
+
+def _initialize_resource_managers(pools_params):
+    """Initialize the resource managers fo the cluster"""
+    resmgr.setup(pools_params)
+
+
 def bootstrap(options, interactive=False):
     """
     Common virt test assistant module.
@@ -1041,6 +1073,18 @@ def bootstrap(options, interactive=False):
                 )
             else:
                 LOG.debug("Module %s loaded", module)
+
+    # Setup the cluster environment.
+    vt_cluster_config = get_opt(options, "vt_cluster_config")
+    if vt_cluster_config:
+        LOG.info("")
+        step += 1
+        LOG.info(
+            "%d - Setting up the cluster environment via %s", step, vt_cluster_config
+        )
+        cluster_config = _load_cluster_config(vt_cluster_config)
+        _register_hosts(cluster_config.get("hosts"))
+        _initialize_resource_managers(cluster_config.get("pools"))
 
     LOG.info("")
     LOG.info("VT-BOOTSTRAP FINISHED")

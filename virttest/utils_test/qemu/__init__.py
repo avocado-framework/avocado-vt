@@ -31,6 +31,8 @@ from virttest import error_context, qemu_monitor, utils_misc
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
 from virttest.utils_windows import virtio_win
+from virttest.vt_vmm.utils.instance_spec import qemu_spec
+from virttest.vt_vmm.api import vmm
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -448,6 +450,18 @@ class MemoryBaseTest(object):
         :param vm: VM object
         :return: memory size in MB.
         """
+        if vm.instance_id:
+            mem_size = vmm.get_instance_spec_info(vm.instance_id, "memory.machine.size")
+            mem_str = "%sM" % mem_size
+            total_mem = self.normalize_mem_size(mem_str)
+            for dev in vmm.get_instance_spec_info(vm.instance_id, "memory.devices"):
+                if dev.get("type") == "pc-dimm":
+                    obj_size_str = dev["backend"]["props"]["size"]
+                    total_mem += self.normalize_mem_size(obj_size_str)
+            LOG.info("Assigned %s%s " % (
+            total_mem, self.UNIT) + "memory to '%s'" % vm.name)
+            return total_mem
+
         PC_DIMM = qdevices.Dimm
         # Default memory size in configuration is MB, so append
         # 'MB' in the end of 'mem' param.
@@ -671,6 +685,16 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param vm: VM object
         :param name: memory device name
         """
+        if vm.instance_id: # FIXME: switch to the VMM APIs to attach the devices
+            vm_params = vm.params
+            node = vmm.get_instance_node(vm.instance_id)
+            mem_spec = qemu_spec.define_memory_device_spec(vm.name,
+                                                           vm_params,
+                                                           node.tag,
+                                                           name)
+            vmm.attach_instance_device(vm.instance_id, mem_spec)
+            return
+
         devices = vm.devices.memory_define_by_params(self.params, name)
         for dev in devices:
             dev_type = "memory"
@@ -696,6 +720,16 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param vm: VM object
         :param name: memory device name
         """
+        if vm.instance_id:
+            vm_params = vm.params
+            node = vmm.get_instance_node(vm.instance_id)
+            mem_spec = qemu_spec.define_memory_device_spec(vm.name,
+                                                           vm_params,
+                                                           node.tag,
+                                                           name)
+            vmm.detach_instance_device(vm.instance_id, mem_spec)
+            return
+
         devices = []
         qid_list = ["dimm-%s" % name, "virtio_mem-%s" % name]
         qid_mem = "mem-%s" % name

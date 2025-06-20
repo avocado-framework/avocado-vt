@@ -19,6 +19,7 @@ from six.moves import xrange
 from virttest import data_dir, error_context, ppm_utils
 from virttest import remote as remote_old
 from virttest import utils_logfile, utils_misc, utils_net, vt_console
+from virttest.vt_cluster import cluster
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -848,25 +849,49 @@ class BaseVM(object):
             raise VMIPAddressMissingError(mac, ip_version)
 
         devs = set([nic.netdst]) if "netdst" in nic else set()
-        if not utils_net.verify_ip_address_ownership(
-            ip_addr, [mac], devs=devs, session=session, timeout=timeout
-        ):
-            nic_params = self.params.object_params(nic.nic_name)
-            pci_assignable = nic_params.get("pci_assignable") != "no"
+        if self.params.get("vm_node") and session is None: # FIXME:
+            node = cluster.get_node_by_tag(self.params.get("vm_node"))
+            devs = list(devs)
+            if not node.proxy.network.verify_ip_address_ownership(
+                    ip_addr, [mac], timeout, devs
+            ):
+                nic_params = self.params.object_params(nic.nic_name)
+                pci_assignable = nic_params.get("pci_assignable") != "no"
 
-            if not (pci_assignable or nic.nettype == "macvtap"):
-                raise VMAddressVerificationError(mac, ip_addr)
+                if not (pci_assignable or nic.nettype == "macvtap"):
+                    raise VMAddressVerificationError(mac, ip_addr)
 
-            self.address_cache.drop(mac_pattern % mac)
+                self.address_cache.drop(mac_pattern % mac)
 
-            # SR-IOV/Macvtap cards may not be in same subnet with the cards
-            # used by host by default, so arp checks won't work. Therefore,
-            # do not raise VMAddressVerificationError when SR-IOV is used.
-            nic_backend = pci_assignable and "SR-IOV" or "macvtap"
-            msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
-            msg += " Maybe %s is not in the same subnet " % ip_addr
-            msg += "as the host (%s in use)" % nic_backend
-            LOG.error(msg)
+                # SR-IOV/Macvtap cards may not be in same subnet with the cards
+                # used by host by default, so arp checks won't work. Therefore,
+                # do not raise VMAddressVerificationError when SR-IOV is used.
+                nic_backend = pci_assignable and "SR-IOV" or "macvtap"
+                msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
+                msg += " Maybe %s is not in the same subnet " % ip_addr
+                msg += "as the host (%s in use)" % nic_backend
+                LOG.error(msg)
+
+        else:
+            if not utils_net.verify_ip_address_ownership(
+                ip_addr, [mac], devs=devs, session=session, timeout=timeout
+            ):
+                nic_params = self.params.object_params(nic.nic_name)
+                pci_assignable = nic_params.get("pci_assignable") != "no"
+
+                if not (pci_assignable or nic.nettype == "macvtap"):
+                    raise VMAddressVerificationError(mac, ip_addr)
+
+                self.address_cache.drop(mac_pattern % mac)
+
+                # SR-IOV/Macvtap cards may not be in same subnet with the cards
+                # used by host by default, so arp checks won't work. Therefore,
+                # do not raise VMAddressVerificationError when SR-IOV is used.
+                nic_backend = pci_assignable and "SR-IOV" or "macvtap"
+                msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
+                msg += " Maybe %s is not in the same subnet " % ip_addr
+                msg += "as the host (%s in use)" % nic_backend
+                LOG.error(msg)
 
         return ip_addr
 

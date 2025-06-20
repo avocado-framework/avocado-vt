@@ -28,6 +28,7 @@ from six.moves import xrange
 from virttest import qemu_monitor, utils_logfile, utils_misc
 from virttest.qemu_devices.utils import DeviceError, none_or_int
 from virttest.utils_version import VersionInterval
+from virttest.vt_monitor import client
 
 from .qdevice_format import qdevice_format
 
@@ -301,7 +302,8 @@ class QBaseDevice(object):
 
     def hotplug(self, monitor, qemu_version):
         """:return: the output of monitor.cmd() hotplug command"""
-        if isinstance(monitor, qemu_monitor.QMPMonitor):
+        # FIXME: Add client.QMPMonitor to support the multi-host testing
+        if isinstance(monitor, (qemu_monitor.QMPMonitor, client.QMPMonitor)):
             try:
                 cmd, args = self._hotplug_qmp_mapping(qemu_version)()
                 return monitor.cmd(cmd, args)
@@ -330,7 +332,8 @@ class QBaseDevice(object):
 
     def unplug(self, monitor):
         """:return: the output of monitor.cmd() unplug command"""
-        if isinstance(monitor, qemu_monitor.QMPMonitor):
+        # FIXME: Add client.QMPMonitor to support the multi-host testing
+        if isinstance(monitor, (qemu_monitor.QMPMonitor, client.QMPMonitor)):
             try:
                 cmd, args = self.unplug_qmp()
                 return monitor.cmd(cmd, args)
