@@ -113,8 +113,17 @@ class IPSniffer(Setuper):
         # Start ip sniffing if it isn't already running
         # The fact it has to be started here is so that the test params
         # have to be honored.
-        self.env.start_ip_sniffing(self.params)
+        if self.test.nodes:
+            for node in self.test.nodes:
+                node.proxy.env_setuper.setup("ip_sniffer")
+        else:
+            self.env.start_ip_sniffing(self.params)
 
     def cleanup(self):
         # Terminate the ip sniffer thread
-        self.env.stop_ip_sniffing()
+        if self.test.nodes:
+            for node in self.test.nodes:
+                cleanup_config = {}
+                node.proxy.env_setuper.cleanup("ip_sniffer")
+        else:
+            self.env.stop_ip_sniffing()
