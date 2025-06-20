@@ -43,9 +43,9 @@ License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
 %if 0%{?rel_build}
-Source0: https://github.com/avocado-framework/%{srcname}/archive/%{version}.tar.gz#/%{gittar}
+Source0: https://github.com/avocado-framewor/%{srcname}/archive/%{version}.tar.gz#/%{gittar}
 %else
-Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.gz#/%{gittar}
+Source0: https://github.com/avocado-framewor/%{srcname}/archive/%{commit}.tar.gz#/%{gittar}
 # old way of retrieving snapshot sources
 #Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
 %endif
