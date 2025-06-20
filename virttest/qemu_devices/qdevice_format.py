@@ -187,6 +187,13 @@ class _QDeviceFormatManagement(object):
                     #   _str_to_dec instead of function _hex_in_str_to_dec.
                     "max-bytes": self._str_to_dec,
                 },
+                "virtio-rng-ccw": {
+                    #   About "max-bytes" in qemu output:
+                    #       max-bytes=<uint64>     -  (default: 9223372036854775807)
+                    #   In fact: The "max-bytes" is accepted by function
+                    #   _str_to_dec instead of function _hex_in_str_to_dec.
+                    "max-bytes": self._str_to_dec,
+                },
                 "usb-storage": {
                     # In fact: qemu wants "on" instead of "NO_EQUAL_STRING".
                     "serial": self._on,
