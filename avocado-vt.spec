@@ -46,7 +46,7 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.g
 BuildRequires: python3-devel, python3-setuptools, python3-six
 Requires: python3-six
 BuildArch: noarch
-Requires: autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, nc, git
+Requires: autotest-framework, iproute, iputils, gcc, glibc-headers, nc, git
 Requires: attr
 %if 0%{?rhel}
 Requires: policycoreutils-python
