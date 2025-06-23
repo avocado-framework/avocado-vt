@@ -2549,6 +2549,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolFTP
             elif filename.startswith("vdpa:"):
                 protocol_cls = qdevices.QBlockdevProtocolVirtioBlkVhostVdpa
+            elif filename.startswith("vhost-user-blk:"):
+                protocol_cls = qdevices.QBlockdevProtocolVirtioBlkVhostUser
             elif fmt in ("scsi-generic", "scsi-block"):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -2985,7 +2987,7 @@ class DevContainer(object):
         :param params: Disk params (params.object_params(name))
 
         :raise NotImplementedError: if image_filename shows that this is a vdpa
-                                    device
+                                    device or a vhost-user-blk device
         """
         data_root = data_dir.get_data_dir()
         shared_dir = os.path.join(data_root, "shared")
@@ -3019,6 +3021,11 @@ class DevContainer(object):
             and image_params.get("image_snapshot") == "yes"
         ):
             raise NotImplementedError("vdpa does NOT support the snapshot!")
+        if (
+            image_filename.startswith("vhost-user-blk://")
+            and image_params.get("image_snapshot") == "yes"
+        ):
+            raise NotImplementedError("vhost-user-blk does NOT support the snapshot!")
         if Flags.BLOCKDEV in self.caps and image_params.get("image_snapshot") == "yes":
             # FIXME: Most of attributes for the snapshot should be got from the
             #        base image's metadata, not from the Cartesian parameter,
