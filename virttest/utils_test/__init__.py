@@ -2554,20 +2554,24 @@ class Stress(object):
                 raise exceptions.TestError(
                     "Installing dependency packages for" " %s failed" % self.stress_type
                 )
-        if self.stress_install_from_repo and self.stress_package:
-            # Install the stress package from existing repos
-            # If succeed, no need to download stress src any more
-            if not utils_package.package_install(
-                self.stress_package, session=self.session, timeout=60
-            ):
-                self.stress_install_from_repo = False
-                LOG.debug(
-                    "Fail to install stress tool via repo and "
-                    "will download source to make and install it"
-                )
-            else:
-                LOG.debug("Successful to install stress tool via repo")
+        if self.stress_package:
+            mgr = utils_package.package_manager(self.session, self.stress_package)
+            if mgr.is_installed(self.stress_package):
                 return
+            elif self.stress_install_from_repo:
+                # Install the stress package from existing repos
+                # If succeed, no need to download stress src any more
+                if not utils_package.package_install(
+                    self.stress_package, session=self.session, timeout=60
+                ):
+                    self.stress_install_from_repo = False
+                    LOG.debug(
+                        "Fail to install stress tool via repo and "
+                        "will download source to make and install it"
+                    )
+                else:
+                    LOG.debug("Successful to install stress tool via repo")
+                    return
 
         self.download_stress()
         install_path = os.path.join(self.dst_path, self.base_name, self.work_path)
@@ -2584,23 +2588,29 @@ class Stress(object):
         """
         Uninstall stress application, and clean the source files
         """
-        if self.stress_install_from_repo and self.stress_package:
-            # Uninstall the stress package from existing repos
-            # If succeed, no need to uninstall and remove source any more
-            if not utils_package.package_remove(
-                self.stress_package, session=self.session
-            ):
-                LOG.debug(
-                    "Fail to remove stress tool via repo and "
-                    "will continue to uninstall and remove source"
-                )
+        if self.stress_package:
+            if self.stress_install_from_repo:
+                # Uninstall the stress package from existing repos
+                # If succeed, no need to uninstall and remove source any more
+                if not utils_package.package_remove(
+                    self.stress_package, session=self.session
+                ):
+                    LOG.debug(
+                        "Fail to remove stress tool via repo and "
+                        "will continue to uninstall and remove source"
+                    )
+                else:
+                    LOG.debug("Successful to remove stress tool via repo")
+                    return
             else:
-                LOG.debug("Successful to remove stress tool via repo")
+                mgr = utils_package.package_manager(self.session, self.stress_package)
+                if mgr.is_installed(self.stress_package):
+                    return
+
+            install_path = os.path.join(self.dst_path, self.base_name)
+            if self.cmd_status("cd %s" % install_path) != 0:
+                LOG.error("No source files found in path %s", path)
                 return
-        install_path = os.path.join(self.dst_path, self.base_name)
-        if self.cmd_status("cd %s" % install_path) != 0:
-            LOG.error("No source files found in path %s", path)
-            return
 
         LOG.info("Uninstall %s", self.stress_type)
         status, output = self.cmd_status_output(self.uninstall_cmds)
