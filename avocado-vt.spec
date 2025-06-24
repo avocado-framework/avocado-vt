@@ -46,7 +46,7 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.g
 BuildRequires: python3-devel, python3-setuptools, python3-six
 Requires: python3-six
 BuildArch: noarch
-Requires: autotest-framework, iproute, iputils, gcc, glibc-headers, nc, git
+Requires: autotest-framework, iproute, iputils, gcc, git
 Requires: attr
 %if 0%{?rhel}
 Requires: policycoreutils-python
@@ -68,7 +68,7 @@ Xunit output, among others.
 
 %package -n python3-%{name}
 Summary: %{summary}
-Requires: python3, python3-avocado >= 51.0, python3-aexpect
+Requires: python3, python3-avocado = 51.0, python3-aexpect
 Requires: python3-netifaces
 %{?python_provide:%python_provide python3-%{srcname}}
 %description -n python3-%{name}
