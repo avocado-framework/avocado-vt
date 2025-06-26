@@ -341,12 +341,13 @@ def cleanup_firewall_rule(params):
         firewall_cmd_src.remove_direct_rule(firewall_rule_on_src, debug=True)
 
 
-def change_tcp_config(expected_dict):
+def change_tcp_config(expected_dict, params):
     """
     Change tcp configurations on host, so tcp connection can timeout
     more quickly after network issue occurs
 
     :param expected_dict: The dict for expected tcp config
+    :param params: dict, dictionary with the test parameters
     """
     tcp_keepalive_probes = expected_dict.get("tcp_keepalive_probes", "9")
     tcp_keepalive_intvl = expected_dict.get("tcp_keepalive_intvl", "75")
@@ -369,6 +370,7 @@ def change_tcp_config(expected_dict):
     )
     LOG.debug("Change TCP config: %s", cmd)
     process.run(cmd, shell=True, ignore_status=False)
+    remote.run_remote_cmd(cmd, params, ignore_status=False)
 
 
 def check_sockets_statistics(
