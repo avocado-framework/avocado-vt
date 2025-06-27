@@ -474,10 +474,10 @@ def get_time(session, time_command, time_filter_re, time_format):
                 msg += "'%s', output: %s" % (time_command, output)
                 raise exceptions.TestError(msg)
             if re.search("PM|AM", guest_time):
-                hour = re.findall(r"\d+ (\d+):", guest_time)[0]
+                hour = re.findall("\d+ (\d+):", guest_time)[0]
                 fix = 12 if re.search("PM", guest_time) else 0
                 hour = str(int(hour) % 12 + fix)
-                guest_time = re.sub(r"\s\d+:", " %s:" % hour, guest_time)[:-3]
+                guest_time = re.sub("\s\d+:", " %s:" % hour, guest_time)[:-3]
             else:
                 guest_time = guest_time[:-3]
             guest_time = time.mktime(time.strptime(guest_time, time_format))
@@ -867,7 +867,7 @@ def run_virtio_serial_file_transfer(
                         else:
                             LOG.warning(err)
                 else:
-                    md5_re = r"md5_sum = (\w{32})"
+                    md5_re = "md5_sum = (\w{32})"
                     try:
                         md5_guest = re.findall(md5_re, g_output)[0]
                     except Exception:
@@ -887,7 +887,7 @@ def run_virtio_serial_file_transfer(
                             else:
                                 LOG.warning(err)
                     else:
-                        md5_re = r"md5_sum = (\w{32})"
+                        md5_re = "md5_sum = (\w{32})"
                         try:
                             md5_host = re.findall(md5_re, output)[0]
                         except Exception:
@@ -1498,10 +1498,10 @@ def run_autotest(
     def get_last_guest_results_index():
         res_index = 0
         for subpath in os.listdir(outputdir):
-            if re.search(r"guest_autotest_results\d+", subpath):
+            if re.search("guest_autotest_results\d+", subpath):
                 res_index = max(
                     res_index,
-                    int(re.search(r"guest_autotest_results(\d+)", subpath).group(1)),
+                    int(re.search("guest_autotest_results(\d+)", subpath).group(1)),
                 )
         return res_index
 
@@ -2057,7 +2057,7 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
             if len(re.findall(column_mark, eachLine)) != 0 and not head_flag:
                 column = 0
                 _, row, eachLine = re.split(row_head, eachLine)
-                for i in re.split(r"\s+", eachLine):
+                for i in re.split("\s+", eachLine):
                     if i:
                         result_dict[i] = {}
                         column_list[column] = i
@@ -2074,7 +2074,7 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
                     row_list.append(row)
                     for i in result_dict:
                         result_dict[i][row] = []
-                for i in re.split(r"\s+", eachLine):
+                for i in re.split("\s+", eachLine):
                     if i:
                         result_dict[column_list[column]][row].append(i)
                         column += 1
@@ -2321,7 +2321,6 @@ class Stress(object):
         self.stress_wait_for_timeout = int(
             self.params.get("stress_wait_for_timeout", 60)
         )
-        stress_type = stress_type.split("_")[0]
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
         self.stress_cmds = self.params.get("stress_cmds_%s" % stress_type, stress_cmds)
@@ -2386,45 +2385,6 @@ class Stress(object):
             # terminate, if timeout, send a blank line afterward
         except aexpect.ShellTimeoutError:
             self.cmd_launch("")
-        # wait for stress to start and then check, if not raise TestError
-        if not utils_misc.wait_for(
-            self.app_running,
-            self.stress_wait_for_timeout,
-            first=2.0,
-            text="wait for stress app to start",
-            step=1.0,
-        ):
-            raise exceptions.TestError("Stress app does not " "running as expected")
-
-    @session_handler
-    def load_htxstress_tool(self):
-        """
-        load stress tool in guest
-        """
-        # install htx stress tool
-        remove_old_package = "cd " + self.dst_path + " && rm -rf " + self.base_name
-        get_stress = "cd " + self.dst_path + " && wget " + self.download_url
-        if "rpm" in self.base_name:
-            install_stress = "cd " + self.dst_path + " && rpm -i " + self.base_name
-        elif "deb" in self.base_name:
-            install_stress = "cd " + self.dst_path + " && dpkg -i " + self.base_name
-        else:
-            raise exceptions.TestError("Could not install htx stress tool")
-        LOG.info("Installing htx rpm/deb in the guest")
-        self.cmd(remove_old_package)
-        self.cmd(get_stress)
-        self.cmd(install_stress)
-
-        # start htx stress
-        launch_cmds = "nohup %s %s > /dev/null &" % (self.stress_cmds, self.stress_args)
-        LOG.info("Launch stress with command: %s", launch_cmds)
-        try:
-            self.cmd_launch(launch_cmds)
-            # The background process sometimes does not return to
-            # terminate, if timeout, send a blank line afterward
-        except aexpect.ShellTimeoutError:
-            self.cmd_launch("")
-
         # wait for stress to start and then check, if not raise TestError
         if not utils_misc.wait_for(
             self.app_running,
@@ -2815,50 +2775,25 @@ def load_stress(
     :param download_type: currently support "git" or "file" download
     """
     fail_info = []
-    default_stress_type = stress_type
-    if stress_type in ["stress_in_vms", "iozone_in_vms", "htxcmdline_in_vms"]:
+    # Add stress/iozone tool in vms
+    if stress_type in ["stress_in_vms", "iozone_in_vms"]:
         for vm in vms:
-            stress_type = params.get("stress_type_%s" % vm.name, default_stress_type)
-            if stress_type == "htxcmdline_in_vms":
-                # Add htx stress tool in vms
-                try:
-                    vstress = VMStress(
-                        vm,
-                        stress_type.split("_")[0],
-                        params,
-                        download_url,
-                        make_cmds,
-                        stress_cmds,
-                        stress_args,
-                        work_path,
-                        uninstall_cmds,
-                        download_type=download_type,
-                    )
-                    vstress.load_htxstress_tool()
-                except StressError as detail:
-                    fail_info.append(
-                        "Launch htxstress in %s failed: %s" % (vm.name, detail)
-                    )
-            else:
-                # Add stress/iozone tool in vms
-                try:
-                    vstress = VMStress(
-                        vm,
-                        stress_type.split("_")[0],
-                        params,
-                        download_url,
-                        make_cmds,
-                        stress_cmds,
-                        stress_args,
-                        work_path,
-                        uninstall_cmds,
-                        download_type=download_type,
-                    )
-                    vstress.load_stress_tool()
-                except StressError as detail:
-                    fail_info.append(
-                        "Launch stress in %s failed: %s" % (vm.name, detail)
-                    )
+            try:
+                vstress = VMStress(
+                    vm,
+                    stress_type.split("_")[0],
+                    params,
+                    download_url,
+                    make_cmds,
+                    stress_cmds,
+                    stress_args,
+                    work_path,
+                    uninstall_cmds,
+                    download_type=download_type,
+                )
+                vstress.load_stress_tool()
+            except StressError as detail:
+                fail_info.append("Launch stress in %s failed: %s" % (vm.name, detail))
     # Add stress for host
     elif stress_type == "stress_on_host" or stress_type == "stress_on_remote_host":
         try:
