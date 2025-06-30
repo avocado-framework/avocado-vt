@@ -201,5 +201,19 @@ class _Cluster(object):
             nodes = nodes - partition.nodes
         return list(nodes)
 
+    def get_partition(self, conditions=None):
+        """
+        TODO: There can be multiple jobs running in parallel, we will create
+        a partition for each job.
+
+        Currently, it works in this way:
+        When the job starts a new process to run a case, the cluster object
+        will be re-constructed as a new one, it reads the dumped file to get
+        back all its configuration. Note the cluster here is a 'slice' because
+        it only serves the current test case, when the process(test case) is
+        finished, the slice cluster is gone. So there is only one partition.
+        """
+        return self._data["partitions"][0]
+
 
 cluster = _Cluster()
