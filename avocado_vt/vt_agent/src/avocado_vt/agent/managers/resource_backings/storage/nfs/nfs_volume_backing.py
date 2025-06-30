@@ -12,16 +12,20 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-from .storage import DirPool, NfsPool
+import os
 
-_pool_classes = {
-    DirPool.TYPE: DirPool,
-    NfsPool.TYPE: NfsPool,
-}
+from ..file_volume_backing import FileVolumeBacking
 
 
-def get_pool_class(pool_type):
-    return _pool_classes.get(pool_type)
+class NfsVolumeBacking(FileVolumeBacking):
+    RESOURCE_POOL_TYPE = "nfs"
 
+    def __init__(self, backing_config, pool_connection):
+        super().__init__(backing_config, pool_connection)
 
-__all__ = ["get_pool_class"]
+        if self._uri:
+            if not self._uri.startswith(pool_connection.mnt):
+                raise ValueError(f"Cannot find {self._uri} in {pool_connection.mnt}")
+        else:
+            uri = os.path.join(pool_connection.mnt, self._filename)
+            self._uri = os.path.realpath(uri)
