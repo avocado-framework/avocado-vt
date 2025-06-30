@@ -20,7 +20,9 @@ import six
 
 from virttest.qemu_capabilities import Flags
 
-from . import cartesian_config, data_dir, utils_logfile, utils_misc
+from cartconf.utils import convert_data_size
+
+from . import data_dir, utils_logfile, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -2463,7 +2465,7 @@ class QMPMonitor(Monitor):
         :param value: Speed in bytes/sec
         :return: The response to the command
         """
-        value = cartesian_config.convert_data_size(value, "M")
+        value = convert_data_size(value, "M")
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
 
