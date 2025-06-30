@@ -71,12 +71,12 @@ def normalize_mem_size(mem_size, mem_unit):
     return int(mem_size * 1024**mem_unit_idx)
 
 
-def consume_vm_freememory(vm_session, consume_value=100000, repeat_times=1):
+def consume_vm_freememory(vm_session, remain_mem=100000, repeat_times=1):
     """
     Verify the free memory of the vm can be consumed normally
 
     :param vm_session: vm session
-    :param consume_value: consume value , default 100000
+    :param remain_mem: remained memory value without allocation, default 100000
     :param repeat_times: consume memory times, default 1
     """
     vm_session.cmd_status("swapoff -a")
@@ -85,6 +85,6 @@ def consume_vm_freememory(vm_session, consume_value=100000, repeat_times=1):
         raise exceptions.TestError(
             "Fail to install package 'numactl' which provides command 'memhog'"
         )
-    cmd = "memhog -r%d %dk" % (repeat_times, (free_mem - consume_value))
+    cmd = "memhog -r%d %dk" % (repeat_times, (free_mem - remain_mem))
     status, stdout = vm_session.cmd_status_output(cmd, timeout=60)
     return (status, stdout)
