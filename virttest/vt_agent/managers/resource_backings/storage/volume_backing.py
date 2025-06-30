@@ -12,16 +12,21 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-from .storage import DirPool
+import logging
+
+from ..backing import ResourceBacking
+
+LOG = logging.getLogger("avocado.service." + __name__)
 
 
-_pool_classes = {
-    DirPool.TYPE: DirPool,
-}
+class VolumeBacking(ResourceBacking):
+    RESOURCE_TYPE = "volume"
+    RESOURCE_POOL_TYPE = None
 
+    def __init__(self, backing_config, pool_connection):
+        super().__init__(backing_config, pool_connection)
+        self._uri = backing_config["spec"].get("uri")
 
-def get_pool_class(pool_type):
-    return _pool_classes.get(pool_type)
-
-
-__all__ = ["get_pool_class"]
+    @property
+    def volume_uri(self):
+        return self._uri
