@@ -93,10 +93,14 @@ class _Operator(object):
 
     @staticmethod
     def _contains(left, right):
+        if isinstance(right, list):
+            return set(left).issuperset(right)
         return operator.contains(left, right)
 
     @staticmethod
     def _not_contains(left, right):
+        if isinstance(right, list):
+            return not set(left).issuperset(right)
         return not operator.contains(left, right)
 
 
