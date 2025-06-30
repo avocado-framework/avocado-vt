@@ -24,6 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 LOG_DIR = os.path.join(DATA_DIR, "log")
 DOWNLOAD_DIR = os.path.join(DATA_DIR, "download")
+BACKING_MGR_ENV_FILENAME = os.path.join(DATA_DIR, "resbk_mgr.env")
 
 AGENT_LOG_FILENAME = os.path.join(LOG_DIR, "agent.log")
 SERVICE_LOG_FILENAME = os.path.join(LOG_DIR, "service.log")
