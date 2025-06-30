@@ -1,7 +1,8 @@
-from .storage import _DirPool
+from .storage import _DirPool, _NfsPool
 
 _pool_classes = dict()
 _pool_classes[_DirPool.get_pool_type()] = _DirPool
+_pool_classes[_NfsPool.get_pool_type()] = _NfsPool
 
 
 def get_pool_class(pool_type):
