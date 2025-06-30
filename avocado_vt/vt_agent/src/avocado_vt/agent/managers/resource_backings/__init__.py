@@ -12,17 +12,26 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-from .storage import DirPoolConnection, DirVolumeBacking
+from .storage import (
+    DirPoolConnection,
+    DirVolumeBacking,
+    NfsPoolConnection,
+    NfsVolumeBacking,
+)
 
 # {resource pool type: resource pool class object, }
 _pool_conn_classes = {
     DirPoolConnection.POOL_TYPE: DirPoolConnection,
+    NfsPoolConnection.POOL_TYPE: NfsPoolConnection,
 }
 
 # {binding resource pool type: {binding resource type: resource backing class object, }}
 _backing_classes = {
     DirPoolConnection.POOL_TYPE: {
         DirVolumeBacking.RESOURCE_TYPE: DirVolumeBacking,
+    },
+    NfsPoolConnection.POOL_TYPE: {
+        NfsVolumeBacking.RESOURCE_TYPE: NfsVolumeBacking,
     },
 }
 
