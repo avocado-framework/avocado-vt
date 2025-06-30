@@ -17,6 +17,7 @@ import sys
 
 from avocado.core.plugin_interfaces import CLICmd
 from avocado.utils import process
+
 from virttest import bootstrap, defaults
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
