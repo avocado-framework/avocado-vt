@@ -12,15 +12,17 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-from .storage import DirPool
-
-_pool_classes = {
-    DirPool.TYPE: DirPool,
-}
+from ..backing import ResourceBacking
 
 
-def get_pool_class(pool_type):
-    return _pool_classes.get(pool_type)
+class VolumeBacking(ResourceBacking):
+    RESOURCE_TYPE = "volume"
+    RESOURCE_POOL_TYPE = None
 
+    def __init__(self, backing_config, pool_connection):
+        super().__init__(backing_config, pool_connection)
+        self._uri = backing_config["spec"].get("uri")
 
-__all__ = ["get_pool_class"]
+    @property
+    def volume_uri(self):
+        return self._uri
