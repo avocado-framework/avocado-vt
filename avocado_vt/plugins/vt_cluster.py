@@ -32,6 +32,7 @@ from avocado.core.plugin_interfaces import JobPreTests as Pre
 from avocado.utils.stacktrace import log_exc_info
 
 from virttest.vt_cluster import cluster, node_properties
+from virttest.vt_resmgr import resmgr
 
 
 class ClusterSetupError(Exception):
@@ -130,7 +131,7 @@ class VTCluster(Pre, Post):
         """
         try:
             # Pre-setup the cluster manager
-            pass
+            resmgr.startup()
         except Exception as err:
             raise ClusterManagerSetupError(err)
 
@@ -143,7 +144,7 @@ class VTCluster(Pre, Post):
         """
         try:
             # Post-cleanup the cluster manager
-            pass
+            resmgr.teardown()
         except Exception as err:
             raise ClusterManagerCleanupError(err)
 
