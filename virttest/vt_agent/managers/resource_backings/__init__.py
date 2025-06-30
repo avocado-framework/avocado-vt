@@ -1,11 +1,16 @@
-from .storage import _DirPoolConnection, _DirVolumeBacking
+from .storage import (_DirPoolConnection, _DirVolumeBacking,
+                      _NfsPoolConnection, _NfsVolumeBacking)
 
 _pool_conn_classes = dict()
 _pool_conn_classes[_DirPoolConnection.get_pool_type()] = _DirPoolConnection
+_pool_conn_classes[_NfsPoolConnection.get_pool_type()] = _NfsPoolConnection
 
 _backing_classes = dict()
 _backing_classes[_DirVolumeBacking.get_pool_type()] = {
     _DirVolumeBacking.get_resource_type(): _DirVolumeBacking,
+}
+_backing_classes[_NfsVolumeBacking.get_pool_type()] = {
+    _NfsVolumeBacking.get_resource_type(): _NfsVolumeBacking,
 }
 
 
