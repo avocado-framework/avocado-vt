@@ -12,11 +12,12 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-from .storage import DirPool
+from .storage import DirPool, NfsPool
 
 
 _pool_classes = {
     DirPool.TYPE: DirPool,
+    NfsPool.TYPE: NfsPool,
 }
 
 
