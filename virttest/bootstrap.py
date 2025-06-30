@@ -11,6 +11,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 
 from virttest.vt_cluster import cluster, node
+from virttest.vt_resmgr import resmgr
 
 from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
@@ -911,6 +912,10 @@ def _register_hosts(hosts_configs):
                 LOG.warning("Skipping host %s due to setup error: %s", host, e)
 
 
+def _setup_managers(pools_params):
+    resmgr.setup(pools_params)
+
+
 def bootstrap(options, interactive=False):
     """
     Common virt test assistant module.
@@ -1088,6 +1093,7 @@ def bootstrap(options, interactive=False):
         )
         cluster_config = _load_cluster_config(vt_cluster_config)
         _register_hosts(cluster_config.get("hosts"))
+        _setup_managers(cluster_config.get("pools"))
 
     LOG.info("")
     LOG.info("VT-BOOTSTRAP FINISHED")
