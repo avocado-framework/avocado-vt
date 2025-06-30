@@ -12,7 +12,12 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
-_pool_classes = dict()
+from .storage import _DirPool
+
+
+_pool_classes = {
+    _DirPool.TYPE: _DirPool,
+}
 
 
 def get_pool_class(pool_type):

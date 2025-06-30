@@ -12,11 +12,17 @@
 # Copyright: Red Hat Inc. 2025
 # Authors: Zhenchao Liu <zhencliu@redhat.com>
 
+from .storage import _DirVolumeBacking, _DirPoolConnection
+
 # {pool type: pool class object}
-_pool_conn_classes = dict()
+_pool_conn_classes = {
+    _DirPoolConnection.POOL_TYPE: _DirPoolConnection,
+}
 
 # {binding resource type: resource backing class object}
-_backing_classes = dict()
+_backing_classes = {
+    _DirVolumeBacking.RESOURCE_TYPE: _DirVolumeBacking,
+}
 
 
 def get_resource_backing_class(binding_resource_type):

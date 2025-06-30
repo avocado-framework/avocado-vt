@@ -149,7 +149,7 @@ class ResourceBackingManager(object):
             pool_id = resource_backing_config["meta"]["pool"]
             pool_conn = self.pool_connections[pool_id]
             res_type = resource_backing_config["meta"]["type"]
-            backing_class = get_resource_backing_class(pool_conn.POOL_TYPE, res_type)
+            backing_class = get_resource_backing_class(res_type)
             backing = backing_class(resource_backing_config)
             backing.create_object(pool_conn)
             self.backings[backing.uuid] = backing
