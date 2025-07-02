@@ -280,7 +280,7 @@ class TransparentHugePageConfig(object):
 
 
 class HugePageConfig(object):
-    def __init__(self, params, session):
+    def __init__(self, params, session=None):
         """
         Gets environment variable values and calculates the target number
         of huge memory pages.
