@@ -850,6 +850,7 @@ basedir
 basefile
 baselabel
 baseurl
+BaseRequestHandler
 basicConfig
 behaviour
 benchmarking
@@ -988,6 +989,8 @@ deque
 Descendent
 descendents
 Destructor
+Deserialize
+deserialized
 DevContainer
 devel
 devmajor
@@ -1325,6 +1328,7 @@ logicaldisk
 logout
 Logout
 logsessions
+LogRecord
 logvol
 lookups
 loopback
@@ -1783,6 +1787,7 @@ smbios
 smitterl
 smm
 sockios
+socketserver
 somearea
 somekey
 sos
