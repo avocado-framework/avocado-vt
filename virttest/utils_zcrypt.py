@@ -155,6 +155,12 @@ class CryptoDeviceInfoEntry(object):
         self.driver = None
         self.sestat = None
 
+    def __str__(self):
+        """
+        string representation of entry
+        """
+        return f"{self._card}.{self._domain}"
+
     @property
     def id(self):
         """
