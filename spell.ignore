@@ -1308,6 +1308,7 @@ libs
 libspice
 libvirts
 LibvirtXMLError
+lifecycle
 linenum
 listenaddress
 lldp
@@ -2094,9 +2095,12 @@ groupname
 nodexx
 vq
 ioport
+Yongxue
+yhong
 yy
 KVER
 maxMemory
+mkdtemp
 valuenn
 fcntl
 tapname
