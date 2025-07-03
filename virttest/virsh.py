@@ -4307,6 +4307,23 @@ def nodedev_define(xml_file, **dargs):
     return command(cmd, **dargs)
 
 
+def nodedev_update(nodedev_name, xml_file, options=None, **dargs):
+    """
+    Return cmd result of the device to be update by an XML file
+
+    :param nodedev_name: node device name for update
+    :param xml_file: device XML file
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nodedev-update %s %s" % (nodedev_name, xml_file)
+    if options is not None:
+        cmd += " %s" % options
+
+    LOG.debug("Updated the device from %s", xml_file)
+    return command(cmd, **dargs)
+
+
 def nodedev_create(xml_file, options=None, **dargs):
     """
     Return cmd result of the device to be created by an XML file
