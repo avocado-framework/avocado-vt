@@ -35,6 +35,7 @@ from virttest import (
     utils_numeric,
     utils_params,
     vdpa_blk,
+    vhost_user_blk,
     virt_vm,
 )
 
@@ -202,6 +203,8 @@ def get_image_filename(params, root_dir, basename=False):
         image_format = params.get("image_format", "qcow2")
         if storage_type == "vhost-vdpa":
             return vdpa_blk.get_image_filename(image_name)
+        if storage_type == "vhost-user-blk":
+            return vhost_user_blk.get_image_filename(params)
         if enable_curl:
             # required libcurl params
             curl_protocol = params["curl_protocol"]
