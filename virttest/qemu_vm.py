@@ -1068,7 +1068,7 @@ class VM(virt_vm.BaseVM):
             machine_type = self.params.get("machine_type", "pc")
             if "s390" in machine_type:
                 dev_type = "virtio-rng-ccw"
-                parent_bus = None
+                parent_bus = {"type": "virtual-css-bus"}
             if devices.has_device(dev_type):
                 rng_pci = QDevice(dev_type, parent_bus=parent_bus)
                 set_dev_params(rng_pci, rng_params, None, "virtio-rng")
@@ -2837,7 +2837,11 @@ class VM(virt_vm.BaseVM):
                 if "-mmio:" in params.get("machine_type"):
                     dev_vsock = QDevice("vhost-vsock-device", vsock_params)
                 elif params.get("machine_type").startswith("s390"):
-                    dev_vsock = QDevice("vhost-vsock-ccw", vsock_params)
+                    dev_vsock = QDevice(
+                        "vhost-vsock-ccw",
+                        vsock_params,
+                        parent_bus={"type": "virtual-css-bus"},
+                    )
                 else:
                     dev_vsock = QDevice(
                         "vhost-vsock-pci", vsock_params, parent_bus=pci_bus
