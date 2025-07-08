@@ -13,7 +13,7 @@ from virttest import utils_misc, vt_console
 
 LOG = logging.getLogger("avocado." + __name__)
 
-PACKAGE_MANAGERS = ["apt-get", "yum", "zypper", "dnf"]
+PACKAGE_MANAGERS = ["rpm-ostree", "apt-get", "yum", "zypper", "dnf"]
 
 PKG_MGR_TIMEOUT = 300
 
@@ -58,6 +58,11 @@ class RemotePackageMgr(object):
 
         if not self.package_manager:
             raise exceptions.TestError("Package manager not in %s" % PACKAGE_MANAGERS)
+        elif self.package_manager == "rpm-ostree":
+            self.query_cmd = "rpm -q {pkg}"
+            self.remove_cmd = "rpm-ostree uninstall -y {pkg} && rpm-ostree apply-live --allow-replacement"
+            self.install_cmd = "rpm-ostree install {pkg} -Ay --allow-inactive"
+            self.clean_cmd = "rpm-ostree cleanup -m"
         elif self.package_manager == "apt-get":
             self.query_cmd = "dpkg -s {pkg}"
             self.remove_cmd = "apt-get --purge remove -y {pkg}"
