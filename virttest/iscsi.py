@@ -807,8 +807,9 @@ class Iscsi(object):
     def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
         iscsi_instance = None
         ubuntu = distro.detect().name == "Ubuntu"
+        suse = distro.detect().name == "SuSE"
         # check and install iscsi initiator packages
-        if ubuntu:
+        if ubuntu or suse:
             iscsi_package = ["open-iscsi"]
         else:
             iscsi_package = ["iscsi-initiator-utils"]
@@ -823,7 +824,7 @@ class Iscsi(object):
                 "target-utils or tgt package"
             )
             # try with scsi target utils if targetcli is not available
-            if ubuntu:
+            if ubuntu or suse:
                 iscsi_package = ["tgt"]
             else:
                 iscsi_package = ["scsi-target-utils"]
