@@ -59,14 +59,14 @@ class RemotePackageMgr(object):
         if not self.package_manager:
             raise exceptions.TestError("Package manager not in %s" % PACKAGE_MANAGERS)
         elif self.package_manager == "apt-get":
-            self.query_cmd = "dpkg -s "
-            self.remove_cmd = "apt-get --purge remove -y "
-            self.install_cmd = "apt-get install -y "
+            self.query_cmd = "dpkg -s {pkg}"
+            self.remove_cmd = "apt-get --purge remove -y {pkg}"
+            self.install_cmd = "apt-get install -y {pkg}"
             self.clean_cmd = "apt-get clean"
         else:
-            self.query_cmd = "rpm -q "
-            self.remove_cmd = self.package_manager + " remove -y "
-            self.install_cmd = self.package_manager + " install -y "
+            self.query_cmd = "rpm -q {pkg}"
+            self.remove_cmd = self.package_manager + " remove -y {pkg}"
+            self.install_cmd = self.package_manager + " install -y {pkg}"
             self.clean_cmd = self.package_manager + " clean all"
 
     def clean(self):
@@ -84,7 +84,7 @@ class RemotePackageMgr(object):
         :param pkg_name: package name
         :return: True or False
         """
-        cmd = self.query_cmd + pkg_name
+        cmd = self.query_cmd.format(pkg=pkg_name)
         return not self.session.cmd_status(cmd, timeout=PKG_MGR_TIMEOUT)
 
     def operate(self, timeout, default_status, internal_timeout=2):
@@ -104,7 +104,7 @@ class RemotePackageMgr(object):
             else:
                 need = True
             if need:
-                cmd = self.cmd + pkg
+                cmd = self.cmd.format(pkg=pkg)
                 status, output = self.session.cmd_status_output(
                     cmd, timeout, internal_timeout
                 )
