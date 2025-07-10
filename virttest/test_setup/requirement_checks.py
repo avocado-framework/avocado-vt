@@ -136,6 +136,42 @@ class CheckQEMUVersion(Setuper):
         pass
 
 
+class CheckVirtioFSDVersion(Setuper):
+    def setup(self):
+        # Get the virtiofsd version
+        virtiofsd_ver_cmd = self.params.get("virtiofsd_ver_cmd", "")
+        # Only if virtiofsd_ver_cmd is setted, or skip the version check
+        if virtiofsd_ver_cmd:
+            try:
+                virtiofsd_version = a_process.run(
+                    virtiofsd_ver_cmd, shell=True
+                ).stdout_text.strip()
+            except a_process.CmdError:
+                virtiofsd_version = "Unknown"
+
+            LOG.debug("virtiofsd version: %s", virtiofsd_version)
+            version_info["virtiofsd_version"] = str(virtiofsd_version)
+
+            # Checking required virtiofsd, if not satisfied, cancel test
+            if self.params.get("required_virtiofsd"):
+                required_virtiofsd = self.params.get("required_virtiofsd")
+                LOG.info("Test requires virtiofsd version: %s" % required_virtiofsd)
+                match = re.search(
+                    r"[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?", virtiofsd_version
+                )
+                if match is None:
+                    self.test.cancel("Can not get host virtiofsd version.")
+                host_virtiofsd = match.group(0)
+                if host_virtiofsd not in VersionInterval(required_virtiofsd):
+                    self.test.cancel(
+                        "Got host virtiofsd version:%s, which is not in %s"
+                        % (host_virtiofsd, required_virtiofsd)
+                    )
+
+    def cleanup(self):
+        pass
+
+
 class LogBootloaderVersion(Setuper):
     def setup(self):
         # Get the version of bootloader
