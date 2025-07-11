@@ -1,0 +1,165 @@
+# VirtTest Cluster (`vt_cluster`)
+
+The `virttest.vt_cluster` module provides a framework for managing a distributed
+testing environment, referred to as a "cluster." It is designed to orchestrate
+virtualization tests (`virttest`) across multiple machines (nodes) from a central master.
+
+## Core Concepts
+
+The framework is built around a few key concepts:
+
+*   **Cluster:** The central management entity that maintains the state of the
+    entire distributed environment. It is a singleton object that tracks all nodes
+    and their groupings.
+*   **Node:** Represents a single machine within the cluster. A node can be the
+    master or a remote machine that runs tests. Each remote node runs an "agent"
+    to receive commands.
+*   **Partition:** A logical group of nodes allocated for a specific job or test run.
+    This allows for isolating resources and running multiple tests in parallel on
+    different sets of nodes.
+*   **Agent:** A daemon process running on remote nodes. It exposes an API via
+    XML-RPC that allows the master to execute commands and manage the node.
+*   **Proxy:** The communication layer used by the master to interact with agents
+    on remote nodes. It handles RPC calls and provides a seamless way to invoke
+    methods on remote objects.
+
+## Architecture
+
+The `vt_cluster` module follows a master-agent architecture:
+
+*   **Master:** The main process that orchestrates the tests. It holds the `Cluster`
+    object, which knows about all registered nodes.
+*   **Agents:** Remote nodes that execute the actual test commands. The `Node` class
+    on the master is responsible for setting up and managing the agent on the
+    corresponding remote machine.
+
+### Communication
+
+*   **RPC:** Commands are sent from the master to agents using XML-RPC. The `proxy.py`
+    module implements a client proxy that can reconstruct exceptions from the agent,
+    making remote debugging easier.
+*   **Session & File Management:** SSH and SCP are used for initial agent setup,
+    file transfers (including copying necessary libraries and collecting logs),
+    and managing the agent daemon's lifecycle.
+
+### State Persistence
+
+The state of the cluster (including the list of nodes, their configuration, and
+active partitions) is persisted to a `cluster_env` file in the backend data directory.
+This state is serialized using `pickle`, allowing it to be restored across different processes.
+
+## How It Works
+
+1.  **Initialization:** The `_Cluster` object is initialized, loading any previously
+    saved state from the `cluster_env` file.
+2.  **Node Registration:** Test configurations define the available nodes,
+    which are then registered with the cluster using `cluster.register_node()`.
+3.  **Agent Setup:** For each remote node, the master:
+    a.  Connects via SSH.
+    b.  Cleans up any old agent environments.
+    c.  Copies the required Python libraries (`avocado`, `virttest`, `aexpect`)
+        to a temporary directory on the agent.
+    d.  Starts the agent server daemon (`vt_agent.server`).
+4.  **Running a Test:**
+    a.  A test requests a `partition` of one or more nodes from the cluster.
+    b.  The test interacts with the nodes in its partition through the `Node`
+        object and its `proxy` attribute.
+    c.  All method calls on the proxy are transparently sent to the remote agent
+        for execution (e.g., `node.proxy.api.is_alive()`).
+5.  **Log Collection:** After a test completes, the master connects to each remote
+    node and uses SCP to download all relevant logs (agent, service, console, etc.)
+    to a central location.
+
+## Key Files
+
+*   `__init__.py`: Defines the core `_Cluster` and `_Partition` classes for managing
+    the overall cluster state.
+*   `node.py`: Defines the `Node` class, which encapsulates all logic for managing
+     a single remote machine, including agent setup, lifecycle, and log collection.
+*   `proxy.py`: Implements the `_ClientProxy` for XML-RPC communication, including
+     the logic for reconstructing remote exceptions.
+
+## Usage Example
+
+The following example demonstrates how to initialize the cluster, register nodes,
+create a partition, and interact with remote agents.
+
+```python
+"""
+Example of how to use the vt_cluster framework.
+
+This example demonstrates:
+1.  Initializing the cluster.
+2.  Defining and registering two remote nodes.
+3.  Creating a partition and allocating nodes to it.
+4.  Setting up the agent environment on each node.
+5.  Starting the agent servers.
+6.  Interacting with the agents via the proxy.
+7.  Stopping the agents and cleaning up the environment.
+"""
+from virttest.vt_cluster import cluster
+from virttest.vt_cluster.node import Node
+
+# 1. Define node configurations
+# In a real scenario, this would come from a config file.
+node1_params = {
+    "address": "192.168.122.101",
+    "hostname": "localhost1",
+    "username": "root",
+    "password": "password",
+    "proxy_port": "8000",
+    "shell_port": "22",
+}
+node2_params = {
+    "address": "192.168.122.102",
+    "hostname": "localhost2",
+    "username": "root",
+    "password": "password",
+    "proxy_port": "8000",
+    "shell_port": "22",
+}
+
+# 2. Instantiate and register nodes
+node1 = Node(params=node1_params, name="node1")
+node2 = Node(params=node2_params, name="node2")
+
+cluster.register_node(name="node1", node=node1)
+cluster.register_node(name="node2", node=node2)
+
+# 3. Create a partition and add nodes to it
+partition = cluster.create_partition()
+partition.add_node(node1)
+partition.add_node(node2)
+
+# 4. Setup and manage nodes in the partition
+for node in partition.nodes:
+    try:
+        print(f"Setting up agent on {node.name}...")
+        node.setup_agent_env()
+
+        print(f"Starting agent server on {node.name}...")
+        node.start_agent_server()
+
+        # 5. Interact with the remote agent
+        if node.proxy.api.is_alive():
+            print(f"Agent on {node.name} is alive.")
+            # Example of a remote call
+            greeting = node.proxy.examples.hello.say_hello("Developer")
+            print(f"Service Response: {greeting}")
+        else:
+            print(f"Agent on {node.name} failed to start.")
+
+    except Exception as e:
+        print(f"An error occurred on {node.name}: {e}")
+
+    finally:
+        # 6. Clean up the node
+        print(f"Stopping agent on {node.name}...")
+        node.stop_agent_server()
+        print(f"Cleaning up environment on {node.name}...")
+        node.cleanup_agent_env()
+
+# 7. Clear the partition when done
+cluster.clear_partition(partition)
+
+```
