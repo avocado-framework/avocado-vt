@@ -207,7 +207,8 @@ class Nfs(object):
                 self.export_options,
                 session=self.session,
             )
-        self.mount_src = "%s:%s" % (self.setup_nfs_ip, self.export_dir)
+        # Due to bug RHEL-84861, need to update mount source for image mode test
+        self.mount_src = "%s:%s" % (self.setup_nfs_ip, params.get("nfs_mount_src"))
 
     def is_mounted(self):
         """
