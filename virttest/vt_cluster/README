@@ -17,6 +17,9 @@ The framework is built around a few key concepts:
 *   **Partition:** A logical group of nodes allocated for a specific job or test run.
     This allows for isolating resources and running multiple tests in parallel on
     different sets of nodes.
+*   **Selector:** A set of rules used to filter and choose nodes from a partition
+    based on their metadata. This allows tests to request nodes with specific
+    capabilities (e.g., high memory, specific CPU features).
 *   **Agent:** A daemon process running on remote nodes. It exposes an API via
     XML-RPC that allows the controller to execute commands and manage the node.
 *   **Proxy:** The communication layer used by the controller to interact with agents
@@ -50,25 +53,46 @@ This state is serialized using `pickle`, allowing it to be restored across diffe
 
 ## How It Works
 
-1.  **Initialization:** The `_Cluster` object is initialized, loading any previously
-    saved state from the `cluster_env` file.
-2.  **Node Registration:** Test configurations define the available nodes,
-    which are then registered with the cluster using `cluster.register_node()`.
-3.  **Agent Setup:** For each remote node, the controller:
-    a.  Connects via SSH.
-    b.  Cleans up any old agent environments.
-    c.  Copies the required Python libraries (`avocado`, `virttest`, `aexpect`)
-        to a temporary directory on the agent.
-    d.  Starts the agent server daemon (`vt_agent.server`).
-4.  **Running a Test:**
-    a.  A test requests a `partition` of one or more nodes from the cluster.
-    b.  The test interacts with the nodes in its partition through the `Node`
-        object and its `proxy` attribute.
-    c.  All method calls on the proxy are transparently sent to the remote agent
-        for execution (e.g., `node.proxy.api.is_alive()`).
-5.  **Log Collection:** After a test completes, the controller connects to each remote
-    node and uses SCP to download all relevant logs (agent, service, console, etc.)
-    to a central location.
+1.  **Cluster Initialization (Pre-Test Global Setup):**
+    a.  `Node` objects are created for all physical machines.
+    b.  The agent environment is set up and the agent daemon is started on
+        **each node individually**.
+    c.  **Only after an agent has successfully started** is the corresponding
+        `Node` object registered with the central `cluster`.
+    d.  After all healthy nodes are registered, `node_metadata.load_metadata()`
+        is called. This queries all registered agents and populates a metadata
+        file with their system details. This step is **mandatory** for the
+        selector to function.
+2.  **Test Execution with Selection:**
+    a.  A test begins.
+    b.  It calls `select_node`, providing the test node from candidates.
+    c.  The selector reads the pre-loaded metadata file to find a node that matches
+        the specified criteria.
+3.  **Partitioning and Test Run:**
+    a.  If a suitable node is found, a **new partition is created**, and the
+        selected node is added to it.
+    b.  If no matching node is found, the test is skipped.
+    c.  The test proceeds by interacting with the selected node in its partition.
+4.  **Cleanup:** After the test, the node is released from the partition.
+    After all tests are complete, the global teardown process stops all agents.
+
+## Node Selector
+
+The `vt_cluster` module includes a node selector for dynamically choosing nodes
+from a partition based on their metadata. This is useful for tests that have
+specific hardware or software requirements. The selection logic is implemented
+in `selector.py`.
+
+### Selector Syntax
+
+The selector uses a list of dictionaries, where each dictionary represents a
+requirement. The dictionary has the following keys:
+
+*   `key`: The metadata attribute to check (e.g., `"memory_gb"`).
+*   `operator`: The comparison operator (e.g., `">="`, `"contains"`).
+*   `values`: The value to compare against.
+
+A full demonstration of its use is available in the example below.
 
 ## Key Files
 
@@ -76,6 +100,10 @@ This state is serialized using `pickle`, allowing it to be restored across diffe
     the overall cluster state.
 *   `node.py`: Defines the `Node` class, which encapsulates all logic for managing
      a single remote machine, including agent setup, lifecycle, and log collection.
+*   `selector.py`: Implements the node selection engine, allowing tests to
+    filter nodes based on metadata criteria.
+*   `node_metadata.py`: Manages the creation and loading of node metadata from
+    the cluster's active agents.
 *   `proxy.py`: Implements the `_ClientProxy` for XML-RPC communication, including
      the logic for reconstructing remote exceptions.
 *   `logger.py`: Implements a centralized logging server that collects log records
@@ -99,28 +127,26 @@ includes a centralized logging mechanism implemented in `logger.py`.
 
 ## Usage Example
 
-The following example demonstrates how to initialize the cluster, register nodes,
-create a partition, and interact with remote agents, while also running the
-centralized logger server.
+The following example demonstrates the definitive workflow: start agents, register
+healthy nodes, **load the metadata**, and then run tests that select from the
+pool of known-good nodes.
 
 ```python
 """
 Example of how to use the vt_cluster framework with centralized logging.
 
 This example demonstrates:
-1.  Configuring a logger and starting the logger server.
-2.  Initializing the cluster.
-3.  Defining and registering two remote nodes.
-4.  Creating a partition and allocating nodes to it.
-5.  Setting up the agent environment on each node.
-6.  Starting the agent servers.
-7.  Interacting with the agents via the proxy.
-8.  Stopping all services and cleaning up the environment.
+1.  Creating and starting agents on nodes.
+2.  Registering healthy nodes with the cluster.
+3.  Loading metadata from the registered nodes.
+4.  Running a test that selects a node, partitions it, and uses it.
 """
 import logging
-from virttest.vt_cluster import cluster
+import sys
+from virttest.vt_cluster import cluster, node_metadata
 from virttest.vt_cluster.node import Node
 from virttest.vt_cluster.logger import LoggerServer
+from virttest.vt_cluster.selector import select_node
 
 # 1. Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -154,55 +180,73 @@ node2_params = {
     "shell_port": "22",
 }
 
-# 3. Instantiate and register nodes
-node1 = Node(params=node1_params, name="node1")
-node2 = Node(params=node2_params, name="node2")
+all_nodes = [
+    Node(params=node1_params, name="node1"),
+    Node(params=node2_params, name="node2")
+]
 
-cluster.register_node(name="node1", node=node1)
-cluster.register_node(name="node2", node=node2)
+# 3. Set up agents and register ONLY healthy nodes with the cluster
+for node in all_nodes:
+    try:
+        logger.info(f"Attempting to set up and start agent on {node.name}...")
+        node.setup_agent_env()
+        node.start_agent_server()
+        cluster.register_node(name=node.name, node=node)
+        logger.info(f"Node {node.name} is healthy and registered.")
+    except Exception as e:
+        logger.error(f"Could not set up {node.name}, it will be unavailable. Error: {e}")
 
-# 4. Create a partition and add nodes to it
-partition = cluster.create_partition()
-partition.add_node(node1)
-partition.add_node(node2)
-
-# 5. Setup and manage nodes in the partition
-try:
-    for node in partition.nodes:
-        try:
-            logger.info(f"Setting up agent on {node.name}...")
-            # This step would also configure the agent's logger
-            node.setup_agent_env()
-
-            logger.info(f"Starting agent server on {node.name}...")
-            node.start_agent_server()
-
-            logger.info(f"Starting logger client on {node.name}...")
-            node.proxy.api.start_logger_client(LOGGER_HOST, LOGGER_PORT)
-
-            # 6. Interact with the remote agent
-            if node.proxy.api.is_alive():
-                logger.info(f"Agent on {node.name} is alive.")
-                # Example of a remote call
-                greeting = node.proxy.examples.hello.say_hello("Developer")
-                logger.info(f"Service Response: {greeting}")
-            else:
-                logger.warning(f"Agent on {node.name} failed to start.")
-
-        except Exception as e:
-            logger.error(f"An error occurred on {node.name}: {e}")
-
-        finally:
-            # 7. Clean up the node
-            logger.info(f"Stopping agent on {node.name}...")
-            node.stop_agent_server()
-            logger.info(f"Cleaning up environment on {node.name}...")
-            node.cleanup_agent_env()
-finally:
-    # 8. Clean up cluster resources
-    logger.info("Stopping logger server...")
+# --- Cluster is now ready for tests ---
+if not cluster.get_all_nodes():
+    logger.critical("No nodes were successfully registered. Aborting test run.")
     logger_server.stop()
-    logger.info("Clearing partition...")
-    cluster.clear_partition(partition)
+    sys.exit(1)
+
+# 4. Load metadata from all healthy, registered nodes. This is REQUIRED for the selector.
+logger.info("Loading metadata from all registered nodes...")
+node_metadata.load_metadata()
+logger.info("Metadata loaded successfully.")
+
+# --- Test execution begins ---
+partition = None
+try:
+    # 5. Select a node from the available free nodes in the cluster
+    logger.info("Test started. Attempting to select a node...")
+    selectors = '[{"key": "cpu_vendor_id", "operator": "eq", "values": "GenuineIntel"}]'
+    selected_node = select_node(cluster.get_all_nodes(), selectors=selectors)
+
+    if not selected_node:
+        raise RuntimeError("No suitable node found in the cluster. Skipping test.")
+
+    logger.info(f"Successfully selected node: {selected_node.name}")
+
+    # 6. Create a partition and add the selected node to it
+    partition = cluster.create_partition()
+    partition.add_node(selected_node)
+    logger.info(f"Node {selected_node.name} added to partition.")
+
+    # 7. Interact with the node
+    greeting = selected_node.proxy.examples.hello.say_hello("Developer")
+    logger.info(f"Service Response: {greeting}")
+
+except Exception as e:
+    logger.error(f"An error occurred during test execution: {e}")
+
+finally:
+    # 8. Clean up the partition, releasing the node
+    if partition:
+        cluster.clear_partition(partition)
+        logger.info("Partition cleared.")
+
+# --- Global cluster cleanup ---
+logger.info("Tearing down all cluster nodes...")
+for node in all_nodes:
+    try:
+        node.stop_agent_server()
+        node.cleanup_agent_env()
+    except Exception as e:
+        logger.error(f"Error cleaning up {node.name}: {e}")
+logger.info("Stopping logger server...")
+logger_server.stop()
 
 ```
