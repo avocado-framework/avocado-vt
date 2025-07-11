@@ -3964,6 +3964,9 @@ def get_windows_nic_attribute(
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     # First line is header, return second line
+    if len(lines) < 2:
+        details = f"WMIC returned insufficient data for '{target}'. Lines found: {len(lines)}, Output: '{out}'"
+        raise exceptions.TestError(details)
     return lines[1]
 
 
