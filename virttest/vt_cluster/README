@@ -1,0 +1,252 @@
+# VirtTest Cluster (`vt_cluster`)
+
+The `virttest.vt_cluster` module provides a framework for managing a distributed
+testing environment, referred to as a "cluster." It is designed to orchestrate
+virtualization tests (`virttest`) across multiple machines (nodes) from a central master.
+
+## Core Concepts
+
+The framework is built around a few key concepts:
+
+*   **Cluster:** The central management entity that maintains the state of the
+    entire distributed environment. It is a singleton object that tracks all nodes
+    and their groupings.
+*   **Node:** Represents a single machine within the cluster. A node can be the
+    master or a remote machine that runs tests. Each remote node runs an "agent"
+    to receive commands.
+*   **Partition:** A logical group of nodes allocated for a specific job or test run.
+    This allows for isolating resources and running multiple tests in parallel on
+    different sets of nodes.
+*   **Selector:** A set of rules used to filter and choose nodes from a partition
+    based on their metadata. This allows tests to request nodes with specific
+    capabilities (e.g., high memory, specific CPU features).
+*   **Agent:** A daemon process running on remote nodes. It exposes an API via
+    XML-RPC that allows the master to execute commands and manage the node.
+*   **Proxy:** The communication layer used by the master to interact with agents
+    on remote nodes. It handles RPC calls and provides a seamless way to invoke
+    methods on remote objects.
+
+## Architecture
+
+The `vt_cluster` module follows a master-agent architecture:
+
+*   **Master:** The main process that orchestrates the tests. It holds the `Cluster`
+    object, which knows about all registered nodes.
+*   **Agents:** Remote nodes that execute the actual test commands. The `Node` class
+    on the master is responsible for setting up and managing the agent on the
+    corresponding remote machine.
+
+### Communication
+
+*   **RPC:** Commands are sent from the master to agents using XML-RPC. The `proxy.py`
+    module implements a client proxy that can reconstruct exceptions from the agent,
+    making remote debugging easier.
+*   **Session & File Management:** SSH and SCP are used for initial agent setup,
+    file transfers (including copying necessary libraries and collecting logs),
+    and managing the agent daemon's lifecycle.
+
+### State Persistence
+
+The state of the cluster (including the list of nodes, their configuration, and
+active partitions) is persisted to a `cluster_env` file in the backend data directory.
+This state is serialized using `pickle`, allowing it to be restored across different processes.
+
+## How It Works
+
+1.  **Cluster Initialization (Pre-Test Global Setup):**
+    a.  `Node` objects are created for all physical machines.
+    b.  The agent environment is set up and the agent daemon is started on
+        **each node individually**.
+    c.  **Only after an agent has successfully started** is the corresponding
+        `Node` object registered with the central `cluster`.
+    d.  After all healthy nodes are registered, `node_metadata.load_metadata()`
+        is called. This queries all registered agents and populates a metadata
+        file with their system details. This step is **mandatory** for the
+        selector to function.
+2.  **Test Execution with Selection:**
+    a.  A test begins.
+    b.  It calls `select_node`, providing the test node from candidates.
+    c.  The selector reads the pre-loaded metadata file to find a node that matches
+        the specified criteria.
+3.  **Partitioning and Test Run:**
+    a.  If a suitable node is found, a **new partition is created**, and the
+        selected node is added to it.
+    b.  If no matching node is found, the test is skipped.
+    c.  The test proceeds by interacting with the selected node in its partition.
+4.  **Cleanup:** After the test, the node is released from the partition.
+    After all tests are complete, the global teardown process stops all agents.
+
+## Node Selector
+
+The `vt_cluster` module includes a node selector for dynamically choosing nodes
+from a partition based on their metadata. This is useful for tests that have
+specific hardware or software requirements. The selection logic is implemented
+in `selector.py`.
+
+### Selector Syntax
+
+The selector uses a list of dictionaries, where each dictionary represents a
+requirement. The dictionary has the following keys:
+
+*   `key`: The metadata attribute to check (e.g., `"memory_gb"`).
+*   `operator`: The comparison operator (e.g., `">="`, `"contains"`).
+*   `values`: The value to compare against.
+
+A full demonstration of its use is available in the example below.
+
+## Key Files
+
+*   `__init__.py`: Defines the core `_Cluster` and `_Partition` classes for managing
+    the overall cluster state.
+*   `node.py`: Defines the `Node` class, which encapsulates all logic for managing
+     a single remote machine, including agent setup, lifecycle, and log collection.
+*   `selector.py`: Implements the node selection engine, allowing tests to
+    filter nodes based on metadata criteria.
+*   `node_metadata.py`: Manages the creation and loading of node metadata from
+    the cluster's active agents.
+*   `proxy.py`: Implements the `_ClientProxy` for XML-RPC communication, including
+     the logic for reconstructing remote exceptions.
+*   `logger.py`: Implements a centralized logging server that collects log records
+    from all nodes in the cluster. It provides a unified view of events across
+    the distributed environment.
+
+## Centralized Logging
+
+To simplify debugging and monitoring in a distributed environment, `vt_cluster`
+includes a centralized logging mechanism implemented in `logger.py`.
+
+*   **Logger Server:** The master node runs a `LoggerServer` that listens for
+    log records sent from remote agents.
+*   **Secure Transmission:** Log records are serialized to JSON before being sent
+    over the network. This ensures that the data is transmitted securely and avoids
+    the vulnerabilities associated with `pickle`.
+*   **Unified View:** The server receives records from all nodes, tags them with their
+    origin (node name and IP address), and logs them to the master's output. This
+    provides a single, chronological stream of logs from the entire cluster,
+    making it easier to trace issues across multiple machines.
+
+## Usage Example
+
+The following example demonstrates the definitive workflow: start agents, register
+healthy nodes, **load the metadata**, and then run tests that select from the
+pool of known-good nodes.
+
+```python
+"""
+Example of how to use the vt_cluster framework with centralized logging.
+
+This example demonstrates:
+1.  Creating and starting agents on nodes.
+2.  Registering healthy nodes with the cluster.
+3.  Loading metadata from the registered nodes.
+4.  Running a test that selects a node, partitions it, and uses it.
+"""
+import logging
+import sys
+from virttest.vt_cluster import cluster, node_metadata
+from virttest.vt_cluster.node import Node
+from virttest.vt_cluster.logger import LoggerServer
+from virttest.vt_cluster.selector import select_node
+
+# 1. Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger()
+
+# Start the centralized logger server
+# Agents will be configured to send their logs here.
+LOGGER_HOST = "192.168.122.100"
+LOGGER_PORT = 8888
+logger_server = LoggerServer(host=LOGGER_HOST, port=LOGGER_PORT, logger=logger)
+logger_server.start()
+logger.info(f"Logger server started at {LOGGER_HOST}:{LOGGER_PORT}")
+
+# 2. Define node configurations
+# In a real scenario, this would come from a config file.
+# The agent on the node would be configured to connect to the logger server.
+node1_params = {
+    "address": "192.168.122.101",
+    "hostname": "localhost1",
+    "username": "root",
+    "password": "password",
+    "proxy_port": "8000",
+    "shell_port": "22",
+}
+node2_params = {
+    "address": "192.168.122.102",
+    "hostname": "localhost2",
+    "username": "root",
+    "password": "password",
+    "proxy_port": "8000",
+    "shell_port": "22",
+}
+
+all_nodes = [
+    Node(params=node1_params, name="node1"),
+    Node(params=node2_params, name="node2")
+]
+
+# 3. Set up agents and register ONLY healthy nodes with the cluster
+for node in all_nodes:
+    try:
+        logger.info(f"Attempting to set up and start agent on {node.name}...")
+        node.setup_agent_env()
+        node.start_agent_server()
+        cluster.register_node(name=node.name, node=node)
+        logger.info(f"Node {node.name} is healthy and registered.")
+    except Exception as e:
+        logger.error(f"Could not set up {node.name}, it will be unavailable. Error: {e}")
+
+# --- Cluster is now ready for tests ---
+if not cluster.get_all_nodes():
+    logger.critical("No nodes were successfully registered. Aborting test run.")
+    logger_server.stop()
+    sys.exit(1)
+
+# 4. Load metadata from all healthy, registered nodes. This is REQUIRED for the selector.
+logger.info("Loading metadata from all registered nodes...")
+node_metadata.load_metadata()
+logger.info("Metadata loaded successfully.")
+
+# --- Test execution begins ---
+partition = None
+try:
+    # 5. Select a node from the available free nodes in the cluster
+    logger.info("Test started. Attempting to select a node...")
+    selectors = '[{"key": "cpu_vendor_id", "operator": "eq", "values": "GenuineIntel"}]'
+    selected_node = select_node(cluster.get_all_nodes(), selectors=selectors)
+
+    if not selected_node:
+        raise RuntimeError("No suitable node found in the cluster. Skipping test.")
+
+    logger.info(f"Successfully selected node: {selected_node.name}")
+
+    # 6. Create a partition and add the selected node to it
+    partition = cluster.create_partition()
+    partition.add_node(selected_node)
+    logger.info(f"Node {selected_node.name} added to partition.")
+
+    # 7. Interact with the node
+    greeting = selected_node.proxy.examples.hello.say_hello("Developer")
+    logger.info(f"Service Response: {greeting}")
+
+except Exception as e:
+    logger.error(f"An error occurred during test execution: {e}")
+
+finally:
+    # 8. Clean up the partition, releasing the node
+    if partition:
+        cluster.clear_partition(partition)
+        logger.info("Partition cleared.")
+
+# --- Global cluster cleanup ---
+logger.info("Tearing down all cluster nodes...")
+for node in all_nodes:
+    try:
+        node.stop_agent_server()
+        node.cleanup_agent_env()
+    except Exception as e:
+        logger.error(f"Error cleaning up {node.name}: {e}")
+logger.info("Stopping logger server...")
+logger_server.stop()
+
+```
