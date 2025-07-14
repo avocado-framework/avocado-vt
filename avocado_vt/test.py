@@ -16,13 +16,16 @@
 Avocado VT plugin
 """
 
+import logging
 import os
 import shlex
 import shutil
+import socket
 import sys
 
 from avocado.core import exceptions, test
 from avocado.utils import process, stacktrace
+from avocado.utils.network import ports
 
 from avocado_vt import utils
 from virttest import (
@@ -37,6 +40,9 @@ from virttest import (
     version,
 )
 from virttest._wrappers import load_source
+from virttest.vt_cluster import cluster, logger, selector
+
+LOG = logging.getLogger("avocado." + __name__)
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
@@ -115,6 +121,8 @@ class VirtTest(test.Test, utils.TestUtils):
         utils_logfile.set_log_file_dir(self.logdir)
         self.__status = None
         self.__exc_info = None
+        self._cluster_partition = None
+        self._logger_server = None
 
     @property
     def params(self):
@@ -142,6 +150,8 @@ class VirtTest(test.Test, utils.TestUtils):
         """
         env_lang = os.environ.get("LANG")
         os.environ["LANG"] = "C"
+        self._logger_server_handler()
+        self._setup_cluster()
         try:
             self._runTest()
             self.__status = "PASS"
@@ -154,6 +164,7 @@ class VirtTest(test.Test, utils.TestUtils):
             self.__exc_info = sys.exc_info()
             self.__status = self.__exc_info[1]
         finally:
+            self._cleanup_cluster()
             if (
                 self.params.get("vm_type") == "libvirt"
                 and self.params.get("store_libvirt_vm_logs", "yes") == "yes"
@@ -363,3 +374,170 @@ class VirtTest(test.Test, utils.TestUtils):
                 raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed
+
+    def _logger_server_handler(self):
+        """Initialize and start the logger server for cluster logging.
+
+        Creates a logger server bound to the local host on a free port
+        to handle centralized logging from cluster nodes.
+        """
+        host = socket.gethostbyname(socket.gethostname())
+        port = ports.find_free_port()
+        self._logger_server = logger.LoggerServer((host, port), self.log)
+
+    def _setup_partition(self):
+        """Initialize and configure cluster partition for test execution.
+
+        Creates a new cluster partition and assigns nodes to it based on
+        test parameters. Each node is selected using node selectors and
+        tagged for identification within the partition.
+
+        :raises: SelectorError: If no available nodes match the specified selectors.
+        """
+        self._cluster_partition = cluster.create_partition()
+        for node in self.params.objects("nodes"):
+            node_params = self.params.object_params(node)
+            node_selectors = node_params.get("node_selectors")
+            _node = selector.select_node(cluster.idle_nodes, node_selectors)
+            if not _node:
+                raise selector.SelectorError(
+                    f'No available nodes for "{node}" with "{node_selectors}"'
+                )
+            _node.tag = node
+            self._cluster_partition.add_node(_node)
+
+    def _fetch_node_logs(self, node):
+        """Fetch and copy logs from a cluster node to local results directory.
+
+        Downloads various log files from the specified node including service logs,
+        console logs, daemon logs, and IP sniffer logs to the cluster results directory.
+
+        :param node: The cluster node to fetch logs from
+        :type node: vt_cluster.node.Node
+        """
+        cluster_dir = os.path.join(self.resultsdir, "cluster")
+        node_dir = os.path.join(cluster_dir, node.tag)
+
+        try:
+            os.makedirs(node_dir, exist_ok=True)
+        except OSError as e:
+            self.log.error("Failed to create log directory %s: %s", node_dir, e)
+            return
+
+        log_sources = [
+            ("service", lambda: node.proxy.core.get_service_log_filename()),
+            ("console", lambda: node.proxy.core.get_console_log_dir()),
+            ("daemon", lambda: node.proxy.core.get_daemon_log_dir()),
+            ("ip_sniffer", lambda: node.proxy.core.get_ip_sniffer_log_dir()),
+        ]
+
+        for log_type, get_path_func in log_sources:
+            try:
+                log_path = get_path_func()
+                if not log_path:
+                    self.log.debug(
+                        "No %s log path available for node '%s'", log_type, node.tag
+                    )
+                    continue
+
+                if log_type == "service":
+                    remote_path = log_path
+                else:
+                    remote_path = os.path.join(log_path, "*")
+                node.copy_files_from(node_dir, remote_path)
+            except Exception as e:
+                self.log.warning(
+                    "Failed to fetch %s logs from node '%s': %s", log_type, node.tag, e
+                )
+
+    def _cleanup_partition(self):
+        """Clean up cluster partition and upload node logs.
+
+        Fetches logs from each node to the results directory, and releases
+        the partition back to the cluster. This ensures proper cleanup of
+        resources after test completion.
+        """
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                self._fetch_node_logs(node)
+            cluster.remove_partition(self._cluster_partition)
+        self._cluster_partition = None
+
+    def _start_logger_redirection(self):
+        """Start logger client on all nodes in the partition.
+
+        Initiates logger client connections on each node to enable
+        centralized logging to the cluster logger server. Logs warnings
+        for nodes where the logger client cannot be started.
+        """
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    host = self._logger_server.address[0]
+                    port = self._logger_server.address[1]
+                    node.proxy.core.start_log_redirection(host, port)
+                except Exception:
+                    self.log.warning(
+                        "Failed to start logger client on node '%s'.",
+                        node.tag,
+                        exc_info=True,
+                    )
+
+    def _stop_logger_redirection(self):
+        """Stop logger client on all nodes in the partition.
+
+        Terminates logger client connections on each node. Logs warnings
+        for nodes where the logger client cannot be stopped properly.
+        """
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    node.proxy.core.stop_log_redirection()
+                except Exception:
+                    self.log.warning(
+                        "Failed to stop logger client on node '%s'.",
+                        node.tag,
+                        exc_info=True,
+                    )
+
+    def _setup_cluster(self):
+        """Set up the cluster environment for test execution.
+
+        Initializes the cluster partition, starts the logger server,
+        and establishes logger client connections on all nodes.
+        """
+        self._setup_partition()
+        self._logger_server.start()
+        self._start_logger_redirection()
+
+    def _cleanup_cluster(self):
+        """Clean up the test environment, including the cluster partition.
+
+        Stops logger clients, shuts down the logger server, and cleans
+        up the cluster partition resources.
+        """
+        self._stop_logger_redirection()
+        self._logger_server.stop()
+        self._cleanup_partition()
+
+    @property
+    def nodes(self):
+        """Get all nodes in the cluster partition.
+
+        :return: List of cluster nodes
+        :rtype: list[vt_cluster.node.Node]
+        """
+        return self._cluster_partition.nodes
+
+    def get_node(self, node_tag):
+        """
+        Get the node by the node tag.
+
+        :param node_tag: The tag of node.
+        :param node_tag: str
+        :return: The cluster node object
+        :rtype: vt_cluster.node.Node
+        """
+        for node in self._cluster_partition.nodes:
+            if node_tag == node.tag:
+                return node
