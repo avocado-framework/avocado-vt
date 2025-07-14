@@ -224,6 +224,36 @@ def get_log_dir():
     return data_dir.get_log_dir()
 
 
+def get_console_log_dir():
+    """
+    Gets the directory where console log files are stored.
+
+    :return: The absolute path to the console log directory.
+    :rtype: str
+    """
+    return data_dir.get_console_log_dir()
+
+
+def get_daemon_log_dir():
+    """
+    Gets the directory where daemon log files are stored.
+
+    :return: The absolute path to the daemon log directory.
+    :rtype: str
+    """
+    return data_dir.get_daemon_log_dir()
+
+
+def get_ip_sniffer_log_dir():
+    """
+    Gets the directory where IP sniffer data files are stored.
+
+    :return: The absolute path to the IP sniffer directory.
+    :rtype: str
+    """
+    return data_dir.get_ip_sniffer_log_dir()
+
+
 def get_job_data_log(job_id):
     """
     Gets the data directory for a specific job.

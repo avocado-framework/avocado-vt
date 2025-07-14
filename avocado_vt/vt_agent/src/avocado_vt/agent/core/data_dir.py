@@ -25,6 +25,10 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 LOG_DIR = os.path.join(DATA_DIR, "log")
 DOWNLOAD_DIR = os.path.join(DATA_DIR, "download")
 
+CONSOLE_LOG_DIR = os.path.join(LOG_DIR, "console")
+DAEMON_LOG_DIR = os.path.join(LOG_DIR, "daemon")
+IP_SNIFFER_DIR = os.path.join(DATA_DIR, "ip_sniffer")
+
 AGENT_LOG_FILENAME = os.path.join(LOG_DIR, "agent.log")
 SERVICE_LOG_FILENAME = os.path.join(LOG_DIR, "service.log")
 JOB_DATA_DIR = os.path.join(DATA_DIR, "job_data")
@@ -81,6 +85,36 @@ def get_job_data_dir():
     :rtype: str
     """
     return JOB_DATA_DIR
+
+
+def get_console_log_dir():
+    """
+    Gets the directory where console log files are stored.
+
+    :return: The absolute path to the console log directory.
+    :rtype: str
+    """
+    return CONSOLE_LOG_DIR
+
+
+def get_daemon_log_dir():
+    """
+    Gets the directory where daemon log files are stored.
+
+    :return: The absolute path to the daemon log directory.
+    :rtype: str
+    """
+    return DAEMON_LOG_DIR
+
+
+def get_ip_sniffer_log_dir():
+    """
+    Gets the directory where IP sniffer data files are stored.
+
+    :return: The absolute path to the IP sniffer directory.
+    :rtype: str
+    """
+    return IP_SNIFFER_DIR
 
 
 def get_tmp_dir(public=True):
