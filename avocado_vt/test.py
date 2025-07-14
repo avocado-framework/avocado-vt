@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import logging
 import os
 import shlex
 import shutil
@@ -37,6 +38,9 @@ from virttest import (
     version,
 )
 from virttest._wrappers import load_source
+from virttest.vt_cluster import cluster, logger, selector
+
+LOG = logging.getLogger("avocado." + __name__)
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
@@ -115,6 +119,10 @@ class VirtTest(test.Test, utils.TestUtils):
         utils_logfile.set_log_file_dir(self.logdir)
         self.__status = None
         self.__exc_info = None
+        self._cluster_partition = None
+        self._logger_server = logger.LoggerServer(
+            cluster.logger_server_host, cluster.logger_server_port, self.log
+        )
 
     @property
     def params(self):
@@ -140,6 +148,10 @@ class VirtTest(test.Test, utils.TestUtils):
         Avocado to allow skips let's say our tests run during setUp
         phase and report the status in test.
         """
+        self._init_partition()
+        self._setup_partition()
+        self._logger_server.start()
+        self._start_logger_client()
         env_lang = os.environ.get("LANG")
         os.environ["LANG"] = "C"
         try:
@@ -154,6 +166,7 @@ class VirtTest(test.Test, utils.TestUtils):
             self.__exc_info = sys.exc_info()
             self.__status = self.__exc_info[1]
         finally:
+            self._cleanup()
             if (
                 self.params.get("vm_type") == "libvirt"
                 and self.params.get("store_libvirt_vm_logs", "yes") == "yes"
@@ -210,6 +223,14 @@ class VirtTest(test.Test, utils.TestUtils):
                 os.environ["LANG"] = env_lang
             else:
                 del os.environ["LANG"]
+
+    def _cleanup(self):
+        """
+        Clean up the test environment, including the cluster partition.
+        """
+        self._stop_logger_client()
+        self._logger_server.stop()
+        self._clear_partition()
 
     def runTest(self):
         """
@@ -363,3 +384,84 @@ class VirtTest(test.Test, utils.TestUtils):
                 raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed
+
+    def _init_partition(self):
+        self._cluster_partition = cluster.create_partition()
+
+    def _setup_partition(self):
+        for node in self.params.objects("nodes"):
+            node_params = self.params.object_params(node)
+            node_selectors = node_params.get("node_selectors")
+            _node = selector.select_node(cluster.free_nodes, node_selectors)
+            if not _node:
+                raise selector.SelectorError(
+                    f'No available nodes for "{node}" with "{node_selectors}"'
+                )
+            _node.tag = node
+            self._cluster_partition.add_node(_node)
+
+    def _clear_partition(self):
+        self._cluster_partition.pools.clear()
+        cluster_dir = os.path.join(self.resultsdir, "cluster")
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                node_dir = os.path.join(cluster_dir, node.tag)
+                os.makedirs(node_dir)
+                node.upload_logs(node_dir)
+            cluster.clear_partition(self._cluster_partition)
+        self._cluster_partition = None
+
+    def _start_logger_client(self):
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    node.proxy.api.start_logger_client(
+                        cluster.logger_server_host, cluster.logger_server_port
+                    )
+                except ModuleNotFoundError:
+                    self.log.warning(
+                        "Could not start logger client on node '%s': "
+                        "api module not found.",
+                        node.tag,
+                    )
+                except Exception:
+                    self.log.warning(
+                        "Failed to start logger client on node '%s'.",
+                        node.tag,
+                        exc_info=True,
+                    )
+
+    def _stop_logger_client(self):
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    node.proxy.api.stop_logger_client()
+                except ModuleNotFoundError:
+                    self.log.warning(
+                        "Could not stop logger client on node '%s': "
+                        "api module not found.",
+                        node.tag,
+                    )
+                except Exception:
+                    self.log.warning(
+                        "Failed to stop logger client on node '%s'.",
+                        node.tag,
+                        exc_info=True,
+                    )
+
+    @property
+    def nodes(self):
+        return self._cluster_partition.nodes
+
+    def get_node(self, node_tag):
+        """
+        Get the node by the node tag.
+
+        :param node_tag: The tag of node.
+        :param node_tag: str
+        :return: The cluster node object
+        :rtype: vt_cluster.node.Node
+        """
+        for node in self._cluster_partition.nodes:
+            if node_tag == node.tag:
+                return node
