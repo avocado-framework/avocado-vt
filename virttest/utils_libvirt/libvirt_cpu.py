@@ -4,6 +4,9 @@ http://libvirt.org/formatdomain.html
 """
 
 import logging
+import re
+
+from virttest import virsh
 
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_libvirt import libvirt_vmxml
@@ -90,3 +93,29 @@ def add_cpu_settings(vmxml, params):
     vmxml.sync()
 
     return vmxml
+
+
+def get_host_cpu_unavailable_pin(vmxml):
+
+    new_xml = vmxml.copy()
+
+    if new_xml.cpuset:
+        LOG.debug('Remove the existing cpuset setting in the vm xml')
+        del new_xml.cpuset
+    if new_xml.cputune:
+        LOG.debug('Remove the existing cputune setting in the vm xml')
+        del new_xml.cputune
+    if vmxml.cpuset or vmxml.cputune:
+        new_xml.xmltreefile.write()
+        new_xml.sync()
+        LOG.debug('Current vm xml for getting vcpuinfo:\s%s', new_xml.xmltreefile)
+
+    # Get default cpu affinity information by vcpuinfo
+    vcpuinfo_default = virsh.vcpuinfo(new_xml.vm_name, debug=True)
+    affinity_info = re.findall(r'CPU Affinity:\s*(\S*)', vcpuinfo_default.stdout_text.strip())[0]
+    unavailable_cpu = [i for i in range(0, len(affinity_info)) if affinity_info[i] == '-']
+    if vmxml.cpuset or vmxml.cputune:
+        LOG.debug("Recover the vm xml after getting host cpu unavailable to pin")
+        vmxml.sync()
+    LOG.debug("The host cpu unavailable to pin:%s", unavailable_cpu)
+    return unavailable_cpu
