@@ -1857,11 +1857,11 @@ def compare_version(interval, version=None, cmd=None):
     """
     if not version:
         if not cmd:
-            cmd = "rpm -q virt-v2v"
+            cmd = "rpm -q --qf '%{RPMTAG_VERSION}-%{RPMTAG_RELEASE}\n' virt-v2v"
         res = process.run(cmd, shell=True, ignore_status=True)
         if res.exit_status != 0:
             return False
-        version = res.stdout_text.strip()
+        version = res.stdout_text.rsplit(".", maxsplit=1)[0]
 
     return check_version(version, interval)
 
@@ -1888,8 +1888,11 @@ def multiple_versions_compare(interval):
             return False
 
         pkg_name = re.search(re_pkg_name, ver).group(1)
-        cmd = "rpm -q %s" % pkg_name
-        if not compare_version(ver_i, cmd=cmd):
+        _ver_i = re.sub(pkg_name + "-", "", ver_i)
+        cmd = 'rpm -q --qf "%{{RPMTAG_VERSION}}-%{{RPMTAG_RELEASE}}\\n" {}'.format(
+            pkg_name
+        )
+        if not compare_version(_ver_i, cmd=cmd):
             return False
 
     return True
