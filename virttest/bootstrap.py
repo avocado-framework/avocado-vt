@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import re
@@ -8,6 +9,8 @@ import sys
 from avocado.utils import cpu, distro, genio, linux_modules
 from avocado.utils import path as utils_path
 from avocado.utils import process
+
+from virttest.vt_cluster import cluster, node
 
 from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
 from .compat import get_opt
@@ -874,6 +877,40 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir, interactive, selinux=Fal
             LOG.info("Corrected contexts on %d files/dirs", len(changes))
 
 
+def _load_cluster_config(cluster_config):
+    """Load the cluster config from a JSON file.
+
+    :param cluster_config: Path to the cluster configuration JSON file.
+    :type cluster_config: str
+    :return: Parsed cluster configuration.
+    :rtype: dict
+    """
+    with open(cluster_config, "r") as config:
+        return json.load(config)
+
+
+def _register_hosts(hosts_configs):
+    """Register the configs of the hosts into the cluster.
+
+    It cleans up any previous environment and then iterates through the
+    host configurations, setting up an agent environment for each and
+    registering it as a node in the cluster.
+
+    :param hosts_configs: A dictionary of host configurations.
+    :type hosts_configs: dict
+    """
+    if hosts_configs:
+        cluster.cleanup_env()
+        for host, host_params in hosts_configs.items():
+            try:
+                _node = node.Node(host_params, host)
+                _node.setup_agent_env()
+                cluster.register_node(_node.name, _node)
+                LOG.debug("Host %s registered", host)
+            except Exception as e:
+                LOG.warning("Skipping host %s due to setup error: %s", host, e)
+
+
 def bootstrap(options, interactive=False):
     """
     Common virt test assistant module.
@@ -1040,6 +1077,17 @@ def bootstrap(options, interactive=False):
                 )
             else:
                 LOG.debug("Module %s loaded", module)
+
+    # Setup the cluster environment.
+    vt_cluster_config = get_opt(options, "vt_cluster_config")
+    if vt_cluster_config:
+        LOG.info("")
+        step += 1
+        LOG.info(
+            "%d - Setting up the cluster environment via %s", step, vt_cluster_config
+        )
+        cluster_config = _load_cluster_config(vt_cluster_config)
+        _register_hosts(cluster_config.get("hosts"))
 
     LOG.info("")
     LOG.info("VT-BOOTSTRAP FINISHED")
