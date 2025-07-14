@@ -767,6 +767,24 @@ class VMXML(VMXMLBase):
         self.xml = "<domain type='%s'></domain>" % hypervisor_type
 
     @staticmethod  # static method (no self) needed b/c calls VMXML.__new__
+    def new_from_managedsave_dumpxml(vm_name, options="", virsh_instance=base.virsh):
+        """
+        Return new VMXML instance from virsh managedsave-dumpxml command
+
+        :param vm_name: Name of VM to dumpxml
+        :param virsh_instance: virsh module or instance to use
+        :return: New initialized VMXML instance
+        """
+        # TODO: Look up hypervisor_type on incoming XML
+        vmxml = VMXML(virsh_instance=virsh_instance)
+        result = virsh_instance.managedsave_dumpxml(vm_name, extra=options)
+        if result.exit_status == 0:
+            vmxml["xml"] = result.stdout_text.strip()
+            return vmxml
+        else:
+            return None
+
+    @staticmethod  # static method (no self) needed b/c calls VMXML.__new__
     def new_from_dumpxml(vm_name, options="", virsh_instance=base.virsh):
         """
         Return new VMXML instance from virsh dumpxml command
