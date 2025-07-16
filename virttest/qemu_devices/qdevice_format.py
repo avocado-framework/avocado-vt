@@ -194,6 +194,10 @@ class _QDeviceFormatManagement(object):
                     #   _str_to_dec instead of function _hex_in_str_to_dec.
                     "max-bytes": self._str_to_dec,
                 },
+                "virtio-blk-ccw": {
+                    "logical_block_size": self._str_to_dec,
+                    "physical_block_size": self._str_to_dec,
+                },
                 "usb-storage": {
                     # In fact: qemu wants "on" instead of "NO_EQUAL_STRING".
                     "serial": self._on,
