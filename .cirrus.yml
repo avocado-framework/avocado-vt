@@ -2,7 +2,7 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   VT_TYPE: qemu
 
-fedora_35_task:
+fedora_40_task:
   container:
     image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
     kvm: true
