@@ -308,10 +308,10 @@ class RemoteFile(object):
                 self.port,
                 self.remote_path,
                 self.local_path,
-                self.limit,
-                self.log_filename,
-                self.verbose,
-                self.timeout,
+                limit=self.limit,
+                log_filename=self.log_filename,
+                verbose=self.verbose,
+                timeout=self.timeout,
             )
 
     def _push_file(self):
@@ -329,10 +329,10 @@ class RemoteFile(object):
                 self.port,
                 self.local_path,
                 self.remote_path,
-                self.limit,
-                self.log_filename,
-                self.verbose,
-                self.timeout,
+                limit=self.limit,
+                log_filename=self.log_filename,
+                verbose=self.verbose,
+                timeout=self.timeout,
             )
 
     def _reset_file(self):
@@ -350,10 +350,10 @@ class RemoteFile(object):
                 self.port,
                 self.backup_path,
                 self.remote_path,
-                self.limit,
-                self.log_filename,
-                self.verbose,
-                self.timeout,
+                limit=self.limit,
+                log_filename=self.log_filename,
+                verbose=self.verbose,
+                timeout=self.timeout,
             )
 
     def _read_local(self):
