@@ -1,7 +1,8 @@
-FROM fedora:35
+FROM fedora:40
 LABEL description "Fedora image used on integration checks, such as cirrus-ci"
-RUN dnf -y install make python3-wheel python3-pip git xz tcpdump nc iproute iputils gcc qemu-kvm qemu-img
+RUN dnf -y install make python3-wheel python3-pip python3-devel git xz tcpdump nc iproute iputils gcc qemu-kvm qemu-img which
 RUN dnf -y clean all
+RUN python3 -m pip install "setuptools<80"
 RUN mkdir -p /var/lib/avocado/data/avocado-vt/images/ /root/avocado/data/avocado-vt/images/
 RUN curl -s https://avocado-project.org/data/assets/jeos/27/jeos-27-64.qcow2.xz | xz -d > /var/lib/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2
 RUN ln /var/lib/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2 /root/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2
