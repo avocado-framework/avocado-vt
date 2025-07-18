@@ -486,7 +486,7 @@ class MemoryBaseTest(object):
         :return: physical memory report by guest OS in MB
         """
         if vm.params.get("os_type") == "windows":
-            cmd = "wmic ComputerSystem get TotalPhysicalMemory"
+            cmd = 'powershell -command "(Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory"'
         else:
             cmd = "grep 'MemTotal:' /proc/meminfo"
         return vm.get_memory_size(cmd)
