@@ -31,9 +31,7 @@ Getting started with Avocado
 =============================
 
 First of all, make sure you have Avocado itself installed. You can check
-the Avocado online documentation at:
-
-https://avocado-framework.readthedocs.io/en/latest/guides/user/chapters/installing.html
+the `Avocado online documentation <https://avocado-framework.readthedocs.io/en/latest/guides/user/chapters/installing.html>`__.
 
 Getting started with Avocado-VT
 ===============================
@@ -49,7 +47,4 @@ documentation.
 AI-Generated code policy
 ========================
 The Avocado-vt project allows the use of AI-generated code, but it has to follow
-the guidelines and requirements outlined in the Policy for AI-Generated Code
-which can be found at:
-
-https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/ai_policy.html
+the guidelines and requirements outlined in the `Policy for AI-Generated Code <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/ai_policy.html>`__
