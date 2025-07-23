@@ -132,6 +132,7 @@ class _QDeviceFormatManagement(object):
                 "align": self._normalize_data_size,
                 "host-nodes": self._int_in_list,
                 "prealloc-threads": self._str_to_dec,
+                "attributes": self._hex_in_str_to_dec,
             },
             "netdev": {
                 "fd": self._unchanged,
@@ -309,6 +310,9 @@ class _QDeviceFormatManagement(object):
                 new_args[key] = args_in_json[key](value)
             else:
                 new_args[key] = self._bool_in_string_to_bool(value)
+
+            if "." in key:
+                new_args = self._flat_to_dict(key, new_args)
 
         return new_args
 
