@@ -10,11 +10,15 @@
    :target: https://cirrus-ci.com/github/avocado-framework/avocado-vt
    :alt: Cirrus CI
 
+.. |deepwiki| image:: https://deepwiki.com/badge.svg
+   :target: https://deepwiki.com/avocado-framework/avocado-vt
+   :alt: DeepWiki
+
 .. |pypi-version| image:: https://img.shields.io/pypi/v/avocado-framework-plugin-vt?logo=pypi&label=Pypi
    :target: https://pypi.org/project/avocado-framework-plugin-vt
    :alt: PyPI - Version
 
-|ci| |cirrus| |black| |pypi-version|
+|ci| |cirrus| |black| |deepwiki| |pypi-version|
 
 Avocado VT Plugin
 =================
