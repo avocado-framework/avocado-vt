@@ -39,9 +39,12 @@ Getting started with Avocado-VT
 ===============================
 
 The recommended way of installing Avocado-VT is through RPM packages.
-Documentation on how to install it can be found at:
+Documentation on how to install it can be found on `Read the Docs <http://avocado-vt.readthedocs.org/en/latest/GetStartedGuide.html>`__.
 
-http://avocado-vt.readthedocs.org/en/latest/GetStartedGuide.html
+For a more interactive and auto-updating experience, you can also refer to
+the `Avocado-VT DeepWiki page <https://deepwiki.com/avocado-framework/avocado-vt>`__,
+which provides a different way to browse and search the project's
+documentation.
 
 AI-Generated code policy
 ========================
