@@ -4459,7 +4459,7 @@ def _wait_for_traceview_dump_finished(session, dump_file_path, timeout=100):
     session.cmd(kill_cmd)
 
 
-def dump_traceview_log_windows(params, vm, timeout=360):
+def dump_traceview_log_windows(params, vm, timeout=360, keyword=None):
     """
     Dump traceview log file with nic restart panic
     Steps:
@@ -4471,6 +4471,7 @@ def dump_traceview_log_windows(params, vm, timeout=360):
     :param params: test params
     :param vm: target vm
     :param timeout: timeout value for login
+    :param keyword: the research keyword(default is OFF)
     :return: the content of traceview log file
     """
     log_path = "c:\\logfile.etl"
@@ -4522,6 +4523,11 @@ def dump_traceview_log_windows(params, vm, timeout=360):
             raise exceptions.TestError(
                 "Cann't read dumped file %s: %s" % (dump_file, output)
             )
+        if keyword:
+            mapping_output = re.findall(keyword, output)
+            if mapping_output == []:
+                raise exceptions.TestError("Can't get %s from traceview" % keyword)
+            return mapping_output
         return output
     finally:
         session_serial.close()
