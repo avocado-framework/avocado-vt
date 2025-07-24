@@ -77,20 +77,24 @@ def get_pf_info(session=None):
             "lspci -v -s %s" % pci, shell=True, session=session
         )
         if re.search("SR-IOV", output):
-            pf_driver = re.search("driver in use: (.*)", output)[1]
-            tmp_info = {"driver": pf_driver, "pci_id": pci}
+            match = re.search("driver in use: (.*)", output)
+            if match:
+                pf_driver = match[1]
+                tmp_info = {"driver": pf_driver, "pci_id": pci}
 
-            iface_name = get_iface_name(pci, session=session)
-            runner = None if not session else session.cmd
-            tmp_info.update(
-                {
-                    "iface": iface_name.strip(),
-                    "status": utils_net.get_net_if_operstate(
-                        iface_name.strip(), runner=runner
-                    ),
-                }
-            )
-            pf_info.update({pci: tmp_info})
+                iface_name = get_iface_name(pci, session=session)
+                runner = None if not session else session.cmd
+                tmp_info.update(
+                    {
+                        "iface": iface_name.strip(),
+                        "status": utils_net.get_net_if_operstate(
+                            iface_name.strip(), runner=runner
+                        ),
+                    }
+                )
+                pf_info.update({pci: tmp_info})
+            else:
+                LOG.warning(f"There is some Ethernet without driver with pci: {pci}")
     LOG.debug("PF info: %s.", pf_info)
     return pf_info
 
