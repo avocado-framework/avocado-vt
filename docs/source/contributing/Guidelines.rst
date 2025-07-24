@@ -5,7 +5,11 @@ Contributions Guidelines and Tips
 Code
 ====
 
-Contributions of additional tests and code are always welcome. If in
+Contributions of additional tests and code are always welcome.
+
+For more in-depth technical information, please refer to the `DeepWiki <https://deepwiki.com/avocado-framework/avocado-vt>`__.
+
+If in
 doubt, and/or for advice on approaching a particular problem, please
 contact the projects members (see section _collaboration) Before submitting code,
 please review the `git repository configuration guidelines <https://autotest.readthedocs.io/en/latest/main/developer/GitWorkflow.html>`_.

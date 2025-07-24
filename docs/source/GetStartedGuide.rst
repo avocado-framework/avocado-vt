@@ -166,6 +166,7 @@ Now let's run a virt test::
 If you have trouble executing the steps provided in this guide, you have a few
 options:
 
+* For in-depth information, or to ask questions, please consult the `deepwiki <https://deepwiki.com/avocado-framework/avocado-vt>`__.
 * Send an e-mail to `the avocado mailing list <https://www.redhat.com/mailman/listinfo/avocado-devel>`__.
 * Open an issue on `the avocado-vt github area <https://github.com/avocado-framework/avocado-vt/issues/new>`__.
 * We also hang out on `IRC (irc.oftc.net, #avocado) <irc://irc.oftc.net/#avocado>`__.
