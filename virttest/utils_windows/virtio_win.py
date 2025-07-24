@@ -7,6 +7,8 @@ import re
 
 from avocado.core import exceptions
 
+from virttest import utils_net
+
 from . import drive, system
 
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
@@ -123,6 +125,7 @@ def _get_netkvmco_path(session):
     Get the proper netkvmco path from iso.
 
     :param session: a session to send cmd
+
     :return: the proper netkvmco binary path.
     """
 
@@ -158,7 +161,9 @@ def prepare_netkvmco(vm):
     """
     Prepare the environment to run netkvmco
 
-    param vm: the target vm
+    :param vm: the target vm
+
+    :return: the proper netkvmco binary path.
     """
     LOG.info("Prepare the environment to run netkvmco")
     session = vm.wait_for_login(timeout=360)
@@ -172,3 +177,27 @@ def prepare_netkvmco(vm):
     finally:
         session.close()
     return get_netkvmco_path
+
+
+def get_keyword_from_traceview(session, vm, params, keyword):
+    """
+    Get the keyword by `TraceView.exe`
+    Return the keywords which means that we found it.
+
+    :param session: vm session
+    :param vm: vm object
+    :param params: vm params
+    :param keyword: the research keyword
+
+    :return: the result about the expected log message
+    """
+
+    device_mac = vm.virtnet[0].mac
+    LOG.info(f"Check {keyword} from the traceview")
+    output = utils_net.dump_traceview_log_windows(params, vm)
+    utils_net.restart_guest_network(session, device_mac, params["os_type"])
+    mapping_output = re.findall(keyword, output)
+    if mapping_output == []:
+        LOG.info(f"Can't get {keyword} from traceview")
+        return
+    return mapping_output
