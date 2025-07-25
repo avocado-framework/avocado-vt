@@ -3,13 +3,13 @@
 Library used to provide the appropriate data dir for virt test.
 """
 import glob
+import importlib.resources
 import inspect
 import logging
 import os
 import shutil
 import stat
 
-import pkg_resources
 from avocado.core import data_dir
 from avocado.utils import distro
 from avocado.utils import path as utils_path
@@ -17,9 +17,11 @@ from six.moves import xrange
 
 from virttest.compat import get_settings_value
 
-BASE_BACKEND_DIR = pkg_resources.resource_filename("virttest", "backends")
-TEST_PROVIDERS_DIR = pkg_resources.resource_filename("virttest", "test-providers.d")
-SHARED_DIR = pkg_resources.resource_filename("virttest", "shared")
+BASE_BACKEND_DIR = str(importlib.resources.files("virttest").joinpath("backends"))
+TEST_PROVIDERS_DIR = str(
+    importlib.resources.files("virttest").joinpath("test-providers.d")
+)
+SHARED_DIR = str(importlib.resources.files("virttest").joinpath("shared"))
 DEPS_DIR = os.path.join(SHARED_DIR, "deps")
 BASE_DOWNLOAD_DIR = os.path.join(SHARED_DIR, "downloads")
 
