@@ -2531,7 +2531,7 @@ class QMPMonitor(Monitor):
         cmd="block-stream",
         correct=True,
         backing_mask_protocol=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Start block-stream job;
@@ -3617,7 +3617,7 @@ class QMPMonitor(Monitor):
         fixed_iothread=None,
         writable=None,
         writethrough=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Create a new block export. (since 5.2)
