@@ -1705,6 +1705,9 @@ class VM(virt_vm.BaseVM):
             e.g. -object sev-guest,id=lsec0
             """
             obj = devices.secure_guest_object_define_by_params("lsec0", params)
+            set_cmdline_format_by_cfg(
+                obj, self._get_cmdline_format_cfg(), "secure_guest"
+            )
             devices.insert(obj)
 
             machine_dev = devices.get_by_properties({"type": "machine"})[0]
