@@ -174,6 +174,12 @@ def iscsi_discover(portal_ip):
     return session
 
 
+def _fallocate_test(img):
+    test_cmd = 'fallocate -l 1K %s 2>/dev/null; echo "$?"; rm -f %s' % (img, img)
+    output = process.run(test_cmd).stdout_text
+    return "0" in output
+
+
 class _IscsiComm(object):
     """
     Provide an interface to complete the similar initialization
@@ -255,6 +261,12 @@ class _IscsiComm(object):
         else:
             self.emulated_image = emulated_image
             self.device = "device.%s" % os.path.basename(self.emulated_image)
+
+        if _fallocate_test(self.emulated_image):
+            self.create_cmd = "fallocate -l %s %s" % (
+                params.get("image_size"),
+                self.emulated_image,
+            )
 
     def logged_in(self):
         """
@@ -908,6 +920,12 @@ class Fileio(Backstore):
             raise exceptions.TestError(
                 "Image size provided is not in valid"
                 " format, specify proper units [K|M|G|T]"
+            )
+
+        if _fallocate_test(self.emulated_image):
+            self.create_cmd = "fallocate -l %s %s" % (
+                params.get("emulated_image_size"),
+                self.emulated_image,
             )
 
     def _existed(self):
