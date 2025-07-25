@@ -40,7 +40,7 @@ def get_non_root_disk_name(session):
 
 def is_image_mode(session):
     """
-    Check if the system is running in image-based (OSTree) mode using rpm-ostree.  # pylint: disable=wrong-spelling-in-docstring
+    Check if the system is running in image-based (OSTree) mode using "rpm-ostree".
 
     :param session: If given, the command will be executed in this VM or
                     remote session.
