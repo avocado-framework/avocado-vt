@@ -37,7 +37,7 @@ def get_non_root_disk_name(session):
     """
     return get_non_root_disk_names(session)[0]
 
-#pylint: disable=C0402
+# pylint: disable=C0402
 def is_image_mode(session):
     """
     Check if the system is running in image-based (OSTree) mode using "rpm-ostree".
@@ -55,7 +55,7 @@ def is_image_mode(session):
     else:
         LOG.info("Not an OSTree system (rpm-ostree not found or failed).")
     return status == 0
-#pylint: enable=C0402
+# pylint: enable=C0402
 
 
 def get_non_root_disk_names(session, ignore_status=False):
