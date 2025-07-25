@@ -11,9 +11,11 @@ kubevirt
 libvirt
 libvirtd
 lmr
+lt
 params
 qemu
 redhat
+RemoteSession
 stderr
 stdout
 tcpdump
@@ -1306,6 +1308,7 @@ libs
 libspice
 libvirts
 LibvirtXMLError
+lifecycle
 linenum
 listenaddress
 lldp
@@ -2092,9 +2095,12 @@ groupname
 nodexx
 vq
 ioport
+Yongxue
+yhong
 yy
 KVER
 maxMemory
+mkdtemp
 valuenn
 fcntl
 tapname
