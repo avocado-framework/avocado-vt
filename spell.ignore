@@ -2083,6 +2083,7 @@ zlib
 zstd
 Zuo
 zzz
+<<<<<<< HEAD
 sizeunit
 refcnt
 mnonce
@@ -2111,3 +2112,5 @@ subgid
 uids
 gids
 nexthops
+powershell
+CimInstance
