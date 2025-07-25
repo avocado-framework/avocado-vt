@@ -4543,7 +4543,7 @@ def get_msis_and_queues_windows(params, vm, timeout=360):
     return _get_msis_queues_from_traceview_output(output)
 
 
-def set_netkvm_param_value(vm, param, value):
+def set_netkvm_param_value(vm, param, value, nic_index=0):
     """
     Set the value of certain 'param' in netkvm driver to 'value'
     This function will restart the first nic, so all the sessions
@@ -4552,22 +4552,24 @@ def set_netkvm_param_value(vm, param, value):
     param vm: the target vm
     param param: the param
     param value: the value
+    param nic_index: index of the NIC to operate on (default: 0)
     """
 
     session = vm.wait_for_serial_login(timeout=360)
     netkvmco_path = virtio_win.prepare_netkvmco(vm)
     try:
-        LOG.info("Set %s to %s" % (param, value))
+        LOG.info("Set %s to %s on NIC %d", param, value, nic_index)
         exec_src = "netsh netkvm" if "netkvmco.dll" in netkvmco_path else netkvmco_path
-        cmd = f"{exec_src} setparam 0 param={param} value={value}"
+        cmd = f"{exec_src} setparam {nic_index} param={param} value={value}"
         status, output = session.cmd_status_output(cmd)
         if status:
             err = "Error occured when set %s to value %s. " % (param, value)
-            err += "With status=%s, output=%s" % (status, output)
+            err += "With status=%s, output=%s " % (status, output)
+            err += "on NIC %s" % nic_index
             raise exceptions.TestError(err)
 
-        LOG.info("Restart nic to apply changes")
-        dev_mac = vm.virtnet[0].mac
+        LOG.info("Restart NIC %d to apply changes", nic_index)
+        dev_mac = vm.virtnet[nic_index].mac
         connection_id = get_windows_nic_attribute(
             session, "macaddress", dev_mac, "netconnectionid"
         )
@@ -4577,25 +4579,27 @@ def set_netkvm_param_value(vm, param, value):
         session.close()
 
 
-def get_netkvm_param_value(vm, param):
+def get_netkvm_param_value(vm, param, nic_index=0):
     """
     Get the value of certain 'param' in netkvm driver.
 
     param vm: the target vm
     param param: the param
+    param nic_index: index of the NIC to operate on (default: 0)
     return: the value of the param
     """
 
     session = vm.wait_for_serial_login(timeout=360)
     netkvmco_path = virtio_win.prepare_netkvmco(vm)
     try:
-        LOG.info("Get the value of %s" % param)
+        LOG.info("Get %s on NIC %d", param, nic_index)
         exec_src = "netsh netkvm" if "netkvmco.dll" in netkvmco_path else netkvmco_path
-        cmd = f"{exec_src} getparam 0 param={param}"
+        cmd = f"{exec_src} getparam {nic_index} param={param}"
         status, output = session.cmd_status_output(cmd)
         if status:
             err = "Error occured when get value of %s. " % param
-            err += "With status=%s, output=%s" % (status, output)
+            err += "With status=%s, output=%s " % (status, output)
+            err += "on NIC %s" % nic_index
             raise exceptions.TestError(err)
         lines = output.strip().splitlines()
         value = lines[0].strip().split("=")[1].strip()
