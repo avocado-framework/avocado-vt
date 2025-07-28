@@ -62,6 +62,7 @@ from virttest.test_setup.requirement_checks import (
     CheckLibvirtVersion,
     CheckQEMUVersion,
     CheckRunningAsRoot,
+    CheckVirtioFSDVersion,
     CheckVirtioWinVersion,
     LogBootloaderVersion,
     LogVersionInfo,
@@ -1017,6 +1018,7 @@ def preprocess(test, params, env):
     _setup_manager.register(ReloadKVMModules)
     _setup_manager.register(CheckKernelVersion)
     _setup_manager.register(CheckQEMUVersion)
+    _setup_manager.register(CheckVirtioFSDVersion)
     _setup_manager.register(LogBootloaderVersion)
     _setup_manager.register(CheckVirtioWinVersion)
     _setup_manager.register(CheckLibvirtVersion)
