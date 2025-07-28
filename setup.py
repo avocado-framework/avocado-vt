@@ -29,6 +29,14 @@ if __name__ == "__main__":
         url="http://github.com/avocado-framework/avocado-vt",
         packages=find_packages(exclude=("selftests*",)),
         include_package_data=True,
+        package_data={
+            "avocado_vt": ["conf.d/**"],
+            "virttest": [
+                "test-providers.d/**",
+                "backends/**",
+                "shared/**",
+            ],
+        },
         entry_points={
             "console_scripts": [
                 "avocado-runner-avocado-vt = avocado_vt.plugins.vt_runner:main",
