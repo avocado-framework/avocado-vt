@@ -1861,7 +1861,7 @@ def compare_version(interval, version=None, cmd=None):
         res = process.run(cmd, shell=True, ignore_status=True)
         if res.exit_status != 0:
             return False
-        version = res.stdout_text.rsplit(".", maxsplit=1)[0]
+        version = res.stdout_text.rsplit(".el", maxsplit=1)[0]
 
     return check_version(version, interval)
 
