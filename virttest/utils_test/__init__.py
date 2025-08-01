@@ -2567,10 +2567,10 @@ class Stress(object):
                 if mgr.is_installed(self.stress_package):
                     return
 
-            install_path = os.path.join(self.dst_path, self.base_name)
-            if self.cmd_status("cd %s" % install_path) != 0:
-                LOG.error("No source files found in path %s", path)
-                return
+        install_path = os.path.join(self.dst_path, self.base_name)
+        if self.cmd_status("cd %s" % install_path) != 0:
+            LOG.error("No source files found in path %s", install_path)
+            return
 
         LOG.info("Uninstall %s", self.stress_type)
         status, output = self.cmd_status_output(self.uninstall_cmds)
