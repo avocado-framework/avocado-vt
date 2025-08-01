@@ -3117,9 +3117,11 @@ class VM(virt_vm.BaseVM):
         if self.no_shutdown:
             devices.insert(StrDev("noshutdown", cmdline="-no-shutdown"))
 
-        user_runas = params.get("user_runas")
-        if devices.has_option("runas") and user_runas:
-            devices.insert(StrDev("runas", cmdline="-runas %s" % user_runas))
+        qemu_user = params.get("qemu_user")
+        if devices.has_option("run-with") and qemu_user:
+            devices.insert(StrDev("qemu_user", cmdline="-run-with user=%s" % qemu_user))
+        elif devices.has_option("runas") and qemu_user:
+            devices.insert(StrDev("qemu_user", cmdline="-runas %s" % qemu_user))
 
         if params.get("enable_sga") == "yes":
             devices.insert(StrDev("sga", cmdline=add_sga(devices)))
