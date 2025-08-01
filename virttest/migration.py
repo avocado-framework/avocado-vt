@@ -341,7 +341,7 @@ class MigrationTest(object):
         multi_funcs=None,
         virsh_opt="",
         extra_opts="",
-        **args
+        **args,
     ):
         """
         Migrate vms.
@@ -565,7 +565,7 @@ class MigrationTest(object):
             multi_funcs=None,
             virsh_opt="",
             extra_opts="",
-            **args
+            **args,
         ):
 
             virsh_event_session = None
@@ -651,7 +651,7 @@ class MigrationTest(object):
                     multi_funcs=multi_funcs,
                     virsh_opt=virsh_opt,
                     extra_opts=extra_opts,
-                    **args
+                    **args,
                 )
         elif migration_type == "cross":
             # Migrate a vm to remote first,
