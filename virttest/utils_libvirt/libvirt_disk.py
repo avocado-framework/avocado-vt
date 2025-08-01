@@ -38,6 +38,26 @@ def get_non_root_disk_name(session):
     return get_non_root_disk_names(session)[0]
 
 
+# pylint: disable=C0402
+def is_image_mode(session):
+    """
+    Check if the system is running in image-based (OSTree) mode using "rpm-ostree".
+
+    :param session: If given, the command will be executed in this VM or
+                    remote session.
+    :return: True if the system is OSTree-based (image mode), False otherwise.
+    """
+    cmd = "rpm-ostree status"
+    status, _ = utils_misc.cmd_status_output(
+        cmd, ignore_status=True, shell=True, session=session
+    )
+    if status == 0:
+        LOG.info("Detected OSTree/image-based system.")
+    else:
+        LOG.info("Not an OSTree system (rpm-ostree not found or failed).")
+    return status == 0
+
+
 def get_non_root_disk_names(session, ignore_status=False):
     """
     Returns the disk names under /dev whose device doesn't have any
@@ -55,6 +75,8 @@ def get_non_root_disk_names(session, ignore_status=False):
     But also considers corner cases where everything is for example on vda and
     no swap.
 
+    In case of image-mode run the structure can instead of "/" as root contain "sysroot"
+
     :param session: If given the command will be executed in this VM or
                     remote session.
     :param ignore_status: boolean, True to return, False to raise an exception
@@ -71,13 +93,19 @@ def get_non_root_disk_names(session, ignore_status=False):
     if s:
         raise exceptions.TestError("Couldn't list block devices: '%s'" % o)
     LOG.debug("lsblk output:\n%s", o)
+
+    # search for additional root disk in case of image_mode
+    root_mountpoints = ["/"]
+    if is_image_mode(session):
+        root_mountpoints.append("/sysroot")
+
     lines = o.split("\n").copy()
     root_disk = None
     root_mounted = False
     disk_pattern = re.compile(r"^([a-z]+|sr\d)[\s\t$]")
     entry_pattern = re.compile(r"(.*)[\s\t]+(.*)")
     idx = 0
-    while -1 < idx < len(lines) + 1:
+    while -1 < idx < len(lines):
         line = lines[idx]
         entry = entry_pattern.match(line)
         if not entry:
@@ -92,7 +120,7 @@ def get_non_root_disk_names(session, ignore_status=False):
             else:
                 idx = idx - 1
                 continue
-        if mpoint == "/":
+        if mpoint in root_mountpoints:
             root_mounted = True
             if is_disk:
                 root_disk = line
@@ -120,6 +148,7 @@ def get_non_root_disk_names(session, ignore_status=False):
         return [(name.strip(), mpoint.strip()) for (name, mpoint) in names_mpoints]
 
 
+# pylint: enable=C0402
 def create_disk(
     disk_type, path=None, size="500M", disk_format="raw", extra="", session=None
 ):
