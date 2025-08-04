@@ -1923,6 +1923,24 @@ class VM(virt_vm.BaseVM):
             )
             devices.insert(dev)
 
+        if params.get("vm_iommu_model") == "amd" and devices.has_device("amd-iommu"):
+            devices.insert(
+                qdevices.QStringDevice(
+                    "AMDVI-PCI",
+                    {"driver": "AMDVI-PCI", "pcie_direct_plug": "yes"},
+                    parent_bus={"type": "PCIE"},
+                )
+            )
+            iommu_params = {
+                "device-iotlb": params.get("iommu_device_iotlb"),
+                "intremap": params.get("iommu_intremap"),
+                "pt": params.get("iommu_pt"),
+                "xtsup": params.get("iommu_xtsup"),
+            }
+            dev = QDevice("amd-iommu", iommu_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "iommu_dev")
+            devices.insert(dev)
+
         # Add device virtio-iommu, it must be added before any virtio devices
         if params.get_boolean("virtio_iommu") and devices.has_device(
             "virtio-iommu-pci"
