@@ -230,7 +230,7 @@ class Nfs(object):
         """
         Umount the given mount point.
         """
-        return utils_misc.umount(self.mount_src, self.mount_dir, "nfs")
+        return utils_misc.umount(self.mount_src, self.mount_dir, "nfs,nfs4")
 
     def setup(self):
         """
