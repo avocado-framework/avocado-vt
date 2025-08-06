@@ -2516,7 +2516,9 @@ class Stress(object):
                 )
         if self.stress_package:
             mgr = utils_package.package_manager(self.session, self.stress_package)
-            if mgr.is_installed(self.stress_package):
+            if isinstance(mgr, utils_package.RemotePackageMgr) and mgr.is_installed(
+                self.stress_package
+            ):
                 return
             elif self.stress_install_from_repo:
                 # Install the stress package from existing repos
@@ -2564,7 +2566,9 @@ class Stress(object):
                     return
             else:
                 mgr = utils_package.package_manager(self.session, self.stress_package)
-                if mgr.is_installed(self.stress_package):
+                if isinstance(mgr, utils_package.RemotePackageMgr) and mgr.is_installed(
+                    self.stress_package
+                ):
                     return
 
         install_path = os.path.join(self.dst_path, self.base_name)

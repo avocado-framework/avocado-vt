@@ -186,7 +186,7 @@ class NetperfPackage(remote_old.Remote_Package):
 
     def _mod_max_cpus(self):
         """
-        netperf is hardcoded to support up to 256 CPUS.
+        netperf is hard-coded to support up to 256 CPUS.
         Modify the value from the source code previous to compilation to the
         desired value.
         """
