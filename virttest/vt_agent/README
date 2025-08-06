@@ -1,0 +1,126 @@
+# Avocado VT Agent (vt_agent)
+
+The Avocado VT Agent (`vt_agent`) is a lightweight, extensible RPC agent designed
+to run on test hosts. It allows remote execution of predefined functions and custom
+services, facilitating test automation and system interaction within the Avocado
+VT (Virtualization Technology) framework.
+
+## Features
+
+*   XML-RPC based communication.
+*   Core API for agent control (e.g., status, shutdown).
+*   Dynamically loads custom services from the `services` directory.
+*   Threaded server to handle multiple client requests concurrently.
+*   Logging for agent operations and service execution.
+
+## Running the Agent
+
+The agent is typically started using its main module:
+
+```bash
+python -m virttest.vt_agent --host <address> --port <port> --pid-file /path/to/agent.pid
+```
+
+**Command-line Arguments:**
+
+*   `--host <address>`: The IP address for the agent to listen on. Defaults to `0.0.0.0` (all interfaces).
+*   `--port <port>`: The port number for the agent to listen on. Defaults to `8000`.
+*   `--pid-file <path>`: (Required) Path to write the agent's Process ID (PID).
+
+Example:
+```bash
+python -m virttest.vt_agent --host 0.0.0.0 --port 8001 --pid-file ./vt_agent.pid
+```
+
+The agent will create necessary data directories (like `data/log`, `data/download`)
+relative to its own location upon first run if they don't exist.
+
+## Checking Agent Status
+
+You can check if the agent is alive and responsive using an XML-RPC client to
+call the `vt_agent.api.is_alive` method.
+
+Example Python client:
+```python
+import xmlrpc.client
+
+try:
+    # Replace 'localhost' and '8001' with the agent's host and port
+    agent_proxy = xmlrpc.client.ServerProxy("http://localhost:8001/", allow_none=True)
+
+    if agent_proxy.vt_agent.api.is_alive():
+        print("vt_agent is alive and responding.")
+    else:
+        print("vt_agent.api.is_alive() returned False (unexpected).")
+
+except ConnectionRefusedError:
+    print("Connection refused. Is vt_agent running at the specified address and port?")
+except xmlrpc.client.Fault as fault:
+    print(f"RPC Fault: {fault.faultCode} - {fault.faultString}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+# Example of calling an example service method
+try:
+    # Assumes the 'examples.hello' service is loaded
+    greeting = agent_proxy.examples.hello.say_hello("Developer")
+    print(f"Service Response: {greeting}")
+except xmlrpc.client.Fault as fault:
+    print(f"RPC Fault calling service: {fault.faultCode} - {fault.faultString}")
+except Exception as e:
+    print(f"Error calling service: {e}")
+
+```
+
+## Architecture Overview
+
+*   **Core Agent (`core/`)**: Handles RPC server setup, request dispatching,
+    service loading, logging, and data directory management.
+*   **API (`api.py`)**: Defines built-in functions callable on the agent itself
+    (e.g., `vt_agent.api.quit`, `vt_agent.api.start_logger_client`).
+*   **Application (`app/`)**: Manages command-line arguments and the main execution flow.
+*   **Services (`services/`)**: Contains dynamically loaded service modules.
+    Each `.py` file (not `__init__.py`) in this directory (and its subdirectories) is treated
+    as a service module. Functions within these modules become callable RPC methods, namespaced
+    by their module path (e.g., `examples.hello.say_hello`, `examples.virt.vm.boot_up`).
+
+## Developing Services
+
+1.  **Create a Python file** (e.g., `my_service.py`) inside the `virttest/vt_agent/services/`
+      directory or a subdirectory (e.g., `virttest/vt_agent/services/custom/my_service.py`).
+2.  **Define functions** within your Python file. These functions will be exposed as RPC methods.
+    *   Example `my_service.py`:
+        ```python
+        import logging
+        LOG = logging.getLogger("avocado.agent." + __name__)
+
+        def do_something(param1, param2="default"):
+            LOG.info(f"my_service.do_something called with: {param1}, {param2}")
+            result = f"Processed {param1} and {param2}"
+            return {"status": "success", "result": result}
+        ```
+3.  **Logging**: Use `logging.getLogger("avocado.agent." + __name__)` to get a
+    logger instance that integrates with the agent's logging.
+4.  **Naming**: If your file is `services/custom/my_service.py`, its functions
+    will be callable like `custom.my_service.do_something`.
+5.  The agent will automatically discover and load your service when it starts.
+
+## Remote Logging
+
+The agent provides an API to stream logs from services back to a client:
+*   `vt_agent.api.start_logger_client(host, port)`: Tells the agent to start
+    sending logs from `avocado.service` and `avocado.virttest` loggers to a
+    socket listener at the specified `host` and `port`.
+*   `vt_agent.api.stop_logger_client()`: Stops the log streaming.
+
+A corresponding log server/listener needs to be running on the client side to receive these logs.
+
+## Temporary Files
+
+*   Services can request temporary directories via `from virttest.vt_agent.core
+    import data_dir; temp_path = data_dir.get_tmp_dir()`.
+*   The agent has an API endpoint `vt_agent.api.cleanup_tmp_files(path_pattern)`
+    which can be used to clean up specific temporary files or directories.
+*   The `core.data_dir.clean_tmp_files()` function (not directly exposed via
+    RPC but used internally or can be called by services) cleans up items matching
+    `agent_tmp_*` in the agent's data directory.
