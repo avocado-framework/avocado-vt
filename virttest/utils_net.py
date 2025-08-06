@@ -3964,6 +3964,8 @@ def get_windows_nic_attribute(
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     # First line is header, return second line
+    if len(lines) < 2:
+        raise exceptions.TestError("This NIC did not get DHCP or no data returned")
     return lines[1]
 
 
