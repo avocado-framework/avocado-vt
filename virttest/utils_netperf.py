@@ -158,26 +158,91 @@ class NetperfPackage(remote_old.Remote_Package):
             self.session.cmd(clean_cmd, ignore_all_errors=True)
         self._release_session()
 
+    def _get_current_max_cpus(self):
+        """
+        Finds the file in the netperf source code that defines the MAXCPUS macro
+        and its value.
+        :return: Tuple containing the path to the file containing
+                 and the value assigned to the macro.
+        """
+        try:
+            max_cpus_fp, res_cpus = self.session.cmd_output(
+                'grep -orP "^#define *MAXCPUS *\K[0-9]+" %s' % self.netperf_dir
+            ).split(":", maxsplit=1)
+            max_cpus = int(res_cpus)
+        except aexpect.ShellError as err:
+            raise NetperfPackageError(
+                "Failed to find MAXCPUS value and file under '%s', see: %s"
+                % (self.netperf_dir, err)
+            )
+        except ValueError:
+            raise NetperfPackageError(
+                "Invalid MAXCPUS value found in file '%s': %s" % (max_cpus_fp, res_cpus)
+            )
+        LOG.debug(
+            "Found MAXCPUS is defined in %s with value %d" % (max_cpus_fp, max_cpus)
+        )
+        return max_cpus_fp, max_cpus
+
+    def _mod_max_cpus(self):
+        """
+        netperf is hardcoded to support up to 256 CPUS.
+        Modify the value from the source code previous to compilation to the
+        desired value.
+        """
+        # Obtain host/guest/vm/target netperf running sytem's number of CPUs
+        try:
+            n_cpus = int(
+                self.session.cmd_output('lscpu | grep -oP "^CPU\(s\)\: *\K[0-9]+"')
+            )
+            LOG.debug("Found %d cpus in the system running netperf" % n_cpus)
+        except aexpect.ShellError as err:
+            LOG.warning(
+                "Couldn't retrieve the number of cpus in the system: see %s" % err
+            )
+            n_cpus = 0
+        except ValueError:
+            LOG.warning("Couldn't parse the number of cpus in the system")
+            n_cpus = 0
+        max_cpus_file_path, current_max_cpus = self._get_current_max_cpus()
+        if current_max_cpus >= n_cpus:
+            LOG.debug("Bypassing netperf's MAXCPUS value modification")
+            return
+        LOG.info("Increasing netperf's MAXCPUS to %d" % n_cpus)
+        sed_cmd = 'sed -i "s/^\(#define *MAXCPUS *\)[0-9]* /\\1%d/g" %s' % (
+            n_cpus,
+            max_cpus_file_path,
+        )
+        self.session.cmd_output(sed_cmd, timeout=5)
+
     def pack_compile(self, compile_option=""):
         pre_setup_cmd = "cd %s " % self.netperf_base_dir
         pre_setup_cmd += " && %s %s" % (self.decomp_cmd, self.netperf_file)
-        pre_setup_cmd += " && cd %s " % self.netperf_dir
         # Create dict to make other OS architectures easy to extend
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
         build_arch = self.session.cmd_output("arch", timeout=60).strip()
+        self.env_cleanup(clean_all=False)
+        try:
+            self.session.cmd("echo $?", timeout=60)
+            self.session.cmd(pre_setup_cmd, timeout=600)
+        except aexpect.ShellError as e:
+            raise NetperfPackageError("Compilation setup failed: %s" % e)
+        try:
+            self._mod_max_cpus()
+        except aexpect.ShellError as err:
+            raise NetperfPackageError("Max CPU modification failed: %s" % err)
         np_build = build_type.get(build_arch, build_arch).strip()
-        setup_cmd = (
-            "./autogen.sh > /dev/null 2>&1 &&"
+        setup_cmd = "cd %s " % self.netperf_dir
+        setup_cmd += (
+            "&& ./autogen.sh > /dev/null 2>&1 &&"
             # Workaround for gcc >= 14.0
             " CFLAGS=-Wno-implicit-function-declaration"
             " ./configure --build=%s %s > /dev/null 2>&1" % (np_build, compile_option)
         )
         setup_cmd += " && make > /dev/null 2>&1"
-        self.env_cleanup(clean_all=False)
-        cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
         try:
             self.session.cmd("echo $?", timeout=60)
-            self.session.cmd(cmd, timeout=1200)
+            self.session.cmd(setup_cmd, timeout=600)
         except aexpect.ShellError as e:
             raise NetperfPackageError("Compile failed: %s" % e)
 
