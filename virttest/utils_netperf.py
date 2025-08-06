@@ -186,11 +186,11 @@ class NetperfPackage(remote_old.Remote_Package):
 
     def _mod_max_cpus(self):
         """
-        netperf is hardcoded to support up to 256 CPUS.
+        netperf is hard-coded to support up to 256 CPUS.
         Modify the value from the source code previous to compilation to the
         desired value.
         """
-        # Obtain host/guest/vm/target netperf running sytem's number of CPUs
+        # Obtain host/guest/vm/target netperf running system's number of CPUs
         try:
             n_cpus = int(
                 self.session.cmd_output('lscpu | grep -oP "^CPU\(s\)\: *\K[0-9]+"')
