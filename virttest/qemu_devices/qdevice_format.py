@@ -133,6 +133,9 @@ class _QDeviceFormatManagement(object):
                 "host-nodes": self._int_in_list,
                 "prealloc-threads": self._str_to_dec,
                 "attributes": self._hex_in_str_to_dec,
+                "policy": self._str_to_dec,
+                "cbitpos": self._str_to_dec,
+                "reduced-phys-bits": self._str_to_dec,
             },
             "netdev": {
                 "fd": self._unchanged,
