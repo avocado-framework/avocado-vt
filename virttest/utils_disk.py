@@ -1112,7 +1112,12 @@ def configure_empty_linux_disk(
         mount_dst = "/mnt/" + new_partition
         session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
         if not mount(
-            "/dev/%s" % new_partition, mount_dst, fstype=fstype, session=session
+            "/dev/%s" % new_partition,
+            mount_dst,
+            fstype=fstype,
+            session=session,
+            options="rw",
+            verbose=True,
         ):
             err_msg = "Failed to mount partition '%s'"
             raise exceptions.TestError(err_msg % new_partition)
