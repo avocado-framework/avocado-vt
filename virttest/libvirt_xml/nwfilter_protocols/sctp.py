@@ -1,5 +1,5 @@
 """
-sctp protocl support class(es)
+sctp protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoTCP-ipv4
 """

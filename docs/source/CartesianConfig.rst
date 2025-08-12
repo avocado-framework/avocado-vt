@@ -566,7 +566,7 @@ Formal definition
       value of <key> in all dicts of the current frame. If a dict lacks
       <key>, it will be created.
 
-   -  A statement of the form <key> <= <value> pre-pends <value> to the
+   -  A statement of the form <key> <= <value> prepends <value> to the
       value of <key> in all dicts of the current frame. If a dict lacks
       <key>, it will be created.
 
@@ -612,16 +612,16 @@ Formal definition
       block.
 
    -  The name of the variants are specified as ``- <variant_name>:``.
-      Each name is pre-pended to the name field of each dict of the variant's
+      Each name is prepended to the name field of each dict of the variant's
       frame, along with a separator dot ('.').
 
    -  The contents of each variant may use the format ``<key> <op> <value>``.
       They may also contain further ``variants:`` statements.
 
-   -  If the name of the variant is not preceeded by a @ (i.e. -
-      @<variant\_name>:), it is pre-pended to the shortname field of
+   -  If the name of the variant is not preceded by a @ (i.e. -
+      @<variant\_name>:), it is prepended to the shortname field of
       each dict of the variant's frame. In other words, if a variant's
-      name is preceeded by a @, it is omitted from the shortname field.
+      name is preceded by a @, it is omitted from the shortname field.
 
    -  Each variant in a variants block inherits a copy of the frame in
       which the variants: statement appears. The 'current frame', which

@@ -1,5 +1,5 @@
 """
-vlan protocl support class(es)
+vlan protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoVLAN
 """

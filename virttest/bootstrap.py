@@ -896,7 +896,7 @@ def bootstrap(options, interactive=False):
         verify_mandatory_programs(vt_type, guest_os)
     except Exception as details:
         LOG.debug(details)
-        LOG.debug("Install the missing programs and/or headers and " "re-run boostrap")
+        LOG.debug("Install the missing programs and/or headers and " "re-run bootstrap")
         sys.exit(1)
 
     LOG.info("")

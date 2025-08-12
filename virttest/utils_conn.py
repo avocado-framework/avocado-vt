@@ -1107,17 +1107,17 @@ class TLSConnection(ConnectionBase):
 
         self.qemu_tls = "yes" == init_dict.get("qemu_tls", "no")
         self.qemu_chardev_tls = "yes" == init_dict.get("qemu_chardev_tls", "no")
-        delimeter = ""
+        delimiter = ""
         if self.qemu_tls or self.qemu_chardev_tls:
-            delimeter = "-"
+            delimiter = "-"
 
         self.credential_dict = {
-            "cacert": "ca%scert.pem" % delimeter,
-            "cakey": "ca%skey.pem" % delimeter,
-            "servercert": "server%scert.pem" % delimeter,
-            "serverkey": "server%skey.pem" % delimeter,
-            "clientcert": "client%scert.pem" % delimeter,
-            "clientkey": "client%skey.pem" % delimeter,
+            "cacert": "ca%scert.pem" % delimiter,
+            "cakey": "ca%skey.pem" % delimiter,
+            "servercert": "server%scert.pem" % delimiter,
+            "serverkey": "server%skey.pem" % delimiter,
+            "clientcert": "client%scert.pem" % delimiter,
+            "clientkey": "client%skey.pem" % delimiter,
             "ca_cakey_path": self.ca_cakey_path,
         }
         # set some pki related dir values

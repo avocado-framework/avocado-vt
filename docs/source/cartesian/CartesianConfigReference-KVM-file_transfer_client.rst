@@ -6,7 +6,7 @@ Description
 -----------
 
 Sets the kind of application, thus protocol, that will be spoken when
-transfering files to and from the guest.
+transferring files to and from the guest.
 
 Avocado-VT currently allows for two options: 'scp' or 'rss'.
 

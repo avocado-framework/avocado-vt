@@ -14,9 +14,9 @@ keyword arguments.
 
 The standard set of keyword arguments to all functions/modules is declared
 in the VirtadminBase class.  Only the 'virtadmin_exec' key is guaranteed to always
-be present, the remainder may or may not be provided.  Therefor, virtadmin
+be present, the remainder may or may not be provided.  Therefore, virtadmin
 functions/methods should use the dict.get() method to retrieve with a default
-for non-existant keys.
+for non-existent keys.
 
 :copyright: 2012 Red Hat Inc.
 """
@@ -179,7 +179,7 @@ class VirtadminSession(aexpect.ShellSession):
                 )
             else:
                 self.virtadmin_exec = '%s "%s"' % (ssh_cmd, virtadmin_exec)
-        else:  # setting up a local session or re-using a session
+        else:  # setting up a local session or reusing a session
             self.virtadmin_exec = virtadmin_exec
             if self.uri:
                 self.virtadmin_exec += " -c '%s'" % self.uri

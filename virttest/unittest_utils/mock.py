@@ -488,7 +488,7 @@ class mock_god(object):
 
     def check_playback(self):
         """
-        Report any errors that were encounterd during calls
+        Report any errors that were encountered during calls
         to __method_playback().
         """
         if len(self.errors) > 0:

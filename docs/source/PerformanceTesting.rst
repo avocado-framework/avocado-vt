@@ -43,13 +43,13 @@ The following content is manual guide.
   1.First level pinning would be to use numa pinning when starting the guest.
   e.g.  $ numactl -c 1 -m 1 qemu-kvm  -smp 2 -m 4G <> (pinning guest memory and cpus to numa-node 1)
 
-  2.For a single instance test, it would suggest trying a one to one mapping of vcpu to pyhsical core.
+  2.For a single instance test, it would suggest trying a one to one mapping of vcpu to physical core.
   e.g.
   get guest vcpu threads id
   $ taskset -p 40 $vcpus1  #(pinning vcpu1 thread to pyshical cpu #6 )
   $ taskset -p 80 $vcpus2  #(pinning vcpu2 thread to physical cpu #7 )
 
-  3.To pin vhost on host. get vhost PID and then use taskset to pin it on the same soket.
+  3.To pin vhost on host. get vhost PID and then use taskset to pin it on the same socket.
   e.g
   $ taskset -p 20 $vhost #(pinning vcpu2 thread to physical cpu #5 )
 
@@ -57,7 +57,7 @@ The following content is manual guide.
   1) make sure irqbalance is off - `$ service irqbalance stop`
   2) find the interrupts - `$ cat /proc/interrupts`
   3) find the affinity mask for the interrupt(s) - `$ cat /proc/irq/<irq#>/smp_affinity`
-  4) change the value to match the proper core.make sure the vlaue is cpu mask.
+  4) change the value to match the proper core.make sure the value is cpu mask.
   e.g. pin the IRQ to first core.
      $ echo 01>/proc/irq/$virti0-input/smp_affinity
      $ echo 01>/proc/irq/$virti0-output/smp_affinity

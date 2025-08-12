@@ -325,7 +325,7 @@ class TestVersionableClass(unittest.TestCase):
         bb = factory(BB)()
         cc = factory(BB, qemu_version=0)()
 
-        # Get corespond class in versionable class
+        # Get correspond class in versionable class
         man[bb.__class__, VM].test_class_vm1 = 1
         man[bb.__class__, BB].test_class_bb = 2
         man[cc.__class__, BB].test_class_bb = 3

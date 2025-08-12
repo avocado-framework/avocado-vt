@@ -40,7 +40,7 @@ class CmdMaster(object):
         :params commander: Commander from which was command started.
         :params name: Name parsed to string representation
         :type name: [str, str, str]
-        :parmas args: list to arguments to cmd.
+        :params args: list to arguments to cmd.
         :type args: []
         :params kargs: {}
         """

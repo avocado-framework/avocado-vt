@@ -582,7 +582,7 @@ class LVM(object):
 
     def cleanup(self):
         """
-        Remove useless lv, vg and pv then reload lvm releated service;
+        Remove useless lv, vg and pv then reload lvm related service;
         """
         if self.params.get("force_remove_image", "no") == "yes":
             self.trash.reverse()

@@ -1658,7 +1658,7 @@ class CharDevice(QCustomDevice):
 
     def verify_supported_backend(self, backend):
         if backend not in self.backends:
-            raise DeviceError("Unknow chardev backend '%s'" % backend)
+            raise DeviceError("Unknown chardev backend '%s'" % backend)
 
     def get_supported_options(self, backend):
         """
@@ -3287,7 +3287,7 @@ class QPCISwitchBus(QPCIBus):
 
 class QSCSIBus(QSparseBus):
     """
-    SCSI bus representation (bus + 2 leves, don't iterate over lun by default)
+    SCSI bus representation (bus + 2 levels, don't iterate over lun by default)
     """
 
     def __init__(self, busid, bus_type, addr_spec, aobject=None, atype=None):

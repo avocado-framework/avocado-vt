@@ -31,7 +31,7 @@ def make_sandboxes(params, env, extra_ns=None):
     if extra_ns is not None:
         namespace.update(extra_ns)  # copy in additional symbols
     names = list(namespace.keys())
-    # Test may require more than one sandbox agregator class
+    # Test may require more than one sandbox aggregator class
     pobs = params.objects("lvsb_testsandboxes")  # mandatory parameter
     # filter out non-TestSandboxes subclasses
     for name in names:

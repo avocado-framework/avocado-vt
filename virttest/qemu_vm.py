@@ -110,7 +110,7 @@ class ImageUnbootableError(virt_vm.VMError):
 
     def __str__(self):
         return (
-            "VM '%s' can't bootup from image,"
+            "VM '%s' can't boot up from image,"
             " check your boot disk image file." % self.name
         )
 
@@ -519,7 +519,7 @@ class VM(virt_vm.BaseVM):
                 return fmt % (option, "on")
             elif value and isinstance(value, six.string_types):
                 # "EMPTY_STRING" and "NULL_STRING" is used for testing illegal
-                # foramt of option.
+                # format of option.
                 # "EMPTY_STRING": set option as a empty string "".
                 # "NO_EQUAL_STRING": set option as a option string only,
                 #                    even without "=".
@@ -1006,7 +1006,7 @@ class VM(virt_vm.BaseVM):
                         device.set_param(key, val, vtype, False)
                 devices.insert(device)
             else:
-                LOG.warning("option '-%s' not supportted" % name)
+                LOG.warning("option '-%s' not supported" % name)
 
         def add_pcidevice(
             devices, host, params, device_driver="pci-assign", pci_bus="pci.0"

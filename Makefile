@@ -26,7 +26,7 @@ all:
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "unlink:   Disables egg links and unlinks needed resources"
 	@echo
-	@echo "Platform independent distribution/installtion related targets:"
+	@echo "Platform independent distribution/installation related targets:"
 	@echo "source:   Create source package"
 	@echo "install:  Install on local system"
 	@echo

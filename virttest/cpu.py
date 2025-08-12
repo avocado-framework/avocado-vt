@@ -333,7 +333,7 @@ def affinity_from_vcpupin(vm, vcpu=None, options=None):
     Returns dict of vcpu's affinity from virsh vcpupin output
 
     :param vm: VM object
-    :param vcpu: virtual cpu to qeury
+    :param vcpu: virtual cpu to query
     :param options: --live, --current or --config
     :return: dict of affinity of VM
     """
@@ -582,7 +582,7 @@ def check_xmlcount(vm, exp_vcpu, option):
     if cpu_xml["current_vcpu"] != exp_vcpu[exp_key]:
         if cpu_xml["current_vcpu"] != exp_vcpu["cur_config"]:
             LOG.error(
-                "currrent vcpu number mismatch in xml\n" "Expected: %s\nActual:%s",
+                "current vcpu number mismatch in xml\n" "Expected: %s\nActual:%s",
                 exp_vcpu[exp_key],
                 cpu_xml["current_vcpu"],
             )
@@ -785,7 +785,7 @@ def is_qemu_kvm_ma():
 
 def vcpuhotunplug_unsupport_str():
     """
-    Check if qemu-kvm-ma is installed and return unsupport err string
+    Check if qemu-kvm-ma is installed and return unsupported err string
     """
     if is_qemu_kvm_ma():
         return "not currently supported"
@@ -1015,7 +1015,7 @@ kvm_map_flags_aliases = {
 
 def kvm_flags_to_stresstests(flags):
     """
-    Covert [cpu flags] to [tests]
+    Convert [cpu flags] to [tests]
 
     :param cpuflags: list of cpuflags
     :return: Return tests like string.
@@ -1331,9 +1331,9 @@ def cpus_string_to_affinity_list(cpus_string, num_cpus):
     # Parse each sub_cpus.
     for cpus in sub_cpus:
         if "-" in cpus:
-            minmum = cpus.split("-")[0]
+            minimum = cpus.split("-")[0]
             maxmum = cpus.split("-")[-1]
-            for i in range(int(minmum), int(maxmum) + 1):
+            for i in range(int(minimum), int(maxmum) + 1):
                 affinity[i] = "y"
         elif "^" in cpus:
             affinity[int(cpus.strip("^"))] = "-"
