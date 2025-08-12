@@ -207,10 +207,10 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    guys how to use some tools to find and remove trivial bugs on your
    code. I strongly encourage you guys to check your code with the `avocado-static-checks`
    tool. This tool uses pylint to catch bugs on test code and other static checks.
-   It is available in the avocado-static-checks submodule. You can run it by running::
+   It is available in the static-checks submodule. You can run it via pre-commit::
 
         $ git submodule update --init --recursive
-        $ ./avocado-static-checks/run-static-checks
+        $ pre-commit run --all-files
 
         ************* Module generic.tests.uptime
         E0602: 10,4: run: Undefined variable 'logging'
@@ -238,11 +238,10 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
            logging.info("Guest uptime result is: %s", uptime)
            session.close()
 
-#. Let's run ``check-lint`` to re-run the lint checks and see if it's happy with the code
+#. Let's run ``pre-commit run --all-files pylint`` to re-run the lint checks and see if it's happy with the code
    generated::
 
-        $ ./avocado-static-checks/check-lint
-        Found configuration file: ./avocado-static-checks/../avocado-static-checks.conf
+        $ pre-commit run --all-files pylint
         ** Running pylint on directory '.' with config from '.pylintrc'...
 
         --------------------------------------------------------------------
@@ -253,7 +252,7 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    whitespaces on your code. Very nice for tidying up your test before
    submission::
 
-        $ black generic/tests/uptime.py
+        $ pre-commit run --files generic/tests/uptime.py black
 
 #. Now, you can test your code. When listing the qemu tests your new test should
    appear in the list (or shouldn't it?)::
