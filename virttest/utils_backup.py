@@ -187,7 +187,7 @@ def pull_incremental_backup_to_file(nbd_params, target_path, bitmap_name, file_s
     :param nbd_params: The params of nbd service which provide the backup data
     :param target_path: The path of the file to dump the data
     :param bitmap_name: The dirty bitmap used for the backup
-    :param file_size: The size of the target file to be preapred
+    :param file_size: The size of the target file to be prepared
     """
     nbd_protocol = nbd_params.get("nbd_protocol", "tcp")
     nbd_export = nbd_params.get("nbd_export", "vdb")
@@ -357,7 +357,7 @@ def cmp_backup_data(
     :param backup_file: The file containing the backuped data
     :param original_file_driver: Original image format
     :param backup_file_driver: Backup image format
-    :return: Trun if data is correct, false if not
+    :return: True if data is correct, false if not
     """
     tmp_dir = data_dir.get_tmp_dir()
     original_file_dump = os.path.join(

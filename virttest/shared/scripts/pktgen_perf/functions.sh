@@ -110,7 +110,7 @@ function pgset() {
 
 if [[ -z "$APPEND" ]]; then
 	if [[ $EUID -eq 0 ]]; then
-		# Cleanup pktgen setup on exit if thats not "append mode"
+		# Cleanup pktgen setup on exit if that's not "append mode"
 		trap 'pg_ctrl "reset"' EXIT
 	fi
 fi

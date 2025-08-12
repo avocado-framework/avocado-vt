@@ -10,7 +10,7 @@ import copy
 
 class MessengerError(Exception):
     """
-    Represented error in messanger.
+    Represented error in messenger.
     """
 
     def __init__(self, msg):
@@ -251,7 +251,7 @@ class BaseCmd(CmdMessage):
 
     def update(self, basecmd):
         """
-        Sync local class with class moved over the messanger.
+        Sync local class with class moved over the messenger.
 
         :param basecmd: basecmd from which should be sync data to this instance
         :type basecmd: BaseCmd

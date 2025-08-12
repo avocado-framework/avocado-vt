@@ -49,7 +49,7 @@ Rules for Reviewers
    Would you like to? Could you give the reason that ...?
 6. Remember to praise.
 7. Remember that there is often more than one way to approach a solution.
-8. Given clear and useful comments, and explain the reason why reqest change
+8. Given clear and useful comments, and explain the reason why request change
 9. In general, reviewers should favor approving a PR once it is in a
    state where it definitely improves the overall code health of the
    system being worked on, even if the PR isn't perfect

@@ -377,10 +377,10 @@ class GuestWorker(object):
         Read all data from all ports, in both sides of each port.
         """
         for port in self.vm.virtio_ports:
-            openned = port.is_open()
+            opened = port.is_open()
             port.clean_port()
             self.cmd("virt.clean_port('%s'),1024" % port.name, 10)
-            if not openned:
+            if not opened:
                 port.close()
                 self.cmd("virt.close('%s'),1024" % port.name, 10)
 
@@ -395,7 +395,7 @@ class GuestWorker(object):
         if not self.vm or self.vm.is_dead():
             return
         # in LOOP_NONE mode it might stuck in read/write
-        # This command can't fail, can only freze so wait for the correct msg
+        # This command can't fail, can only freeze so wait for the correct msg
         match, tmp = self._cmd(
             "virt.exit_threads()", 3, ("^PASS: All threads" " finished",)
         )

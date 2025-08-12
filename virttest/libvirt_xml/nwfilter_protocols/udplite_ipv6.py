@@ -1,5 +1,5 @@
 """
-udplite-ipv6 protocl support class(es)
+udplite-ipv6 protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoMiscv6
 """

@@ -1,5 +1,5 @@
 """
-arp protocl support class(es)
+arp protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoARP
 """

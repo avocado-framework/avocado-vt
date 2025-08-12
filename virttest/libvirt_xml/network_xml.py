@@ -660,7 +660,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
 
     def del_defined(self):
         """Accessor method for 'define' property, undefines network"""
-        self.__check_undefined__("Cannot undefine non-existant network")
+        self.__check_undefined__("Cannot undefine non-existent network")
         self.virsh.net_undefine(self.name)
 
     def get_active(self):
@@ -722,7 +722,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
     def del_autostart(self):
         """Accessor method for 'autostart' property, unsets autostart"""
         if not self.defined:
-            raise xcepts.LibvirtXMLError("Can't autostart nonexistant network")
+            raise xcepts.LibvirtXMLError("Can't autostart nonexistent network")
         self.virsh.net_autostart(self.name, "--disable")
 
     def get_persistent(self):
@@ -960,7 +960,7 @@ class NetworkXML(NetworkXMLBase):
 
     def create(self, **dargs):
         """
-        Adds non-persistant / transient network to libvirt with net-create
+        Adds non-persistent / transient network to libvirt with net-create
         """
         cmd_result = self.virsh.net_create(self.xml, **dargs)
         if cmd_result.exit_status:

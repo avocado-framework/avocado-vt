@@ -140,7 +140,7 @@ class CheckVirtioFSDVersion(Setuper):
     def setup(self):
         # Get the virtiofsd version
         virtiofsd_ver_cmd = self.params.get("virtiofsd_ver_cmd", "")
-        # Only if virtiofsd_ver_cmd is setted, or skip the version check
+        # Only if virtiofsd_ver_cmd is set, or skip the version check
         if virtiofsd_ver_cmd:
             try:
                 virtiofsd_version = a_process.run(

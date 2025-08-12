@@ -172,7 +172,7 @@ class DevContainer(object):
                 ).stdout_text.splitlines()
             if cmds:
                 cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
-            if cmds:  # If no mathes, return None
+            if cmds:  # If no matches, return None
                 return cmds
 
         self.__state = -1  # -1 synchronized, 0 synchronized after hotplug
@@ -336,7 +336,7 @@ class DevContainer(object):
 
         :param iothread: iothread specified in params
                          could be:
-                         'auto': allocate iothread based on schems specified by
+                         'auto': allocate iothread based on schemes specified by
                                  'iothread_scheme'.
                          iothread id: request specific iothread to use.
         :param device: device object
@@ -366,7 +366,7 @@ class DevContainer(object):
 
         :param iothread: iothread specified in params
                          could be:
-                         'auto': allocate iothread based on schems specified by
+                         'auto': allocate iothread based on schemes specified by
                                  'iothread_scheme'.
                          iothread id: request specific iothread to use.
         :param device: device object

@@ -88,7 +88,7 @@ ECHO "systemctl enable NetworkManager"
 systemctl enable NetworkManager.service
 ECHO "Disable lock cdrom udev rules"
 sed -i "/--lock-media/s/^/#/" /usr/lib/udev/rules.d/60-cdrom_id.rules 2>/dev/null>&1
-#Workaround for graphical boot as anaconda seems to always instert skipx
+#Workaround for graphical boot as anaconda seems to always insert skipx
 systemctl set-default graphical.target
 cat > '/etc/gdm/custom.conf' << EOF
 [daemon]

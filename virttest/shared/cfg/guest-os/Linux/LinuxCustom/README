@@ -8,7 +8,7 @@ Which would make it possible to specify this custom guest using
 
 $ avocado run migrate..tcp --vt-type qemu --vt-guest-os LinuxCustom.FooLinux
 
-Other useful params to set (not an exaustive list):
+Other useful params to set (not an exhaustive list):
 
     # shell_prompt is a regexp used to match the prompt on aexpect.
     # if your custom os is based of some distro listed in the guest-os

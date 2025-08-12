@@ -1,5 +1,5 @@
 """
-udplite protocl support class(es)
+udplite protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoMisc
 """

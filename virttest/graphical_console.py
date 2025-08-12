@@ -260,7 +260,7 @@ class BaseConsole(object):
         """
         Get sequence of seq_str.
 
-        :param seq_str: key str, if have '-', seprate them by '-' sign,
+        :param seq_str: key str, if have '-', separate them by '-' sign,
                         and return them separately. if have not '-',
                         return original str.
         :param interval: the interval between return two value.

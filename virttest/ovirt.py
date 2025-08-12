@@ -786,7 +786,9 @@ class HostManager(object):
             root_password=host_password,
         )
         try:
-            LOG.info("Registing a host %s into cluster %s" % (self.name, cluster_name))
+            LOG.info(
+                "Registering a host %s into cluster %s" % (self.name, cluster_name)
+            )
             if self.hosts_service.add(host_params):
                 LOG.info("Waiting for host to reach the <Up> status ...")
                 host_up = False

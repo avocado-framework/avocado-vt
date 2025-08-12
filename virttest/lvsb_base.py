@@ -33,7 +33,7 @@ class SandboxSession(object):
     Connection instance to asynchronous I/O redirector process
     """
 
-    # Assist with warning on re-use
+    # Assist with warning on reuse
     used = False
 
     def __init__(self):

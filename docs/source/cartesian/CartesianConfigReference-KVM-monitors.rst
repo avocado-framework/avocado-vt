@@ -27,7 +27,7 @@ Human monitor:
 
 The monitor type is defined by `monitor\_type <monitor_type>`_.
 
-Here's a more detailed exaplanation of the configuration snippet above:
+Here's a more detailed explanation of the configuration snippet above:
 
 ::
 
@@ -85,7 +85,7 @@ Used By
 
 Note: most tests that interact with the monitor do so through the
 **monitor** property of the **VM** class, and not by evaluating this
-parameter value. This is usally only done by the **VM** class.
+parameter value. This is usually only done by the **VM** class.
 
 Referenced By
 -------------
