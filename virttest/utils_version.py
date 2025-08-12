@@ -10,15 +10,15 @@ class VersionInterval(object):
 
     An interval is a string representation of a mathematical like interval.
     e.g: "(3,4]", "[3.10.0,)"
-    A verison is a version string.
+    A version is a version string.
 
     Examples::
         >>> verison_interval = VersionInterval("[2.10.1, 2.11.0)")
-        >>> verison = "2.10.16"
-        >>> verison in verison_interval
+        >>> version = "2.10.16"
+        >>> version in verison_interval
         True
-        >>> verison = "2.13.0"
-        >>> verison in verison_interval
+        >>> version = "2.13.0"
+        >>> version in verison_interval
         False
 
     """

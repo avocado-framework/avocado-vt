@@ -321,7 +321,7 @@ class VSphere(object):
         """
 
         @wraps(f)
-        def wraper(self, *args, **kwargs):
+        def wrapper(self, *args, **kwargs):
             vmobj = kwargs.get("vm_obj")
             vm_name = kwargs.get("vm_name")
             if not vmobj:
@@ -346,7 +346,7 @@ class VSphere(object):
             # pylint: disable=E1102
             return f(self, *args, **kwargs)
 
-        return wraper
+        return wrapper
 
     def get_all_vms(self):
         """
@@ -664,7 +664,7 @@ class VSphere(object):
         res = [dev for dev in devs if all([cond(dev) for cond in conds])]
         if len(res) > 1:
             raise VSphereError(
-                "Mutiple devices are found for label(%s) or key(%s)" % (label, key)
+                "Multiple devices are found for label(%s) or key(%s)" % (label, key)
             )
 
         if not res:
@@ -707,7 +707,7 @@ class VSphere(object):
             calls to this function, starting with startOffset 0 and
             then examine the "length" property in the returned
             DiskChangeInfo structure, repeatedly calling queryChangedDiskAreas
-            until a map forthe entire virtual disk has been obtained.
+            until a map for the entire virtual disk has been obtained.
         :param snapshot: Snapshot for which changes that have been made
             sine "changeId" should be computed. If not set, changes are
             computed against the "current" snapshot of the virtual machine.

@@ -4,7 +4,7 @@ Postprocessing module for IOzone. It is capable to pick results from an
 IOzone run, calculate the geometric mean for all throughput results for
 a given file size or record size, and then generate a series of 2D and 3D
 graphs. The graph generation functionality depends on gnuplot, and if it
-is not present, functionality degrates gracefully.
+is not present, functionality degrades gracefully.
 
 :copyright: Red Hat 2010
 """
@@ -61,13 +61,13 @@ def geometric_mean(values):
     return math.exp(sum([math.log(x) for x in values]) / n)
 
 
-def compare_matrices(matrix1, matrix2, treshold=0.05):
+def compare_matrices(matrix1, matrix2, threshold=0.05):
     """
     Compare 2 matrices nxm and return a matrix nxm with comparison data
 
     :param matrix1: Reference Matrix with numeric data
     :param matrix2: Matrix that will be compared
-    :param treshold: Any difference bigger than this percent treshold will be
+    :param threshold: Any difference bigger than this percent threshold will be
             reported.
     """
     improvements = 0
@@ -79,10 +79,10 @@ def compare_matrices(matrix1, matrix2, treshold=0.05):
         new_line = []
         for element1, element2 in list(zip(line1, line2)):
             ratio = float(element2) / float(element1)
-            if ratio < (1 - treshold):
+            if ratio < (1 - threshold):
                 regressions += 1
                 new_line.append((100 * ratio - 1) - 100)
-            elif ratio > (1 + treshold):
+            elif ratio > (1 + threshold):
                 improvements += 1
                 new_line.append("+" + str((100 * ratio - 1) - 100))
             else:

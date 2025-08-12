@@ -1,4 +1,5 @@
-"""The file contains some wrappers of common python base-package workflow
+"""
+The file contains some wrappers of common python base-package workflow
 sets that can be repeated throughout the avocado-vt code.
 Please, remember that it is a private module.
 Please, use this module ONLY from other virttest/avocado-vt modules.

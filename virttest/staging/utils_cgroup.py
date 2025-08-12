@@ -754,7 +754,7 @@ class CgconfigService(object):
 
     def cgconfig_start(self):
         """
-        Sart cgconfig service
+        Start cgconfig service
         """
         return self._service_cgconfig_control("start")
 
