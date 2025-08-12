@@ -1117,7 +1117,7 @@ class UnattendedInstallConfig(object):
 
         elif self.vm_type == "libvirt":
             LOG.info(
-                "Not downloading vmlinuz/initrd.img from %s, "
+                "Not downloading vmlinuz/initrd.img, "
                 "letting virt-install do it instead"
             )
 

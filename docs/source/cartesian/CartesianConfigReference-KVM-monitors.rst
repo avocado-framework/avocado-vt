@@ -96,4 +96,3 @@ See Also
 --------
 
 -  `client/virt/kvm\_monitor.py <https://github.com/autotest/autotest/blob/master/client/virt/kvm_monitor.py>`_
-

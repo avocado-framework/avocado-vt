@@ -11,4 +11,3 @@ run_rc() {
 run_rc './avocado-static-checks/run-static-checks'
 run_rc 'selftests/run'
 exit ${GR}
-

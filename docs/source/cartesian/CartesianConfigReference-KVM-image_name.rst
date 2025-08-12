@@ -68,4 +68,3 @@ See Also
 -  `images <CartesianConfigReference-KVM-images.html>`_
 -  `image\_format <CartesianConfigReference-KVM-image_format.html>`_
 -  `image\_raw\_device <CartesianConfigReference-KVM-image_raw_device.html>`_
-

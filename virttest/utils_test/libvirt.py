@@ -39,7 +39,13 @@ from avocado.utils import path as utils_path
 from avocado.utils import process, stacktrace
 from avocado.utils.astring import to_text
 
-from virttest import data_dir, gluster, iscsi, libvirt_storage, nfs
+from virttest import (
+    data_dir,
+    gluster,
+    iscsi,
+    libvirt_storage,
+    nfs,
+)
 from virttest import remote as remote_old
 from virttest import (
     test_setup,

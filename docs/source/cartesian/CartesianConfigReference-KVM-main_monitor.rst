@@ -42,4 +42,3 @@ See Also
 -  `monitors <CartesianConfigReference-KVM-monitors.html>`_
 -  `monitor\_type <CartesianConfigReference-KVM-monitor_type.html>`_
 -  `client/virt/kvm\_monitor.py <https://github.com/autotest/autotest/blob/master/client/virt/kvm_monitor.py>`_
-

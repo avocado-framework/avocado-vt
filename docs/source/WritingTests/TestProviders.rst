@@ -130,4 +130,3 @@ Let's say you want to use a directory in your file system
     subdir: virt-test/qemu/
     [openvswitch]
     subdir: virt-test/openvswitch/
-

@@ -39,4 +39,3 @@ See also
 -  `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_
 -  `kill\_vm\_gracefully <CartesianConfigReference-KVM-kill_vm_gracefully.html>`_
 -  `kill\_unresponsive\_vms <CartesianConfigReference-KVM-kill_unresponsive_vms.html>`_
-
