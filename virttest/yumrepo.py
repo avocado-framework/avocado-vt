@@ -35,7 +35,7 @@ class YumRepo(object):
 
     def __init__(self, name, baseurl, path=None):
         """
-        Initilizes a new YumRepo object
+        Initializes a new YumRepo object
 
         If path is not given, it is assumed to be "$(name)s.repo" at
         the default YUM repo directory.
@@ -79,7 +79,7 @@ class YumRepo(object):
         Renders the repo file
 
         Yes, we could use ConfigParser for this, but it produces files with
-        spaces between keys and values, which look akward by YUM defaults.
+        spaces between keys and values, which look awkward by YUM defaults.
         """
         template = (
             "[%(name)s]\n"

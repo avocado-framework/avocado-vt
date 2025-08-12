@@ -556,7 +556,7 @@ class HugePageConfig(object):
         if obj.sys_fs_value < int(pagenum):
             error_msg = (
                 "Only allocated %d pages %skiB huge pages, "
-                "but requried %s" % (obj.sys_fs_value, pagesize, pagenum)
+                "but required %s" % (obj.sys_fs_value, pagesize, pagenum)
             )
             if not ignore_error:
                 raise exceptions.TestSetupFail(error_msg)

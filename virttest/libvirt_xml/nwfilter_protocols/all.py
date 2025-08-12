@@ -1,5 +1,5 @@
 """
-all protocl support class(es)
+all protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoMisc
 """

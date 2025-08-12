@@ -24,7 +24,7 @@ By this reason is:
 Example of usage (in versionable_class_unittest):
 
 
-# SIMPLE EXAPMLE
+# SIMPLE EXAMPLE
 
 from versionable_class import Manager, factory, VersionableClass
 #register module to class manager. Necessary for pickling.
@@ -66,7 +66,7 @@ o.fn1()
 p.fn1()
 
 
-# ADVANCED EXAPMLE
+# ADVANCED EXAMPLE
 
 from versionable_class import Manager, factory, VersionableClass
 man = Manager(__name__)

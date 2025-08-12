@@ -36,7 +36,7 @@ class Address(base.TypedDeviceBase):
                 type_name=attributes.pop("type_name"), virsh_instance=virsh_instance
             )
         except (KeyError, AttributeError):
-            raise xcepts.LibvirtXMLError("type_name is manditory for " "Address class")
+            raise xcepts.LibvirtXMLError("type_name is mandatory for " "Address class")
         # Stick property values in as attributes
         xtfroot = instance.xmltreefile.getroot()
         for key, value in list(attributes.items()):
@@ -51,7 +51,7 @@ class Address(base.TypedDeviceBase):
             edict["type_name"] = edict.pop("type")
         except (KeyError, AttributeError):
             raise xcepts.LibvirtXMLError(
-                "type attribute is manditory for " "Address class"
+                "type attribute is mandatory for " "Address class"
             )
         return cls.new_from_dict(edict, virsh_instance=virsh_instance)
 
