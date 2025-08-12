@@ -424,7 +424,7 @@ class RemoteFile(object):
 
     def remove(self, pattern_list):
         """
-        Remove the lines in remote file which matchs a pattern
+        Remove the lines in remote file which matches a pattern
         in pattern_list.
 
         :param pattern_list: pattern list to be matched

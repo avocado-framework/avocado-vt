@@ -515,7 +515,7 @@ class GithubIssues(GithubIssuesBase, object):
             since = criteria["since"]
             if not isinstance(since, datetime.datetime):
                 raise ValueError("'since' criteria must be a " "datetime.datetime")
-            # second and milisecond not useful to search or cache
+            # second and millisecond not useful to search or cache
             since = datetime.datetime(
                 year=since.year,
                 month=since.month,
@@ -742,7 +742,7 @@ class MutableIssue(dict):
 
     def set_labels(self, value):
         """
-        Merge list of new lables into existing label set
+        Merge list of new labels into existing label set
         """
         new_labels = set(value)
         old_labels = set(self._github_issue["labels"])
