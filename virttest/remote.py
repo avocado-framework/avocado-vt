@@ -1,3 +1,4 @@
+# pylint: disable=E0602
 """
 Functions and classes used for logging into guests and transferring files.
 """

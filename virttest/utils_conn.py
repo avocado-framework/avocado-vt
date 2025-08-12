@@ -12,7 +12,11 @@ from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import path, process
 
-from virttest import data_dir, libvirt_version, propcan
+from virttest import (
+    data_dir,
+    libvirt_version,
+    propcan,
+)
 from virttest import remote as remote_old
 from virttest import (
     utils_iptables,

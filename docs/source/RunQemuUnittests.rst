@@ -297,4 +297,3 @@ Step by step procedure
 You might take a look at the ``unittests.cfg`` config file options to do
 some tweaking you might like, such as making the timeout to consider a
 unittest as failed smaller and other things.
-

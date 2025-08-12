@@ -36,4 +36,3 @@ job.run_test("kernelinstall",
              install_type="tar",
              params=params,
              tag='3.3.4')
-

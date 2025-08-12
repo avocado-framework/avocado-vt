@@ -1679,6 +1679,7 @@ def store_vm_info(vm, log_filename, info_cmd="registers", append=False, vmtype="
     :return: Store the vm register information to log file or not
     :rtype: bool
     """
+    output = ""
     timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     if vmtype == "qemu":
         try:

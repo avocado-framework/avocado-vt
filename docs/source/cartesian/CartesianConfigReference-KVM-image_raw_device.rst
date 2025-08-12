@@ -39,4 +39,3 @@ Referenced By
 
 -  `How to run virt-test tests on an existing guest
    image? <../../RunTestsExistingGuest>`_
-
