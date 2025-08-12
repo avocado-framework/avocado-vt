@@ -48,27 +48,34 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils.astring import to_text
 
-# pylint: disable=W0611
 # Symlink avocado implementation of process functions
-from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
-from avocado.utils.process import pid_exists  # pylint: disable=W0611
-from avocado.utils.process import safe_kill  # pylint: disable=W0611
-from avocado.utils.process import CmdResult
+from avocado.utils.process import (
+    CmdResult,
+    kill_process_by_pattern,
+)
 from avocado.utils.process import kill_process_tree as _kill_process_tree
 from avocado.utils.process import (
+    pid_exists,
+)
+from avocado.utils.process import (
     process_in_ptree_is_defunct as process_or_children_is_defunct,
+)
+from avocado.utils.process import (
+    safe_kill,
 )
 
 # Symlink avocado implementation of port-related functions
 
 try:
-    from avocado.utils.network.ports import find_free_port  # pylint: disable=W0611
-    from avocado.utils.network.ports import find_free_ports  # pylint: disable=W0611
-    from avocado.utils.network.ports import is_port_free  # pylint: disable=W0611
+    from avocado.utils.network.ports import (
+        find_free_port,
+        find_free_ports,
+        is_port_free,
+    )
 except ImportError:
-    from avocado.utils.network import is_port_free  # pylint: disable=W0611
-    from avocado.utils.network import find_free_port  # pylint: disable=W0611
-    from avocado.utils.network import find_free_ports  # pylint: disable=W0611
+    from avocado.utils.network import is_port_free
+    from avocado.utils.network import find_free_port
+    from avocado.utils.network import find_free_ports
 
 import six
 from six.moves import xrange
@@ -3607,7 +3614,7 @@ def check_device_driver(pci_id, driver_type):
     """
     device_driver = "/sys/bus/pci/devices/%s/driver" % pci_id
     if not check_isdir(device_driver):
-        LOG.debug("Make sure %s has binded driver.")
+        LOG.debug("Make sure %s has binded driver.", pci_id)
         return False
     driver = process.run(
         "readlink %s" % device_driver, ignore_status=True

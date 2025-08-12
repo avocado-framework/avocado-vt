@@ -180,4 +180,3 @@ the installation to see if there aren't problems such as a **wrong cd
 key** preventing your install from happening. Avocado-VT prints the
 qemu command line used, so you can see which vnc display you can connect
 to to watch your vm being installed.
-

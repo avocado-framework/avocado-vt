@@ -39,4 +39,3 @@ See also
 
 -  `guest\_port <CartesianConfigReference-KVM-guest_port.html>`_
 -  `guest\_port\_remote\_shell <CartesianConfigReference-KVM-guest_port_remote_shell.html>`_
-

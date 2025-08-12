@@ -53,4 +53,3 @@ See Also
 -  `images <CartesianConfigReference-KVM-images.html>`_
 -  `image\_name <CartesianConfigReference-KVM-image_name.html>`_
 -  `image\_format <CartesianConfigReference-KVM-image_format.html>`_
-

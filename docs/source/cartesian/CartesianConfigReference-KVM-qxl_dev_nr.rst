@@ -50,4 +50,3 @@ See Also
 -  `qxl <CartesianConfigReference-KVM-qxl.html>`_
 -  vga?
 -  `display <CartesianConfigReference-KVM-display.html>`_
-

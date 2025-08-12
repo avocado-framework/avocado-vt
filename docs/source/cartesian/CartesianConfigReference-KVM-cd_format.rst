@@ -40,4 +40,3 @@ See also
 --------
 
 -  `drive\_format <CartesianConfigReference-KVM-drive_format.html>`_
-

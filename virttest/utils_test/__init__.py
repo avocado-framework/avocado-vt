@@ -39,7 +39,13 @@ from avocado.utils import archive, aurl, crypto, download, path, process
 from six.moves import xrange
 
 # Import from the top level virttest namespace
-from virttest import asset, bootstrap, data_dir, error_context, qemu_virtio_port
+from virttest import (
+    asset,
+    bootstrap,
+    data_dir,
+    error_context,
+    qemu_virtio_port,
+)
 from virttest import remote as remote_old
 from virttest import (
     scan_autotest_results,

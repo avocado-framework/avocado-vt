@@ -1,5 +1,4 @@
-""" Define set/clean up procedures for network proxies
-"""
+"""Define set/clean up procedures for network proxies"""
 
 import re
 import urllib.request

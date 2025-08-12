@@ -25,4 +25,3 @@ See http://www.nas.nasa.gov/Software/NPB/
 # Please refer to npb.py for more information about
 # the arguments.
 job.run_test(url='npb', tests='ep.A ep.B')
-

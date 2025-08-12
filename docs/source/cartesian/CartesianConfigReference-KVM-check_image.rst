@@ -42,4 +42,3 @@ See Also
 -  `image\_format <CartesianConfigReference-KVM-image_format.html>`_
 -  `create\_image <CartesianConfigReference-KVM-create_image.html>`_
 -  `remove\_image <CartesianConfigReference-KVM-remove_image.html>`_
-
