@@ -35,4 +35,3 @@ See Also
 --------
 
 -  `qemu\_binary <CartesianConfigReference-KVM-qemu_binary.html>`_
-

@@ -29,4 +29,3 @@ See Also
 
 -  `pre\_command <CartesianConfigReference-KVM-pre_command.html>`_
 -  pre\_command\_non\_critical?
-
