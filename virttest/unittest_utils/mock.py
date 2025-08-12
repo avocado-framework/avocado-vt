@@ -12,14 +12,14 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 
 class StubNotFoundError(Exception):
-
     "Raised when god is asked to unstub an attribute that was not stubbed"
+
     pass
 
 
 class CheckPlaybackError(Exception):
-
     "Raised when mock playback does not match recorded calls."
+
     pass
 
 
