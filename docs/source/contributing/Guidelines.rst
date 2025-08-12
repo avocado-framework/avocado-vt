@@ -81,7 +81,7 @@ Rules for Maintainers
 Rules for Contributors
 ======================
 
-1. [Must] Coding style should conform to what's enforced by black (see ``./avocado-static-checks/check-style``)
+1. [Must] Coding style should conform to what's enforced by `pre-commit <https://pre-commit.com>`_ (use ``pre-commit run --all-files``)
 2. [Must] PR commit message is meaningful. Refer to `this link <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/styleguides.html>`_ on how to write a good commit message
 3. [Must] Travis CI pass and no conflict
 4. [Must] Provide test results. If no, provide justification. Apply to any PR
