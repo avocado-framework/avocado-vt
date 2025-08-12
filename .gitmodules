@@ -1,3 +1,4 @@
-[submodule "avocado-static-checks"]
-	path = avocado-static-checks
-	url = https://github.com/avocado-framework/avocado-static-checks
+[submodule "static-checks"]
+	path = static-checks
+	url = https://github.com/PaulYuuu/avocado-static-checks.git
+	branch = pre-commit
