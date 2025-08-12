@@ -46,8 +46,8 @@ requirements: pip
 	- $(PYTHON) -m pip install -r requirements.txt
 
 check:
-	./avocado-static-checks/run-static-checks
-	pylint --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
+	git submodule update --init --recursive
+	pre-commit run --all-files
 
 clean:
 	rm -rf MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD build dist
