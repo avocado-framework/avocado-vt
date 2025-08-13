@@ -149,6 +149,21 @@ class Exportfs(object):
         return True
 
 
+def is_image_mode():
+    """
+    Check if the system is running in image mode.
+
+    :return: If the system is in image mode, return 0.
+    """
+    cmd = "rpm-ostree status"
+    ret = process.run("rpm-ostree status", shell=True, verbose=True, ignore_status=True)
+    if ret.exit_status:
+        LOG.info("The system is not in image mode.")
+    else:
+        LOG.info("The system is in image mode.")
+    return ret.exit_status == 0
+
+
 class Nfs(object):
     """
     Nfs class for handle nfs mount and umount. If a local nfs service is
@@ -158,7 +173,6 @@ class Nfs(object):
     def __init__(self, params):
         self.mount_dir = params.get("nfs_mount_dir")
         self.mount_options = params.get("nfs_mount_options")
-        self.mount_src = params.get("nfs_mount_src")
         self.nfs_setup = False
         path.find_command("mount")
         self.rm_mount_dir = False
@@ -167,10 +181,15 @@ class Nfs(object):
         distro_details = distro.detect().name
         self.session = None
         self.setup_nfs_ip = params.get("nfs_server_ip", "127.0.0.1")
-        self.export_dir = params.get("export_dir") or self.mount_src.split(":")[-1]
         self.export_ip = params.get("export_ip", "*")
-        self.export_options = params.get("export_options", "").strip()
         self.run_mount = params.get("run_mount", True)
+        if is_image_mode():
+            self.mount_src = "/"
+            self.export_options = params.get("export_options", "").strip() + ",fsid=0"
+        else:
+            self.mount_src = params.get("nfs_mount_src")
+            self.export_options = params.get("export_options", "").strip()
+        self.export_dir = params.get("export_dir") or self.mount_src.split(":")[-1]
 
         if params.get("setup_remote_nfs") == "yes":
             self.nfs_setup = True
@@ -307,7 +326,6 @@ class NFSClient(object):
         self.mkdir_mount_remote = False
         self.mount_dir = params.get("nfs_mount_dir")
         self.mount_options = params.get("nfs_mount_options")
-        self.mount_src = params.get("nfs_mount_src")
         self.nfs_server_ip = params.get("nfs_server_ip")
         self.ssh_user = params.get("ssh_username", "root")
         self.remote_nfs_mount = params.get("remote_nfs_mount", "yes")
@@ -315,6 +333,11 @@ class NFSClient(object):
         self.ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         if not self.ssh_hostkey_check:
             self.ssh_cmd += "-o StrictHostKeyChecking=no "
+
+        if is_image_mode():
+            self.mount_src = "/"
+        else:
+            self.mount_src = params.get("nfs_mount_src")
 
     def is_mounted(self):
         """
