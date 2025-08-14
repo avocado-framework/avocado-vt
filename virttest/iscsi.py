@@ -201,7 +201,7 @@ def _get_create_command(emulated_image, emulated_image_size, dd_cmd):
         emulated_image,
         emulated_image,
     )
-    if process.getstatusoutput(test_cmd)[1] == 0:
+    if process.getstatusoutput(test_cmd)[1] == "0":
         return "fallocate -l %s %s" % (emulated_image_size, emulated_image)
 
     # Test truncate availability if fallocate is not supported
@@ -209,7 +209,7 @@ def _get_create_command(emulated_image, emulated_image_size, dd_cmd):
         emulated_image,
         emulated_image,
     )
-    if process.getstatusoutput(test_cmd)[1] == 0:
+    if process.getstatusoutput(test_cmd)[1] == "0":
         return "truncate -s %s %s" % (emulated_image_size, emulated_image)
 
     # Default to dd if neither fallocate nor truncate is available
