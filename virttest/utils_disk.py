@@ -78,7 +78,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
     """
     mount_options = [("-S", src), ("-M", dst), ("-t", fstype), ("-O", options)]
     mount_opts = " ".join(
-        f"{opt} {val}" for opt, val in mount_options if val is not None
+        f"{opt} {val}" for opt, val in mount_options if val is not None and val != ""
     )
     if mount_opts == "":
         raise exceptions.TestError("Mount options is empty, it is meaningless")
@@ -95,7 +95,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
     except process.CmdError:
         pass
 
-    if mount_result:
+    if mount_result is not None and mount_result != "":
         if verbose:
             LOG.info("%s is mounted", src)
         return True
