@@ -4466,6 +4466,28 @@ def get_distro(session=None):
             return distro_name
 
 
+def get_distro_version(session=None):
+    """
+    Get distribution version of the Host/Guest/Remote Host
+
+    :param session: ShellSession object of VM or remote host
+    :return: distribution name of type str
+    """
+    if not session:
+        return distro.detect().version
+    else:
+        distro_version = ""
+        cmd = "cat /etc/os-release | grep '^VERSION_ID='"
+        try:
+            status, output = session.cmd_status_output(cmd, timeout=300)
+            if status:
+                LOG.debug("Unable to get the distro version: %s" % output)
+            else:
+                distro_version = output.split("=")[1].strip()
+        finally:
+            return distro_version
+
+
 def get_sosreport(
     path=None,
     session=None,
