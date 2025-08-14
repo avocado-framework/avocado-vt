@@ -23,7 +23,16 @@ except ImportError:
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import data_dir, error_context, nvme, storage, utils_misc, virt_vm
+from virttest import (
+    data_dir,
+    error_context,
+    nvme,
+    storage,
+    utils_misc,
+    utils_qemu,
+    virt_vm,
+)
+from virttest.utils_version import VersionInterval
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -589,11 +598,8 @@ class QemuImg(storage.QemuImg):
             )
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
-        q_result = process.run(
-            self.image_cmd + " -h", ignore_status=True, shell=True, verbose=False
-        )
-        self.help_text = q_result.stdout_text
-        self.cap_force_share = "-U" in self.help_text
+        qemu_bin = utils_misc.get_qemu_binary(params)
+        self.qemu_ver = utils_qemu.get_qemu_version(qemu_bin)[0]
         self._cmd_formatter = _ParameterAssembler(self.qemu_img_parameters)
 
     def _parse_options(self, params):
@@ -822,6 +828,64 @@ class QemuImg(storage.QemuImg):
             secrets.append(secret_obj_str.format(s=access_secret))
 
         return secrets
+
+    def _is_legacy_qemu(self):
+        """
+        Check if this is a legacy QEMU version (before 10.1.0).
+
+        :return: True if QEMU version is before 10.1.0, False otherwise
+        :rtype: bool
+        """
+        return self.qemu_ver in VersionInterval("(,10.1.0)")
+
+    def _get_cmd_help_text(self, cmd=""):
+        """
+        Retrieve help text for qemu-img commands.
+
+        :param cmd: The qemu-img subcommand name (e.g., 'info', 'check', 'compare', 'convert').
+                   If empty string (default), runs 'qemu-img -h' for global help.
+        :type cmd: str
+        :return: Standard output text from the help command execution
+        :rtype: str
+        :note: Returns stdout even if the command fails, allowing callers to handle
+               parsing and error detection as needed
+        """
+        cmd_help = f"{self.image_cmd} {cmd} -h"
+
+        result = process.run(
+            cmd=cmd_help,
+            ignore_status=True,
+            shell=True,
+            verbose=False,
+        )
+
+        return result.stdout_text
+
+    def _get_cmd_cap_force_share(self, cmd):
+        """
+        Check if a qemu-img command supports the force-share capability
+        (-U/--force-share option).
+
+        Detection strategies:
+        - Legacy QEMU (< 10.1.0): Searches for '[-U]' pattern in cached global
+          help text
+        - Modern QEMU (>= 10.1.0): Runs command-specific help and checks for
+          '--force-share' option
+
+        The force-share capability is commonly supported by commands like 'info', 'check',
+        'compare', 'snapshot', etc., but not by all qemu-img commands.
+
+        :param cmd: The qemu-img command to check (e.g., 'info', 'check', 'compare')
+        :type cmd: str
+        :return: True if the command supports force-share capability, False otherwise
+        :rtype: bool
+        """
+        cmd_help_text = self._get_cmd_help_text(cmd)
+        if self._is_legacy_qemu():
+            return bool(
+                re.search(r"\s+%s\s+.*\[-U\]" % cmd, cmd_help_text, re.MULTILINE)
+            )
+        return bool(re.search(r"-U,?\s*--force-share", cmd_help_text, re.MULTILINE))
 
     @error_context.context_aware
     def create(self, params, ignore_errors=False):
@@ -1269,7 +1333,7 @@ class QemuImg(storage.QemuImg):
         :param force_share: whether to open image in shared mode
         :type force_share: bool
         """
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("snapshot")
         cmd = self.image_cmd
         cmd += " snapshot"
         if force_share:
@@ -1490,7 +1554,7 @@ class QemuImg(storage.QemuImg):
         """
         LOG.debug("Run qemu-img info command on %s", self.image_filename)
         backing_chain = self.params.get("backing_chain")
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("info")
         cmd = self.image_cmd
         cmd += " info"
 
@@ -1511,7 +1575,7 @@ class QemuImg(storage.QemuImg):
                 # tls creds objects of the backing images
                 cmd += " %s" % " ".join(self._backing_access_tls_creds_objects)
 
-            if "--backing-chain" in self.help_text:
+            if "--backing-chain" in self._get_cmd_help_text("info"):
                 cmd += " --backing-chain"
             else:
                 LOG.warning("'--backing-chain' option is not supported")
@@ -1552,7 +1616,9 @@ class QemuImg(storage.QemuImg):
         """
         supports_cmd = True
 
-        if cmd not in self.help_text:
+        cmd_help_text = self._get_cmd_help_text()
+
+        if cmd not in cmd_help_text:
             LOG.error("%s does not support command '%s'", self.image_cmd, cmd)
             supports_cmd = False
 
@@ -1575,7 +1641,7 @@ class QemuImg(storage.QemuImg):
         :return: process.CmdResult object containing the result of the command
         """
         compare_images = self.support_cmd("compare")
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("compare")
         if not compare_images:
             LOG.warning("sub-command compare not supported by qemu-img")
             return None
@@ -1622,7 +1688,7 @@ class QemuImg(storage.QemuImg):
         if not self.support_cmd("compare"):
             LOG.warning("qemu-img subcommand compare not supported")
             return
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("compare")
         LOG.info(
             "compare image %s to image %s",
             self.image_filename,
@@ -1725,7 +1791,7 @@ class QemuImg(storage.QemuImg):
         """
         image_filename = self.image_filename
         LOG.debug("Checking image file %s", image_filename)
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("check")
 
         cmd_dict = {
             "image_filename": image_filename,
@@ -1792,7 +1858,7 @@ class QemuImg(storage.QemuImg):
         image_filename = self.image_filename
         LOG.debug("Checking image file %s", image_filename)
         image_is_checkable = self.image_format in ["qcow2", "qed"]
-        force_share &= self.cap_force_share
+        force_share &= self._get_cmd_cap_force_share("check")
 
         if (
             storage.file_exists(params, image_filename) or self.is_remote_image()
