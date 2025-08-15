@@ -3964,6 +3964,15 @@ def get_windows_nic_attribute(
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     # First line is header, return second line
+    if len(lines) < 2:
+        # Attribute-agnostic error with a special case for IPAddress
+        if target and target.lower() == "ipaddress":
+            details = "No IP address obtained for this NIC, or WMIC returned no data"
+        else:
+            details = (
+                f"WMIC returned no data for attribute '{target}' " f"(query: {cmd})"
+            )
+        raise exceptions.TestError(details)
     return lines[1]
 
 
