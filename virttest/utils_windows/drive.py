@@ -2,17 +2,28 @@
 Windows drive utilities
 """
 
-from virttest import utils_misc
-
-from . import wmic
+import re
 
 
 def _logical_disks(session, cond=None, props=None):
-    cmd = wmic.make_query("LogicalDisk", cond, props, get_swch=wmic.FMT_TYPE_LIST)
-    out = utils_misc.wait_for(
-        lambda: wmic.parse_list(session.cmd(cmd, timeout=120)), 240
-    )
-    return out if out else []
+    c_name, c_value = cond.split("=")
+    cmd = (
+        'powershell -command "Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object {$_.%s -like %s}'
+        ' | Select-Object %s | Format-List *"'
+    ) % (c_name, c_value, ",".join(props))
+    out = session.cmd(cmd, timeout=120)
+    results = []
+    for para in re.split("(?:\r?\n){2,}", out.strip()):
+        keys, vals = [], []
+        for line in para.splitlines():
+            key, val = line.split(":", 1)
+            keys.append(key.strip())
+            vals.append(val.strip())
+        if len(keys) == 1:
+            results.append(vals[0])
+        else:
+            results.append(dict(zip(keys, vals)))
+    return results if results else []
 
 
 def get_hard_drive_letter(session, label):
@@ -24,7 +35,7 @@ def get_hard_drive_letter(session, label):
 
     :return: Hard drive's letter if found, otherwise `None`.
     """
-    cond = "VolumeName like '%s'" % label
+    cond = "VolumeName='%s'" % label
     try:
         return _logical_disks(session, cond=cond, props=["DeviceID"])[0]
     except IndexError:
@@ -103,13 +114,21 @@ def get_disk_props_by_serial_number(session, serial_number, props):
     :return: The mapping between properties and values.
     :rtype: dict
     """
-    cond = "SerialNumber like '%s'" % serial_number
-    cmd = wmic.make_query("diskdrive", cond, props=props, get_swch=wmic.FMT_TYPE_LIST)
-    out = wmic.parse_list(session.cmd(cmd, timeout=120))
-
-    if out:
-        mapping = out[-1]
-        if isinstance(mapping, str):
-            return {props[0]: mapping}
-        return mapping
-    return {}
+    cmd = (
+        'powershell -command "Get-CimInstance -ClassName Win32_Diskdrive | '
+        "Where-Object {$_.SerialNumber -eq '%s'}"
+        ' | Select-Object %s | Format-List *"'
+    ) % (serial_number, ",".join(props))
+    out = session.cmd(cmd, timeout=120)
+    results = []
+    for para in re.split("(?:\r?\n){2,}", out.strip()):
+        keys, vals = [], []
+        for line in para.splitlines():
+            key, val = line.split(":", 1)
+            keys.append(key.strip())
+            vals.append(val.strip())
+        if len(keys) == 1:
+            results.append(vals[0])
+        else:
+            results.append(dict(zip(keys, vals)))
+    return results if results else []
