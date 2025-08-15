@@ -454,7 +454,7 @@ class _ParameterAssembler(string.Formatter):
     to the format string.
     """
 
-    sentinal = object()
+    sentinel = object()
 
     def __init__(self, cmd_params=None):
         string.Formatter.__init__(self)
@@ -473,7 +473,7 @@ class _ParameterAssembler(string.Formatter):
                 val = None
             else:
                 raise
-        return (self.cmd_params.get(key, self.sentinal), val)
+        return (self.cmd_params.get(key, self.sentinel), val)
 
     def convert_field(self, value, conversion):
         """
@@ -484,7 +484,7 @@ class _ParameterAssembler(string.Formatter):
             'v': keep both the parameter and its corresponding value,
                  the default mode.
         """
-        if value[0] is self.sentinal:
+        if value[0] is self.sentinel:
             return string.Formatter.convert_field(self, value[1], conversion)
         if conversion is None:
             conversion = "v"

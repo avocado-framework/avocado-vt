@@ -406,7 +406,7 @@ class NFSClient(object):
                                 ret.stdout_text,
                             )
                         else:
-                            LOG.debug("nfs service added to firewall " "sucessfully")
+                            LOG.debug("nfs service added to firewall " "successfully")
                             firewalld.restart()
                     else:
                         LOG.debug("nfs service already permitted by firewall")
