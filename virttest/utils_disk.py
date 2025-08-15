@@ -17,6 +17,7 @@ import string
 import tempfile
 from functools import cmp_to_key
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import process, wait
 from avocado.utils.service import SpecificServiceManager
@@ -64,7 +65,9 @@ def copytree(src, dst, overwrite=True, ignore=""):
             shutil.copy(src_file, dst_dir)
 
 
-def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=None):
+def is_mount(
+    src=None, dst=None, fstype=None, options=None, verbose=False, session=None
+):
     """
     Check is src or dst mounted.
 
@@ -77,9 +80,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
     :return: True if mounted, else return False
     """
     mount_options = [("-S", src), ("-M", dst), ("-t", fstype), ("-O", options)]
-    mount_opts = " ".join(
-        f"{opt} {val}" for opt, val in mount_options if val is not None
-    )
+    mount_opts = " ".join(f"{opt} {val}" for opt, val in mount_options if val)
     if mount_opts == "":
         raise exceptions.TestError("Mount options is empty, it is meaningless")
     mount_check_cmd = f"findmnt -J {mount_opts}"
@@ -87,13 +88,14 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False, session=No
     mount_result = None
     try:
         if session:
-            mount_result = session.cmd_output_safe(mount_check_cmd)
+            mount_result = session.cmd(mount_check_cmd)
         else:
             mount_result = process.run(mount_check_cmd, shell=True).stdout_text
         if verbose:
             LOG.info("Output of findmnt: %s", mount_result)
-    except process.CmdError:
-        pass
+    except (process.CmdError, aexpect.exceptions.ShellCmdError) as e:
+        LOG.error("Exception info: %s", e)
+        return False
 
     if mount_result:
         if verbose:
