@@ -2359,6 +2359,7 @@ class Stress(object):
             "%s_downloaded_file_path" % self.stress_type, downloaded_file_path
         )
         check_cmd = self.stress_cmds.split(" ")[0]
+        self.check_pkg = "rpm -q %s" % self.stress_type
         self.check_cmd = "pidof -s %s" % check_cmd
         self.stop_cmd = "pkill -9 %s" % check_cmd
         self.dst_path = self.params.get("stress_dst_path", "/home")
@@ -2373,7 +2374,10 @@ class Stress(object):
         """
         load stress tool in guest
         """
-        self.install()
+        # Skip to install if the package is already exists
+        if not self.cmd_status(self.check_pkg) == 0:
+            LOG.info("Install the package: %s", self.stress_type)
+            self.install()
         self.cmd_output_safe(
             "cd %s" % os.path.join(self.dst_path, self.base_name, self.work_path)
         )
