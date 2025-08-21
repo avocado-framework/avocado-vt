@@ -1,5 +1,5 @@
 """
-icmp protocl support class(es)
+icmp protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoICMP
 """

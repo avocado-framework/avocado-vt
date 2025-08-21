@@ -10,7 +10,7 @@ a single host. For multi host tests, you'll need the full autotest + Avocado-VT
 package, and the procedure is more complex. We'll try to keep this procedure
 as objective as possible.
 
-Prerequesites
+Prerequisites
 =============
 
 This guide assumes that:

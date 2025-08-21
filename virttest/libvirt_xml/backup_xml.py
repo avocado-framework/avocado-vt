@@ -273,7 +273,7 @@ class BackupXML(base.LibvirtXMLBase):
         class DiskScratch(DiskTarget):
             """
             Backup disk scratch XML class, this is only used in pull-mode
-            backup, and its structure is samilar as DiskTarget class
+            backup, and its structure is similar as DiskTarget class
 
             Properties:
 

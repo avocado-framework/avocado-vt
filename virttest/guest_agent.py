@@ -926,7 +926,7 @@ class QemuAgent(Monitor):
         """
         Remove ssh public keys from guest-agent.
 
-        :param username: usrename of host
+        :param username: username of host
         :param keys: value of public keys
         :return: command handle
         """
@@ -938,7 +938,7 @@ class QemuAgent(Monitor):
         """
         Get ssh public keys from guest-agent.
 
-        :param username: usrename of host
+        :param username: username of host
         :return: command handle
         """
         cmd = "guest-ssh-get-authorized-keys"

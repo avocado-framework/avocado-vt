@@ -57,13 +57,13 @@ Config of Guest L0
 
 * Intel CPU
     *  Virtual manager
-        ``Procesor config->CPU Features->vmx set to require``
+        ``Processor config->CPU Features->vmx set to require``
     *  Native qemu-kvm
         ``qemu-kvm -cpu core2duo,+vmx -enable-kvm .....``
 
 * AMD CPU
     *  Virtual manager
-        ``Procesor config->CPU Features->svm set to require``
+        ``Processor config->CPU Features->svm set to require``
     *  Native qemu-kvm
         ``qemu-kvm -cpu qemu64,+svm -enable-kvm .....``
 

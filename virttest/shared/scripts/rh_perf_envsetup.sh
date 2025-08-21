@@ -17,7 +17,7 @@ all_services='abrtd acpid anacron atd auditd autofs avahi-daemon bluetooth colle
 ########################
 echo "Setup env for performance testing, reboot isn't needed"
 ####
-echo "Run test on a private LAN, as there are multpile nics, so set arp_filter to 1"
+echo "Run test on a private LAN, as there are multiple nics, so set arp_filter to 1"
 sysctl net.ipv4.conf.default.arp_filter=1
 sysctl net.ipv4.conf.all.arp_filter=1
 echo "Disable netfilter on bridges"
@@ -31,8 +31,8 @@ ip link set switch type bridge forward_delay 0
 echo "Stop the running serivices"
 
 if [[ $guest = "host" ]];then
-    echo "Run tunning profile on host"
-    # RHEL6, requst 'tuned' package
+    echo "Run tuning profile on host"
+    # RHEL6, request 'tuned' package
     tuned-adm profile enterprise-storage
     # RHEL5
     service tuned start
