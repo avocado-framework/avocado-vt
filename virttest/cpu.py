@@ -15,8 +15,10 @@
 # Author: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
 
 
+import ctypes
 import json
 import logging
+import mmap
 import os
 import platform
 import re
@@ -1605,6 +1607,68 @@ def get_cpu_info_from_virsh(params):
         if virsh.is_alive(name):
             virsh.destroy(name, ignore_status=True, timeout=timeout)
         virsh.undefine(name, ignore_status=True, timeout=timeout)
+
+
+def get_amd_cbit_position():
+    """
+    Get AMD C-bit position for memory encryption
+
+    This function checks if the CPU supports SEV (Secure Encrypted Virtualization)
+    and returns the C-bit position used for memory encryption.
+
+    :return: C-bit position (0-63)
+    :raises: UnsupportedCPU if not an AMD CPU, CPU doesn't support required
+             extended CPUID leaf, or SEV is not supported
+    """
+    if utils.get_vendor() != "amd":
+        raise UnsupportedCPU("C-bit detection only supported on AMD CPU")
+
+    # x86-64 machine code for CPUID wrapper
+    CPUID_CODE = (
+        b"\x89\xf8"  # mov eax, edi; eax = leaf
+        b"\x31\xc9"  # xor ecx, ecx; ecx = 0
+        b"\x0f\xa2"  # cpuid; execute cpuid
+        b"\x89\x06"  # mov [rsi], eax; result[0] = eax
+        b"\x89\x5e\x04"  # mov [rsi+4], ebx; result[1] = ebx
+        b"\x89\x4e\x08"  # mov [rsi+8], ecx; result[2] = ecx
+        b"\x89\x56\x0c"  # mov [rsi+12], edx; result[3] = edx
+        b"\xc3"  # ret; return
+    )
+
+    # Allocate executable memory and copy machine code
+    with mmap.mmap(
+        -1, mmap.PAGESIZE, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC
+    ) as mem:
+        mem.write(CPUID_CODE)
+
+        # Define function type: void func(uint32 leaf, uint32* result)
+        FUNC_TYPE = ctypes.CFUNCTYPE(
+            None, ctypes.c_uint, ctypes.POINTER(ctypes.c_uint32)
+        )
+        c_func = FUNC_TYPE(ctypes.addressof(ctypes.c_void_p.from_buffer(mem)))
+
+        def cpuid(leaf):
+            """Run CPUID instruction and return (eax, ebx, ecx, edx)."""
+            buf = (ctypes.c_uint32 * 4)()
+            c_func(leaf, buf)
+            return buf[0], buf[1], buf[2], buf[3]
+
+        # Check maximum extended leaf
+        eax, _, _, _ = cpuid(0x80000000)
+        if eax < 0x8000001F:
+            raise UnsupportedCPU("CPU does not support extended leaf 0x8000001f")
+
+        # Query SEV/SME features
+        eax, ebx, _, _ = cpuid(0x8000001F)
+
+        # Check SEV support bit (EAX bit 1)
+        if (eax & 2) == 0:
+            raise UnsupportedCPU("CPU does not support SEV")
+
+        # Extract C-bit position (lower 6 bits of EBX) with additional validation
+        cbit_position = ebx & 0x3F
+        LOG.debug("AMD C-bit position: %d", cbit_position)
+        return cbit_position
 
 
 def recombine_qemu_cpu_flags(base, suggestion):
