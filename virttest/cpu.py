@@ -15,8 +15,10 @@
 # Author: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
 
 
+import ctypes
 import json
 import logging
+import mmap
 import os
 import platform
 import re
@@ -1605,6 +1607,56 @@ def get_cpu_info_from_virsh(params):
         if virsh.is_alive(name):
             virsh.destroy(name, ignore_status=True, timeout=timeout)
         virsh.undefine(name, ignore_status=True, timeout=timeout)
+
+
+def cpuid(leaf):
+    """
+    Run CPUID instruction and return (eax, ebx, ecx, edx).
+
+    This is a general x86 CPUID utility function that can be used
+    by various CPU-related functions across different architectures.
+
+    :param leaf: CPUID leaf to query (EAX input)
+    :return: Tuple of (eax, ebx, ecx, edx) values from CPUID
+    """
+
+    # Check if we're on a supported architecture
+    if platform.machine().lower() not in ["x86_64", "amd64"]:
+        raise UnsupportedCPU("CPUID only supported on x86_64 architecture")
+
+    # This sets ECX = 0, which works for most CPUID leaves
+    CPUID_CODE = (
+        b"\x89\xf8"  # mov eax, edi; eax = leaf
+        b"\x31\xc9"  # xor ecx, ecx; ecx = 0
+        b"\x0f\xa2"  # cpuid; execute cpuid
+        b"\x89\x06"  # mov [rsi], eax; result[0] = eax
+        b"\x89\x5e\x04"  # mov [rsi+4], ebx; result[1] = ebx
+        b"\x89\x4e\x08"  # mov [rsi+8], ecx; result[2] = ecx
+        b"\x89\x56\x0c"  # mov [rsi+12], edx; result[3] = edx
+        b"\xc3"  # ret; return
+    )
+
+    try:
+        # Allocate executable memory and copy machine code
+        with mmap.mmap(
+            -1, mmap.PAGESIZE, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC
+        ) as mem:
+            mem.write(CPUID_CODE)
+
+            # Define function type: void func(uint32 leaf, uint32* result)
+            FUNC_TYPE = ctypes.CFUNCTYPE(
+                None, ctypes.c_uint, ctypes.POINTER(ctypes.c_uint32)
+            )
+            c_func = FUNC_TYPE(ctypes.addressof(ctypes.c_char.from_buffer(mem)))
+
+            buf = (ctypes.c_uint32 * 4)()
+            c_func(leaf, buf)
+            return buf[0], buf[1], buf[2], buf[3]
+
+    except (PermissionError, OSError) as e:
+        raise UnsupportedCPU(
+            f"CPUID execution failed: {e}. Executable memory not available."
+        )
 
 
 def recombine_qemu_cpu_flags(base, suggestion):
