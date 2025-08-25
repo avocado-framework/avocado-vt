@@ -19,7 +19,6 @@ import time
 import uuid
 
 import aexpect
-import netifaces
 import six
 from aexpect import remote
 from avocado.core import exceptions
@@ -3617,32 +3616,31 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     :raise NetError: When failed to fetch IP address.
     """
     if ip_ver == "ipv6":
-        ver = netifaces.AF_INET6
         linklocal_prefix = "fe80"
     else:
-        ver = netifaces.AF_INET
         linklocal_prefix = "169.254"
+
     try:
-        addr = netifaces.ifaddresses(ifname).get(ver)
-    # FIXME: The kind of exceptions caught should be more specific
-    except:
+        addr_info = get_net_if_addrs(ifname)
+        addr_list = addr_info.get(ip_ver, [])
+    except Exception:
         # TODO: NetError is a very general usage,it will be changed to a
         # more friendly way in the future
         raise NetError("Error while retrieving IP address from interface %s." % ifname)
 
-    if addr is not None:
+    if addr_list:
         try:
             if linklocal:
                 return [
-                    a["addr"]
-                    for a in addr
-                    if a["addr"].lower().startswith(linklocal_prefix)
+                    addr
+                    for addr in addr_list
+                    if addr.lower().startswith(linklocal_prefix)
                 ][0]
             else:
                 return [
-                    a["addr"]
-                    for a in addr
-                    if not a["addr"].lower().startswith(linklocal_prefix)
+                    addr
+                    for addr in addr_list
+                    if not addr.lower().startswith(linklocal_prefix)
                 ][0]
         except IndexError:
             LOG.warning(
