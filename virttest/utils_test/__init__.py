@@ -35,7 +35,15 @@ import time
 import aexpect
 from aexpect import remote
 from avocado.core import exceptions
-from avocado.utils import archive, aurl, crypto, download, path, process
+from avocado.utils import (
+    archive,
+    aurl,
+    crypto,
+    download,
+    path,
+    process,
+    software_manager,
+)
 from six.moves import xrange
 
 # Import from the top level virttest namespace
@@ -2515,8 +2523,13 @@ class Stress(object):
                     "Installing dependency packages for" " %s failed" % self.stress_type
                 )
         if self.stress_package:
-            mgr = utils_package.package_manager(self.session, self.stress_package)
-            if mgr.is_installed(self.stress_package):
+            if self.session:
+                mgr = utils_package.package_manager(self.session, self.stress_package)
+                stress_installed = mgr.is_installed(self.stress_package)
+            else:
+                mgr = software_manager.manager.SoftwareManager()
+                stress_installed = mgr.check_installed(self.stress_package)
+            if stress_installed:
                 return
             elif self.stress_install_from_repo:
                 # Install the stress package from existing repos
