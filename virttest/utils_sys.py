@@ -7,6 +7,7 @@ Virtualization test utility functions.
 import logging
 import re
 
+from avocado.utils import path as utils_path
 from avocado.utils import process
 
 from virttest.utils_misc import cmd_status_output
@@ -72,6 +73,35 @@ def get_host_bridge_id(session=None):
 
     host_bridges = re.findall(hostbridge_regex, output)
     return host_bridges if host_bridges else []
+
+
+def is_image_mode(session=None):
+    """
+    Check if current OS is in image mode or package mode
+
+    :param session: aexpect session
+    :return: boolean, True for image mode, otherwise False
+    """
+    check_command = "bootc status"
+    err_msg = "System is not deployed via bootc"
+
+    def _check_output(status, output):
+        if not status:
+            result = output.count(err_msg) == 0
+        else:
+            result = False
+        LOG.debug(
+            "Detected %s mode.",
+            "image" if result else "package",
+            check_command,
+        )
+
+    if session:        
+        status, output = session.cmd_status_output(check_command)
+        _check_output(status, output)       
+    else:
+        ret = process.run(check_command, shell=True, verbose=True, ignore_status=True)
+        _check_output(ret.exit_status, ret.stdout_text)
 
 
 def get_pids_for(process_names, sort_pids=True, session=None):
