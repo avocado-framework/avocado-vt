@@ -37,4 +37,3 @@ See Also
 
 -  `qxl\_dev\_nr <CartesianConfigReference-KVM-qxl_dev_nr.html>`_
 -  vga?
-

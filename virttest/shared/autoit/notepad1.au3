@@ -33,7 +33,7 @@ Sleep(500)
 Send("!f")
 Send("x")
 
-; Now a screen will pop up and ask to save the changes, the window is called 
+; Now a screen will pop up and ask to save the changes, the window is called
 ; "Notepad" and has some text "Yes" and "No"
 WaitForWindow("Notepad", "", 10)
 Send("n")

@@ -180,7 +180,7 @@ def get_transparent_hugepage(session=None, regex="[]"):
     """
     Method to get total no of transparent hugepage
 
-    :param regex: regex used to hightlight the selected value
+    :param regex: regex used to highlight the selected value
     :param session: ShellSession Object of remote host / guest
     """
     UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
@@ -333,11 +333,11 @@ def read_from_numa_maps(pid, key, session=None):
 
 def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
     """
-    Get the fragement status of the host. It use the same method
+    Get the fragment status of the host. It use the same method
     to get the page size in buddyinfo.
     2^chunk_size * page_size
     The chunk_sizes can be string make up by all orders that you want to check
-    splited with blank or a mathematical expression with '>', '<' or '='.
+    split with blank or a mathematical expression with '>', '<' or '='.
     For example:
     The input of chunk_size could be: "0 2 4"
     And the return  will be: {'0': 3, '2': 286, '4': 687}
