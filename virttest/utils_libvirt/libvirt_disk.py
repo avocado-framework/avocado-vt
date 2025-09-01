@@ -92,7 +92,7 @@ def get_non_root_disk_names(session, ignore_status=False):
             else:
                 idx = idx - 1
                 continue
-        if mpoint in ["/", "/sysroot"]:
+        if mpoint == "/":
             root_mounted = True
             if is_disk:
                 root_disk = line
