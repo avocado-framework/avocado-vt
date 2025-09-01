@@ -79,6 +79,7 @@ from virttest import (
     kernel_interface,
     logging_manager,
     utils_disk,
+    utils_linux_modules,
     utils_logfile,
     utils_selinux,
 )
@@ -4698,3 +4699,97 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
+
+
+def verify_secure_host(secure_guest_type, module_name, param_name, expected_values):
+    """
+    Verify if specific cvm feature is enabled on the host
+
+    :param secure_guest_type: Type of secure guest (e.g., 'sev', 'snp', 'tdx')
+    :param module_name: Name of the kernel module (e.g., 'kvm_amd', 'kvm_intel')
+    :param param_name: Name of the module parameter to check (e.g., 'sev', 'tdx')
+    :param expected_values: List of acceptable parameter values (e.g., ['Y', '1'])
+    """
+    LOG.info(f"Verifying cvm {secure_guest_type} capability enablement on host")
+
+    param_value = utils_linux_modules.get_module_parameter(module_name, param_name)
+
+    if param_value is None:
+        raise exceptions.TestCancel(
+            f"Host support for {secure_guest_type} capability: "
+            f"module parameter {module_name}/{param_name} not found."
+        )
+
+    if param_value not in expected_values:
+        raise exceptions.TestCancel(
+            f"Host support for {secure_guest_type} capability check failed: "
+            f"{module_name}/{param_name}={param_value}, expected one of {expected_values}"
+        )
+
+
+def verify_secure_guest(
+    session, vm, secure_guest_type, guest_check_cmd, expected_policy=None
+):
+    """
+    Verify if specific cvm feature is enabled inside the VM
+
+    :param session: session object to vm
+    :param vm: virtual machine object
+    :param secure_guest_type: Type of secure guest (e.g., 'sev', 'snp', 'tdx')
+    :param guest_check_cmd: Command to run in guest to verify CVM capability
+    :param expected_policy: Expected policy value (can be hex string or int), optional for AMD CVM
+    """
+    amd_cvm_secureguest = ["sev", "snp"]
+    if secure_guest_type in amd_cvm_secureguest:
+        try:
+            cvm_guest_info = vm.monitor.query_sev()
+            if not cvm_guest_info:
+                raise exceptions.TestFail("QMP query-sev returned empty response.")
+            LOG.info(f"QMP cvm info: {cvm_guest_info}")
+        except Exception as e:
+            raise exceptions.TestFail(f"QMP query-sev failed: {str(e)}")
+
+        if expected_policy is not None:
+            if isinstance(expected_policy, str):
+                policy_value = int(expected_policy, 0)
+            else:
+                policy_value = expected_policy
+
+            if secure_guest_type == "snp":
+                if "snp-policy" not in cvm_guest_info:
+                    raise exceptions.TestFail(
+                        "QMP snp-policy not found in query-sev response."
+                    )
+                actual_policy = cvm_guest_info["snp-policy"]
+            else:
+                if "policy" not in cvm_guest_info:
+                    raise exceptions.TestFail(
+                        "QMP policy not found in query-sev response."
+                    )
+                actual_policy = cvm_guest_info["policy"]
+
+            if actual_policy != policy_value:
+                raise exceptions.TestFail(
+                    f"QMP cvm policy mismatch: expected {policy_value}, "
+                    f"got {actual_policy}"
+                )
+
+        guest_state = cvm_guest_info.get("state")
+        if guest_state != "running":
+            raise exceptions.TestFail(
+                f"CVM state is {guest_state or 'missing'}, expected 'running'"
+            )
+
+    LOG.info(f"Verifying cvm {secure_guest_type} capability enablement in guest")
+    try:
+        return_code, output = session.cmd_status_output(guest_check_cmd, timeout=240)
+        if return_code != 0:
+            raise exceptions.TestFail(
+                f"Guest cvm {secure_guest_type} capability check failed with "
+                f"return code {return_code}: {output}"
+            )
+        LOG.info(f"Guest cvm {secure_guest_type} capability check output: {output}")
+    except Exception as e:
+        raise exceptions.TestFail(
+            f"Guest cvm {secure_guest_type} capability verify fail: {str(e)}"
+        )
