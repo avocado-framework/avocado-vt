@@ -160,6 +160,26 @@ def create_disk(
         )
 
 
+def get_all_disks_target(vm_name, options=""):
+    """
+    Collect all VM disk target device names (e.g. 'vda', 'vdb') from dumpxml.
+
+    :param vm_name: name of the VM to inspect
+    :param options: extra options passed to virsh dumpxml (optional)
+    :return: list[str] of target device names
+    """
+    vmx = vm_xml.VMXML.new_from_dumpxml(vm_name, options=options)
+    if vmx is None:
+        LOG.debug("VMXML.new_from_dumpxml(%s) returned None", vm_name)
+        return []
+    target_devs = []
+    for disk in (vmx.get_devices("disk") or []):
+        target_dev = (disk.target or {}).get("dev")
+        if target_dev:
+            target_devs.append(target_dev)
+    LOG.debug("Target devs are %s", target_devs)
+    return target_devs
+
 def create_primitive_disk_xml(
     type_name,
     disk_device,
