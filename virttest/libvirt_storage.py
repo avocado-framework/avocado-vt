@@ -575,6 +575,6 @@ def check_qemu_image_lock_support():
     except process.CmdError:
         raise process.CmdError(cmd, binary_path, "qemu-img command is not found")
     cmd_result = process.run(
-        binary_path + " -h", ignore_status=True, shell=True, verbose=False
+        binary_path + " info -h", ignore_status=True, shell=True, verbose=False
     )
     return "-U" in cmd_result.stdout_text
