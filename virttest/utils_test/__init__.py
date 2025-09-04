@@ -2508,12 +2508,17 @@ class Stress(object):
         """
         # Install the dependencies before the tool gets installed
         if self.dependency_packages:
-            if not utils_package.package_install(
-                self.dependency_packages, session=self.session
-            ):
-                raise exceptions.TestError(
-                    "Installing dependency packages for" " %s failed" % self.stress_type
-                )
+            mgr = utils_package.package_manager(self.session, self.dependency_packages)
+            dep_pkgs = [
+                pkg for pkg in self.dependency_packages if not mgr.is_installed(pkg)
+            ]
+
+            if dep_pkgs:
+                if not utils_package.package_install(dep_pkgs, session=self.session):
+                    raise exceptions.TestError(
+                        "Installing dependency packages for"
+                        " %s failed" % self.stress_type
+                    )
         if self.stress_package:
             mgr = utils_package.package_manager(self.session, self.stress_package)
             if mgr.is_installed(self.stress_package):
