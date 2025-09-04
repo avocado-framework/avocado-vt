@@ -35,7 +35,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: &py_versions ["3.9", "3.10", "3.11", "3.12", "3.13"]
       fail-fast: false
 
     steps:
@@ -48,6 +48,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          check-latest: true
+          cache: 'pip'
+          cache-dependency-path: requirements-travis.txt
       - name: Install dependencies
         run: pip install -r requirements-travis.txt
       - name: Check out Avocado libs
@@ -82,7 +85,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: *py_versions
       fail-fast: false
 
     steps:
@@ -91,12 +94,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        check-latest: true
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build
+        pip install build setuptools wheel
     - name: Build package
       run: python -m build
-    - name: Build eggs
+    - name: Build eggs (legacy)
+      if: ${{ contains(fromJSON('["3.9","3.10","3.11"]'), matrix.python-version) }}
       run: python setup.py bdist_egg
     - run: echo "🥑 This job's status is ${{ job.status }}."
