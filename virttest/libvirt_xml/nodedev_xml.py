@@ -25,7 +25,7 @@ class CAPXML(base.LibvirtXMLBase):
         Return a dict which contain the key and the name
         of info file.
         """
-        raise NotImplementedError("get_key2filename_dict is not implemeneted.")
+        raise NotImplementedError("get_key2filename_dict is not implemented.")
 
     def get_key2value_dict(self):
         """
@@ -380,7 +380,7 @@ class PCIXML(CAPXML):
         if not tag == "address":
             return None  # Don't convert this item
         newone = PCIXML.Address(virsh_instance=libvirtxml.virsh)
-        newone.update(attr_dict, excpt=xcepts.LibvirtXMLError)
+        newone.update(attr_dict, except_type=xcepts.LibvirtXMLError)
         return newone
 
     @staticmethod
@@ -542,7 +542,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         Init a cap class for a specific type.
 
         :param cap_type: the type of capability.
-        :return: instanse of the cap.
+        :return: instance of the cap.
         """
         cap_class_name = NodedevXMLBase.__type2class_dict__[cap_type]
         cap_class = globals()[cap_class_name]

@@ -2,7 +2,7 @@ import os
 import sys
 
 if len(sys.argv) != 3:
-    print("Useage: %s path size")
+    print("Usage: %s path size")
 
 path = sys.argv[1]
 size = int(sys.argv[2])

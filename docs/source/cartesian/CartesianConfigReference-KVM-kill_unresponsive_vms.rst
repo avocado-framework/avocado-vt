@@ -37,4 +37,3 @@ See also
 -  `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_
 -  `kill\_vm\_timeout <CartesianConfigReference-KVM-kill_vm_timeout.html>`_
 -  `kill\_vm\_gracefully <CartesianConfigReference-KVM-kill_vm_gracefully.html>`_
-

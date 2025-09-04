@@ -908,7 +908,7 @@ class MigrationTemplate(object):
 
         :param ports: port to be opened, these formats are supported for now:
                       1)4567 2)4567-4587 3)4567:4587
-        :param protocl: protocol to be opened: 'tcp'|'udp'|'sctp'|'dccp'
+        :param protocol: protocol to be opened: 'tcp'|'udp'|'sctp'|'dccp'
         :param server_dict: dict to create server session:
                             {server_ip, server_user, server_pwd}
         :param session: session of server to open ports on, None to local host

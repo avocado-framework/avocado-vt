@@ -1,5 +1,4 @@
-""" Define set/clean up procedures for storage devices
-"""
+"""Define set/clean up procedures for storage devices"""
 
 import os
 
