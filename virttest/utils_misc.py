@@ -4593,3 +4593,69 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
+
+
+def verify_sev(session, params, vm):
+    """
+    Verify if specific sev feature is enabled inside the VM
+
+    :param session: session object to vm
+    :param params: Dictionary with the test parameters
+    :param vm: virtual machine.
+    """
+    cvm_module_path = params["cvm_module_path"]
+    cvm_type = params["vm_secure_guest_type"]
+    try:
+        if os.path.exists(cvm_module_path):
+            with open(cvm_module_path) as f:
+                output = f.read().strip()
+                if output not in params.objects("module_status"):
+                    raise exceptions.TestCancel(
+                        f"Host support for {cvm_type} capability check failed."
+                    )
+        else:
+            raise exceptions.TestCancel(
+                f"Host support for {cvm_type} capability check failed."
+            )
+    except IOError as e:
+        raise exceptions.TestCancel(f"Failed to read {cvm_module_path}: {str(e)}")
+    try:
+        cvm_guest_info = vm.monitor.query_sev()
+        if not cvm_guest_info:
+            raise exceptions.TestFail("QMP query-sev returned empty response.")
+        LOG.info(f"QMP cvm info: {cvm_guest_info}")
+    except Exception as e:
+        raise exceptions.TestFail(f"QMP query-sev failed: {str(e)}")
+    expected_policy = vm.params.get_numeric("vm_sev_policy")
+    if params["vm_secure_guest_type"] == "snp":
+        if "snp-policy" not in cvm_guest_info:
+            raise exceptions.TestFail("QMP snp-policy not found in query-sev response.")
+        actual_policy = cvm_guest_info["snp-policy"]
+    else:
+        if "policy" not in cvm_guest_info:
+            raise exceptions.TestFail("QMP policy not found in query-sev response.")
+        actual_policy = cvm_guest_info["policy"]
+    if actual_policy != expected_policy:
+        raise exceptions.TestFail(
+            f"QMP cvm policy mismatch: expected {expected_policy}, "
+            "got {actual_policy}"
+        )
+    guest_state = cvm_guest_info.get("state")
+    if guest_state != "running":
+        raise exceptions.TestFail(
+            f"CVM state is {guest_state or 'missing'}, expected 'running'"
+        )
+    LOG.info(f"Verifying cvm {cvm_type} capability enablement in guest")
+    guest_check_cmd = params["cvm_guest_check"]
+    try:
+        return_code, output = session.cmd_status_output(guest_check_cmd, timeout=240)
+        if return_code != 0:
+            raise exceptions.TestFail(
+                f"Guest cvm {cvm_type} capability check failed with "
+                "return code {return_code}: {output}"
+            )
+        LOG.info(f"Guest cvm {cvm_type} capability check output: {output}")
+    except Exception as e:
+        raise exceptions.TestFail(
+            "Guest cvm {cvm_type} capability verify fail: %s" % str(e)
+        )
