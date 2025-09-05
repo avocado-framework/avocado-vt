@@ -3543,28 +3543,58 @@ def update_vm_disk_source(
         return False
 
 
-def exec_virsh_edit(source, edit_cmd, connect_uri="qemu:///system"):
+def exec_virsh_edit(
+    source,
+    edit_cmd,
+    connect_uri="qemu:///system",
+    managedsave_edit=False,
+    readonly=False,
+    virsh_opt="",
+):
     """
     Execute edit command.
 
     :param source : virsh edit's option.
     :param edit_cmd: Edit command list to execute.
+    :param connect_uri: Connection URI.
+    :param managedsave_edit: Use 'managedsave-edit' instead of 'edit'.
+    :param readonly: add -r for the virsh cmd
+    :param virsh_opt: the option for virsh cmd
     :return: True if edit is successful, False if edit is failure.
     """
     LOG.info("Trying to edit xml with cmd %s", edit_cmd)
     session = aexpect.ShellSession("sudo -s")
     try:
-        session.sendline("virsh -c %s edit %s" % (connect_uri, source))
+        command = "managedsave-edit" if managedsave_edit else "edit"
+        if readonly:
+            session.sendline(
+                "virsh -r -c %s %s %s %s" % (connect_uri, command, source, virsh_opt)
+            )
+        else:
+            session.sendline(
+                "virsh -c %s %s %s %s" % (connect_uri, command, source, virsh_opt)
+            )
         for cmd in edit_cmd:
             session.sendline(cmd)
         session.send("\x1b")
         session.send("ZZ")
-        remote.handle_prompts(session, None, None, r"[\#\$]\s*$", debug=True)
+        # Capture output until the next shell prompt
+        prompt_pattern = r"[\#\$]\s*$"
+        match, output = session.read_until_last_line_matches(
+            [prompt_pattern], timeout=10
+        )
+
+        # Check for virsh errors in the captured output
+        if "error:" in output or "failed:" in output:
+            LOG.error("Editing the domain xml failed with outputs:\n%s", output)
+            session.close()
+            return False
+
         session.close()
         return True
     except Exception as e:
         session.close()
-        LOG.error("Error occurred: %s", e)
+        LOG.error("Error occurred while editing the domain xml: %s", e)
         return False
 
 
