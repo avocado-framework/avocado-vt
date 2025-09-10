@@ -31,6 +31,7 @@ from virttest import (
     test_setup,
     utils_logfile,
     utils_misc,
+    utils_net,
     utils_package,
     utils_selinux,
     virsh,
@@ -377,6 +378,17 @@ class VM(virt_vm.BaseVM):
                 os.remove(xml_file)
             LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
+
+    def _get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
+        try:
+            return super()._get_address(index, ip_version, session, timeout)
+        except virt_vm.VMIPAddressMissingError:
+            if ip_version == "ipv4":
+                mac = self.get_mac_address(index).lower()
+                ipaddr = utils_net.obtain_guest_ip_from_domifaddr(self.name, mac)
+                self.address_cache[mac] = ipaddr
+                return ipaddr
+            return None
 
     def clone(
         self,
