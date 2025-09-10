@@ -2864,7 +2864,7 @@ def check_qemu_image_lock_support():
     cmd = "qemu-img"
     binary_path = utils_path.find_command(cmd)
     cmd_result = process.run(
-        binary_path + " -h", ignore_status=True, shell=True, verbose=False
+        binary_path + " info -h", ignore_status=True, shell=True, verbose=False
     )
     return b"-U" in cmd_result.stdout
 
