@@ -38,4 +38,3 @@ send("{ENTER}")
 
 WinWaitActive("NT Testing TCP Tool", "Installation Complete")
 send("!c")
-

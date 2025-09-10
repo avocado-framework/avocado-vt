@@ -178,10 +178,10 @@ class VirtTools(object):
             self.newvm.destroy()
             self.newvm.wait_for_shutdown()
 
-        attachs, attacho = attach_additional_disk(
+        attach_s, attach_o = attach_additional_disk(
             self.newvm, disksize=device_size, targetdev=target_dev
         )
-        if attachs:
+        if attach_s:
             # Restart vm for guestfish command
             # Otherwise updated disk is not visible
             try:
@@ -189,11 +189,11 @@ class VirtTools(object):
                 self.newvm.wait_for_login()
                 self.newvm.destroy()
                 self.newvm.wait_for_shutdown()
-                self.params["added_disk_path"] = attacho
+                self.params["added_disk_path"] = attach_o
             except virt_vm.VMError as detail:
                 raise VTAttachError("", str(detail))
         else:
-            raise VTAttachError("", attacho)
+            raise VTAttachError("", attach_o)
 
     def clone_vm_filesystem(self, newname=None):
         """

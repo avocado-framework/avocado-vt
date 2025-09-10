@@ -90,7 +90,7 @@ Which would make it possible to specify this custom guest using
 
 Provided that you have a file called images/foo-windows.qcow2.
 
-Other useful params to set (not an exaustive list):
+Other useful params to set (not an exhaustive list):
 
 .. code-block:: cfg
 

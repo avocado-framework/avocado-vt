@@ -1,5 +1,5 @@
 """
-ipv6 protocl support class(es)
+ipv6 protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoIPv6
 """
