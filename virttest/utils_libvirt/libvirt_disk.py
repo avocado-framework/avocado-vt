@@ -160,6 +160,16 @@ def create_disk(
         )
 
 
+def _all_disk_targets():
+    devs = []
+    vmx = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    for disk in (vmx.get_devices("disk") or []):
+        tgt = (disk.target or {}).get("dev")
+        if tgt:
+            devs.append(tgt)
+    return devs
+
+
 def create_primitive_disk_xml(
     type_name,
     disk_device,
