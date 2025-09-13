@@ -852,7 +852,10 @@ class Iscsi(object):
         if not utils_package.package_install(iscsi_package):
             raise exceptions.TestError("Failed to install iscsi initiator" " packages")
         # Install linux iscsi target software targetcli
-        iscsi_package = ["targetcli"]
+        if distro.detect().version == '18' and distro.detect().name == 'Ubuntu':
+            iscsi_package = ["targetcli-fb"]
+        else:
+            iscsi_package = ["targetcli"]
         if not utils_package.package_install(iscsi_package):
             LOG.error(
                 "Failed to install targetcli trying with scsi-"
