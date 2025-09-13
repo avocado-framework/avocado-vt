@@ -70,7 +70,6 @@ if __name__ == "__main__":
             ],
         },
         install_requires=[
-            "netifaces",
             "packaging",
             "six",
             "aexpect",
