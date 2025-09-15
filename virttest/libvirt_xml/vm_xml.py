@@ -3837,7 +3837,6 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         "smm",
         "hpt",
         "htm",
-        "hyperv",
         "smm_tseg_unit",
         "smm_tseg",
         "nested_hv",
