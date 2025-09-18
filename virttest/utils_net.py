@@ -1816,18 +1816,22 @@ def get_network_cfg_file(iface_name, vm=None):
 
     :return: absolute path of network script file
     """
+    distro_name = utils_misc.get_distro()
+    distro_version = utils_misc.get_distro_version()
     if vm:
-        distro = vm.get_distro().lower()
-    else:
-        distro = platform.platform().lower()
+        distro_name = vm.get_distro().lower()
+        distro_version = vm.get_distro_version()
     iface_cfg_file = ""
-    if "ubuntu" in distro:
+    if "ubuntu" in distro_name:
         iface_cfg_file = "/etc/network/interfaces"
-    elif "suse" in distro:
+    elif "suse" in distro_name:
         iface_cfg_file = "/etc/sysconfig/network/ifcfg-%s" % (iface_name)
+    # Net configs are stored to /etc/NetworkManager/system-connections/{iface_name}.nmconnection
+    # since rhel/centos 9
+    elif distro_name in ["rhel", "centos"] and float(distro_version) >= 9:
+        iface_cfg_file = "/etc/NetworkManager/system-connections/{0}.nmconnection".format(iface_name)
     else:
-        iface_cfg_file = "/etc/sysconfig/network-scripts/"
-        iface_cfg_file += "ifcfg-%s" % (iface_name)
+        iface_cfg_file = "/etc/sysconfig/network-scripts/ifcfg-{0}".format(iface_name)
     return iface_cfg_file
 
 
