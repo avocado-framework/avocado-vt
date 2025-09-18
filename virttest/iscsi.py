@@ -938,16 +938,12 @@ class Fileio(Backstore):
         block_size = emulated_size[self.unit][1]
         size = int(self.emulated_size) * emulated_size[self.unit][0]
         self.emulated_expect_size = block_size * size
-        dd_command = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
+        self.create_cmd = "dd if=/dev/zero of=%s count=%s bs=%sK" % (
             self.emulated_image,
             size,
             block_size,
         )
-
-        # optimize the `create file` command
-        self.create_cmd = _get_create_command(
-            self.emulated_image, params.get("emulated_image_size"), dd_command
-        )
+        self._create_cmd_update = False
 
     def _existed(self):
         """
@@ -967,9 +963,17 @@ class Fileio(Backstore):
         Create fileio in backstore.
         """
         if not self._existed():
+            if not os.path.exists(os.path.dirname(self.emulated_image)):
+                os.makedirs(os.path.dirname(self.emulated_image))
+            if not self._create_cmd_update:
+                self.create_cmd = _get_create_command(
+                    self.emulated_image, self.emulated_size + self.unit, self.create_cmd
+                )
+                self._create_cmd_update = True
+            LOG.debug('The "create file" cmd is: %s' % self.create_cmd)
+
             # create image disk
             if not os.path.isfile(self.emulated_image):
-                process.system("mkdir -p %s" % os.path.dirname(self.emulated_image))
                 process.system(self.create_cmd)
             else:
                 emulated_image_size = os.path.getsize(self.emulated_image) // 1024
@@ -1009,6 +1013,7 @@ class Fileio(Backstore):
             process.run(backstore_cmd)
             # Save configuration
             process.system("targetcli / saveconfig")
+            self._create_cmd_update = False
         else:
             LOG.info("No backstore %s found. Nothing to do!" % self.backstore_name)
 
