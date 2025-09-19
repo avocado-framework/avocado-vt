@@ -82,7 +82,7 @@ Rules for Contributors
 ======================
 
 1. [Must] Coding style should conform to what's enforced by black (see ``./avocado-static-checks/check-style``)
-2. [Must] PR commit message is meaningful. Refer to the link on how to write a good commit message
+2. [Must] PR commit message is meaningful. Refer to `this link <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/styleguides.html>`_ on how to write a good commit message
 3. [Must] Travis CI pass and no conflict
 4. [Must] Provide test results. If no, provide justification. Apply to any PR
   One of below options should be aligned:
