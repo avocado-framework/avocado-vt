@@ -76,7 +76,7 @@ def control_service(params):
     if service_operations == "restart":
         control_service.restart()
     elif service_operations == "stop":
-        if service.status():
+        if control_service.status():
             control_service.stop()
 
 
