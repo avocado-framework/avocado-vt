@@ -240,14 +240,14 @@ class PropCanBase(dict, PropCanInternal):
             # Prevent subclass instances from deleting normal attributes
             raise AttributeError(str(detail))
 
-    def __canhaz__(self, key, excpt=AttributeError):
+    def __canhaz__(self, key, except_type=AttributeError):
         """
         Quickly determine if an accessor or instance attribute name is defined.
         """
         slots = self.__all_slots__
         keys = slots + ("get_%s" % key, "set_%s" % key, "del_%s" % key)
         if key not in keys:
-            raise excpt(
+            raise except_type(
                 "Key '%s' not found in super class attributes or in %s"
                 % (str(key), str(keys))
             )
@@ -258,7 +258,7 @@ class PropCanBase(dict, PropCanInternal):
         """
         return self.__class__(dict(self))
 
-    def update(self, other=None, excpt=AttributeError, **kwargs):
+    def update(self, other=None, except_type=AttributeError, **kwargs):
         """
         Update properties in __all_slots__ with another dict.
         """
@@ -272,7 +272,7 @@ class PropCanBase(dict, PropCanInternal):
             _tmp_dict.update(_other_dict)
             _tmp_dict.update(kwargs)
         except TypeError as detail:
-            raise excpt(detail)
+            raise except_type(detail)
 
         for item in list(_tmp_dict.keys()):
             self[item] = _tmp_dict[item]

@@ -8,7 +8,7 @@ Which would make it possible to specify this custom guest using
 
 $ avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
 
-Other useful params to set (not an exaustive list):
+Other useful params to set (not an exhaustive list):
 
     # If you plan to use a raw device, set image_device = yes
     image_raw_device = yes
@@ -16,4 +16,3 @@ Other useful params to set (not an exaustive list):
     # since files in winutils.iso use it.
     username = Administrator
     password = 1q2w3eP
-

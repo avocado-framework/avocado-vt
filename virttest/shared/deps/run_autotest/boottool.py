@@ -250,7 +250,7 @@ class EfiToolSys(object):
 
     def delete_variable(self, name, data, guid=None, attributes=None):
         """
-        Delets an existing EFI variable
+        Deletes an existing EFI variable
 
         :type name: string
         :param name: the name of the variable that will be deleted
@@ -784,7 +784,7 @@ class Grubby(object):
         elif current_version < GRUBBY_REQ_VERSION:
             self.log.warning(
                 "version %s.%s being used is not guaranteed to "
-                "work properly. Mininum required version is %s.%s.",
+                "work properly. Minimum required version is %s.%s.",
                 current_version[0],
                 current_version[1],
                 GRUBBY_REQ_VERSION[0],
@@ -1986,7 +1986,7 @@ class OptionParser(optparse.OptionParser):
         grubby.add_option(
             "--grubby-install",
             action="store_true",
-            help="Attempts to install a recent enought version " "of grubby",
+            help="Attempts to install a recent enough version " "of grubby",
         )
 
         grubby.add_option(

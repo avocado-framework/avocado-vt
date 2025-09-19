@@ -41,4 +41,3 @@ See Also
 --------
 
 -  `qemu\_img\_binary <CartesianConfigReference-KVM-qemu_img_binary.html>`_
-

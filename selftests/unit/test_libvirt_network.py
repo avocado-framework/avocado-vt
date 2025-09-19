@@ -139,7 +139,7 @@ class NetworkXMLTest(NetworkTestBase):
             # Transient network can't set autostart
             if state == {"active": True, "persistent": False, "autostart": True}:
                 state = {"active": True, "persistent": False, "autostart": False}
-            # Non-exist network should return None when retieving state.
+            # Non-exist network should return None when retrieving state.
             if not state["active"] and not state["persistent"]:
                 assert new_state is None
             else:

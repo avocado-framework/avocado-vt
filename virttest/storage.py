@@ -530,7 +530,7 @@ class StorageAuth(object):
     def auth_info_define_by_params(cls, image, params):
         """
         :param image: image tag name
-        :param params: image specified parmas, i.e. params.object_params(image)
+        :param params: image specified params, i.e. params.object_params(image)
         """
         auth = None
         storage_type = params.get("storage_type")

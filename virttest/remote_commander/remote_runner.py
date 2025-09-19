@@ -733,7 +733,7 @@ class CommanderSlaveCmds(CommanderSlave):
 
     def copy_file(self, name, path, content):
         """
-        Really naive implementation of copping files. Should be used only for
+        Really naive implementation of copying files. Should be used only for
         short files.
         """
         f = open(os.path.join(path, name), "w")
