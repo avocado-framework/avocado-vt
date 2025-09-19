@@ -24,6 +24,7 @@ class Interface(base.TypedDeviceBase):
         "driver",
         "address",
         "boot",
+        "loadparm",
         "rom",
         "mtu",
         "filterref",
@@ -120,6 +121,14 @@ class Interface(base.TypedDeviceBase):
             parent_xpath="/",
             tag_name="boot",
             attribute="order",
+        )
+        accessors.XMLAttribute(
+            property_name="loadparm",
+            libvirtxml=self,
+            forbidden=None,
+            parent_xpath="/",
+            tag_name="boot",
+            attribute="loadparm",
         )
         accessors.XMLElementNest(
             "bandwidth",
