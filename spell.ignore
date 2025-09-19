@@ -2113,3 +2113,12 @@ subgid
 uids
 gids
 nexthops
+mov
+eax
+ebx
+ecx
+edx
+edi
+rsi
+ret
+SME
