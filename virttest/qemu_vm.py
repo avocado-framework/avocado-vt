@@ -14,6 +14,7 @@ import math
 import os
 import random
 import re
+import shlex
 import shutil
 import sys
 import time
@@ -3118,8 +3119,16 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev("noshutdown", cmdline="-no-shutdown"))
 
         user_runas = params.get("user_runas")
-        if devices.has_option("runas") and user_runas:
-            devices.insert(StrDev("runas", cmdline="-runas %s" % user_runas))
+        if devices.has_option("run-with") and user_runas:
+            devices.insert(
+                StrDev(
+                    "user_runas", cmdline="-run-with user=%s" % shlex.quote(user_runas)
+                )
+            )
+        elif devices.has_option("runas") and user_runas:
+            devices.insert(
+                StrDev("user_runas", cmdline="-runas %s" % shlex.quote(user_runas))
+            )
 
         if params.get("enable_sga") == "yes":
             devices.insert(StrDev("sga", cmdline=add_sga(devices)))
