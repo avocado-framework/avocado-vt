@@ -4755,10 +4755,14 @@ def set_channel(session, interface, parameter, value):
 
 
 def create_linux_bridge_tmux(
-    linux_bridge_name, iface_name=None, ignore_status=False, remove_addr_on_dev=True
+    linux_bridge_name,
+    iface_name=None,
+    ignore_status=False,
+    remove_addr_on_dev=True,
+    session=None,
 ):
     """
-    Create linux bridge and connect a physical interface to the bridge via tmux command on local host.
+    Create linux bridge and connect a physical interface to the bridge via tmux command on local or remote host.
     Note: If iface_name is specified, it should be the one in current connection. Or you will break current
     connection as this function will bring up the bridge and switch the network traffic to this bridge which
     share the same mac with iface_name.
@@ -4770,14 +4774,19 @@ def create_linux_bridge_tmux(
     interface to the bridge
     :param ignore_status: Whether to raise an exception when command fails
     :param remove_addr_on_dev: boolean. True to remove address on dev, otherwise keep the address
+    :param session: The remote session
     :return: bridge created or raise exception
     """
     # Create bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"]):
+    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"], session):
         raise exceptions.TestError("Failed to install the required packages.")
-    if os.path.exists(br_path):
-        s, o = delete_linux_bridge_tmux(linux_bridge_name, iface_name)
+    if session:
+        bridge_exists = session.cmd_status("ip link show %s" % linux_bridge_name) == 0
+    else:
+        bridge_exists = os.path.exists(br_path)
+    if bridge_exists:
+        s, o = delete_linux_bridge_tmux(linux_bridge_name, iface_name, session=session)
         if s:
             raise exceptions.TestError(
                 "Create bridge fail as there is already interface named '%s' on the host "
@@ -4796,11 +4805,16 @@ def create_linux_bridge_tmux(
     else:
         cmd = "ip link add %s type bridge" % linux_bridge_name
     return utils_misc.cmd_status_output(
-        cmd, shell=True, verbose=True, ignore_status=ignore_status
+        cmd, shell=True, verbose=True, ignore_status=ignore_status, session=session
     )
 
 
-def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False):
+def delete_linux_bridge_tmux(
+    linux_bridge_name,
+    iface_name=None,
+    ignore_status=False,
+    session=None,
+):
     """
     Delete the linux bridge on the host, and recover the network on the physical interface
 
@@ -4808,26 +4822,35 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     :param iface_name: the physical interface has been attached to the bridge, if None, it means no interface
     is attached to the bridge
     :param ignore_status: Whether to raise an exception when command fails
+    :param session: The remote session
     :return: bridge deleted or raise exception
     """
-    # Delete the linux bridge
-    br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(
-        ["tmux", "dhcp-client", "procps-ng", "net-tools"]
-    ):
-        raise exceptions.TestError("Failed to install the required packages.")
-    if not os.path.exists(br_path):
-        LOG.info("There is no bridge named '%s' on the host" % linux_bridge_name)
-        return
+    # Check if bridge exists based on session type
+    if session:
+        # For remote sessions, check bridge existence via command
+        bridge_exists = session.cmd_status("ip link show %s" % linux_bridge_name) == 0
+    else:
+        # For local execution, check filesystem
+        br_path = "/sys/class/net/%s" % linux_bridge_name
+        bridge_exists = os.path.exists(br_path)
+
+    if not bridge_exists:
+        LOG.info("Bridge '%s' does not exist on the host" % linux_bridge_name)
+        return (0, "Bridge does not exist")
+
     if iface_name:
         cmd = (
-            'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; '
-            'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
+            'tmux -c "ip link set {1} nomaster; '
+            "dhclient -r {0} || true; dhclient -r {1} || true; "
+            'ip link delete {0}; sleep 5; dhclient {1}"'.format(
+                linux_bridge_name, iface_name
+            )
         )
     else:
         cmd = "ip link delete %s" % linux_bridge_name
+
     return utils_misc.cmd_status_output(
-        cmd, shell=True, verbose=True, ignore_status=ignore_status
+        cmd, shell=True, verbose=True, ignore_status=ignore_status, session=session
     )
 
 
