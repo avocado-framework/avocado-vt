@@ -181,6 +181,28 @@ class LocalPackageMgr(manager.SoftwareManager):
                     return False
         return True
 
+    def is_installed(self, pkg_name):
+        """
+        Check if a package is installed on the local system.
+
+        This method wraps the parent class's check_installed method with
+        error handling for cases where the underlying package manager
+        doesn't support the operation.
+
+        :param pkg_name: Name of the package to check
+        :type pkg_name: str
+        :return: True if package is installed, False otherwise
+        :rtype: bool
+        :raises: None - exceptions are caught and logged
+        """
+        try:
+            return self.check_installed(pkg_name)
+        except AttributeError:
+            LOG.error(
+                "Method check_installed not implemented in %s", self.__class__.__name__
+            )
+            return False
+
     def install(self):
         """
         Use package manager install packages
