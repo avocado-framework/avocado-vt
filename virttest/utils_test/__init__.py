@@ -39,7 +39,13 @@ from avocado.utils import archive, aurl, crypto, download, path, process
 from six.moves import xrange
 
 # Import from the top level virttest namespace
-from virttest import asset, bootstrap, data_dir, error_context, qemu_virtio_port
+from virttest import (
+    asset,
+    bootstrap,
+    data_dir,
+    error_context,
+    qemu_virtio_port,
+)
 from virttest import remote as remote_old
 from virttest import (
     scan_autotest_results,
@@ -956,7 +962,7 @@ def run_virtio_serial_file_transfer(
     else:
         action = "both"
         guest_action = "both"
-        txt = "Transfer data betwwen guest and host"
+        txt = "Transfer data between guest and host"
 
     host_script = params.get("host_script", "serial_host_send_receive.py")
     host_script = os.path.join(
