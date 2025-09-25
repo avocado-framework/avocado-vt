@@ -55,6 +55,7 @@ if __name__ == "__main__":
             ],
             "avocado.plugins.result_events": [
                 "vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock",
+                "vt-cluster = avocado_vt.plugins.vt_cluster:VTCluster",
             ],
             "avocado.plugins.init": [
                 "vt-init = avocado_vt.plugins.vt_init:VtInit",
