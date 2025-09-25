@@ -30,7 +30,7 @@ _log_lock = threading.RLock()
 _open_log_files = {}  # pylint: disable=C0103
 
 
-def _acquire_lock(lock, timeout=10):
+def _acquire_lock(lock, timeout=30):
     """
     Check if the lock is available
 
