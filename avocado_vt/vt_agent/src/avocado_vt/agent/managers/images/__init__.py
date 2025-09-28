@@ -1,4 +1,8 @@
-_image_handler_getters = {}
+from .qemu import get_qemu_image_handler
+
+_image_handler_getters = {
+    "qemu": get_qemu_image_handler,
+}
 
 
 def get_image_handler(image_type, cmd):
