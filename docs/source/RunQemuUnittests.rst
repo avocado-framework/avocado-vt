@@ -83,7 +83,7 @@ You need to verify that you can actually build qemu-kvm from source, as
 well as the unittest suite.
 
 #. Make sure you have the appropriate packages installed. You can read
-   :doc:`the install prerequesite packages (client) section <InstallOptionalPackages>` for more
+   :doc:`the install prerequisite packages (client) section <InstallOptionalPackages>` for more
    information.
 
 Step by step procedure
@@ -297,4 +297,3 @@ Step by step procedure
 You might take a look at the ``unittests.cfg`` config file options to do
 some tweaking you might like, such as making the timeout to consider a
 unittest as failed smaller and other things.
-

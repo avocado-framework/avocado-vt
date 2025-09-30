@@ -260,7 +260,7 @@ def set_context_of_file(filename, context, selinux_force=False):
     :raise SeCmdError: if failed to execute chcon.
     :raise SelinuxError: if command chcon execute
                         normally, but the context of
-                        file is not setted to context.
+                        file is not set to context.
     """
     if ubuntu and not selinux_force:
         LOG.warning("Ubuntu doesn't support selinux by default")

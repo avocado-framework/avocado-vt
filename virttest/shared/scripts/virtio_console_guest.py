@@ -21,7 +21,7 @@ import sys
 import threading
 import time
 import traceback
-from distutils.version import LooseVersion  # pylint: disable=W0611,E0611
+from distutils.version import LooseVersion
 from threading import Thread
 
 # For Python 2 and 3 compatibility
@@ -547,7 +547,7 @@ class VirtioGuestPosix(VirtioGuest):
             elif self.method == VirtioGuest.LOOP_NONE:
                 self._none_mode()
             else:
-                print("WARNIGN: Unknown mode %s, using LOOP_NONE" % self.method)
+                print("WARNING: Unknown mode %s, using LOOP_NONE" % self.method)
                 self._reconnect_none_mode()
 
     class Sender(Thread):
@@ -599,7 +599,7 @@ class VirtioGuestPosix(VirtioGuest):
     @staticmethod
     def pollmask_to_str(mask):
         """
-        Conver pool mast to string
+        Convert pool mast to string
 
         :param mask: poll return mask
         """

@@ -1,0 +1,1 @@
+avocado-static-checks/commitlint.config.mjs

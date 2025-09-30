@@ -797,7 +797,7 @@ class Factory(object):
             """
             Get the ServiceResultParser using the auto-detect init command.
 
-            :return: ServiceResultParser fro the current init command.
+            :return: ServiceResultParser from the current init command.
             :rtype: _ServiceResultParser
             """
             result_parser = self._result_parsers[self.init_name]

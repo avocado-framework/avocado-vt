@@ -176,7 +176,7 @@ class Machine(object):
         """
         Compile app on machine in src dir.
 
-        :param path: Path where shoule be program compiled.
+        :param path: Path where should be program compiled.
         :param dst_dir: Installation path.
         """
         LOG.debug("Install %s to %s.", package_name, self.src)

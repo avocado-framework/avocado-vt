@@ -1,5 +1,5 @@
 """
-ipv4 protocl support class(es)
+ipv4 protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoIP
 """
