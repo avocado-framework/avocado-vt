@@ -3983,8 +3983,8 @@ class DevContainer(object):
             sev_common_props = {
                 # FIXME: Set the following two properties from sev capabilities
                 # if they are not set yet
-                "cbitpos": int(params["vm_sev_cbitpos"]),
-                "reduced-phys-bits": int(params["vm_sev_reduced_phys_bits"]),
+                "cbitpos": params["vm_sev_cbitpos"],
+                "reduced-phys-bits": params["vm_sev_reduced_phys_bits"],
             }
 
             if params.get("vm_sev_kernel_hashes"):
@@ -4010,8 +4010,8 @@ class DevContainer(object):
 
             sev_obj_props.update(_gen_sev_common_props(params))
 
-            # Set policy=3 if vm_sev_policy is not set
-            sev_obj_props["policy"] = int(params.get("vm_sev_policy", 3))
+            # Set policy=0x3 if vm_sev_policy is not set
+            sev_obj_props["policy"] = params.get("vm_sev_policy", "0x3")
 
             # FIXME: If these files are host dependent, we have to find
             # another way to set them, because different files are needed
