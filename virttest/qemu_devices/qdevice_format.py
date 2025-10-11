@@ -128,14 +128,20 @@ class _QDeviceFormatManagement(object):
                 },
             },
             "object": {
-                "size": self._normalize_data_size,
-                "align": self._normalize_data_size,
-                "host-nodes": self._int_in_list,
-                "prealloc-threads": self._str_to_dec,
-                "attributes": self._hex_in_str_to_dec,
-                "policy": self._hex_in_str_to_dec,
-                "cbitpos": self._str_to_dec,
-                "reduced-phys-bits": self._str_to_dec,
+                # The structure of the object component is as same as
+                # the structure of the device component.
+                "general": {
+                    "size": self._normalize_data_size,
+                    "align": self._normalize_data_size,
+                    "host-nodes": self._int_in_list,
+                    "prealloc-threads": self._str_to_dec,
+                    "attributes": self._hex_in_str_to_dec,
+                    "cbitpos": self._str_to_dec,
+                    "reduced-phys-bits": self._str_to_dec,
+                },
+                "sev-snp-guest": {
+                    "policy": self._hex_in_str_to_dec,
+                },
             },
             "netdev": {
                 "fd": self._unchanged,
@@ -146,7 +152,12 @@ class _QDeviceFormatManagement(object):
                 "sndbuf": self._normalize_data_size,
             },
         }
-        self._device_driver_checked = []
+        # The structure of _device_driver_checked is as following:
+        #  {
+        #     "driverA": ["A1", "A2", ...],
+        #     "driverB": ["B1", "B2", ...],
+        #  }
+        self._device_driver_checked = {}
         # _skip_args stores those arguments which are NOT expected to be
         # converted while updating the arguments type from qemu on machine.
         #   About "addr" in qemu output,
@@ -210,7 +221,8 @@ class _QDeviceFormatManagement(object):
                     # In fact: qemu wants "on" instead of "NO_EQUAL_STRING".
                     "serial": self._on,
                 },
-            }
+            },
+            "object": {},
         }
         self._type_func_mapping = {
             "<int16>": self._str_to_dec,
@@ -310,11 +322,18 @@ class _QDeviceFormatManagement(object):
         params = params.copy()
         if "backend" in params:
             params["qom-type"] = params.pop("backend")
+        _driver = params.get("qom-type", None)
+        if _driver:
+            self._update_args(dev_type, _driver)
         args_in_json = self._special_args_in_json[dev_type]
         new_args = dict()
         for key, value in params.items():
-            if key in args_in_json.keys():
-                new_args[key] = args_in_json[key](value)
+            if _driver and key in args_in_json[_driver]:
+                value = args_in_json[_driver][key](value)
+                new_args[key] = value
+
+            if key in args_in_json["general"]:
+                new_args[key] = args_in_json["general"][key](value)
             else:
                 new_args[key] = self._bool_in_string_to_bool(value)
 
@@ -335,10 +354,7 @@ class _QDeviceFormatManagement(object):
         """
         dev_type = "device"
         driver = params.get("driver")
-        if driver not in self._device_driver_checked:
-            self._device_driver_checked.append(driver)
-            if self.qemu_binary:
-                self._update_args_type_from_qemu(driver)
+        self._update_args(dev_type, driver)
         device_args = self._special_args_in_json[dev_type]
         new_args = dict()
         # convert type
@@ -568,34 +584,63 @@ class _QDeviceFormatManagement(object):
 
         return args
 
-    def _update_args_type_from_qemu(self, driver):
+    def _update_args_type_from_qemu(self, component, driver):
         """
         Update the args type from qemu.
         Only update the following type: int16, int32, int64, bool, str.
 
-        :param driver: The driver of -device.
+        :param component: The component.
+        :type component: String.
+        :param driver: The driver of device component or
+                       the qom-type of object component.
+                       NOTE: the driver cannot be "" or None.
         :type driver: String.
         """
-        if driver not in self._special_args_in_json["device"]:
-            self._special_args_in_json["device"][driver] = dict()
-        cmd = "%s --device %s,\\?" % (self.qemu_binary, driver)
+        if component not in self._special_args_in_json:
+            self._special_args_in_json[component] = dict()
+        if driver not in self._special_args_in_json[component]:
+            self._special_args_in_json[component][driver] = dict()
+        cmd = "%s --%s %s,\\?" % (self.qemu_binary, component, driver)
         output = process.run(cmd, shell=True, verbose=False).stdout_text.strip()
         args_list = re.findall("(.+)=(<[^>]+>+)", output)
+
+        if not args_list:
+            return
+
         for arg, arg_type in args_list:
             arg = arg.strip()
             if arg in self._skip_args:
                 continue
             arg_type = arg_type.strip()
-            if driver not in self._mandatory_assignment_args_type["device"]:
-                self._mandatory_assignment_args_type["device"][driver] = dict()
-            if arg in self._mandatory_assignment_args_type["device"][driver]:
-                self._special_args_in_json["device"][driver][arg] = (
-                    self._mandatory_assignment_args_type["device"][driver][arg]
+            if driver not in self._mandatory_assignment_args_type[component]:
+                self._mandatory_assignment_args_type[component][driver] = dict()
+
+            if arg in self._mandatory_assignment_args_type[component][driver]:
+                self._special_args_in_json[component][driver][arg] = (
+                    self._mandatory_assignment_args_type[component][driver][arg]
                 )
             elif arg_type in self._type_func_mapping:
-                self._special_args_in_json["device"][driver][arg] = (
+                self._special_args_in_json[component][driver][arg] = (
                     self._type_func_mapping[arg_type]
                 )
+
+    def _update_args(self, component, driver):
+        """
+        Update the args type from qemu.
+
+        :param component: The component.
+        :type component: String.
+        :param driver: The driver of device component or
+                       the qom-type of object component.
+                       NOTE: the driver cannot be "" or None.
+        :type driver: String.
+        """
+        if component not in self._device_driver_checked:
+            self._device_driver_checked[component] = []
+        if driver not in self._device_driver_checked[component]:
+            self._device_driver_checked[component].append(driver)
+            if self.qemu_binary:
+                self._update_args_type_from_qemu(component, driver)
 
 
 qdevice_format = _QDeviceFormatManagement()
