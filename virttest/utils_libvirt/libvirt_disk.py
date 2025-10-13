@@ -38,6 +38,7 @@ def get_non_root_disk_name(session):
     return get_non_root_disk_names(session)[0]
 
 
+# pylint: disable=C0402
 def get_non_root_disk_names(session, ignore_status=False):
     """
     Returns the disk names under /dev whose device doesn't have any
@@ -55,6 +56,8 @@ def get_non_root_disk_names(session, ignore_status=False):
     But also considers corner cases where everything is for example on vda and
     no swap.
 
+    In case of image-mode run the structure can instead of "/" as root contain "sysroot"
+
     :param session: If given the command will be executed in this VM or
                     remote session.
     :param ignore_status: boolean, True to return, False to raise an exception
@@ -71,13 +74,14 @@ def get_non_root_disk_names(session, ignore_status=False):
     if s:
         raise exceptions.TestError("Couldn't list block devices: '%s'" % o)
     LOG.debug("lsblk output:\n%s", o)
+
     lines = o.split("\n").copy()
     root_disk = None
     root_mounted = False
     disk_pattern = re.compile(r"^([a-z]+|sr\d)[\s\t$]")
     entry_pattern = re.compile(r"(.*)[\s\t]+(.*)")
     idx = 0
-    while -1 < idx < len(lines) + 1:
+    while -1 < idx < len(lines):
         line = lines[idx]
         entry = entry_pattern.match(line)
         if not entry:
@@ -120,6 +124,7 @@ def get_non_root_disk_names(session, ignore_status=False):
         return [(name.strip(), mpoint.strip()) for (name, mpoint) in names_mpoints]
 
 
+# pylint: enable=C0402
 def create_disk(
     disk_type, path=None, size="500M", disk_format="raw", extra="", session=None
 ):
