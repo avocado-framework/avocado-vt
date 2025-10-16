@@ -178,10 +178,10 @@ class VirtTools(object):
             self.newvm.destroy()
             self.newvm.wait_for_shutdown()
 
-        attachs, attacho = attach_additional_disk(
+        attaches, attacho = attach_additional_disk(
             self.newvm, disksize=device_size, targetdev=target_dev
         )
-        if attachs:
+        if attaches:
             # Restart vm for guestfish command
             # Otherwise updated disk is not visible
             try:

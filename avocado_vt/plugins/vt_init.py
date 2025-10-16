@@ -27,7 +27,7 @@ if hasattr(plugin_interfaces, "Init"):
     class VtInit(plugin_interfaces.Init):
 
         name = "vt-init"
-        description = "VT plugin initilization"
+        description = "VT plugin initialization"
 
         def initialize(self):
             if not is_registering_settings_required():

@@ -26,7 +26,7 @@ all:
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "unlink:   Disables egg links and unlinks needed resources"
 	@echo
-	@echo "Platform independent distribution/installtion related targets:"
+	@echo "Platform independent distribution/installation related targets:"
 	@echo "source:   Create source package"
 	@echo "install:  Install on local system"
 	@echo
@@ -46,10 +46,11 @@ requirements: pip
 	- $(PYTHON) -m pip install -r requirements.txt
 
 check:
-	./avocado-static-checks/check-style
-	./avocado-static-checks/check-import-order
-	inspekt lint --disable W,R,C,E0203,E0601,E1002,E1101,E1102,E1103,E1120,F0401,I0011,E1003,W605,I1101 --exclude avocado-libs,scripts/github
-	pylint --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
+	@if git submodule status | grep -q '^-'; then \
+		echo "Initializing static-checks submodule..."; \
+		git submodule update --init --recursive; \
+	fi
+	pre-commit run --all-files
 
 clean:
 	rm -rf MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD build dist
