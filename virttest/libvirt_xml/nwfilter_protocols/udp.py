@@ -1,5 +1,5 @@
 """
-udp protocl support class(es)
+udp protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoTCP-ipv4
 """

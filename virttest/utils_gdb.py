@@ -264,7 +264,7 @@ class GDB(aexpect.Expect):
     def _poll_log(self):
         """
         Read GDB/MI output continuously and parse lines according to its
-        inital until `exit` variable is set.
+        initial until `exit` variable is set.
         """
         while True:
             res = self.read_nonblocking()
