@@ -470,4 +470,3 @@ specified for the next test. The parameter
 indicates that if a VM is to be killed, it should first be attempted via
 SSH/Telnet with a shutdown shell command, specified by the
 cmd\_shutdown? parameter.
-

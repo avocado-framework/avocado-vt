@@ -53,7 +53,9 @@ from avocado.utils.astring import to_text
 from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
 from avocado.utils.process import pid_exists  # pylint: disable=W0611
 from avocado.utils.process import safe_kill  # pylint: disable=W0611
-from avocado.utils.process import CmdResult
+from avocado.utils.process import (
+    CmdResult,
+)
 from avocado.utils.process import kill_process_tree as _kill_process_tree
 from avocado.utils.process import (
     process_in_ptree_is_defunct as process_or_children_is_defunct,
