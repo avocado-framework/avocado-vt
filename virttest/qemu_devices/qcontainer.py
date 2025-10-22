@@ -434,6 +434,9 @@ class DevContainer(object):
         # -object tdx-guest
         if self.has_object("tdx-guest"):
             self.caps.set_flag(Flags.TDX_GUEST)
+        # -object igvm-cfg
+        if self.has_object("igvm-cfg"):
+            self.caps.set_flag(Flags.IGVM_CFG)
         # -device floppy,drive=$drive
         if self.__qemu_ver in VersionInterval(self.FLOPPY_DEVICE_VERSION_SCOPE):
             self.caps.set_flag(Flags.FLOPPY_DEVICE)
@@ -1384,6 +1387,49 @@ class DevContainer(object):
 
             return devs
 
+        def igvm_handler(machine_params):
+            """
+            Add IGVM configuration for confidential computing with embedded EDK2
+
+            IGVM (Independent Guest Virtual Machine) provides an embedded EDK2 firmware
+            for confidential VMs using SVSM (Secure Virtual Service Module).
+            Currently supports AMD SEV-SNP, with Intel TDX support planned for the future.
+
+            Requirements:
+            - x86_64 architecture only
+            - q35 machine type
+            - Confidential computing capable host (SEV-SNP)
+            """
+            # Check if QEMU supports igvm-cfg object
+            if Flags.IGVM_CFG not in self.caps:
+                raise exceptions.TestSkipError(
+                    "IGVM configuration is not supported by this QEMU version. "
+                    "Please ensure you have a QEMU build with igvm-cfg object support."
+                )
+
+            devs = []
+            igvm_path = params.get("igvm_path", "/usr/share/coconut-svsm")
+            igvm_filename = params.get("igvm_filename", "coconut-qemu.igvm")
+            igvm_cfg_id = "igvm0"
+            igvm_file_path = os.path.join(igvm_path, igvm_filename)
+
+            # Validate IGVM file exists
+            if not os.path.exists(igvm_file_path):
+                raise exceptions.TestError(
+                    f"IGVM file not found: {igvm_file_path}. "
+                    "Please ensure coconut-svsm is installed or update igvm_path."
+                )
+
+            igvm_obj = qdevices.QObject("igvm-cfg")
+            igvm_obj.set_param("id", igvm_cfg_id)
+            igvm_obj.set_param("file", igvm_file_path)
+            devs.append(igvm_obj)
+
+            # Add IGVM config to machine params
+            machine_params["igvm-cfg"] = igvm_cfg_id
+
+            return devs
+
         def machine_q35(machine_params):
             """
             Q35 + ICH9
@@ -1402,10 +1448,15 @@ class DevContainer(object):
                 qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]], "vcpu"),
             )
 
+            firmware_devices = []
+            if params.get("enable_igvm") == "yes":
+                # Use IGVM embedded EDK2 firmware for confidential computing
+                firmware_devices = igvm_handler(machine_params)
             # FIXME: Use -bios option to set firmware for a tdx/snp vm
-            if params.get("vm_secure_guest_type") not in ["snp", "tdx"]:
-                pflash_devices = pflash_handler("ovmf", machine_params)
-                devices.extend(pflash_devices)
+            elif params.get("vm_secure_guest_type") not in ["snp", "tdx"]:
+                # Use standard OVMF EDK2 firmware
+                firmware_devices = pflash_handler("ovmf", machine_params)
+            devices.extend(firmware_devices)
 
             devices.append(
                 qdevices.QMachine(params=machine_params, child_bus=bus, aobject="pci.0")
