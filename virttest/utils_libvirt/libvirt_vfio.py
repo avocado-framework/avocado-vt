@@ -12,6 +12,21 @@ from avocado.utils import process
 LOG = logging.getLogger("avocado." + __name__)
 
 
+def get_vfio_pci(pci_id):
+    """
+    Get the driver name for a PCI device
+
+    :param pci_id: The id of pci device
+    :return: The driver name
+    """
+    cmd = (
+        "readlink -f /sys/bus/pci/devices/%s/driver "
+        "| awk -F '/' '{print $NF}'" % pci_id
+    )
+    output = process.run(cmd, shell=True, verbose=True).stdout_text.strip()
+    return output
+
+
 def check_vfio_pci(pci_id, status_error=False, ignore_error=False, exp_driver=None):
     """
     Check if the driver is vfio-pci
@@ -24,11 +39,7 @@ def check_vfio_pci(pci_id, status_error=False, ignore_error=False, exp_driver=No
     :return: True if got the expected driver;
         False otherwise when ignore_error is set to True
     """
-    cmd = (
-        "readlink -f /sys/bus/pci/devices/%s/driver "
-        "| awk -F '/' '{print $NF}'" % pci_id
-    )
-    output = process.run(cmd, shell=True, verbose=True).stdout_text.strip()
+    output = get_vfio_pci(pci_id)
     res = (
         exp_driver == output
         if exp_driver
