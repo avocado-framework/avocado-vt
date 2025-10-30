@@ -59,3 +59,19 @@ def check_boot_config(session, test, check_list):
             test.log.debug("%s content: %s exist", valid_config, item)
         else:
             test.fail("%s content not correct: %s not exist" % (valid_config, item))
+
+
+def check_uefi_mode(params):
+    """
+    Deteced if VM is using UEFI/OVMF firmware based on various parameters.
+
+    :param params: Dictionary containing the test parameters
+    :return: Boolean, True if UEFI/OVMF mode is detected
+    """
+    uefi_mode = (
+        params.get("firmware", None) == "ovmf"
+        or params.get("ovmf_code_filename") is not None
+        or params.get("ovmf_vars_filename") is not None
+    )
+
+    return uefi_mode

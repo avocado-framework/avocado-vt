@@ -1207,11 +1207,23 @@ class QemuImg(object):
         :param image_name: Master image name.
         :param root_dir: Base directory for relative filenames.
         """
+        from virttest.utils_libvirt import libvirt_bios
+
         if not params.get("image_name_%s_%s" % (image_name, vm_name)):
             m_image_name = params.get("image_name", "image")
-            vm_image_name = params.get(
-                "image_name_%s" % vm_name, "%s_%s" % (m_image_name, vm_name)
-            )
+
+            uefi_mode = libvirt_bios.check_uefi_mode(params)
+            if uefi_mode:
+                # In UEFI mode, use image with -ovmf suffix
+                base_vm_image_name = "%s_%s" % (m_image_name, vm_name)
+                vm_image_name = params.get(
+                    "image_name_%s" % vm_name, "%s-ovmf" % base_vm_image_name
+                )
+            else:
+                vm_image_name = params.get(
+                    "image_name_%s" % vm_name, "%s_%s" % (m_image_name, vm_name)
+                )
+
             if params.get("clone_master", "yes") == "yes":
                 image_params = params.object_params(image_name)
                 image_params["image_name"] = vm_image_name
@@ -1219,17 +1231,26 @@ class QemuImg(object):
                 master_image = params.get("master_image_name")
                 if master_image:
                     image_format = params.get("image_format", "qcow2")
-                    m_image_fn = "%s.%s" % (master_image, image_format)
-                    m_image_fn = utils_misc.get_path(root_dir, m_image_fn)
-                else:
-                    m_image_fn = get_image_filename(params, root_dir)
-                image_fn = get_image_filename(image_params, root_dir)
-                force_clone = params.get("force_image_clone", "no")
-                if not os.path.exists(image_fn) or force_clone == "yes":
-                    LOG.info("Clone master image for vms.")
-                    process.run(
-                        params.get("image_clone_command") % (m_image_fn, image_fn)
-                    )
+                    if uefi_mode:
+                        # In UEFI mode, look for existing master image with -ovmf suffix
+                        m_image_fn = "%s-ovmf.%s" % (master_image, image_format)
+                        m_image_fn = utils_misc.get_path(root_dir, m_image_fn)
+                        if not os.path.exists(m_image_fn):
+                            raise exceptions.TestSetupFail(
+                                "UEFI mode requires OVMF master image but '%s' was not found. "
+                                "Please ensure the OVMF-compatible master image exists in the storage path."
+                                % m_image_fn
+                            )
+                        LOG.info("Found OVMF master image: %s", m_image_fn)
+                    else:
+                        # In BIOS/Legacy mode, use standard master image
+                        m_image_fn = "%s.%s" % (master_image, image_format)
+                        m_image_fn = utils_misc.get_path(root_dir, m_image_fn)
+                # if not os.path.exists(image_fn) or force_clone == "yes":
+                #     LOG.info("Clone master image for vms.")
+                #     process.run(
+                #         params.get("image_clone_command") % (m_image_fn, image_fn)
+                #     )
             params["image_name_%s" % vm_name] = vm_image_name
             params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
 
@@ -1243,9 +1264,20 @@ class QemuImg(object):
         :param image_name: Master image name.
         :param root_dir: Base directory for relative filenames.
         """
+        from virttest.utils_libvirt import libvirt_bios
+
         if params.get("image_name_%s_%s" % (image_name, vm_name)):
             m_image_name = params.get("image_name", "image")
-            vm_image_name = "%s_%s" % (m_image_name, vm_name)
+
+            uefi_mode = libvirt_bios.check_uefi_mode(params)
+            if uefi_mode:
+                # In UEFI mode, use image with -ovmf suffix
+                base_vm_image_name = "%s_%s" % (m_image_name, vm_name)
+                vm_image_name = "%s-ovmf" % base_vm_image_name
+            else:
+                # In BIOS/Legacy mode, use standard image name
+                vm_image_name = "%s_%s" % (m_image_name, vm_name)
+
             if params.get("clone_master", "yes") == "yes":
                 image_params = params.object_params(image_name)
                 image_params["image_name"] = vm_image_name
