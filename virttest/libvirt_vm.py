@@ -937,10 +937,10 @@ class VM(virt_vm.BaseVM):
                 if (
                     nettype
                     and nic_queues
-                    and has_sub_option("network", "driver_queues")
+                    and has_sub_option("network", "driver[._]queues")
                 ):
                     result += ",driver_queues=%s" % nic_queues
-                    if nic_driver and has_sub_option("network", "driver_name"):
+                    if nic_driver and has_sub_option("network", "driver[._]name"):
                         result += ",driver_name=%s" % nic_driver
                 elif mac:  # possible to specify --mac w/o --network
                     result += " --mac=%s" % mac
