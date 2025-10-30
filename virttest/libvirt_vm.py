@@ -6,6 +6,7 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 
 from __future__ import division
 
+import ast
 import fcntl
 import logging
 import os
@@ -1435,16 +1436,56 @@ class VM(virt_vm.BaseVM):
             else:
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
+        # TODO: The current code uses a method that specifies a particular
+        # loader file to boot the guest. However, the latest virt-install
+        # supports using a method like "--boot uefi" to automatically match
+        # the ovmf file. In the future, when time permits, an interface could
+        # be abstracted to support this usage.
         bios_path = params.get("bios_path", None)
         if bios_path:
             if not has_sub_option("boot", "loader"):
-                LOG.warning("bios option not supported by virt-install")
+                LOG.warning(
+                    "'loader' option is not supported by this version of virt-install"
+                )
             else:
                 if "--boot" in virt_install_cmd:
                     virt_install_cmd += ","
                 else:
                     virt_install_cmd += " --boot "
                 virt_install_cmd += "loader=%s" % bios_path
+
+                bios_props = ast.literal_eval(params.get("bios_props", "{}"))
+                key_mapping = {
+                    "loader_readonly": "loader.readonly",
+                    "loader_type": "loader.type",
+                    "loader_secure": "loader.secure",
+                }
+                for key, value in bios_props.items():
+                    mapped_key = key_mapping.get(key)
+                    if not mapped_key:
+                        LOG.warning(
+                            "There is no bios property or unknown property: %s" % key
+                        )
+                    else:
+                        if value is not None:
+                            if has_sub_option("boot", mapped_key):
+                                virt_install_cmd += ",%s=%s" % (mapped_key, value)
+                            else:
+                                LOG.warning(
+                                    "'%s': option not supported by virt-install"
+                                    % mapped_key
+                                )
+
+                bios_vars_template_path = params.get("bios_vars_template_path")
+                if bios_vars_template_path:
+                    if has_sub_option("boot", "nvram.template"):
+                        virt_install_cmd += (
+                            ",nvram.template=%s" % bios_vars_template_path
+                        )
+                    else:
+                        LOG.warning(
+                            "nvram.template option not supported by virt-install"
+                        )
 
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
