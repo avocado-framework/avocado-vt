@@ -1435,16 +1435,53 @@ class VM(virt_vm.BaseVM):
             else:
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
+        # TODO: The current code uses a method that specifies a particular
+        # loader file to boot the guest. However, the latest virt-install
+        # supports using a method like "--boot uefi" to automatically match
+        # the ovmf file. In the future, when time permits, an interface could
+        # be abstracted to support this usage.
         bios_path = params.get("bios_path", None)
-        if bios_path:
-            if not has_sub_option("boot", "loader"):
-                LOG.warning("bios option not supported by virt-install")
+        ovmf_path = params.get("ovmf_path")
+        ovmf_code_filename = params.get("ovmf_code_filename")
+
+        if ovmf_path and ovmf_code_filename:
+            bios_path = os.path.join(ovmf_path, ovmf_code_filename)
+
+        loader_readonly = params.get_boolean("loader_readonly", True)
+        loader_type = params.get("loader_type", "pflash")
+        ovmf_vars_filename = params.get("ovmf_vars_filename")
+
+        if not bios_path:
+            LOG.warning("No bios_path or ovmf_path provided, skipping loader setup.")
+        elif not has_sub_option("boot", "loader"):
+            LOG.warning(
+                "'loader' option is not supported by this version of virt-install"
+            )
+        else:
+            if "--boot" in virt_install_cmd:
+                virt_install_cmd += ","
             else:
-                if "--boot" in virt_install_cmd:
-                    virt_install_cmd += ","
-                else:
-                    virt_install_cmd += " --boot "
+                virt_install_cmd += " --boot "
                 virt_install_cmd += "loader=%s" % bios_path
+                if loader_readonly:
+                    if has_sub_option("boot", "loader.readonly"):
+                        virt_install_cmd += ",loader.readonly=yes"
+                    else:
+                        LOG.warning("Ignored 'loader.readonly': option not supported")
+                if loader_type:
+                    if has_sub_option("boot", "loader.type"):
+                        virt_install_cmd += ",loader.type=%s" % loader_type
+                    else:
+                        LOG.warning("Ignored 'loader.type': option not supported")
+                if ovmf_vars_filename:
+                    if ovmf_path:
+                        ovmf_vars_path = os.path.join(ovmf_path, ovmf_vars_filename)
+                        if has_sub_option("boot", "nvram.template"):
+                            virt_install_cmd += ",nvram.template=%s" % ovmf_vars_path
+                        else:
+                            LOG.warning("Ignored 'nvram': option not supported")
+                    else:
+                        LOG.warning("Cannot configure nvram: ovmf_path is missing")
 
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
