@@ -37,6 +37,7 @@ from virttest import (
     virt_vm,
     xml_utils,
 )
+from virttest.utils_libvirt import libvirt_bios
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.
@@ -1436,6 +1437,8 @@ class VM(virt_vm.BaseVM):
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
         bios_path = params.get("bios_path", None)
+        uefi_mode = libvirt_bios.check_uefi_mode(params)
+
         if bios_path:
             if not has_sub_option("boot", "loader"):
                 LOG.warning("bios option not supported by virt-install")
@@ -1445,6 +1448,15 @@ class VM(virt_vm.BaseVM):
                 else:
                     virt_install_cmd += " --boot "
                 virt_install_cmd += "loader=%s" % bios_path
+        elif uefi_mode:
+            if "--boot" in virt_install_cmd:
+                virt_install_cmd += ","
+            else:
+                virt_install_cmd += " --boot "
+            if params.get("os_type") == "windows":
+                virt_install_cmd += "uefi,firmware.feature0.enabled=no,firmware.feature0.name=secure-boot"
+            else:
+                virt_install_cmd += "uefi"
 
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
