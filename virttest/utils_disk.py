@@ -835,7 +835,7 @@ def get_disk_size_windows(session, did):
                 e.g. 0, 1
     :return: disk size.
     """
-    cmd = "wmic diskdrive get size, index"
+    cmd = 'powershell -command "Get-CimInstance Win32_DiskDrive | Select-Object Index, Size"'
     return int(re.findall(r"%s\s+(\d+)" % did, session.cmd_output(cmd))[0])
 
 
