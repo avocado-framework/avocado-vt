@@ -205,16 +205,13 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
 
 #. Now, I deliberately introduced a bug on this code just to show you
    guys how to use some tools to find and remove trivial bugs on your
-   code. I strongly encourage you guys to check your code with the `inspektor`
-   tool. This tool uses pylint to catch bugs on test code. You can install
-   inspektor by adding the COPR repo https://copr.fedoraproject.org/coprs/lmr/Autotest/
-   and doing ::
+   code. I strongly encourage you guys to check your code with the `avocado-static-checks`
+   tool. This tool uses pylint to catch bugs on test code and other static checks.
+   It is available in the avocado-static-checks submodule. You can run it by running::
 
-    $ yum install inspektor
+        $ git submodule update --init --recursive
+        $ ./avocado-static-checks/run-static-checks
 
-   After you're done, you can run it::
-
-        $ inspekt lint generic/tests/uptime.py
         ************* Module generic.tests.uptime
         E0602: 10,4: run: Undefined variable 'logging'
         Pylint check fail: generic/tests/uptime.py
@@ -241,18 +238,22 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
            logging.info("Guest uptime result is: %s", uptime)
            session.close()
 
-#. Let's re-run ``inspektor`` to see if it's happy with the code
+#. Let's run ``check-lint`` to re-run the lint checks and see if it's happy with the code
    generated::
 
-        $ inspekt lint generic/tests/uptime.py
-        Syntax check PASS
+        $ ./avocado-static-checks/check-lint
+        Found configuration file: ./avocado-static-checks/../avocado-static-checks.conf
+        ** Running pylint on directory '.' with config from '.pylintrc'...
+
+        --------------------------------------------------------------------
+        Your code has been rated at 10.00/10 (previous run: 10.00/10, +0.00)
 
 #. So we're good. Nice! Now, as good indentation does matter to python,
-   `inspekt indent` will fix indentation problems, and cut trailing
+   `black` will fix indentation problems, and cut trailing
    whitespaces on your code. Very nice for tidying up your test before
    submission::
 
-        $ inspekt indent generic/tests/uptime.py
+        $ black generic/tests/uptime.py
 
 #. Now, you can test your code. When listing the qemu tests your new test should
    appear in the list (or shouldn't it?)::
