@@ -1790,16 +1790,24 @@ class BaseVM(object):
         """
         Save the virtual machine as the tag 'tag_name'
 
-        :param tag_name: tag of the virtual machine that saved
+        :param tag_name: tag for the virtual machine
 
         """
         raise NotImplementedError
 
     def loadvm(self, tag_name):
         """
-        Load the virtual machine tagged 'tag_name'.
+        Load the virtual machine from the tag 'tag_name'.
 
-        :param tag_name: tag of the virtual machine that saved
+        :param tag_name: tag for the virtual machine
+        """
+        raise NotImplementedError
+
+    def delvm(self, tag_name):
+        """
+        Delete the virtual machine tag 'tag_name'.
+
+        :param tag_name: tag for the virtual machine
         """
         raise NotImplementedError
 
