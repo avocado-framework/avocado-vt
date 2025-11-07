@@ -855,7 +855,7 @@ class MigrationTest(object):
                         % (err_msg, result.stderr_text.strip())
                     )
                 else:
-                    LOG.debug("It is the expected error message")
+                    LOG.debug("It is the expected error message:\n%s", err_msg)
             else:
                 if int(result.exit_status) != 0:
                     LOG.debug("Migration failure is expected result")
