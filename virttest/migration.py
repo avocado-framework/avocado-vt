@@ -70,25 +70,33 @@ class MigrationTest(object):
         :param src_uri: source virsh uri
         :return: updated dict of uptime
         """
+
+        def _check_vm_state(vm, vm_state, uri):
+            """
+            Check vm state
+
+            :param vm: VM object
+            :param vm_state: expected VM state
+            :param uri: virsh uri
+            """
+            if vm_state == "nonexist":
+                if virsh.domain_exists(vm.name, uri=uri, debug=True):
+                    raise exceptions.TestFail(
+                        "Expected the VM not to exist, bug it exists."
+                    )
+            else:
+                if not libvirt.check_vm_state(vm.name, vm_state, uri=uri, debug=True):
+                    raise exceptions.TestFail("Got the wrong VM state.")
+            LOG.info(f"Guest state is '{vm_state}' as expected.")
+
         vm_state_dest = params.get("virsh_migrate_dest_state", "running")
         vm_state_src = params.get("virsh_migrate_src_state", "shut off")
+
         for vm in vms:
             if dest_uri:
-                if not libvirt.check_vm_state(vm.name, vm_state_dest, uri=dest_uri):
-                    raise exceptions.TestFail(
-                        "Migrated VMs failed to be in %s "
-                        "state at destination" % vm_state_dest
-                    )
-                LOG.info(
-                    "Guest state is '%s' at destination is as expected", vm_state_dest
-                )
+                _check_vm_state(vm, vm_state_dest, uri=dest_uri)
             if src_uri:
-                if not libvirt.check_vm_state(vm.name, vm_state_src, uri=src_uri):
-                    raise exceptions.TestFail(
-                        "Migrated VMs failed to be in %s "
-                        "state at source" % vm_state_src
-                    )
-                LOG.info("Guest state is '%s' at source is as expected", vm_state_src)
+                _check_vm_state(vm, vm_state_src, uri=src_uri)
             if "offline" not in params.get(
                 "migrate_options", params.get("virsh_migrate_options", "")
             ):
@@ -341,7 +349,7 @@ class MigrationTest(object):
         multi_funcs=None,
         virsh_opt="",
         extra_opts="",
-        **args
+        **args,
     ):
         """
         Migrate vms.
@@ -565,7 +573,7 @@ class MigrationTest(object):
             multi_funcs=None,
             virsh_opt="",
             extra_opts="",
-            **args
+            **args,
         ):
 
             virsh_event_session = None
@@ -651,7 +659,7 @@ class MigrationTest(object):
                     multi_funcs=multi_funcs,
                     virsh_opt=virsh_opt,
                     extra_opts=extra_opts,
-                    **args
+                    **args,
                 )
         elif migration_type == "cross":
             # Migrate a vm to remote first,
