@@ -5780,6 +5780,15 @@ class VM(virt_vm.BaseVM):
         self.monitor.send_args_cmd("loadvm id=%s" % tag_name)
         self.verify_status("paused")  # Throws exception if not
 
+    def delvm(self, tag_name):
+        """
+        Override BaseVM delvm method
+        """
+        self.verify_status("paused")  # Throws exception if not
+        LOG.debug("Deleting VM %s from %s" % (self.name, tag_name))
+        self.monitor.send_args_cmd("delvm id=%s" % tag_name)
+        self.verify_status("paused")  # Throws exception if not
+
     def pause(self):
         """
         Pause the VM operation.
