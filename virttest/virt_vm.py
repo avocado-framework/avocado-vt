@@ -1488,6 +1488,7 @@ class BaseVM(object):
         password=None,
         virtio=False,
         status_check=True,
+        recreate_serial_console=False,
     ):
         """
         Make multiple attempts to log into the guest via serial console.
@@ -1499,8 +1500,15 @@ class BaseVM(object):
         :param status_check: Whether to call verify_alive to detect bad
             VM state early. Disable this when VM status might be unreliable,
             eg. during reboot or pause)
+        :param recreate_serial_console: Whether to cleanup and recreate the
+            serial console before attempting login. Useful after VM state
+            changes (reboot, migration, restore, etc.). Default is False
+            for backward compatibility.
         :return: ConsoleSession instance.
         """
+        if recreate_serial_console:
+            self.cleanup_serial_console()
+            self.create_serial_console()
         LOG.debug(
             "Attempting to log into '%s' via serial console " "(timeout %ds)",
             self.name,
