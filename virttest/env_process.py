@@ -71,6 +71,8 @@ from virttest.test_setup.rng_egd import EGDSetup
 from virttest.test_setup.storage import StorageConfig
 from virttest.test_setup.verify import VerifyHostDMesg
 from virttest.test_setup.vms import ProcessVMOff, UnrequestedVMHandler
+from virttest.vt_imgr import imgr
+from virttest.vt_resmgr import resmgr
 
 utils_libvirtd = lazy_import("virttest.utils_libvirtd")
 virsh = lazy_import("virttest.virsh")
@@ -110,7 +112,7 @@ THREAD_ERROR = False
 LOG = logging.getLogger("avocado." + __name__)
 
 
-def preprocess_image(test, params, image_name, vm_process_status=None):
+def preprocess_image(test, params, image_name, vm_process_status=None, vm_name=None):
     """
     Preprocess a single QEMU image according to the instructions in params.
 
@@ -118,34 +120,61 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
     :param params: A dict containing image preprocessing parameters.
     :param vm_process_status: This is needed in postprocess_image. Add it here
                               only for keep it work with process_images()
+    :param vm_name: vm tag defined in 'vms'
     :note: Currently this function just creates an image if requested.
     """
+    # FIXME:
+    image_id = None
+    if params.get("nodes"):
+        params = params.copy()
+        # 'images' is the vm's param, e.g. 'images_vm1', so when the 'vms' is
+        # set, the images defined in 'images' should be used by any vm
+        params[f"image_owner_{image_name}"] = vm_name
+        image_id = imgr.create_logical_image_from_params(image_name, params)
+        # TODO: How to set specified node affinity here? image_node_affinity?
+        imgr.set_logical_image_node_affinity(image_id)
+
+    params = params.object_params(image_name)
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
 
     if not storage.preprocess_image_backend(base_dir, params, image_name):
         LOG.error("Backend can't be prepared correctly.")
 
-    image_filename = storage.get_image_filename(params, base_dir)
+    image_filename = None
+    if not params.get("nodes"):
+        image_filename = storage.get_image_filename(params, base_dir)
 
     create_image = False
     if params.get("force_create_image") == "yes":
         create_image = True
-    elif params.get("create_image") == "yes" and not storage.file_exists(
-        params, image_filename
-    ):
-        create_image = True
+    elif params.get("create_image") == "yes":
+        # FIXME: check all volumes allocated
+        if params.get("nodes"):
+            volume = imgr.get_logical_image_info(
+                image_id, request=f"spec.images.{image_name}.spec.volume"
+            )
+            volume_conf = resmgr.get_resource_info(volume["volume"])
+            create_image = True if not volume_conf["meta"]["allocated"] else False
+        else:
+            create_image = (
+                True if not storage.file_exists(params, image_filename) else False
+            )
 
     if params.get("backup_image_before_testing", "no") == "yes":
+        # TODO: add backup_image for multihost
         image = qemu_storage.QemuImg(params, base_dir, image_name)
         image.backup_image(params, base_dir, "backup", True, True)
     if create_image:
-        if storage.file_exists(params, image_filename):
-            # As rbd image can not be covered, so need remove it if we need
-            # force create a new image.
-            storage.file_remove(params, image_filename)
-        image = qemu_storage.QemuImg(params, base_dir, image_name)
-        LOG.info("Create image on %s." % image.storage_type)
-        image.create(params)
+        if params.get("nodes"):
+            imgr.update_logical_image(image_id, "create")
+        else:
+            if storage.file_exists(params, image_filename):
+                # As rbd image can not be covered, so need remove it if we need
+                # force create a new image.
+                storage.file_remove(params, image_filename)
+            image = qemu_storage.QemuImg(params, base_dir, image_name)
+            LOG.info("Create image on %s." % image.storage_type)
+            image.create(params)
 
 
 def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
@@ -430,7 +459,7 @@ def preprocess_vm(test, params, env, name):
             )
 
 
-def check_image(test, params, image_name, vm_process_status=None):
+def check_image(test, params, image_name, vm_process_status=None, vm_name=None):
     """
     Check a single QEMU image according to the instructions in params.
 
@@ -439,6 +468,7 @@ def check_image(test, params, image_name, vm_process_status=None):
     :param vm_process_status: (optional) vm process status like running, dead
                               or None for no vm exist.
     """
+    params = params.object_params(image_name)
     clone_master = params.get("clone_master", None)
     base_dir = data_dir.get_data_dir()
     check_image_flag = params.get("check_image") == "yes"
@@ -509,7 +539,7 @@ def check_image(test, params, image_name, vm_process_status=None):
                 raise e
 
 
-def postprocess_image(test, params, image_name, vm_process_status=None):
+def postprocess_image(test, params, image_name, vm_process_status=None, vm_name=None):
     """
     Postprocess a single QEMU image according to the instructions in params.
 
@@ -525,6 +555,15 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
             "Skipped processing image '%s' since " "the VM is running!" % image_name
         )
         return
+
+    # FIXME: multihost
+    image_id = None
+    if params.get("nodes"):
+        image_id = imgr.query_logical_image(image_name, vm_name)
+        if image_id is None:
+            LOG.warning(f"Cannot find the image {image_name}")
+            image_id = imgr.create_logical_image_from_params(image_name, params)
+    params = params.object_params(image_name)
 
     restored, removed = (False, False)
     clone_master = params.get("clone_master", None)
@@ -583,10 +622,18 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
         )
         LOG.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
-            image.remove()
+            if params.get("nodes"):
+                imgr.update_logical_image(image_id, "destroy")
+                imgr.destroy_logical_image(image_id)
+            else:
+                image.remove()
         elif clone_master == "yes":
             if image_name in params.get("master_images_clone").split():
-                image.remove()
+                if params.get("nodes"):
+                    imgr.update_logical_image(image_id, "destroy")
+                    imgr.destroy_logical_image(image_id)
+                else:
+                    image.remove()
 
 
 def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
@@ -740,7 +787,16 @@ class _CreateImages(threading.Thread):
     in self.exc_info
     """
 
-    def __init__(self, image_func, test, images, params, exit_event, vm_process_status):
+    def __init__(
+        self,
+        image_func,
+        test,
+        images,
+        params,
+        exit_event,
+        vm_process_status,
+        vm_name=None,
+    ):
         threading.Thread.__init__(self)
         self.image_func = image_func
         self.test = test
@@ -749,6 +805,7 @@ class _CreateImages(threading.Thread):
         self.exit_event = exit_event
         self.exc_info = None
         self.vm_process_status = vm_process_status
+        self.vm_name = vm_name
 
     def run(self):
         try:
@@ -759,13 +816,14 @@ class _CreateImages(threading.Thread):
                 self.params,
                 self.exit_event,
                 self.vm_process_status,
+                self.vm_name,
             )
         except Exception:
             self.exc_info = sys.exc_info()
             self.exit_event.set()
 
 
-def process_images(image_func, test, params, vm_process_status=None):
+def process_images(image_func, test, params, vm_process_status=None, vm_name=None):
     """
     Wrapper which chooses the best way to process images.
 
@@ -778,11 +836,20 @@ def process_images(image_func, test, params, vm_process_status=None):
     images = params.objects("images")
     if len(images) > 20:  # Lets do it in parallel
         _process_images_parallel(
-            image_func, test, params, vm_process_status=vm_process_status
+            image_func,
+            test,
+            params,
+            vm_process_status=vm_process_status,
+            vm_name=vm_name,
         )
     else:
         _process_images_serial(
-            image_func, test, images, params, vm_process_status=vm_process_status
+            image_func,
+            test,
+            images,
+            params,
+            vm_process_status=vm_process_status,
+            vm_name=vm_name,
         )
 
 
@@ -802,7 +869,13 @@ def process_fs_sources(fs_source_func, test, params, vm_process_status=None):
 
 
 def _process_images_serial(
-    image_func, test, images, params, exit_event=None, vm_process_status=None
+    image_func,
+    test,
+    images,
+    params,
+    exit_event=None,
+    vm_process_status=None,
+    vm_name=None,
 ):
     """
     Original process_image function, which allows custom set of images
@@ -815,14 +888,17 @@ def _process_images_serial(
                               or None for no vm exist.
     """
     for image_name in images:
-        image_params = params.object_params(image_name)
-        image_func(test, image_params, image_name, vm_process_status)
+        # image_params = params.object_params(image_name)
+        # image_func(test, image_params, image_name, vm_process_status)
+        image_func(test, params, image_name, vm_process_status, vm_name)
         if exit_event and exit_event.is_set():
             LOG.error("Received exit_event, stop processing of images.")
             break
 
 
-def _process_images_parallel(image_func, test, params, vm_process_status=None):
+def _process_images_parallel(
+    image_func, test, params, vm_process_status=None, vm_name=None
+):
     """
     The same as _process_images but in parallel.
     :param image_func: Process function
@@ -838,7 +914,9 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
     for i in xrange(no_threads):
         imgs = images[i::no_threads]
         threads.append(
-            _CreateImages(image_func, test, imgs, params, exit_event, vm_process_status)
+            _CreateImages(
+                image_func, test, imgs, params, exit_event, vm_process_status, vm_name
+            )
         )
         threads[-1].start()
 
@@ -893,7 +971,9 @@ def process(
                     unpause_vm = True
                     vm_params["skip_cluster_leak_warn"] = "yes"
                 try:
-                    process_images(image_func, test, vm_params, vm_process_status)
+                    process_images(
+                        image_func, test, vm_params, vm_process_status, vm_name
+                    )
                 finally:
                     if unpause_vm:
                         vm.resume()
