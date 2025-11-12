@@ -1,7 +1,7 @@
 """
 disk device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsDisks
+https://libvirt.org/formatdomain.html#hard-drives-floppy-disks-cdroms
 """
 
 from virttest.libvirt_xml import accessors, xcepts

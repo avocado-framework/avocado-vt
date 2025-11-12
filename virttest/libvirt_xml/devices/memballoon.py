@@ -1,7 +1,7 @@
 """
 memballoon device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsMemBalloon
+https://libvirt.org/formatdomain.html#memory-balloon-device
 """
 
 from virttest.libvirt_xml import accessors

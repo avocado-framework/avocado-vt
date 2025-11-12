@@ -1,7 +1,7 @@
 """
 seclabel device support class(es)
 
-http://libvirt.org/formatdomain.html#seclabel
+https://libvirt.org/formatdomain.html#security-label
 """
 
 from virttest.libvirt_xml import accessors
