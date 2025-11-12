@@ -1,7 +1,7 @@
 """
 panic device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsPanic
+https://libvirt.org/formatdomain.html#panic-device
 """
 
 from virttest.libvirt_xml import accessors

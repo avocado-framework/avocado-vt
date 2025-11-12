@@ -1,7 +1,7 @@
 """
 watchdog device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsWatchdog
+https://libvirt.org/formatdomain.html#watchdog-devices
 """
 
 import logging

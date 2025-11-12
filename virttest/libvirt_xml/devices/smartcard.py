@@ -1,7 +1,7 @@
 """
 smartcard device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsSmartcard
+https://libvirt.org/formatdomain.html#smartcard-devices
 """
 
 from virttest.libvirt_xml import accessors

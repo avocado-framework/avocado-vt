@@ -1,7 +1,7 @@
 """
 input device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsInput
+https://libvirt.org/formatdomain.html#input-devices
 """
 
 from virttest.libvirt_xml import accessors

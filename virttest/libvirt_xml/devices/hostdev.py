@@ -1,7 +1,7 @@
 """
 hostdev device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsHostDev
+https://libvirt.org/formatdomain.html#host-device-assignment
 """
 
 from virttest.libvirt_xml import accessors

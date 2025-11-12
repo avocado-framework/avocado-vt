@@ -1,7 +1,7 @@
 """
 hub device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsHub
+https://libvirt.org/formatdomain.html#hub-devices
 """
 
 from virttest.libvirt_xml import accessors
