@@ -587,15 +587,27 @@ def setup_or_cleanup_iscsi(
     if is_setup:
         if is_login:
             _iscsi.login()
-            # The device doesn't necessarily appear instantaneously, so give
-            # about 5 seconds for it to appear before giving up
+            # The new block device might not become immediately available
+            # so wait for it both for iscsiadm as well as the filesystem
+            # to have finished the setup
             iscsi_device = utils_misc.wait_for(
                 _iscsi.get_device_name, 5, 0, 1, "Searching iscsi device name."
             )
+
             if iscsi_device:
+
+                def _device_name_exists():
+                    return os.path.exists(iscsi_device)
+
+                if not utils_misc.wait_for(
+                    _device_name_exists, timeout=10, first=0.1, step=0.5
+                ):
+                    raise exceptions.TestError(
+                        f"{iscsi_device} doesn't exist after 10 seconds"
+                    )
                 LOG.debug("iscsi device: %s", iscsi_device)
                 return iscsi_device
-            if not iscsi_device:
+            else:
                 LOG.error("Not find iscsi device.")
             # Cleanup and return "" - caller needs to handle that
             # _iscsi.export_target() will have set the emulated_id and
