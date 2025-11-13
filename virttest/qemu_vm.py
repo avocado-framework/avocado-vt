@@ -5766,7 +5766,7 @@ class VM(virt_vm.BaseVM):
         Override BaseVM savevm method
         """
         self.verify_status("paused")  # Throws exception if not
-        LOG.debug("Saving VM %s to %s" % (self.name, tag_name))
+        LOG.debug("Saving snapshot %s from VM %s", tag_name, self.name)
         self.monitor.send_args_cmd("savevm id=%s" % tag_name)
         self.monitor.cmd("system_reset")
         self.verify_status("paused")  # Throws exception if not
@@ -5776,8 +5776,17 @@ class VM(virt_vm.BaseVM):
         Override BaseVM loadvm method
         """
         self.verify_status("paused")  # Throws exception if not
-        LOG.debug("Loading VM %s from %s" % (self.name, tag_name))
+        LOG.debug("Loading snapshot %s from VM %s", tag_name, self.name)
         self.monitor.send_args_cmd("loadvm id=%s" % tag_name)
+        self.verify_status("paused")  # Throws exception if not
+
+    def delvm(self, tag_name):
+        """
+        Override BaseVM delvm method
+        """
+        self.verify_status("paused")  # Throws exception if not
+        LOG.debug("Deleting snapshot %s from VM %s", tag_name, self.name)
+        self.monitor.send_args_cmd("delvm id=%s" % tag_name)
         self.verify_status("paused")  # Throws exception if not
 
     def pause(self):
