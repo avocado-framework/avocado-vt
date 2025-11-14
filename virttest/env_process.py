@@ -24,6 +24,8 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    libvirt_version,
+    png_utils,
     ppm_utils,
     qemu_monitor,
     qemu_storage,
@@ -1561,6 +1563,16 @@ def _take_screendumps(test, params, env):
             os.makedirs(temp_dir)
         except OSError:
             pass
+
+    if params.get("vm_type") == "libvirt":
+        try:
+            qemu_supports_png = utils_misc.compare_qemu_version(7, 1, 0, False, params)
+            libvirt_supports_png = libvirt_version.version_compare(9, 0, 0)
+            check_qemu_libvirt_png_support = qemu_supports_png and libvirt_supports_png
+        except (RuntimeError, OSError, ValueError) as e:
+            LOG.warning("Version detection failed: %s, falling back to PPM", e)
+            check_qemu_libvirt_png_support = False
+
     random_id = utils_misc.generate_random_string(6)
     temp_filename = "scrdump-%s-iter%s.ppm" % (random_id, test.iteration)
     temp_filename = os.path.join(temp_dir, temp_filename)
@@ -1593,10 +1605,16 @@ def _take_screendumps(test, params, env):
             if not os.path.exists(temp_filename):
                 LOG.warning("VM '%s' failed to produce a screendump", vm.name)
                 continue
-            if not ppm_utils.image_verify_ppm_file(temp_filename):
-                LOG.warning("VM '%s' produced an invalid screendump", vm.name)
-                os.unlink(temp_filename)
-                continue
+            if check_qemu_libvirt_png_support:
+                if not png_utils.image_verify_png_file(temp_filename):
+                    LOG.warning("VM '%s' produced an invalid screendump", vm.name)
+                    os.unlink(temp_filename)
+                    continue
+            else:
+                if not ppm_utils.image_verify_ppm_file(temp_filename):
+                    LOG.warning("VM '%s' produced an invalid screendump", vm.name)
+                    os.unlink(temp_filename)
+                    continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (
                 vm.name,
                 vm_pid,
