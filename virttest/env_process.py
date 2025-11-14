@@ -24,6 +24,7 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    png_utils,
     ppm_utils,
     qemu_monitor,
     qemu_storage,
@@ -1593,10 +1594,21 @@ def _take_screendumps(test, params, env):
             if not os.path.exists(temp_filename):
                 LOG.warning("VM '%s' failed to produce a screendump", vm.name)
                 continue
-            if not ppm_utils.image_verify_ppm_file(temp_filename):
+            use_png = png_utils.should_use_png_format(vm, params)
+            if params.get("vm_type") == "qemu" and not ppm_utils.image_verify_ppm_file(
+                temp_filename
+            ):
                 LOG.warning("VM '%s' produced an invalid screendump", vm.name)
                 os.unlink(temp_filename)
                 continue
+            elif params.get("vm_type") == "libvirt" and use_png:
+                ret = png_utils.image_verify_png_file(temp_filename)
+                if ret:
+                    LOG.info("Qemu: the screen dump image file format is PNG!")
+                else:
+                    LOG.warning("Qemu:VM '%s' produced an invalid screendump", vm.name)
+                    os.unlink(temp_filename)
+                    continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (
                 vm.name,
                 vm_pid,
