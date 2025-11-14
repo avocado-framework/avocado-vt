@@ -934,14 +934,21 @@ class VM(virt_vm.BaseVM):
                     result += ",model=%s" % nic_model
                 if nettype and mac:
                     result += ",mac=%s" % mac
-                if (
-                    nettype
-                    and nic_queues
-                    and has_sub_option("network", "driver_queues")
-                ):
-                    result += ",driver_queues=%s" % nic_queues
-                    if nic_driver and has_sub_option("network", "driver_name"):
-                        result += ",driver_name=%s" % nic_driver
+                if nettype and nic_queues:
+                    if has_sub_option("network", "driver_queues"):
+                        result += ",driver_queues=%s" % nic_queues
+                        if nic_driver and has_sub_option("network", "driver_name"):
+                            result += ",driver_name=%s" % nic_driver
+                        elif nic_driver and not has_sub_option(
+                            "network", "driver_name"
+                        ):
+                            LOG.warning(
+                                "driver_name option is not supported by this version"
+                            )
+                    else:
+                        LOG.warning(
+                            "driver_queues option is not supported by this version"
+                        )
                 elif mac:  # possible to specify --mac w/o --network
                     result += " --mac=%s" % mac
             LOG.debug("vm.make_create_command.add_nic returning: %s", result)
