@@ -1,7 +1,7 @@
 """
 controller device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsControllers
+https://libvirt.org/formatdomain.html#controllers
 """
 
 from virttest.libvirt_xml import accessors, xcepts
