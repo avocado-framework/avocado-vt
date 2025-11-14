@@ -1568,6 +1568,31 @@ def run(test, params, env):
                                 "image workaround reboot kickstart "
                                 "parameter bug"
                             )
+                # For Windows unattended installations using virt-install, the
+                # VM will shut off during driver installation instead of
+                # restarting automatically. This is because virt-install creates
+                # transient domains that don't survive guest reboots.
+                is_windows_unattended = (
+                    unattended_install_config.unattended_file
+                    and unattended_install_config.unattended_file.endswith(".xml")
+                    and params.get("unattended_delivery_method") == "cdrom"
+                    and not vm.is_alive()
+                )
+                if is_windows_unattended:
+                    try:
+                        LOG.info(
+                            "Windows unattended installation VM shut down during reboot, restarting..."
+                        )
+                        vm.start()
+                        LOG.info(
+                            "VM successfully restarted, continuing installation monitoring"
+                        )
+                        continue
+                    except (virt_vm.VMStartError, process.CmdError) as restart_error:
+                        LOG.warning(
+                            "Failed to restart VM during Windows unattended install: %s",
+                            restart_error,
+                        )
 
                 # Print out the original exception before copying images.
                 LOG.error(e)
