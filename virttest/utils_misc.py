@@ -4466,6 +4466,111 @@ def get_distro(session=None):
             return distro_name
 
 
+def get_guest_distro_info(vm, serial=False):
+    """
+    Get comprehensive distribution information from guest VM
+
+    :param vm: libvirt_vm.VM instance to get info from
+    :param serial: If True, use serial login instead of regular login
+    :return: Dictionary with guest distribution information
+    """
+
+    guest_distro_info = {}
+    session = None
+
+    try:
+        if serial:
+            session = vm.wait_for_serial_login()
+        else:
+            session = vm.wait_for_login()
+
+        distro_id = get_distro(session)
+        if distro_id:
+            guest_distro_info["id"] = distro_id
+
+        # Get OS release information
+        status, output = cmd_status_output("cat /etc/os-release", session=session)
+        if status != 0:
+            raise RuntimeError(f"Failed to read /etc/os-release: exit code {status}")
+
+        guest_distro_info.update(_parse_os_release(output))
+
+        # Get kernel version
+        status, output = cmd_status_output("uname -r", session=session)
+        if status != 0:
+            raise RuntimeError(f"Failed to get kernel version: exit code {status}")
+
+        guest_distro_info["kernel_version"] = output.strip()
+        guest_distro_info["kernel_parts"] = _parse_kernel_version(output.strip())
+
+        return guest_distro_info
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to get guest distro info: {e}")
+    finally:
+        if session:
+            session.close()
+
+
+def _parse_os_release(os_release_output):
+    """Parse /etc/os-release content"""
+    info = {}
+    for line in os_release_output.split("\n"):
+        if "=" in line:
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"')
+            info[key.lower()] = value
+
+    result = {}
+    if "id" in info:
+        result["id"] = info["id"]
+    if "name" in info:
+        result["name"] = info["name"]
+    if "version" in info:
+        result["version"] = info["version"]
+    if "version_id" in info:
+        result["version_id"] = info["version_id"]
+
+    if "version_id" in info:
+        version_parts = info["version_id"].split(".")
+        result["version_parts"] = {
+            "major": version_parts[0] if len(version_parts) > 0 else "0",
+            "minor": version_parts[1] if len(version_parts) > 1 else "0",
+            "build_number": version_parts[2] if len(version_parts) > 2 else "0",
+        }
+
+    return result
+
+
+def _parse_kernel_version(kernel_version):
+    """Parse kernel version into major.minor.stable-patch_level format"""
+
+    try:
+        # Try to match full kernel version like "6.12.0-136.el10.s390x"
+        full_match = re.match(r"(\d+)\.(\d+)\.(\d+)-(\d+)", kernel_version)
+        if full_match:
+            return {
+                "major": int(full_match.group(1)),
+                "minor": int(full_match.group(2)),
+                "stable": int(full_match.group(3)),
+                "patch_level": int(full_match.group(4)),
+            }
+
+        # Fallback to basic version like "6.12.0"
+        basic_match = re.match(r"(\d+)\.(\d+)\.(\d+)", kernel_version)
+        if basic_match:
+            return {
+                "major": int(basic_match.group(1)),
+                "minor": int(basic_match.group(2)),
+                "stable": int(basic_match.group(3)),
+                "patch_level": 0,  # Default patch level if not found
+            }
+    except:
+        pass
+    return {"major": 0, "minor": 0, "stable": 0, "patch_level": 0}
+
+
 def get_sosreport(
     path=None,
     session=None,
