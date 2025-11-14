@@ -37,6 +37,7 @@ from virttest import (
     virt_vm,
     xml_utils,
 )
+from virttest.utils_libvirt import libvirt_bios
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.
@@ -302,13 +303,19 @@ class VM(virt_vm.BaseVM):
         """
         Undefine the VM.
         """
-        # If the current machine contains nvram, we'll set --keep-nvram
+        nvram_option = None
+        uefi_mode = libvirt_bios.check_uefi_mode(self.params)
+
         if self.params.get("vir_domain_undefine_nvram") == "yes":
             nvram_option = "--keep-nvram"
+        elif uefi_mode:
+            nvram_option = "--nvram"
+
+        if nvram_option:
             if options is None:
                 options = nvram_option
             else:
-                if not re.search(f"--nvram|{nvram_option}", options):
+                if not re.search(r"--nvram|--keep-nvram", options):
                     options += " %s" % nvram_option
         try:
             virsh.undefine(
@@ -1436,6 +1443,8 @@ class VM(virt_vm.BaseVM):
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
         bios_path = params.get("bios_path", None)
+        uefi_mode = libvirt_bios.check_uefi_mode(params)
+
         if bios_path:
             if not has_sub_option("boot", "loader"):
                 LOG.warning("bios option not supported by virt-install")
@@ -1445,6 +1454,12 @@ class VM(virt_vm.BaseVM):
                 else:
                     virt_install_cmd += " --boot "
                 virt_install_cmd += "loader=%s" % bios_path
+        elif uefi_mode:
+            if "--boot" in virt_install_cmd:
+                virt_install_cmd += ","
+            else:
+                virt_install_cmd += " --boot "
+            virt_install_cmd += "uefi"
 
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
