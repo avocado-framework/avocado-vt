@@ -24,6 +24,8 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    libvirt_version,
+    png_utils,
     ppm_utils,
     qemu_monitor,
     qemu_storage,
@@ -1394,21 +1396,30 @@ def postprocess(test, params, env):
             except Exception as detail:
                 LOG.info("Video creation failed for %s: %s", screendump_dir, detail)
 
-    # Warn about corrupt PPM files
+    # Warn about corrupt PPM/PNG files
     screendump_temp_dir = params.get("screendump_temp_dir")
     if screendump_temp_dir:
         screendump_temp_dir = utils_misc.get_path(test.bindir, screendump_temp_dir)
     else:
         screendump_temp_dir = test.debugdir
-    ppm_file_rex = "*_iter%s.ppm" % test.iteration
-    for f in glob.glob(os.path.join(screendump_temp_dir, ppm_file_rex)):
-        if not ppm_utils.image_verify_ppm_file(f):
-            LOG.warning("Found corrupt PPM file: %s", f)
+
+    image_format = _get_screendump_format(params)
+    image_file_rex = "*_iter%s.%s" % (test.iteration, image_format)
+
+    verify_image_format = {
+        "ppm": ppm_utils.image_verify_ppm_file,
+        "png": png_utils.image_verify_png_file,
+    }
+    verify_result = verify_image_format.get(image_format)
+    if verify_result:
+        for f in glob.glob(os.path.join(screendump_temp_dir, image_file_rex)):
+            if not verify_result(f):
+                LOG.warning("Found corrupt %s file: %s", image_format.upper(), f)
 
     # Should we convert PPM files to PNG format?
-    if params.get("convert_ppm_files_to_png", "no") == "yes":
+    if image_format == "ppm" and params.get("convert_ppm_files_to_png", "no") == "yes":
         try:
-            for f in glob.glob(os.path.join(screendump_temp_dir, ppm_file_rex)):
+            for f in glob.glob(os.path.join(screendump_temp_dir, image_file_rex)):
                 if ppm_utils.image_verify_ppm_file(f):
                     new_path = f.replace(".ppm", ".png")
                     image = PIL.Image.open(f)
@@ -1416,9 +1427,9 @@ def postprocess(test, params, env):
         except NameError:
             pass
 
-    # Should we keep the PPM files?
-    if params.get("keep_ppm_files", "no") != "yes":
-        for f in glob.glob(os.path.join(screendump_temp_dir, ppm_file_rex)):
+    # Should we keep the PPM/PNG files?
+    if params.get(f"keep_{image_format}_files", "no") != "yes":
+        for f in glob.glob(os.path.join(screendump_temp_dir, image_file_rex)):
             os.unlink(f)
 
     # Should we keep the screendump dirs?
@@ -1552,6 +1563,24 @@ def postprocess_on_error(test, params, env):
     params.update(params.object_params("on_error"))
 
 
+def _get_screendump_format(params):
+    image_format = "ppm"
+
+    # The default image format is set to PPM because this is the original usage
+    # within the framework. Adding PNG format support requires an unattended
+    # installation test case using virt-install, because according to libvirt
+    # official guide, the PNG format start QEMU (v7.1.0) and libvirt (v9.0.0)
+    # Furthermore, we do not want to change the way existing users use it, so
+    # we further restricted vm_type to libvirt
+    if (
+        params.get("vm_type") == "libvirt"
+        and utils_misc.compare_qemu_version(7, 1, 0, False, params)
+        and libvirt_version.version_compare(9, 0, 0)
+    ):
+        image_format = "png"
+    return image_format
+
+
 def _take_screendumps(test, params, env):
     global _screendump_thread_termination_event
     temp_dir = test.debugdir
@@ -1561,8 +1590,10 @@ def _take_screendumps(test, params, env):
             os.makedirs(temp_dir)
         except OSError:
             pass
+
     random_id = utils_misc.generate_random_string(6)
-    temp_filename = "scrdump-%s-iter%s.ppm" % (random_id, test.iteration)
+    image_format = _get_screendump_format(params)
+    temp_filename = "scrdump-%s-iter%s.%s" % (random_id, test.iteration, image_format)
     temp_filename = os.path.join(temp_dir, temp_filename)
     delay = float(params.get("screendump_delay", 5))
     quality = int(params.get("screendump_quality", 30))
@@ -1593,10 +1624,16 @@ def _take_screendumps(test, params, env):
             if not os.path.exists(temp_filename):
                 LOG.warning("VM '%s' failed to produce a screendump", vm.name)
                 continue
-            if not ppm_utils.image_verify_ppm_file(temp_filename):
-                LOG.warning("VM '%s' produced an invalid screendump", vm.name)
-                os.unlink(temp_filename)
-                continue
+            verify_image_format = {
+                "ppm": ppm_utils.image_verify_ppm_file,
+                "png": png_utils.image_verify_png_file,
+            }
+            verify_result = verify_image_format.get(image_format)
+            if verify_result and not verify_result(temp_filename):
+                if not verify_result(temp_filename):
+                    LOG.warning("VM '%s' produced an invalid screendump", vm.name)
+                    os.unlink(temp_filename)
+                    continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (
                 vm.name,
                 vm_pid,
@@ -1637,7 +1674,10 @@ def _take_screendumps(test, params, env):
                 try:
                     timestamp = os.stat(temp_filename).st_ctime
                     image = PIL.Image.open(temp_filename)
-                    image = ppm_utils.add_timestamp(image, timestamp)
+                    if image_format == "ppm":
+                        image = ppm_utils.add_timestamp(image, timestamp)
+                    if image_format == "png":
+                        image = png_utils.add_png_timestamp(image, timestamp)
                     image.save(screendump_filename, format="JPEG", quality=quality)
                 except (IOError, OSError) as error_detail:
                     LOG.warning(
