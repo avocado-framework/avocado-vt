@@ -1029,6 +1029,24 @@ class WindowsVMCheck(VMCheck):
             cmd += " " + name
         return self.run_cmd(cmd)[1]
 
+    def get_enumeration_drivers(self):
+        """
+        get enumeration drivers.
+        """
+        # WOW64 file system redirection can cause issues. Use SysNative for
+        # 64-bit systems when available.
+        status, _ = self.run_cmd(r"dir c:\windows\SysNative", debug=False)
+        if status == 0:
+            pnputil_path = r"c:\windows\SysNative\pnputil.exe"
+        else:
+            pnputil_path = r"c:\windows\System32\pnputil.exe"
+        LOG.debug("Using pnputil from: %s", pnputil_path)
+        cmd = r"%s -e" % pnputil_path
+        status, output = self.run_cmd(cmd)
+        if status != 0:
+            LOG.warning("pnputil command failed with status %s", status)
+        return output
+
     def get_driver_info(self, signed=True):
         """
         Get windows signed driver info.
