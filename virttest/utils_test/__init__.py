@@ -47,7 +47,6 @@ from virttest import (
     utils_misc,
     utils_net,
     utils_package,
-    utils_sys,
     virt_vm,
 )
 
@@ -209,25 +208,16 @@ def update_boot_option(
                     req_remove_args, session=session, remove_args=True
                 )
         else:
-            image_mode = utils_sys.is_image_mode(session=session)
-            if image_mode:
-                cmd = "rpm-ostree kargs "
-                remove_opt = "--delete-if-present="
-                add_opt = "--append-if-missing="
-            else:
-                if not utils_package.package_install("grubby", session=session):
-                    raise exceptions.TestError("Failed to install grubby package")
-                cmd = "grubby --update-kernel=`grubby --default-kernel` "
-                remove_opt = "--remove-args="
-                add_opt = "--args="
-
+            if not utils_package.package_install("grubby", session=session):
+                raise exceptions.TestError("Failed to install grubby package")
             msg = "Update guest kernel option. "
+            cmd = "grubby --update-kernel=`grubby --default-kernel` "
             if req_remove_args:
                 msg += " remove args: %s" % req_remove_args
-                cmd += '%s"%s" ' % (remove_opt, req_remove_args)
+                cmd += '--remove-args="%s" ' % req_remove_args
             if req_args:
                 msg += " add args: %s" % req_args
-                cmd += '%s"%s"' % (add_opt, req_args)
+                cmd += '--args="%s"' % req_args
             if req_remove_args or req_args:
                 __run_cmd_and_handle_error(
                     msg, cmd, session, "Failed to modify guest kernel option"
