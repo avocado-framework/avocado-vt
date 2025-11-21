@@ -74,37 +74,6 @@ def get_host_bridge_id(session=None):
     return host_bridges if host_bridges else []
 
 
-def is_image_mode(session=None):
-    """
-    Check if current OS is in image mode or package mode
-
-    :param session: aexpect session
-    :return: boolean, True for image mode, otherwise False
-    """
-    check_command = "bootc status"
-    err_msg = "image:\\s+null"
-
-    def _check_output(status, output):
-        LOG.debug("status: %s\noutput:\n%s", status, output)
-        if not status:
-            result = re.search(err_msg, output) is None
-        else:
-            result = False
-        LOG.debug(
-            "Detected %s mode by command '%s'",
-            "image" if result else "package",
-            check_command,
-        )
-        return result
-
-    if session:
-        status, output = session.cmd_status_output(check_command)
-        return _check_output(status, output)
-    else:
-        ret = process.run(check_command, shell=True, verbose=True, ignore_status=True)
-        return _check_output(ret.exit_status, ret.stdout_text)
-
-
 def get_pids_for(process_names, sort_pids=True, session=None):
     """
     Given a list of names, retrieve the PIDs for
