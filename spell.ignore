@@ -11,9 +11,11 @@ kubevirt
 libvirt
 libvirtd
 lmr
+lt
 params
 qemu
 redhat
+RemoteSession
 stderr
 stdout
 tcpdump
@@ -850,6 +852,7 @@ basedir
 basefile
 baselabel
 baseurl
+BaseRequestHandler
 basicConfig
 behaviour
 benchmarking
@@ -988,6 +991,8 @@ deque
 Descendent
 descendents
 Destructor
+Deserialize
+deserialized
 DevContainer
 devel
 devmajor
@@ -1309,6 +1314,7 @@ libs
 libspice
 libvirts
 LibvirtXMLError
+lifecycle
 linenum
 listenaddress
 lldp
@@ -1324,6 +1330,7 @@ logicaldisk
 logout
 Logout
 logsessions
+LogRecord
 logvol
 lookups
 loopback
@@ -1782,6 +1789,7 @@ smbios
 smitterl
 smm
 sockios
+socketserver
 somearea
 somekey
 sos
@@ -2095,9 +2103,12 @@ groupname
 nodexx
 vq
 ioport
+Yongxue
+yhong
 yy
 KVER
 maxMemory
+mkdtemp
 valuenn
 fcntl
 tapname
