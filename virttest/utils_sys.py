@@ -98,6 +98,9 @@ def is_image_mode(session=None):
         )
         return result
 
+    status, _ = cmd_status_output("which bootc", shell=True, session=session)
+    if status:
+        return False
     if session:
         status, output = session.cmd_status_output(check_command)
         return _check_output(status, output)
