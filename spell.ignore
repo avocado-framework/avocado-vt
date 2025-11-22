@@ -14,6 +14,8 @@ lmr
 params
 qemu
 redhat
+sclpcpi
+sclp
 stderr
 stdout
 tcpdump
@@ -125,6 +127,8 @@ io
 pcie
 protocl
 systemd
+Sysplex
+sysplex
 cfg
 dst
 Init
@@ -183,12 +187,16 @@ aug
 chardev
 domcapabilities
 hmat
+hw
+HW
 num
 polkit
 pos
 xpath
 xpaths
 cpus
+cpi
+CPI
 fsfreeze
 OVS
 PID
