@@ -1,7 +1,7 @@
 """
 Address device / device descriptor class
 
-http://libvirt.org/formatdomain.html#elementsAddress
+https://libvirt.org/formatdomain.html#device-addresses
 """
 
 from virttest.libvirt_xml import accessors, xcepts
