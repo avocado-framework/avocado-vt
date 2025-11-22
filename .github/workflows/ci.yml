@@ -23,7 +23,9 @@ jobs:
       - name: Install make
         run: sudo apt-get update && sudo apt-get install -y make
       - name: Install dependencies
-        run: pip install -r requirements-travis.txt
+        run: |
+          pip install avocado-framework
+          pip install -r requirements-travis.txt
       - name: Run tests
         run: make check
 
