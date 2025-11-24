@@ -654,7 +654,7 @@ def postprocess_vm(test, params, env, name):
 
         if kernel_extra_params_add or kernel_extra_params_remove:
             # VM might be brought down after test
-            if vm and not vm.is_alive():
+            if not vm.is_alive():
                 if params.get("vm_type") == "libvirt":
                     vm.start()
                 elif params.get("vm_type") == "qemu":
@@ -669,40 +669,45 @@ def postprocess_vm(test, params, env, name):
     if params.get("vm_extra_dump_paths") is not None:
         # even if there is previously existing session we cannot guarantee its state
         # is viable, e.g. it may be in python .env or SMTP sub-session, etc.
-        session = vm.wait_for_login(timeout=vm.LOGIN_WAIT_TIMEOUT)
-        vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps")
-        if not os.path.exists(vm_extra_dumps):
-            os.makedirs(vm_extra_dumps)
-        for i, dump_path in enumerate(
-            params.get_list("vm_extra_dump_paths", delimiter=";")
-        ):
-            try:
-                vm.copy_files_from(dump_path, vm_extra_dumps)
-            except:
-                LOG.error(
-                    "Could not copy the extra dump '%s' from the vm '%s'",
-                    dump_path,
-                    vm.name,
-                )
-            if params.get_boolean(f"verify_vm_extra_dump_{i}"):
-                for message in params.get_list(
-                    f"expected_vm_extra_dump_{i}", delimiter=";"
-                ):
-                    LOG.info(f"Checking for expected message in {dump_path}")
-                    if not ops.grep(
-                        session, message, dump_path, check=True, flags="-aP"
+        if not vm.is_alive():
+            LOG.warning("VM is not alive so we cannot download extra dump paths")
+        else:
+            session = vm.wait_for_login(timeout=vm.LOGIN_WAIT_TIMEOUT)
+            vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps")
+            if not os.path.exists(vm_extra_dumps):
+                os.makedirs(vm_extra_dumps)
+            for i, dump_path in enumerate(
+                params.get_list("vm_extra_dump_paths", delimiter=";")
+            ):
+                try:
+                    vm.copy_files_from(dump_path, vm_extra_dumps)
+                except:
+                    LOG.error(
+                        "Could not copy the extra dump '%s' from the vm '%s'",
+                        dump_path,
+                        vm.name,
+                    )
+                if params.get_boolean(f"verify_vm_extra_dump_{i}"):
+                    for message in params.get_list(
+                        f"expected_vm_extra_dump_{i}", delimiter=";"
                     ):
-                        raise exceptions.TestFail(
-                            f"Missing expected message '{message}' in {vm.name} extra dump {dump_path}"
-                        )
-                for message in params.get_list(
-                    f"unexpected_vm_extra_dump_{i}", delimiter=";"
-                ):
-                    LOG.info(f"Checking for unexpected message in {dump_path}")
-                    if ops.grep(session, message, dump_path, check=True, flags="-aP"):
-                        raise exceptions.TestFail(
-                            f"Redundant unexpected message '{message}' in {vm.name} extra dump {dump_path}"
-                        )
+                        LOG.info(f"Checking for expected message in {dump_path}")
+                        if not ops.grep(
+                            session, message, dump_path, check=True, flags="-aP"
+                        ):
+                            raise exceptions.TestFail(
+                                f"Missing expected message '{message}' in {vm.name} extra dump {dump_path}"
+                            )
+                    for message in params.get_list(
+                        f"unexpected_vm_extra_dump_{i}", delimiter=";"
+                    ):
+                        LOG.info(f"Checking for unexpected message in {dump_path}")
+                        if ops.grep(
+                            session, message, dump_path, check=True, flags="-aP"
+                        ):
+                            raise exceptions.TestFail(
+                                f"Redundant unexpected message '{message}' in {vm.name} extra dump {dump_path}"
+                            )
 
     # Close all SSH sessions that might be active to this VM
     for s in vm.remote_sessions[:]:
