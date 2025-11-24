@@ -1358,7 +1358,7 @@ def postprocess(test, params, env):
         )
     except Exception as details:
         err += "\nPostprocess: %s" % str(details).replace("\\n", "\n  ")
-        LOG.error(details)
+        LOG.exception(details)
 
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
