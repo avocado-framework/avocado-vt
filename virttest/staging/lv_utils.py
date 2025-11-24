@@ -47,7 +47,7 @@ import time
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import error_context
+from virttest import error_context, utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 
@@ -448,14 +448,32 @@ def get_vg_mapped_blk_target(vg_name, session=None):
                     Otherwise default value means it work for host
     :return: The mapped blk target or None
     """
-    cmd = "pvs | grep %s" % vg_name
+    cmd = "pvs"
+    status, output = utils_misc.cmd_status_output(cmd, shell=True, session=session)
+
+    if status != 0:
+        return None
+
+    if not output:
+        return None
+
+    lines = output.splitlines()
+    if not lines:
+        return None
+
     blk_target = None
-    if session:
-        output = session.cmd_output(cmd).strip()
-    else:
-        output = process.run(cmd, shell=True).stdout_text
-    if output:
-        # PV normally present as /dev/sda1
-        pv_name = output.split()[0]
-        blk_target = re.findall(r"[a-z]+", pv_name.split("/dev/")[1])[0]
+    # expected output, e.g.
+    #   PV         VG   Fmt  Attr PSize  PFree
+    #   /dev/vda2  rhel lvm2 a--  <9.00g    0
+    for line in lines[1:]:
+        if vg_name in line:
+            parts = line.split()
+            if parts:
+                pv_name = parts[0]
+                try:
+                    blk_target = re.findall(r"[a-z]+", pv_name.split("/dev/")[1])[0]
+                    break
+                except (IndexError, AttributeError):
+                    continue
+
     return blk_target
