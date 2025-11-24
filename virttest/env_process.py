@@ -655,7 +655,7 @@ def postprocess_vm(test, params, env, name):
 
         if kernel_extra_params_add or kernel_extra_params_remove:
             # VM might be brought down after test
-            if vm and not vm.is_alive():
+            if not vm.is_alive():
                 if params.get("vm_type") == "libvirt":
                     vm.start()
                 elif params.get("vm_type") == "qemu":
