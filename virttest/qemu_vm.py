@@ -291,11 +291,6 @@ class VM(virt_vm.BaseVM):
         :raise VMDeadError: If the VM is dead
         :raise: Various monitor exceptions if the monitor is unresponsive
         """
-        self.verify_disk_image_bootable()
-        self.verify_userspace_crash()
-        self.verify_kernel_crash()
-        self.verify_illegal_instruction()
-        self.verify_kvm_internal_error()
         try:
             virt_vm.BaseVM.verify_alive(self)
             if self.monitor:
@@ -304,6 +299,11 @@ class VM(virt_vm.BaseVM):
             raise virt_vm.VMDeadError(
                 self.process.get_status(), self.process.get_output()
             )
+        self.verify_disk_image_bootable()
+        self.verify_userspace_crash()
+        self.verify_kernel_crash()
+        self.verify_illegal_instruction()
+        self.verify_kvm_internal_error()
 
     def is_alive(self):
         """
