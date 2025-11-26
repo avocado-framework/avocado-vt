@@ -5,6 +5,7 @@ http://libvirt.org/formatdomain.html
 
 import logging
 import re
+import xml.etree.ElementTree as ET
 
 from avocado.core import exceptions
 
@@ -80,7 +81,9 @@ def check_guest_machine_type(vmxml, expected_version="9.4.0"):
     return True
 
 
-def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
+def check_guest_xml_by_xpaths(
+    vmxml, xpaths_text, ignore_status=False, extend_root=False
+):
     """
     Check if the xml has elements/attributes/texts that match all xpaths and texts
 
@@ -94,13 +97,18 @@ def check_guest_xml_by_xpaths(vmxml, xpaths_text, ignore_status=False):
                         ]
     :param ignore_status: boolean, True to not raise an exception when not matched
                                    False to raise an exception when not matched
+    :param extend_root: boolean, True to extend the root element to check all elements/attributes
     :return: boolean, True when matched, False when not matched
     """
+    xml_root = vmxml.xmltreefile
+    if extend_root:
+        xml_root = ET.Element("extend_root")
+        xml_root.append(vmxml.xmltreefile.getroot())
     for xpath_text in xpaths_text:
         elem_attrs_list = xpath_text["element_attrs"]
         elem_text = xpath_text.get("text", "")
         for one_elem_attr in elem_attrs_list:
-            matches = vmxml.xmltreefile.findall(one_elem_attr)
+            matches = xml_root.findall(one_elem_attr)
             if not matches:
                 if ignore_status:
                     return False
