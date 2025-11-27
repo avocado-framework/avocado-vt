@@ -1491,6 +1491,7 @@ def run(test, params, env):
     start_time = time.time()
 
     log_file = vm.serial_console_log
+    old_log_file = None  # Store old log file path for libvirt domain restarts
     if log_file is None:
         raise virt_vm.VMConfigMissingError(vm.name, "serial")
 
@@ -1569,6 +1570,67 @@ def run(test, params, env):
                                 "parameter bug"
                             )
 
+                # For Windows unattended installations using libvirt, the VM may
+                # shut down during driver installation or system reboot. This is
+                # normal behavior - handle it like QEMU does (seamlessly).
+                is_windows_unattended = (
+                    unattended_install_config.unattended_file
+                    and unattended_install_config.unattended_file.endswith(".xml")
+                    and params.get("unattended_delivery_method") == "cdrom"
+                )
+                if is_windows_unattended and not vm.is_alive():
+                    try:
+                        # Store the old log file path to check for completion messages
+                        old_log_file = log_file
+                        LOG.debug(
+                            "Windows unattended install: VM rebooted, restarting domain..."
+                        )
+                        vm.start()
+
+                        # Wait a bit for domain to be fully ready before creating serial console
+                        time.sleep(5)
+
+                        # Ensure serial console is properly created and working
+                        if (
+                            vm.serial_console is None
+                            or not vm.serial_console.is_alive()
+                        ):
+                            LOG.warning(
+                                "Serial console not ready after restart, recreating..."
+                            )
+                            vm.cleanup_serial_console()
+                            vm.create_serial_console()
+
+                        if (
+                            vm.serial_console is None
+                            or not vm.serial_console.is_alive()
+                        ):
+                            LOG.error(
+                                "Failed to create working serial console after restart"
+                            )
+                            # Continue without serial console monitoring for this iteration
+                            time.sleep(2)
+                            continue
+
+                        # Update log file path to the new serial console log after restart
+                        log_file = vm.serial_console_log
+                        LOG.debug(
+                            "Domain restarted, updated serial console log from: %s to: %s",
+                            old_log_file,
+                            log_file,
+                        )
+
+                        # Note: Completion checking will be handled in the main monitoring loop
+
+                        LOG.debug(
+                            "Continuing installation monitoring with new log file"
+                        )
+                        continue  # Continue monitoring seamlessly
+                    except Exception:
+                        # If restart fails, then it's a real error
+                        LOG.error("Failed to restart domain after Windows reboot")
+                        raise e
+
                 # Print out the original exception before copying images.
                 LOG.error(e)
                 copy_images()
@@ -1592,6 +1654,21 @@ def run(test, params, env):
                     log_file, rh_upgrade_error_str
                 )
                 post_finish_str_found = string_in_serial_log(log_file, post_finish_str)
+                # For libvirt Windows unattended, also check old log file if available
+                if (
+                    old_log_file
+                    and os.path.exists(old_log_file)
+                    and params.get("vm_type") == "libvirt"
+                    and unattended_install_config.unattended_file
+                    and unattended_install_config.unattended_file.endswith(".xml")
+                ):
+                    try:
+                        if not post_finish_str_found:
+                            post_finish_str_found = string_in_serial_log(
+                                old_log_file, post_finish_str
+                            )
+                    except IOError:
+                        pass
             except IOError:
                 # Only make noise after several failed reads
                 serial_read_fails += 1
