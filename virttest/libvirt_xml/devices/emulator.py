@@ -1,7 +1,7 @@
 """
 Support for the pseudo 'emulator' device XML
 
-http://libvirt.org/formatdomain.html#elementsDevices
+https://libvirt.org/formatdomain.html#devices
 """
 
 from virttest.libvirt_xml import accessors

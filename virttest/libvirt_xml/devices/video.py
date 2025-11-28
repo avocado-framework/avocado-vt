@@ -1,7 +1,7 @@
 """
 video device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsVideo
+https://libvirt.org/formatdomain.html#video-devices
 """
 
 from virttest.libvirt_xml import accessors

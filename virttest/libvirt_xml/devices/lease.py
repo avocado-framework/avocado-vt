@@ -1,7 +1,7 @@
 """
 lease device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsLease
+https://libvirt.org/formatdomain.html#device-leases
 """
 
 from virttest.libvirt_xml import accessors

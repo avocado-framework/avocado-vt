@@ -1,7 +1,7 @@
 """
 tpm device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsTpm
+https://libvirt.org/formatdomain.html#tpm-device
 """
 
 import logging
