@@ -237,6 +237,22 @@ def package_install(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
     return utils_misc.wait_for(mgr.install, timeout)
 
 
+def package_install_any(candidates, session=None, timeout=PKG_MGR_TIMEOUT):
+    """
+    Try to install the first available package from candidates.
+
+    :param candidates: iterable of package names to try in order
+    :param session: session Object
+    :param timeout: timeout for each install session
+    :return: True if any candidate installed successfully, else False
+    """
+    for pkg in candidates:
+        mgr = package_manager(session, pkg)
+        if utils_misc.wait_for(mgr.install, timeout):
+            return True
+    return False
+
+
 def package_remove(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
     """
     Try to remove packages on system with package manager.
