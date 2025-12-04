@@ -1691,6 +1691,25 @@ def get_guest_nameserver(session):
     return output
 
 
+def get_dhcp_client(session):
+    """
+    Return the available dhcp client command and its release argument.
+
+    :param session:  serial session or remote session
+    :return: tuple of dhcp command and its release argument, raises TestError if none found
+    """
+    dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
+
+    for cmd, release_flag in dhcp_clients:
+        status, _ = utils_misc.cmd_status_output(
+            "which %s" % cmd, shell=True, ignore_status=True, session=session
+        )
+        if status == 0:
+            return cmd, release_flag
+
+    raise exceptions.TestError("No dhcp client found on the system")
+
+
 def restart_guest_network(
     session, mac_addr=None, os_type="linux", ip_version="ipv4", timeout=240
 ):
@@ -1704,32 +1723,18 @@ def restart_guest_network(
     :param timeout: timeout value for command.
     """
     if os_type == "linux":
-        dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-        dhcp_cmd = None
-        release_cmd = None
-
-        for client, release_arg in dhcp_clients:
-            try:
-                session.cmd("which %s" % client)
-            except aexpect.ShellCmdError:
-                continue
-            dhcp_cmd = client
-            release_cmd = "%s %s" % (client, release_arg)
-            break
-
-        if dhcp_cmd is None:
-            raise LookupError("No DHCP client found")
+        dhcp_cmd, release_flag = get_dhcp_client(session)
 
         if mac_addr:
             nic_ifname = get_linux_ifname(session, mac_addr)
             restart_cmd = "ifconfig %s up; " % nic_ifname
-            restart_cmd += "%s; " % release_cmd
+            restart_cmd += "%s; " % release_flag
             if ip_version == "ipv6":
                 restart_cmd += "%s -6 %s" % (dhcp_cmd, nic_ifname)
             else:
                 restart_cmd += "%s %s" % (dhcp_cmd, nic_ifname)
         else:
-            restart_cmd = "%s; " % release_cmd
+            restart_cmd = "%s; " % release_flag
             if ip_version == "ipv6":
                 restart_cmd += "%s -6" % dhcp_cmd
             else:
@@ -4640,9 +4645,13 @@ def create_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
+    dhcp_cmd, release_flag = get_dhcp_client(session)
     cmd = (
-        "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"
-        "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+        f"ovs-vsctl add-br {ovs_bridge_name};"
+        f"ovs-vsctl add-port {ovs_bridge_name} {iface_name};"
+        f"{dhcp_cmd} {release_flag};"
+        "sleep 5;"
+        f"{dhcp_cmd} {ovs_bridge_name}"
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4684,9 +4693,13 @@ def delete_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
+    dhcp_cmd, release_flag = get_dhcp_client(session)
     cmd = (
-        "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};dhclient -r;"
-        "sleep 5 ;dhclient {1}".format(ovs_bridge_name, iface_name)
+        f"ovs-vsctl del-port {ovs_bridge_name} {iface_name};"
+        f"ovs-vsctl del-br {ovs_bridge_name};"
+        f"{dhcp_cmd} {release_flag};"
+        "sleep 5;"
+        f"{dhcp_cmd} {iface_name}"
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4790,12 +4803,17 @@ def create_linux_bridge_tmux(
                 "Create bridge fail as there is already interface named '%s' on the host "
                 "and can not delete with error: %s" % (linux_bridge_name, o)
             )
+
     if iface_name:
+        dhcp_cmd, _ = get_dhcp_client(session)
         shell_cmd = (
-            "ip link add name {0} type bridge; ip link set {1} up; "
-            "ip link set {1} master {0}; ip link set {0} up; "
-            "pkill dhclient; sleep 6; "
-            "dhclient {0};".format(linux_bridge_name, iface_name)
+            f"ip link add name {linux_bridge_name} type bridge; "
+            f"ip link set {iface_name} up; "
+            f"ip link set {iface_name} master {linux_bridge_name}; "
+            f"ip link set {linux_bridge_name} up; "
+            f"pkill {dhcp_cmd}; "
+            "sleep 6; "
+            f"{dhcp_cmd} {linux_bridge_name};"
         )
         if remove_addr_on_dev:
             shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
@@ -4837,12 +4855,14 @@ def delete_linux_bridge_tmux(
         return (0, "Bridge does not exist")
 
     if iface_name:
+        dhcp_cmd, release_flag = get_dhcp_client(session)
         cmd = (
-            'tmux -c "ip link set {1} nomaster; '
-            "dhclient -r {0} || true; dhclient -r {1} || true; "
-            'ip link delete {0}; sleep 5; dhclient {1}"'.format(
-                linux_bridge_name, iface_name
-            )
+            f'tmux -c "ip link set {iface_name} nomaster; '
+            f"{dhcp_cmd} {release_flag} {linux_bridge_name} || true; "
+            f"{dhcp_cmd} {release_flag} {iface_name} || true; "
+            f"ip link delete {linux_bridge_name}; "
+            "sleep 5; "
+            f"{dhcp_cmd} {iface_name}"
         )
     else:
         cmd = "ip link delete %s" % linux_bridge_name
