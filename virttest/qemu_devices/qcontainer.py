@@ -34,6 +34,7 @@ except ImportError:
 # Internal imports
 from virttest import (
     arch,
+    coco,
     data_dir,
     qemu_storage,
     storage,
@@ -3981,10 +3982,12 @@ class DevContainer(object):
             Required: cbitpos, reduced-phys-bits
             """
             sev_common_props = {
-                # FIXME: Set the following two properties from sev capabilities
-                # if they are not set yet
-                "cbitpos": int(params["vm_sev_cbitpos"]),
-                "reduced-phys-bits": int(params["vm_sev_reduced_phys_bits"]),
+                "cbitpos": params.get_numeric(
+                    "vm_sev_cbitpos", coco.sev.get_cbit_position()
+                ),
+                "reduced-phys-bits": params.get_numeric(
+                    "vm_sev_reduced_phys_bits", coco.sev.get_reduced_phys_bits()
+                ),
             }
 
             if params.get("vm_sev_kernel_hashes"):
