@@ -1,7 +1,7 @@
 """
 random number generator device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsRng
+https://libvirt.org/formatdomain.html#random-number-generator-device
 """
 
 from virttest.libvirt_xml import accessors, xcepts

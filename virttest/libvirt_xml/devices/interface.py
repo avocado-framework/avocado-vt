@@ -1,8 +1,8 @@
 """
 interface device support class(es)
 
-http://libvirt.org/formatdomain.html#elementsNICS
-http://libvirt.org/formatnwfilter.html#nwfconceptsvars
+https://libvirt.org/formatdomain.html#network-interfaces
+https://libvirt.org/formatdomain.html#traffic-filtering-with-nwfilter
 """
 
 from virttest.libvirt_xml import accessors, xcepts

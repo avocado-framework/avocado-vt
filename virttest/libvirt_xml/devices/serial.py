@@ -1,7 +1,7 @@
 """
 Classes to support XML for serial devices
 
-http://libvirt.org/formatdomain.html#elementCharSerial
+https://libvirt.org/formatdomain.html#consoles-serial-parallel-channel-devices
 """
 
 from virttest.libvirt_xml import accessors, base
