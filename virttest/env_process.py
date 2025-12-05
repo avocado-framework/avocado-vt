@@ -182,7 +182,7 @@ def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
                 if os.path.exists(fs_source):
                     shutil.rmtree(fs_source, ignore_errors=True)
                 LOG.info("Create filesystem source %s." % fs_source)
-                os.makedirs(fs_source)
+                os.makedirs(fs_source, exist_ok=True)
     else:
         test.cancel('Unsupport the type of filesystem "%s"' % fs_type)
 
