@@ -37,7 +37,7 @@ class IOWrapper(object):
 
     def __init__(self, obj):
         """
-        :param obj: IO obj for example file decriptor.
+        :param obj: IO obj for example file descriptor.
         """
         self._obj = obj
 
@@ -50,11 +50,11 @@ class IOWrapper(object):
         source when timeout is None and nonblocking for timeout is not None.
         Implementation example StdIWrapper.
 
-        :params max_len: Max len of readed data.
+        :params max_len: Max len of read data.
         :type max_len: int
         :param timeout: Timeout of reading operation.
         :type timeout: float
-        :return: Readed data.
+        :return: Read data.
         """
         raise NotImplementedError()
 
@@ -80,11 +80,11 @@ class IOWrapper(object):
         """
         Wait for data for time == timeout.
 
-        :params max_len: Max len of readed data.
+        :params max_len: Max len of read data.
         :type max_len: int
         :param timeout: Timeout of reading operation.
         :type timeout: float
-        :return: Readed data.
+        :return: Read data.
         """
         r, _, _ = select.select([self.fileno()], [], [], timeout)
         if r:

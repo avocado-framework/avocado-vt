@@ -48,27 +48,34 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils.astring import to_text
 
-# pylint: disable=W0611
 # Symlink avocado implementation of process functions
-from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
-from avocado.utils.process import pid_exists  # pylint: disable=W0611
-from avocado.utils.process import safe_kill  # pylint: disable=W0611
-from avocado.utils.process import CmdResult
+from avocado.utils.process import (
+    CmdResult,
+    kill_process_by_pattern,
+)
 from avocado.utils.process import kill_process_tree as _kill_process_tree
 from avocado.utils.process import (
+    pid_exists,
+)
+from avocado.utils.process import (
     process_in_ptree_is_defunct as process_or_children_is_defunct,
+)
+from avocado.utils.process import (
+    safe_kill,
 )
 
 # Symlink avocado implementation of port-related functions
 
 try:
-    from avocado.utils.network.ports import find_free_port  # pylint: disable=W0611
-    from avocado.utils.network.ports import find_free_ports  # pylint: disable=W0611
-    from avocado.utils.network.ports import is_port_free  # pylint: disable=W0611
+    from avocado.utils.network.ports import (
+        find_free_port,
+        find_free_ports,
+        is_port_free,
+    )
 except ImportError:
-    from avocado.utils.network import is_port_free  # pylint: disable=W0611
-    from avocado.utils.network import find_free_port  # pylint: disable=W0611
-    from avocado.utils.network import find_free_ports  # pylint: disable=W0611
+    from avocado.utils.network import is_port_free
+    from avocado.utils.network import find_free_port
+    from avocado.utils.network import find_free_ports
 
 import six
 from six.moves import xrange
@@ -278,7 +285,7 @@ def aton(sr):
     Transform a string to a number(include float and int). If the string is
     not in the form of number, just return false.
 
-    :param sr: string to transfrom
+    :param sr: string to transform
     :return: float, int or False for failed transform
     """
     try:
@@ -884,7 +891,7 @@ def safe_rmdir(path, timeout=10, session=None):
     :param session: ShellSession Object
     :type timeout: int
     :raises: OSError, with errno 39 in case after the timeout
-             shutil.rmtree could not successfuly complete. If any attempt
+             shutil.rmtree could not successfully complete. If any attempt
              to rmtree fails with errno different than 39, that exception
              will be just raised.
     """
@@ -1343,7 +1350,7 @@ def add_identities_into_ssh_agent():
     ssh_agent_pid = re.search(re_agent_pid, ssh_env).group("SSH_AGENT_PID")
     LOG.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
 
-    LOG.debug("Update SSH envrionment variables")
+    LOG.debug("Update SSH environment variables")
     os.environ["SSH_AUTH_SOCK"] = ssh_auth_sock
     os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
     os.environ["SSH_AGENT_PID"] = ssh_agent_pid
@@ -1567,7 +1574,7 @@ class NumaInfo(object):
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
-            LOG.warning("Get unexpect information from numctl")
+            LOG.warning("Get unexpected information from numctl")
             numa_sys_path = self.numa_sys_path
             distance_path = get_path(numa_sys_path, "node%s/distance" % node_id)
             if not check_isfile(distance_path, session=self.session):
@@ -3607,7 +3614,7 @@ def check_device_driver(pci_id, driver_type):
     """
     device_driver = "/sys/bus/pci/devices/%s/driver" % pci_id
     if not check_isdir(device_driver):
-        LOG.debug("Make sure %s has binded driver.")
+        LOG.debug("Make sure %s has binded driver.", pci_id)
         return False
     driver = process.run(
         "readlink %s" % device_driver, ignore_status=True
@@ -4251,7 +4258,7 @@ def join_bg_jobs(bg_jobs, timeout=None):
 
     try:
         # We are holding ends to stdin, stdout pipes
-        # hence we need to be sure to close those fds no mater what
+        # hence we need to be sure to close those fds no matter what
         start_time = time.time()
         timeout_error = _wait_for_commands(bg_jobs, start_time, timeout)
 
@@ -4665,7 +4672,7 @@ def get_sosreport(
 
 def asterisk_passwd(passwd):
     """
-    Proctect plain password to be printed in log files
+    Protect plain password to be printed in log files
 
     In order to debug, Keep the 1st and last character.
 

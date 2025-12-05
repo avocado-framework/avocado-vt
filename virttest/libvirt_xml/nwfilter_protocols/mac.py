@@ -1,5 +1,5 @@
 """
-mac protocl support class(es)
+mac protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoMAC
 """

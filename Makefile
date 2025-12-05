@@ -26,7 +26,7 @@ all:
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "unlink:   Disables egg links and unlinks needed resources"
 	@echo
-	@echo "Platform independent distribution/installtion related targets:"
+	@echo "Platform independent distribution/installation related targets:"
 	@echo "source:   Create source package"
 	@echo "install:  Install on local system"
 	@echo
@@ -46,8 +46,8 @@ requirements: pip
 	- $(PYTHON) -m pip install -r requirements.txt
 
 check:
-	./avocado-static-checks/run-static-checks
-	pylint --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
+	git submodule update --init --recursive
+	pre-commit run --all-files
 
 clean:
 	rm -rf MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD build dist

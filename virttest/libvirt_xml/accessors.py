@@ -111,7 +111,7 @@ class AccessorBase(PropCanBase):
             and parent_element.tag == tag_name
         ) and nested is False:
             return parent_element
-        excpt_str = (
+        except_str = (
             'Exception thrown from %s for property "%s" while'
             ' looking for element tag "%s", on parent at xpath'
             ' "%s", in XML\n%s\n'
@@ -130,11 +130,11 @@ class AccessorBase(PropCanBase):
                 parent_element = self.xmltreefile().find(parent_xpath)
             # if create or not, raise if not exist
             if parent_element is None:
-                raise xcepts.LibvirtXMLAccessorError(excpt_str)
+                raise xcepts.LibvirtXMLAccessorError(except_str)
         try:
             element = parent_element.find(tag_name)
         except Exception:
-            logging.error(excpt_str)
+            logging.error(except_str)
             raise
         if element is None:
             if create:  # Create the element

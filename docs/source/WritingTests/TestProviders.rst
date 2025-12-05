@@ -84,7 +84,7 @@ test provider file:
     # Optional git branch (for git repo type)
     branch: master
 
-    # Optionall git commit reference (tag or sha1)
+    # Optional git commit reference (tag or sha1)
     ref: e44231e88300131621586d24c07baa8e627de989
 
     # Pubkey: File containing public key for signed tags (git)
@@ -130,4 +130,3 @@ Let's say you want to use a directory in your file system
     subdir: virt-test/qemu/
     [openvswitch]
     subdir: virt-test/openvswitch/
-
