@@ -16,7 +16,7 @@ from pathlib import Path
 import six
 from aexpect import remote
 from avocado.core import exceptions
-from avocado.utils import archive, distro, genio, linux_modules, path, process, wait
+from avocado.utils import archive, distro, genio, path, process, wait
 
 from virttest import (
     cpu,
@@ -27,6 +27,7 @@ from virttest import (
     openvswitch,
     utils_config,
     utils_libvirtd,
+    utils_linux_modules,
     utils_logfile,
     utils_misc,
     utils_net,
@@ -703,8 +704,8 @@ class HugePageConfig(object):
             # Set hugepage may fail because of insufficient continual memory
             # Compact memory to get more continual memory
             if (
-                linux_modules.check_kernel_config("CONFIG_COMPACTION")
-                == linux_modules.ModuleConfig.BUILTIN
+                utils_linux_modules.check_kernel_config("CONFIG_COMPACTION")
+                == utils_linux_modules.ModuleConfig.BUILTIN
             ):
                 with open("/proc/sys/vm/compact_memory", "w") as memory:
                     memory.write("1")
