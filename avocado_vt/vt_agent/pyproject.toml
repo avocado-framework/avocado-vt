@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "avocado-vt-agent"
+version = "0.1.0"
+requires-python = ">=3.8"
+authors = [
+    {name = "Yongxue Hong", email = "yhong@redhat.com"},
+    {name = "Xu Han", email = "xuhan@redhat.com"},
+    {name = "Zhenchao Liu", email = "zhencliu@redhat.com"},
+]
+maintainers = [
+    {name = "Yongxue Hong", email = "yhong@redhat.com"},
+    {name = "Xu Han", email = "xuhan@redhat.com"},
+    {name = "Zhenchao Liu", email = "zhencliu@redhat.com"},
+]
+description = "Avocado Agent for Virtualization Testing"
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://avocado-vt.readthedocs.io/en/latest/"
+Documentation = "https://avocado-vt.readthedocs.io/en/latest/index.html#"
+Repository = "https://github.com/avocado-framework/avocado-vt"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["avocado_vt.agent"]
