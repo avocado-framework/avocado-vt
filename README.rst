@@ -48,3 +48,19 @@ AI-Generated code policy
 ========================
 The Avocado-vt project allows the use of AI-generated code, but it has to follow
 the guidelines and requirements outlined in the `Policy for AI-Generated Code <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/ai_policy.html>`__
+
+Codeowners
+==========
+
+Contributors can request reviews from the following codeowners based on the area
+of their changes:
+
+* **Libvirt**: @smitterl, @cliping, @nanli1, @Yingshun, @dzhengfy, @chloerh
+
+* **Qemu**: @YongxueHong, @zhencliu, @nickzhq
+
+* **Avocado-vt core**: @smitterl, @richtja, @nickzhq, @YongxueHong, @zhencliu, @cliping, @nanli1, @Yingshun, @dzhengfy, @chloerh, @PaulYuuu
+
+* **Documentation**: @smitterl, @richtja, @clebergnu
+
+* **Avocado-vt CI**: @richtja, @clebergnu, @PaulYuuu
