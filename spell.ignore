@@ -16,6 +16,7 @@ qemu
 redhat
 sclpcpi
 sclp
+RemoteSession
 stderr
 stdout
 tcpdump
