@@ -1,6 +1,8 @@
 import logging
+import os
 import re
 import signal
+import tempfile
 import threading
 import time
 import types
@@ -11,6 +13,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 
 from virttest import (
+    data_dir,
     libvirt_version,
     remote,
     test_setup,
@@ -50,6 +53,9 @@ class MigrationTest(object):
         # The return values for those functions invoked during migration
         # The format is: <func_object, func_return>
         self.func_ret = {}
+        # Backup storage for existing VMs on destination host
+        # format: vm_name -> backup_xml_file_path
+        self._dest_vm_backups = {}
 
     def post_migration_check(
         self, vms, params, uptime=None, dest_uri=None, src_uri=None
@@ -703,30 +709,147 @@ class MigrationTest(object):
         LOG.info("Checking migration result...")
         self.check_result(self.ret, args)
 
-    def cleanup_dest_vm(self, vm, srcuri, desturi):
+    def cleanup_dest_vm(self, vm, srcuri, desturi, backup_existing=True):
         """
         Cleanup migrated vm on remote host.
+        If backup_existing is True and VM exists on destination but is not running,
+        backup its XML before undefining it for later restoration.
+
+        :param vm: VM object
+        :param srcuri: source URI
+        :param desturi: destination URI
+        :param backup_existing: If True, backup existing non-running VMs before cleanup
         """
         vm.connect_uri = desturi
         if vm.exists():
-            if vm.is_persistent():
-                vm.undefine(options="--nvram")
+            # Check if VM is running - if so, we can't safely backup/undefine
             if vm.is_alive():
+                # If VM is running, we cannot backup it safely
+                # Log warning and skip backup, but still destroy it for migration
+                LOG.warning(
+                    "VM '%s' is running on destination host. "
+                    "Cannot backup running VM. Destroying it for migration.",
+                    vm.name
+                )
                 # If vm on remote host is unaccessible
                 # graceful shutdown may cause confused
                 vm.destroy(gracefully=False)
+
+            # Backup existing VM if requested and VM is not running
+            # Only backup persistent VMs (transient VMs don't need backup)
+            if backup_existing and not vm.is_alive() and vm.is_persistent():
+                try:
+                    # Create backup XML file
+                    backup_file = tempfile.mktemp(
+                        suffix="_{}_backup.xml".format(vm.name),
+                        dir=data_dir.get_tmp_dir()
+                    )
+                    # Dump XML to backup file
+                    result = virsh.dumpxml(
+                        vm.name, extra="--inactive", to_file=backup_file,
+                        uri=desturi, ignore_status=False
+                    )
+                    if result.exit_status == 0 and os.path.exists(backup_file):
+                        self._dest_vm_backups[vm.name] = backup_file
+                        LOG.info(
+                            "Backed up existing VM '%s' on destination to '%s'",
+                            vm.name, backup_file
+                        )
+                    else:
+                        LOG.warning(
+                            "Failed to backup VM '%s' XML, continuing without backup",
+                            vm.name
+                        )
+                except Exception as detail:
+                    LOG.warning(
+                        "Exception while backing up VM '%s': %s. Continuing without backup.",
+                        vm.name, detail
+                    )
+
+            # Undefine the VM (if persistent)
+            if vm.is_persistent():
+                vm.undefine(options="--nvram")
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
 
+    def restore_dest_vm(self, vm, srcuri, desturi):
+        """
+        Restore a VM on destination host from backup if it was backed up earlier.
+
+        :param vm: VM object
+        :param srcuri: source URI
+        :param desturi: destination URI
+        """
+        if vm.name not in self._dest_vm_backups:
+            # No backup exists for this VM, nothing to restore
+            return
+
+        backup_file = self._dest_vm_backups.get(vm.name)
+        if not backup_file or not os.path.exists(backup_file):
+            LOG.warning(
+                "Backup file for VM '%s' not found at '%s', skipping restore",
+                vm.name, backup_file
+            )
+            # Clean up the entry
+            self._dest_vm_backups.pop(vm.name, None)
+            return
+
+        try:
+            vm.connect_uri = desturi
+            # Check if VM already exists (from migration)
+            if vm.exists():
+                # Remove the migrated VM first
+                if vm.is_alive():
+                    vm.destroy(gracefully=False)
+                if vm.is_persistent():
+                    vm.undefine(options="--nvram")
+
+            # Restore from backup
+            LOG.info("Restoring VM '%s' from backup '%s'", vm.name, backup_file)
+            result = virsh.define(backup_file, uri=desturi, ignore_status=False)
+            if result.exit_status == 0:
+                LOG.info("Successfully restored VM '%s' on destination", vm.name)
+            else:
+                LOG.error(
+                    "Failed to restore VM '%s' from backup: %s",
+                    vm.name, result.stderr_text
+                )
+        except Exception as detail:
+            LOG.error(
+                "Exception while restoring VM '%s': %s",
+                vm.name, detail
+            )
+        finally:
+            # Clean up backup file
+            try:
+                if os.path.exists(backup_file):
+                    os.remove(backup_file)
+            except Exception as detail:
+                LOG.warning(
+                    "Failed to remove backup file '%s': %s",
+                    backup_file, detail
+                )
+            # Remove from backups dict
+            self._dest_vm_backups.pop(vm.name, None)
+            # Set connect uri back to local uri
+            vm.connect_uri = srcuri
+
     def cleanup_vm(self, vm, desturi):
         """
-        Cleanup migrated vm on remote host and local host
+        Cleanup migrated vm on remote host and local host.
+        Also restores any backed-up VMs on destination host.
 
         :param vm: vm object
         :param desturi: uri for remote access
         """
         try:
-            self.cleanup_dest_vm(vm, vm.connect_uri, desturi)
+            # First restore any backed-up VM on destination (if backup exists)
+            # restore_dest_vm() will remove the migrated VM and restore the backup
+            self.restore_dest_vm(vm, vm.connect_uri, desturi)
+            # If no backup was restored, clean up the migrated VM normally
+            # (restore_dest_vm returns early if no backup exists)
+            if vm.name not in self._dest_vm_backups:
+                self.cleanup_dest_vm(vm, vm.connect_uri, desturi, backup_existing=False)
         except Exception as err:
             LOG.error(err)
         if vm.is_alive():

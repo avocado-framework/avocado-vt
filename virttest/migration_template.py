@@ -971,6 +971,22 @@ class MigrationTemplate(object):
                 continue
             LOG.debug("Vm %s is removed", vm.name)
 
+        # Restore backed-up VMs on destination host after removing migrated VMs
+        # Only restore if VM was backed up during setup (check if backup exists)
+        LOG.info("Restore backed-up VMs on destination host")
+        for vm in self.vms:
+            # Only restore if there's a backup for this VM
+            if vm.name in self.obj_migration._dest_vm_backups:
+                try:
+                    # Restore only on destination host (where backup was taken)
+                    self.obj_migration.restore_dest_vm(vm, self.src_uri, self.dest_uri)
+                except Exception as detail:
+                    LOG.warning(
+                        "Failed to restore backed-up VM %s, detail: %s",
+                        vm.name, detail
+                    )
+                    continue
+
         # Need to undefine vms on src host(if vm is not migrated back)
         LOG.info("Undefine vms on src host")
         for backup in self.vm_xml_backup:
