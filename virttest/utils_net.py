@@ -3981,7 +3981,25 @@ def get_windows_nic_attribute(
     :param target: which nic attribute you want to get.
 
     """
-    cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
+    if utils_misc.is_wmic_available(session):
+        cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
+    else:
+        value_ps = value
+        if value and key and key.lower() in {"macaddress", "mac"}:
+            value_ps = value.replace(":", "-").upper()
+        if global_switch == "nic":
+            wmi_class = "Win32_NetworkAdapter"
+        elif global_switch == "nicconfig":
+            wmi_class = "Win32_NetworkAdapterConfiguration"
+        else:
+            raise exceptions.TestError(
+                "Unsupported global_switch '%s' for PowerShell fallback" % global_switch
+            )
+        cmd = (
+            "PowerShell -NoProfile -Command "
+            '"(Get-CimInstance {wmi_class} | '
+            "Where-Object {{$_.{key} -eq '{value}'}}).{target}\""
+        ).format(wmi_class=wmi_class, key=key, value=value_ps, target=target)
     status, out = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
         err_msg = "Execute guest shell command('%s') " "failed with error: '%s'" % (
@@ -3990,8 +4008,9 @@ def get_windows_nic_attribute(
         )
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
-    # First line is header, return second line
-    return lines[1]
+    # WMIC output has a header (value is in lines[1])
+    # PowerShell output has no header, so return out.strip()
+    return lines[1] if len(lines) > 1 else out.strip()
 
 
 def set_win_guest_nic_status(session, connection_id, status, timeout=240):
