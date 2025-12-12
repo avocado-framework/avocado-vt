@@ -730,7 +730,7 @@ def resize_filesystem_linux(session, partition, size):
     :param size: resize file system to size.
                  size unit can be 'B', 'K', 'M', 'G'.
                  support transfer size with SIZE_AVAILABLE,
-                 enlarge to maximun available size.
+                 enlarge to maximum available size.
     """
 
     def get_start_size():

@@ -47,4 +47,3 @@ See Also
 
 -  `bridge <CartesianConfigReference-KVM-bridge.html>`_
 -  `redirs <CartesianConfigReference-KVM-redirs.html>`_
-

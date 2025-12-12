@@ -202,7 +202,9 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
         if qemu_fs_proxy_bin is not None:
             os.symlink(qemu_fs_proxy_bin, qemu_fs_proxy_dst)
         else:
-            LOG.warning("Qemu fs proxy path %s not found on source dir")
+            LOG.warning(
+                "Qemu fs proxy path %s not found on source dir", qemu_fs_proxy_bin
+            )
 
     def _install_phase_init(self):
         """

@@ -893,7 +893,7 @@ class VM(virt_vm.BaseVM):
                 result = " --security"
                 if sec_type == "static":
                     if sec_label is None:
-                        raise ValueError("Seclabel is not setted for static.")
+                        raise ValueError("Seclabel is not set for static.")
                     result += " type=static,label=%s" % (sec_label)
                 elif sec_type == "dynamic":
                     result += " type=dynamic"
@@ -1975,7 +1975,7 @@ class VM(virt_vm.BaseVM):
             LOG.debug(e)
         else:
             try:
-                # Only configurate RHEL5 and below
+                # Only configure RHEL5 and below
                 regex = "gettys are handled by"
                 # As of RHEL7 systemd message is displayed
                 regex += "|inittab is no longer used when using systemd"
@@ -2552,7 +2552,7 @@ class VM(virt_vm.BaseVM):
             pid_file = "/var/run/libvirt/esx/%s.pid" % self.name
         # TODO: Add more vm driver type
         else:
-            raise ValueError("Unsupport connect uri: %s." % self.connect_uri)
+            raise ValueError("Unsupported connect uri: %s." % self.connect_uri)
         pid = None
         if os.path.exists(pid_file):
             try:

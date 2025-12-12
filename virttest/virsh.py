@@ -14,9 +14,9 @@ keyword arguments.
 
 The standard set of keyword arguments to all functions/modules is declared
 in the VirshBase class.  Only the 'virsh_exec' key is guaranteed to always
-be present, the remainder may or may not be provided.  Therefor, virsh
+be present, the remainder may or may not be provided.  Therefore, virsh
 functions/methods should use the dict.get() method to retrieve with a default
-for non-existant keys.
+for non-existent keys.
 
 :copyright: 2012 Red Hat Inc.
 """
@@ -181,7 +181,7 @@ class VirshSession(aexpect.ShellSession):
                 self.virsh_exec = "%s \"%s -c '%s'\"" % (ssh_cmd, virsh_exec, self.uri)
             else:
                 self.virsh_exec = '%s "%s"' % (ssh_cmd, virsh_exec)
-        else:  # setting up a local session or re-using a session
+        else:  # setting up a local session or reusing a session
             self.virsh_exec = virsh_exec
             if self.uri:
                 self.virsh_exec += " -c '%s'" % self.uri
@@ -676,7 +676,7 @@ class EventTracker(object):
     def start_get_event(vm_name, event_cmd="event {} --all --loop", uri=None):
         """
         Use a virsh session with subcommand 'event' to catch events
-        :param vm_name: name of the vm to be catched
+        :param vm_name: name of the vm to be caught
         :param event_cmd: cmd to check event
         :return: the virsh session with 'event'
         """
@@ -711,7 +711,7 @@ class EventTracker(object):
         event_output = finish_get_event(virsh_session)
 
         :param virsh_session: virsh session to catch events
-        :return: actual event output catched
+        :return: actual event output caught
         """
         virsh_session.send_ctrl("^C")
         time.sleep(5)
@@ -1212,7 +1212,7 @@ def driver(**dargs):
     :param dargs: standardized virsh function API keywords
     :return: VM driver name
     """
-    # libvirt schme composed of driver + command
+    # libvirt scheme composed of driver + command
     # ref: http://libvirt.org/uri.html
     scheme = urllib.parse.urlsplit(canonical_uri(**dargs))[0]
     # extract just the driver, whether or not there is a '+'
@@ -2566,7 +2566,7 @@ def pool_define_as(name, pool_type, target="", extra="", **dargs):
         logical
             LVM Volume Group
         mpath
-            Multipath Device Enumerater
+            Multipath Device Enumerator
         scsi
             SCSI Host Adapter
         rbd

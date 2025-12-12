@@ -66,7 +66,7 @@ def check_nodedev(dev_name, dev_parent=None):
         return False
     if fc_dict["node_name"] != wwnn_from_xml:
         LOG.error(
-            "The node name is differnet: %s is not %s",
+            "The node name is different: %s is not %s",
             fc_dict["node_name"],
             wwnn_from_xml,
         )
@@ -80,7 +80,7 @@ def check_nodedev(dev_name, dev_parent=None):
         return False
     if fc_dict["fabric_name"] != fabric_wwn_from_xml:
         LOG.error(
-            "The fabric wwpn is differnt: %s is not %s",
+            "The fabric wwpn is different: %s is not %s",
             fc_dict["fabric_name"],
             fabric_wwn_from_xml,
         )
@@ -395,7 +395,7 @@ def prepare_multipath_conf(
                 conf_file.write(new_conf_content)
                 LOG.info("Replace multipath conf to: %s" % new_conf_content)
             else:
-                LOG.info("Multipath conf exsits, skip preparation.")
+                LOG.info("Multipath conf exists, skip preparation.")
     else:
         with open(conf_path, "w") as conf_file:
             conf_file.write(new_conf_content)

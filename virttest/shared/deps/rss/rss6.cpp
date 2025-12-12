@@ -248,7 +248,7 @@ SOCKET PrepareListenSocket(char *port)
 	WSADATA wsaData;
 	ADDRINFO Hints, *AddrInfo;
 	SOCKET ServSock;
-	fd_set SockSet;   
+	fd_set SockSet;
 	if ((RetVal = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0)
 	{
 		ExitOnError("WSAStartup failed");
@@ -319,9 +319,9 @@ client_info* Accept(SOCKET ServSock)
 	if (ConnSock == INVALID_SOCKET)
 	{
 		ExitOnError("accept() failed with error", TRUE);
-		
+
 	}
-	
+
 	if (getnameinfo((LPSOCKADDR)&From, FromLen, Hostname,
 		sizeof(Hostname), NULL, 0, NI_NUMERICHOST) != 0)
 		strcpy(Hostname, "<unknown>");

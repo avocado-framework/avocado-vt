@@ -1276,7 +1276,7 @@ class Lexer(object):
 
         :param lType: List of allowed tokens
         :param end_tokens: List of tokens for end reading
-        :return: List of readed tokens.
+        :return: List of read tokens.
         """
         if end_tokens is None:
             end_tokens = [LEndL]
@@ -1299,7 +1299,7 @@ class Lexer(object):
         Read tokens from iterator until get one of end_tokens and strip LWhite
 
         :param end_tokens:  List of tokens for end reading
-        :return: List of readed tokens.
+        :return: List of read tokens.
         """
         if end_tokens is None:
             end_tokens = [LEndL]
@@ -1530,7 +1530,7 @@ class Parser(object):
 
     def only_filter(self, variant):
         """
-        Apply a only filter programatically and keep track of it.
+        Apply a only filter programmatically and keep track of it.
 
         Equivalent to parse a "only variant" line.
 
@@ -1542,7 +1542,7 @@ class Parser(object):
 
     def no_filter(self, variant):
         """
-        Apply a no filter programatically and keep track of it.
+        Apply a no filter programmatically and keep track of it.
 
         Equivalent to parse a "no variant" line.
 
@@ -1554,7 +1554,7 @@ class Parser(object):
 
     def assign(self, key, value):
         """
-        Apply an assignment programatically and keep track of it.
+        Apply an assignment programmatically and keep track of it.
 
         Equivalent to parse a "key = value" line.
 
@@ -2317,7 +2317,7 @@ def convert_data_size(size, default_sufix="B"):
     Convert data size from human readable units to an int of arbitrary size.
 
     :param size: Human readable data size representation (string).
-    :param default_sufix: Default sufix used to represent data.
+    :param default_sufix: Default suffix used to represent data.
     :return: Int with data size in the appropriate order of magnitude.
     """
     orders = {
@@ -2339,7 +2339,7 @@ def convert_data_size(size, default_sufix="B"):
 def compare_string(str1, str2):
     """
     Compare two int string and return -1, 0, 1.
-    It can compare two memory value even in sufix
+    It can compare two memory value even in suffix
 
     :param str1: The first string
     :param str2: The second string

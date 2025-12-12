@@ -39,7 +39,13 @@ from avocado.utils import path as utils_path
 from avocado.utils import process, stacktrace
 from avocado.utils.astring import to_text
 
-from virttest import data_dir, gluster, iscsi, libvirt_storage, nfs
+from virttest import (
+    data_dir,
+    gluster,
+    iscsi,
+    libvirt_storage,
+    nfs,
+)
 from virttest import remote as remote_old
 from virttest import (
     test_setup,
@@ -311,7 +317,7 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
             for snap_name in snapshot_list:
                 virsh.snapshot_delete(vm_name, snap_name, "--metadata")
             # Delete all snapshot by qemu-img.
-            # Domain xml should be proviced by parameter, we can't get
+            # Domain xml should be provided by parameter, we can't get
             # the image name from dumpxml command, it will return a
             # snapshot image name
             if domxml:
@@ -374,11 +380,11 @@ def get_all_cells():
 
 def check_blockjob(vm_name, target, check_point="none", value="0"):
     """
-    Run blockjob command to check block job progress, bandwidth, ect.
+    Run blockjob command to check block job progress, bandwidth, etc.
 
     :param vm_name: Domain name
     :param target: Domain disk target dev
-    :param check_point: Job progrss, bandwidth or none(no job)
+    :param check_point: Job progress, bandwidth or none(no job)
     :param value: Value of progress, bandwidth(with unit) or 0(no job)
     :return: Boolean value, true for pass, false for fail
     """
@@ -1500,7 +1506,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             check_pass = ping_s == 0
         else:
             LOG.debug("Support check points are: %s", support_check)
-            LOG.error("Unsupport check point: %s", checkpoint)
+            LOG.error("Unsupported check point: %s", checkpoint)
     except Exception as detail:
         raise exceptions.TestFail("Interface check failed: %s" % detail)
     return check_pass
@@ -1614,7 +1620,7 @@ def create_controller_xml(contr_dict):
     """
     Create a controller xml
 
-    :param contr_dict: The dict params includs controller configurations
+    :param contr_dict: The dict params includes controller configurations
     :return: new controller created
     """
     contr_type = contr_dict.get("controller_type", "scsi")
@@ -1784,7 +1790,7 @@ def create_disk_xml(params):
             if transport:
                 source_host[0].update({"transport": transport})
         else:
-            exceptions.TestSkipError("Unsupport disk type %s" % type_name)
+            exceptions.TestSkipError("Unsupported disk type %s" % type_name)
         source_startupPolicy = params.get("source_startupPolicy")
         if source_startupPolicy:
             source_attrs["startupPolicy"] = source_startupPolicy
@@ -4130,7 +4136,7 @@ def check_logfile(
     :param log_file: the given file
     :param str_in_log: bool, True if the file should include the given string,
                         otherwise, False
-    :param cmd_parms: The parms for remote executing
+    :param cmd_parms: The params for remote executing
     :param runner_on_target:  Remote runner
     :param ignore_status: True to return False on failure,
                           False to raise exception on failure
