@@ -2336,6 +2336,19 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
         return ("%.20f" % data_size).rstrip("0")
 
 
+def is_wmic_available(session):
+    """
+    Check if 'wmic' is available on the Windows guest.
+    :param session: Windows guest session
+    :return: True if wmic can be executed, False otherwise
+    """
+    try:
+        status, _ = session.cmd_status_output("wmic /?", timeout=10)
+        return status == 0
+    except Exception:
+        return False
+
+
 def get_free_disk(session, mount):
     """
     Get FreeSpace for given mount point.
@@ -2474,7 +2487,14 @@ def get_win_disk_vol(session, condition="VolumeName='WIN_UTILS'"):
 
     :return: volume ID.
     """
-    cmd = "wmic logicaldisk where (%s) get DeviceID" % condition
+    if is_wmic_available(session):
+        cmd = "wmic logicaldisk where (%s) get DeviceID" % condition
+    else:
+        cmd = (
+            "PowerShell -NoProfile -Command "
+            '"(Get-CimInstance Win32_LogicalDisk | Where-Object { $_.%s }).DeviceID"'
+            % condition.replace("=", "-eq")
+        )
     output = session.cmd(cmd, timeout=120)
     device = re.search(r"(\w):", output, re.M)
     if not device:
