@@ -18,6 +18,7 @@ from virttest import (
     utils_iptables,
     utils_misc,
     utils_net,
+    utils_sys,
     utils_test,
 )
 
@@ -372,6 +373,7 @@ class MigrationTest(object):
                                     {"func": <function domjobabort at 0x7f5835cd08c8>,
                                      "before_pause": "no"}
                                    ]
+        :param virsh_opt: str, virsh options
         :param args: dictionary used by func,
                      'func_param' is mandatory for func parameter.
                      If no real func_param, none is requested.
@@ -709,7 +711,7 @@ class MigrationTest(object):
             raise exceptions.TestFail()
 
         LOG.info("Checking migration result...")
-        self.check_result(self.ret, args)
+        self.check_result(self.ret, args, vms)
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
         """
@@ -830,17 +832,19 @@ class MigrationTest(object):
         extra_args.update({"err_msg": params.get("err_msg")})
         return extra_args
 
-    def check_result(self, result, params):
+    def check_result(self, result, params, vms):
         """
         Check if the migration result is as expected
 
         :param result: the output of migration
         :param params: the parameters dict
-        :raise: test.fail if test is failed
+        :param vms: vm instances
+        :raise: exceptions.TestFail if test is failed
         """
         status_error = "yes" == params.get("status_error", "no")
         err_msg = params.get("err_msg")
         if not result:
+            utils_sys.get_qemu_log(vms, type="both", params=params)
             raise exceptions.TestError("No migration result is returned.")
 
         LOG.info("Migration out: %s", result.stdout_text.strip())
@@ -849,6 +853,7 @@ class MigrationTest(object):
         if status_error:  # Migration should fail
             if err_msg:  # Special error messages are expected
                 if not re.search(err_msg, result.stderr_text.strip()):
+                    utils_sys.get_qemu_log(vms, type="both", params=params)
                     raise exceptions.TestFail(
                         "Can not find the expected "
                         "patterns '%s' in output '%s'"
@@ -863,6 +868,7 @@ class MigrationTest(object):
                     raise exceptions.TestFail("Migration success is unexpected result")
         else:
             if int(result.exit_status) != 0:
+                utils_sys.get_qemu_log(vms, type="both", params=params)
                 raise exceptions.TestFail(result.stderr_text.strip())
 
     def do_cancel(self, sig=signal.SIGKILL):

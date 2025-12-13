@@ -510,7 +510,7 @@ class MigrationTemplate(object):
         )
 
         LOG.info("Check migration result: succeed or fail with expected error")
-        self.obj_migration.check_result(self.obj_migration.ret, self.params)
+        self.obj_migration.check_result(self.obj_migration.ret, self.params, self.vms)
 
         # Check "suspended post-copy" event after postcopy migration
         if self.migrate_flags & VIR_MIGRATE_POSTCOPY:
@@ -563,7 +563,7 @@ class MigrationTemplate(object):
         )
 
         LOG.info("Check migration result: succeed or fail with expected error")
-        self.obj_migration.check_result(self.obj_migration.ret, self.params)
+        self.obj_migration.check_result(self.obj_migration.ret, self.params, self.vms)
 
         # Set vm connect_uri to self.src_uri if migration back succeeds
         if self.obj_migration.ret.exit_status == 0:

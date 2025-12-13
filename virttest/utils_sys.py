@@ -9,6 +9,7 @@ import re
 
 from avocado.utils import process
 
+from virttest import remote
 from virttest.utils_misc import cmd_status_output
 from virttest.utils_test import libvirt
 
@@ -133,3 +134,56 @@ def get_pids_for(process_names, sort_pids=True, session=None):
         relevant_pids.sort()
 
     return relevant_pids
+
+
+def get_qemu_log(vms, type="local", params=None, log_lines=10):
+    """
+    Get last N lines of QEMU log from local host and remote host.
+
+    :param vms: VM objects
+    :param type: str, valid values: "local", "remote" or "both"
+    :param params: dict, test parameters
+    :param log_lines: int, number of last lines to retrieve from log, default 10
+    :return: list, like [{"vm_name": "vm1", "local": xxx, "remote": xxx}, {"vm_name": "vm2", "local": xxx}]
+    """
+    logs = []
+    if params is not None and type != "local":
+        server_ip = params.get("migrate_dest_host", params.get("remote_ip"))
+        server_user = params.get("server_user", params.get("remote_user"))
+        server_pwd = params.get("server_pwd", params.get("remote_pwd"))
+        if server_ip:
+            server_session = remote.wait_for_login(
+                "ssh", server_ip, "22", server_user, server_pwd, r"[\#\$]\s*$"
+            )
+        else:
+            LOG.warning("Remote host IP not found in params")
+    try:
+        for vm in vms:
+            log_contents = {"vm_name": vm.name}
+            log_file = "/var/log/libvirt/qemu/%s.log" % vm.name
+            cmd = "tail -n %d %s 2>/dev/null || echo 'Log file not found'" % (
+                log_lines,
+                log_file,
+            )
+            if type in ["local", "both"]:
+                result = process.run(cmd, shell=True, ignore_status=True, verbose=False)
+                log_content = result.stdout_text.strip()
+                LOG.debug(
+                    "QEMU log from source host for vm %s:\n%s", vm.name, log_content
+                )
+                log_contents.update({"local": log_content})
+
+            if type in ["remote", "both"] and server_session is not None:
+                log_content = server_session.cmd_output(cmd, timeout=10).strip()
+                LOG.debug(
+                    "QEMU log from remote host for vm %s:\n%s", vm.name, log_content
+                )
+                log_contents.update({"remote": log_content})
+            logs.append(log_contents)
+
+    except Exception as detail:
+        LOG.warning("Failed to get QEMU log: %s", detail)
+    finally:
+        if server_session:
+            server_session.close()
+    return logs
