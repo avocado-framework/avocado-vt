@@ -206,7 +206,8 @@ class VM(virt_vm.BaseVM):
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.vnclisten = "0.0.0.0"
-        self.connect_uri = normalize_connect_uri(params.get("connect_uri", "default"))
+        self.connect_uri = params.get("customized_uri") if params.get("customized_uri") is not None \
+            else normalize_connect_uri(params.get("connect_uri", "default"))
         self.driver_type = virsh.driver(uri=self.connect_uri)
         self.params["driver_type_" + self.name] = self.driver_type
         self.monitor = Monitor(self.name)

@@ -630,7 +630,14 @@ class MigrationTest(object):
                 self.RET_LOCK.release()
 
         for vm in vms:
-            vm.connect_uri = args.get("virsh_uri", "qemu:///system")
+            # Handle source URI setting with proper fallback logic, the last logic would cover the uri:
+            # 1. If explicit srcuri provided, use it (normal migration tests)
+            # 2. If vm has no connect_uri or it's default, use fallback (new VMs)
+            # 3. Or preserve existing vm.connect_uri (customized_uri cases)
+            if srcuri:
+                vm.connect_uri = srcuri
+            elif not hasattr(vm, 'connect_uri') or vm.connect_uri in [None, "default"]:
+                vm.connect_uri = args.get("virsh_uri", "qemu:///system")
         if migration_type == "orderly":
             for vm in vms:
                 if func and multi_funcs:
