@@ -20,6 +20,7 @@ DRIVER_SVC_MAP = {
     "vioser": "VirtioSerial",
     "viofs": "VirtioFsDrv",
     "vioinput": "VirtioInput",
+    "viosock": "VirtioSocket",
 }
 
 
