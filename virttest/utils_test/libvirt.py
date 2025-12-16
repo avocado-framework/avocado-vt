@@ -1068,7 +1068,16 @@ class PoolVolumeTest(object):
             disk_label = source_format
             if disk_label == "dos":
                 disk_label = "msdos"
-            mk_label(device_name, disk_label)
+            def mk_label_wait():
+                try:
+                    mk_label(device_name, disk_label)
+                except process.CmdError:
+                    return False
+                return True
+            result = utils_misc.wait_for(
+                mk_label_wait, 10, 
+                text="Label not created as device is unavailable. " \
+                "Retrying...")
             # Disk pool does not allow to create volume by virsh command,
             # so introduce parameter 'pre_disk_vol' to create partition(s)
             # by 'parted' command, the parameter is a list of partition size,
