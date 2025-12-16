@@ -88,7 +88,7 @@ def main(argv):
         # Set the clipboard text data
         clipboard.set_text(ssetcb)
 
-        # Make our data available to other applicatons
+        # Make our data available to other applications
         clipboard.store()
         print("The text has been placed into the clipboard.")
     elif options.setfilename:

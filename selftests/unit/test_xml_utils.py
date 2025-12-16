@@ -17,8 +17,8 @@ from virttest import xml_utils
 
 
 class xml_test_data(unittest.TestCase):
-    def get_tmp_files(self, prefix, sufix):
-        path_string = os.path.join("/tmp", "%s*%s" % (prefix, sufix))
+    def get_tmp_files(self, prefix, suffix):
+        path_string = os.path.join("/tmp", "%s*%s" % (prefix, suffix))
         return glob.glob(path_string)
 
     def setUp(self):

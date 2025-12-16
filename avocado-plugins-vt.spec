@@ -25,7 +25,7 @@
 # from the RPM automatic requires/provides scanner.
 %global __requires_exclude ^/usr/bin/python[23]$
 
-# Disable the shebangs checks on scripts that currently dont'
+# Disable the shebangs checks on scripts that currently don't
 # define a Python version
 %global __brp_mangle_shebangs_exclude_from multicast_guest.py|netperf_agent.py|ksm_overcommit_guest.py|check_cpu_flag.py|virtio_console_guest.py|boottool.py|VirtIoChannel_guest_send_receive.py|serial_host_send_receive.py
 
@@ -304,7 +304,7 @@ Xunit output, among others.
 
 * Tue Apr 25 2017 Cleber Rosa <cleber@redhat.com> - 49.0-0
 - New upstream release
-- Used latest avocado LTS as mininum required version
+- Used latest avocado LTS as minimum required version
 
 * Mon Apr  3 2017 Cleber Rosa <cleber@redhat.com> - 48.0-0
 - New upstream release

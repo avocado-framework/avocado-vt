@@ -1,9 +1,9 @@
 TIME="SHORT"
 AUTHOR = "Jason Wang <jasowag@redhat.com>"
 DOC = """
-rtc is a simple test of realtime clock driver which was grabbed from 
-Documentation/rtc.txt. It does the functional test of interrupt, alarm and 
-requeseted frequency.
+rtc is a simple test of realtime clock driver which was grabbed from
+Documentation/rtc.txt. It does the functional test of interrupt, alarm and
+requested frequency.
 
 Please refer the kernel documentation for details.
 """

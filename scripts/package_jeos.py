@@ -39,7 +39,7 @@ def package_jeos(img):
     compressed_img = img + ".xz"
     archiver = utils_misc.find_command("xz")
     process.system("%s -9 -e %s" % (archiver, img))
-    logging.info("JeOS compressed file %s created successfuly", compressed_img)
+    logging.info("JeOS compressed file %s created successfully", compressed_img)
 
 
 if __name__ == "__main__":

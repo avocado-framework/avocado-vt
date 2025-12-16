@@ -672,7 +672,7 @@ class VMCheck(object):
             self.session = None
 
         # If VMChecker is instantiated before import_vm_to_ovirt and
-        # the VMChecker.run is skiped, self.vm.instance will be NULL.
+        # the VMChecker.run is skipped, self.vm.instance will be NULL.
         # The update_instance should be ran before cleaning up.
         if hasattr(self.vm, "update_instance"):
             self.vm.update_instance()

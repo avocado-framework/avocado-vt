@@ -1,5 +1,5 @@
 """
-stp protocl support class(es)
+stp protocol support class(es)
 
 http://libvirt.org/formatnwfilter.html#nwfelemsRulesProtoSTP
 """

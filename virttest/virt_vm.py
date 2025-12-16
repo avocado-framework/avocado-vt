@@ -577,7 +577,7 @@ class BaseVM(object):
       functionality)
 
     So called "protected" methods are intended to be used only by VM classes,
-    and not be consumed by tests. Theses should respect a naming convention
+    and not be consumed by tests. These should respect a naming convention
     and always be preceded by a single underline.
 
     Currently most (if not all) methods are public and appears to be consumed
@@ -1281,7 +1281,7 @@ class BaseVM(object):
                 return session
             session.close()
 
-        # try to login if VM bootup really, at least once
+        # try to login if VM boot up really, at least once
         not_tried = True
         end_time = start_time + timeout
         while time.time() < end_time or not_tried:
@@ -1570,7 +1570,7 @@ class BaseVM(object):
 
     def get_memory_size(self, cmd=None, timeout=60):
         """
-        Get bootup memory size of the VM.
+        Get boot up memory size of the VM.
 
         :param cmd: Command used to check memory. If not provided,
                     self.params.get("mem_chk_cmd") will be used.
@@ -1589,7 +1589,7 @@ class BaseVM(object):
 
     def get_current_memory_size(self):
         """
-        Get current memory size of the VM, rather than bootup memory.
+        Get current memory size of the VM, rather than boot up memory.
         """
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)

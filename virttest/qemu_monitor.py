@@ -710,7 +710,7 @@ class Monitor(object):
                 else not item.get("device")
             ):
                 raise ValueError(
-                    "Incorrect QMP respone, device or node-name "
+                    "Incorrect QMP response, device or node-name "
                     "not set in info block: %s" % info
                 )
             name = (
@@ -1296,7 +1296,7 @@ class HumanMonitor(Monitor):
         Merge source bitmaps to target bitmap for given node
 
         :param string node: block device node name
-        :parma list src_bitmaps: list of source bitmaps
+        :param list src_bitmaps: list of source bitmaps
         :param string dst_bitmap: target bitmap name
         :raise: MonitorNotSupportedCmdError if 'block-dirty-bitmap-mege' and
                 'x-block-dirty-bitmap-mege' commands not supported by QMP
@@ -1716,7 +1716,7 @@ class HumanMonitor(Monitor):
 
     def get_migrate_progress(self):
         """
-        Return the transfered / remaining ram ratio
+        Return the transferred / remaining ram ratio
 
         :return: percentage remaining for RAM transfer
         """
@@ -3188,7 +3188,7 @@ class QMPMonitor(Monitor):
 
     def get_migrate_progress(self):
         """
-        Return the transfered / remaining ram ratio
+        Return the transferred / remaining ram ratio
 
         :return: percentage remaining for RAM transfer
         """
@@ -3339,7 +3339,7 @@ class QMPMonitor(Monitor):
         Merge source bitmaps to target bitmap for given node
 
         :param string node: block device node name
-        :parma list src_bitmaps: list of source bitmaps
+        :param list src_bitmaps: list of source bitmaps
         :param string dst_bitmap: target bitmap name
         :raise: MonitorNotSupportedCmdError if 'block-dirty-bitmap-mege' and
                 'x-block-dirty-bitmap-mege' commands not supported by QMP

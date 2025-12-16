@@ -852,7 +852,7 @@ def raw_ping(command, timeout, session, output_func):
 
     :param command: Ping command.
     :param timeout: Timeout of the ping command.
-    :param session: Local executon hint or session to execute the ping command.
+    :param session: Local execution hint or session to execute the ping command.
     """
     if session is None:
         LOG.info("The command of Ping is: %s", command)
@@ -931,7 +931,7 @@ def ping(
     :param flood: Flood ping flag.
     :param timeout: Timeout for the ping command.
     :param output_func: Function used to log the result of ping.
-    :param session: Local executon hint or session to execute the ping command.
+    :param session: Local execution hint or session to execute the ping command.
     :param force_ipv4: Whether or not force using IPV4 to ping.
     """
     command = "ping"
@@ -965,7 +965,7 @@ def ping(
             command += " -I %s" % interface
         else:
             if dest.upper().startswith("FE80"):
-                err_msg = "Using ipv6 linklocal must assigne interface"
+                err_msg = "Using ipv6 linklocal must assign interface"
                 raise exceptions.TestSkipError(err_msg)
         if packetsize:
             command += " -s %s" % packetsize
@@ -3725,7 +3725,7 @@ def get_correspond_ip(remote_ip):
     Get local ip address which is used to contact remote ip.
 
     :param remote_ip: Remote ip
-    :return: Local corespond IP.
+    :return: Local correspond IP.
     """
     result = process.run("ip route get %s" % (remote_ip)).stdout_text
     local_ip = re.search("src (.+)", result)
@@ -4513,12 +4513,12 @@ def dump_traceview_log_windows(params, vm, timeout=360):
         session_serial.cmd(clean_cmd + dump_file)
         status, output = session_serial.cmd_status_output(dump_cmd)
         if status:
-            LOG.error("Cann't dump log file %s: %s" % (log_path, output))
+            LOG.error("Can't dump log file %s: %s" % (log_path, output))
         _wait_for_traceview_dump_finished(session_serial, dump_file)
         status, output = session_serial.cmd_status_output("type %s" % dump_file)
         if status:
             raise exceptions.TestError(
-                "Cann't read dumped file %s: %s" % (dump_file, output)
+                "Can't read dumped file %s: %s" % (dump_file, output)
             )
         return output
     finally:
@@ -4561,7 +4561,7 @@ def set_netkvm_param_value(vm, param, value, nic_index=0):
         cmd = f"{exec_src} setparam {nic_index} param={param} value={value}"
         status, output = session.cmd_status_output(cmd)
         if status:
-            err = "Error occured when set %s to value %s. " % (param, value)
+            err = "Error occurred when set %s to value %s. " % (param, value)
             err += "With status=%s, output=%s " % (status, output)
             err += "on NIC %s" % nic_index
             raise exceptions.TestError(err)
@@ -4595,7 +4595,7 @@ def get_netkvm_param_value(vm, param, nic_index=0):
         cmd = f"{exec_src} getparam {nic_index} param={param}"
         status, output = session.cmd_status_output(cmd)
         if status:
-            err = "Error occured when get value of %s. " % param
+            err = "Error occurred when get value of %s. " % param
             err += "With status=%s, output=%s " % (status, output)
             err += "on NIC %s" % nic_index
             raise exceptions.TestError(err)
@@ -4921,7 +4921,7 @@ def check_class_rules(ifname, rule_id, bandwidth, expect_none=False):
         LOG.error("Can't find outbound setting for htb %s", rule_id)
         return False
     LOG.debug("bandwidth from tc output:%s" % str(tc_htb.groups()))
-    LOG.debug("bandwidth from seting: %s" % str(bandwidth))
+    LOG.debug("bandwidth from setting: %s" % str(bandwidth))
     rate = None
     if "floor" in bandwidth:
         rate = int(bandwidth["floor"]) * 8

@@ -766,7 +766,7 @@ class KojiPkgSpec(object):
         elif self._is_invalid_subpackages_but_no_main_package():
             return "subpackages specified but no main package is set"
 
-        return "unkwown reason, seems to be valid"
+        return "unknown reason, seems to be valid"
 
     def describe(self):
         """

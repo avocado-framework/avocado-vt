@@ -5,7 +5,7 @@ TEST_CLASS = "General"
 TEST_TYPE = "client"
 TIME = 'MEDIUM'
 DOC='''
-This tests checks the wb_kupdate code path by writting data to a sparse file
+This tests checks the wb_kupdate code path by writing data to a sparse file
 and waiting at max of `max_flush_time` for the file to be flushed from the
 cache to disk.
 '''

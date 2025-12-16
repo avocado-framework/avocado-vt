@@ -70,7 +70,7 @@ def fetch_data(db_file=".journal.sqlite"):
             start_time = dateparser.parse(data[0][1])
             start_str = start_time.strftime("%Y-%m-%d %X")
             if len(data) > 1:
-                status = "Finshed"
+                status = "Finished"
                 result = data[1][3]
                 end_time = dateparser.parse(data[1][1])
                 time_delta = end_time - start_time

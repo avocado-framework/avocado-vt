@@ -225,7 +225,7 @@ class LibvirtConfigCommon(SectionlessConfig):
 
     >>> # If the setting value don't meet the specified type.
     >>> config.listen_tcp = "invalid"
-    >>> # It'll thown an warning message and set a raw string instead.
+    >>> # It'll thrown an warning message and set a raw string instead.
 
     >>> # Use set_* methods when need to customize the result.
     >>> config.set_raw("'1'")

@@ -32,7 +32,7 @@ PNG or SVG.
 Avoid using 'you', 'we', 'they', as they can be ambiguous in reference
 documentation.  It works fine in conversation and e-mail, but looks weird
 in reference material. Similarly, avoid using 'unnecessary', off-topic, or
-extra language. For example in American English, `"Rinse and repeat" 
+extra language. For example in American English, `"Rinse and repeat"
 <http://en.wikipedia.org/wiki/Lather,_rinse,_repeat>`_ is a funny phrase,
 but could cause problems when translated into other languages. Basically,
 try to avoid anything that slows the reader down from finding facts.
@@ -49,7 +49,7 @@ Rules for Reviewers
    Would you like to? Could you give the reason that ...?
 6. Remember to praise.
 7. Remember that there is often more than one way to approach a solution.
-8. Given clear and useful comments, and explain the reason why reqest change
+8. Given clear and useful comments, and explain the reason why request change
 9. In general, reviewers should favor approving a PR once it is in a
    state where it definitely improves the overall code health of the
    system being worked on, even if the PR isn't perfect
@@ -81,7 +81,7 @@ Rules for Maintainers
 Rules for Contributors
 ======================
 
-1. [Must] Coding style should conform to what's enforced by black (see ``./avocado-static-checks/check-style``)
+1. [Must] Coding style should conform to what's enforced by `pre-commit <https://pre-commit.com>`_ (use ``pre-commit run --all-files``)
 2. [Must] PR commit message is meaningful. Refer to `this link <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/styleguides.html>`_ on how to write a good commit message
 3. [Must] Travis CI pass and no conflict
 4. [Must] Provide test results. If no, provide justification. Apply to any PR

@@ -947,7 +947,7 @@ class Disk(base.TypedDeviceBase):
 
             dev:
                 string, attribute of backingStore/source tag
-            protocal:
+            protocol:
                 string, attribute of backingStore/source tag
             name:
                 string, attribute of backingStore/source tag
@@ -1093,7 +1093,7 @@ class Disk(base.TypedDeviceBase):
 
             dev:
                 string, attribute of dataStore/source tag
-            protocal:
+            protocol:
                 string, attribute of dataStore/source tag
             name:
                 string, attribute of dataStore/source tag

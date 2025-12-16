@@ -94,7 +94,7 @@ ECHO "update ifcfg-eth0"
 sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-eth0
 ECHO "Disable lock cdrom udev rules"
 sed -i "/--lock-media/s/^/#/" /usr/lib/udev/rules.d/60-cdrom_id.rules 2>/dev/null>&1
-#Workaround for graphical boot as anaconda seems to always instert skipx
+#Workaround for graphical boot as anaconda seems to always insert skipx
 systemctl set-default graphical.target
 sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-*
 sed -i "s/ONBOOT=no/ONBOOT=yes/" /etc/sysconfig/network-scripts/ifcfg-*

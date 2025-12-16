@@ -17,7 +17,7 @@ disk_id = "ATST001"
 # Executed tests
 tests_to_run = [
                 '001', # Test sense data correctness
-                '002', # TEST handling INVALID FIELD IN {PARAMETR LIST, CDB}
+                '002', # TEST handling INVALID FIELD IN {PARAMETER LIST, CDB}
                 '003', # Test handling zero allocation length CDBs
                 '004', # Test handling zero length READ/WRITE requests
                 '005', # Test INQUIRY for a page code without EVPD flag set

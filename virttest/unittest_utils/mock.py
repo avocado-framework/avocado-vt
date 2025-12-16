@@ -12,14 +12,14 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 
 class StubNotFoundError(Exception):
-
     "Raised when god is asked to unstub an attribute that was not stubbed"
+
     pass
 
 
 class CheckPlaybackError(Exception):
-
     "Raised when mock playback does not match recorded calls."
+
     pass
 
 
@@ -488,7 +488,7 @@ class mock_god(object):
 
     def check_playback(self):
         """
-        Report any errors that were encounterd during calls
+        Report any errors that were encountered during calls
         to __method_playback().
         """
         if len(self.errors) > 0:

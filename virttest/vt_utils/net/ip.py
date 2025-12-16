@@ -53,7 +53,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip.
     :type remote_ip: String.
 
-    :return: Local corespond IP.
+    :return: Local correspond IP.
     :rtype: String.
     """
     result = process.run("ip route get %s" % remote_ip).stdout_text
