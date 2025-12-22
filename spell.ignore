@@ -68,6 +68,8 @@ bool
 backend
 hotplug
 PCI
+PFree
+PSize
 numa
 tuple
 NIC
