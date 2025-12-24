@@ -105,6 +105,7 @@ class Disk(base.TypedDeviceBase):
         "driver_metadatacache",
         "driver_iothreads",
         "sharebacking",
+        "throttlefilters",
     )
 
     def __init__(self, type_name="file", virsh_instance=base.base.virsh):
@@ -231,6 +232,14 @@ class Disk(base.TypedDeviceBase):
             parent_xpath="/",
             tag_name="backingStore",
             subclass=self.BackingStore,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementNest(
+            "throttlefilters",
+            self,
+            parent_xpath="/",
+            tag_name="throttlefilters",
+            subclass=Disk.ThrottleFilters,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
         super(Disk, self).__init__(
@@ -1162,3 +1171,46 @@ class Disk(base.TypedDeviceBase):
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<cookies/>"
+
+    class ThrottleFilters(base.base.LibvirtXMLBase):
+        """
+        ThrottleFilters device XML class
+        <throttlefilters>
+          <throttlefilter group="group_1"/>
+          <throttlefilter group="group_2"/>
+        </throttlefilters>
+        """
+
+        __slots__ = ("throttlefilter",)
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementList(
+                "throttlefilter",
+                self,
+                parent_xpath="/",
+                marshal_from=self.marshal_from_filter,
+                marshal_to=self.marshal_to_filter,
+            )
+            super(Disk.ThrottleFilters, self).__init__(virsh_instance=virsh_instance)
+            self.xml = "<throttlefilters/>"
+
+        @staticmethod
+        def marshal_from_filter(item, index, libvirtxml):
+            """Convert a dictionary into a tag + attributes"""
+            del index
+            del libvirtxml
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError(
+                    "Expected a dictionary of throttlefilter attributes, "
+                    "not a %s" % str(item)
+                )
+            return ("throttlefilter", dict(item))
+
+        @staticmethod
+        def marshal_to_filter(tag, attr_dict, index, libvirtxml):
+            """Convert a tag + attributes into a dictionary"""
+            del index
+            del libvirtxml
+            if tag != "throttlefilter":
+                return None
+            return dict(attr_dict)
