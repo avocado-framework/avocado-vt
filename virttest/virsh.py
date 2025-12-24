@@ -5434,3 +5434,18 @@ def domdirtyrate_calc(name, options="", **dargs):
     """
 
     return command("domdirtyrate-calc %s %s" % (name, options), **dargs)
+
+
+def domthrottlegroupset(name, throttle_group, options="", **dargs):
+    """
+    Add or update a throttle group against specific domain.
+
+    :param name: VM name
+    :param throttle_group: the throttle group
+    :param options: options of this command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+
+    cmd = "domthrottlegroupset %s %s %s" % (name, throttle_group, options)
+    return command(cmd, **dargs)
