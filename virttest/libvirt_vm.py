@@ -6,8 +6,8 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 
 from __future__ import division
 
-import ast
 import fcntl
+import json
 import logging
 import os
 import platform
@@ -165,6 +165,15 @@ class Monitor(object):
         Retrieve VM status information using qemu monitor
         """
         cmd = "info status"
+        return self.command(cmd, debug=True)
+
+    def sendkey(self, keystr):
+        """
+        Send a key event to the VM using qemu monitor
+
+        :param keystr: A key event string (e.g. "ctrl-alt-delete")
+        """
+        cmd = "sendkey %s" % keystr
         return self.command(cmd, debug=True)
 
 
@@ -1361,8 +1370,8 @@ class VM(virt_vm.BaseVM):
                 cdrom_params = params.object_params(cdrom)
                 iso = cdrom_params.get("cdrom")
                 if params.get("use_libvirt_cdrom_switch") == "yes":
-                    # we don't want to skip the winutils iso
-                    if not cdrom == "winutils":
+                    # we don't want to skip the winutils and unattended iso
+                    if cdrom not in ("winutils", "unattended"):
                         LOG.debug("Using --cdrom instead of --disk for install")
                         LOG.debug("Skipping CDROM:%s:%s", cdrom, iso)
                         continue
@@ -1373,7 +1382,7 @@ class VM(virt_vm.BaseVM):
                         continue
 
                 if iso:
-                    iso_path = utils_misc.get_path(root_dir, iso)
+                    iso_path = utils_misc.get_path(data_dir.get_data_dir(), iso)
                     iso_image_pool = image_params.get("iso_image_pool")
                     iso_image_vol = image_params.get("iso_image_vol")
                     virt_install_cmd += add_drive(
@@ -1454,7 +1463,7 @@ class VM(virt_vm.BaseVM):
                     virt_install_cmd += " --boot "
                 virt_install_cmd += "loader=%s" % bios_path
 
-                bios_props = ast.literal_eval(params.get("bios_props", "{}"))
+                bios_props = json.loads(params.get("bios_props", "{}"))
                 key_mapping = {
                     "loader_readonly": "loader.readonly",
                     "loader_type": "loader.type",
@@ -2748,6 +2757,28 @@ class VM(virt_vm.BaseVM):
         if debug:
             LOG.debug("Requesting screenshot %s" % filename)
         return virsh.screenshot(self.name, filename, uri=self.connect_uri)
+
+    def send_key(self, keystr):
+        """
+        Send a key event to the VM.
+
+        :param keystr: A key event string (e.g. "ctrl-alt-delete")
+        """
+
+        # For compatibility with versions of QEMU that do not recognize all
+        # key names: replace keyname with the hex value from the dict, which
+        # QEMU will definitely accept
+        key_mapping = {
+            "semicolon": "0x27",
+            "comma": "0x33",
+            "dot": "0x34",
+            "slash": "0x35",
+        }
+        for key, value in list(key_mapping.items()):
+            keystr = keystr.replace(key, value)
+
+        self.monitor.sendkey(keystr)
+        time.sleep(0.2)
 
     def start(self, autoconsole=True):
         """

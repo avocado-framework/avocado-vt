@@ -1553,15 +1553,25 @@ def run(test, params, env):
                     with open(
                         unattended_install_config.unattended_file
                     ) as unattended_fd:
-                        reboot_in_unattended = "reboot" in unattended_fd.read()
+                        unattended_file = unattended_fd.read()
+                        reboot_in_unattended = ("reboot" in unattended_file) or (
+                            "restart" in unattended_file
+                        )
                     if (
                         reboot_in_unattended
                         and kickstart_reboot_bug
                         and not vm.is_alive()
                     ):
                         try:
+                            if vm.serial_console:
+                                # As mentioned above, a known bug causes vm should
+                                # restart again, therefore this session to be unable
+                                # to capture the installation state, so it needs to
+                                # be closed.
+                                vm.cleanup_serial_console()
                             vm.start()
-                            break
+                            log_file = vm.serial_console_log
+                            continue
                         except:
                             LOG.warning(
                                 "Failed to start unattended install "
