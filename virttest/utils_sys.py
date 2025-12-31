@@ -147,6 +147,7 @@ def get_qemu_log(vms, type="local", params=None, log_lines=10):
     :return: list, like [{"vm_name": "vm1", "local": xxx, "remote": xxx}, {"vm_name": "vm2", "local": xxx}]
     """
     logs = []
+    server_session = None
     if params is not None and type != "local":
         server_ip = params.get("migrate_dest_host", params.get("remote_ip"))
         server_user = params.get("server_user", params.get("remote_user"))
