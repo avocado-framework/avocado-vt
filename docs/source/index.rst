@@ -27,6 +27,7 @@ Contents:
    BuildingTestApplications
    Networking
    PerformanceTesting
+   MultiHostTesting
    VirtualEnvMultihost
    MultiHostMigration
    DownloadableImages
