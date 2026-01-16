@@ -14,6 +14,7 @@ import platform
 import re
 import shutil
 import string
+import subprocess as sp
 import tempfile
 import time
 
@@ -673,6 +674,21 @@ class VM(virt_vm.BaseVM):
             cmd += " %s,mode=%s" % (host_numa, numa_pin_mode)
             return cmd
 
+        def get_guest_numa():
+            # Retrieve only NUMA nodes with allocated memory resources
+            out_numa = sp.check_output("numactl -H", shell=True).decode()
+            numa_nodes = []
+            for line in out_numa.splitlines():
+                line = line.strip()
+                if line.startswith("node") and "size:" in line:
+                    parts = line.split()
+                    node_id = parts[1]
+                    size_mb = int(parts[3])
+                    if size_mb > 0:
+                        numa_nodes.append(node_id)
+
+            return ",".join(numa_nodes)
+
         def pin_hugepage(help_text, hp_size, guest_numa):
             """
             Method to pin hugepages to guest numa with virt-install
@@ -1190,9 +1206,9 @@ class VM(virt_vm.BaseVM):
                 guest_numa = str(params.get("hugepage_pinned_numa"))
                 if guest_numa == "None":
                     # if user didn't mention hugepage_pinnned_numa use
-                    # numa_nodes to back all the numa nodes.
-                    guest_numa = int(params.get("numa_nodes", 2))
-                    guest_numa = ",".join(map(str, list(range(guest_numa))))
+                    # numa_nodes which has memory allocated, to back all 
+                    # the numa nodes.
+                    guest_numa = get_guest_numa()
                 virt_install_cmd += pin_hugepage(help_text, hp_size, guest_numa)
             else:
                 LOG.error(
