@@ -907,7 +907,7 @@ def srv_threadpool_set(
     max_workers=None,
     prio_workers=None,
     options=None,
-    **dargs
+    **dargs,
 ):
     """
     Run srv-threadpool-set in virt-admin session
