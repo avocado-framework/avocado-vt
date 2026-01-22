@@ -4634,7 +4634,12 @@ def create_ovs_bridge(
     if session:
         runner = session.cmd
     if not iface_name:
-        iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
+        up_ifaces = get_net_if(runner=runner, state="UP", ip_options=ip_options)
+        if not up_ifaces:
+            raise exceptions.TestError(
+                "No network interfaces in UP state found for bridge creation"
+            )
+        iface_name = up_ifaces[0]
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
@@ -4684,7 +4689,12 @@ def delete_ovs_bridge(
     if session:
         runner = session.cmd
     if not iface_name:
-        iface_name = get_net_if(runner=runner, state="UP", ip_options=ip_options)[0]
+        up_ifaces = get_net_if(runner=runner, state="UP", ip_options=ip_options)
+        if not up_ifaces:
+            raise exceptions.TestError(
+                "No network interfaces in UP state found for bridge deletion"
+            )
+        iface_name = up_ifaces[0]
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
