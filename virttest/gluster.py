@@ -508,7 +508,7 @@ def setup_or_cleanup_gluster(
     brick_path="",
     pool_name="",
     file_path="/etc/glusterfs/glusterd.vol",
-    **kwargs
+    **kwargs,
 ):
     # pylint: disable=E1121
     """
