@@ -102,8 +102,8 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "http://docs.python.org/": None,
-    "http://avocado-framework.readthedocs.org/en/latest/": None,
+    "python": ("https://docs.python.org", None),
+    "avocado": ("http://avocado-framework.readthedocs.org/en/latest/", None),
 }
 
 autoclass_content = "both"
