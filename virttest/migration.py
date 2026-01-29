@@ -830,6 +830,15 @@ class MigrationTest(object):
 
         extra_args.update({"status_error": params.get("status_error", "no")})
         extra_args.update({"err_msg": params.get("err_msg")})
+        extra_args.update(
+            {"server_ip": params.get("migrate_dest_host", params.get("remote_ip"))}
+        )
+        extra_args.update(
+            {"server_user": params.get("server_user", params.get("remote_user"))}
+        )
+        extra_args.update(
+            {"server_pwd": params.get("server_pwd", params.get("remote_pwd"))}
+        )
         return extra_args
 
     def check_result(self, result, params, vms):
