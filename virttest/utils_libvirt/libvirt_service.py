@@ -2,7 +2,7 @@ import logging
 
 from avocado.utils import process
 
-from virttest import remote, utils_libvirtd
+from virttest import remote, utils_libvirtd, utils_misc
 from virttest.staging import service
 
 LOG = logging.getLogger("avocado." + __name__)
@@ -38,7 +38,7 @@ def get_service_name(params):
 
 def kill_service(params):
     """
-    Kill service on source or target host
+    Kill service on source or target host and verify it's gone
 
     :param params: Dictionary with the test parameters
     """
@@ -50,6 +50,22 @@ def kill_service(params):
         remote.run_remote_cmd(cmd, params, ignore_status=False)
     else:
         process.run(cmd, ignore_status=False, shell=True)
+
+    def _check_service_gone():
+        """Check if service process is gone"""
+        check_cmd = "pidof %s" % service_name
+        if service_on_dst:
+            result = remote.run_remote_cmd(check_cmd, params, ignore_status=True)
+            return result.exit_status != 0  # pidof returns non-zero if not found
+        else:
+            result = process.run(check_cmd, ignore_status=True, shell=True)
+            return result.exit_status != 0  # pidof returns non-zero if not found
+
+    timeout = params.get("libvirt_kill_service_timeout", 30)
+    if not utils_misc.wait_for(_check_service_gone, timeout=timeout, step=0.5):
+        LOG.warning("Service %s may still be running after kill", service_name)
+    else:
+        LOG.debug("Service %s confirmed terminated", service_name)
 
 
 def control_service(params):
