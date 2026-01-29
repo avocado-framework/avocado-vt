@@ -24,6 +24,7 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    guest_dump_file_manager,
     libvirt_version,
     png_utils,
     ppm_utils,
@@ -45,6 +46,7 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
+from virttest.test_setup.dump_file import DumpFileSetup
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
@@ -641,6 +643,8 @@ def postprocess_vm(test, params, env, name):
     if not vm:
         return
 
+    _mgr = guest_dump_file_manager.get_dump_file_mgr(params.get("vm_type"))
+
     if params.get("start_vm") == "yes":
         # recover the changes done to kernel params in postprocess
         serial_login = params.get_boolean("kernel_extra_params_serial_login")
@@ -706,6 +710,15 @@ def postprocess_vm(test, params, env, name):
         if params.get("vm_type") == "qemu":
             if vm.devices is not None:
                 vm.devices.cleanup_daemons()
+
+            if params.get("dumping_guest_memory", "") == "offline" and _mgr:
+                base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+                _img = params.objects("images")[0]
+                _sys_image = qemu_storage.QemuImg(params, base_dir, _img)
+                try:
+                    _mgr.run(params, test.outputdir, _sys_image.image_filename)
+                except Exception:
+                    LOG.debug("Dump-file collection failed")
 
     if params.get("enable_strace") == "yes":
         strace = test_setup.StraceQemu(test, params, env)
@@ -1029,6 +1042,8 @@ def preprocess(test, params, env):
     _setup_manager.register(TransparentHugePagesSetup)
     _setup_manager.register(KSMSetup)
     _setup_manager.register(EGDSetup)
+    if params.get("dumping_guest_memory", "") == "offline":
+        _setup_manager.register(DumpFileSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
