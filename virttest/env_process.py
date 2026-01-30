@@ -24,6 +24,7 @@ from virttest import (
     cpu,
     data_dir,
     error_context,
+    guest_dump_file_manager,
     libvirt_version,
     png_utils,
     ppm_utils,
@@ -45,6 +46,7 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
+from virttest.test_setup.dump_file import DumpFileSetup
 from virttest.test_setup.gcov import ResetQemuGCov
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
@@ -532,6 +534,11 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     clone_master = params.get("clone_master", None)
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
     image = None
+
+    _mgr = guest_dump_file_manager.get_dump_file_mgr(params.get("vm_type"))
+    _image_path = storage.get_image_filename(params, base_dir)
+    if _mgr and _image_path.endswith(".qcow2"):
+        _mgr.run(_image_path, test.outputdir)
 
     if params.get("img_check_failed") == "yes":
         image = (
@@ -1029,6 +1036,7 @@ def preprocess(test, params, env):
     _setup_manager.register(TransparentHugePagesSetup)
     _setup_manager.register(KSMSetup)
     _setup_manager.register(EGDSetup)
+    _setup_manager.register(DumpFileSetup)
     _setup_manager.do_setup()
 
     vm_type = params.get("vm_type")
