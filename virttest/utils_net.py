@@ -22,6 +22,7 @@ import aexpect
 import six
 from aexpect import remote
 from avocado.core import exceptions
+from avocado.utils import distro
 from avocado.utils import path as utils_path
 from avocado.utils import process, stacktrace
 from six.moves import xrange
@@ -1699,7 +1700,10 @@ def get_dhcp_client(session):
     :return: tuple of dhcp command and its release argument, raises TestError if none found
     """
     dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-
+    if distro.detect().name == "rhel" and int(distro.detect().version) >= 10:
+        dhcp_clients = [dhcp_clients[1]]
+    else:
+        dhcp_clients = [dhcp_clients[0]]
     for cmd, release_flag in dhcp_clients:
         status, _ = utils_misc.cmd_status_output(
             "which %s" % cmd, shell=True, ignore_status=True, session=session
@@ -4652,7 +4656,9 @@ def create_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
-    dhcp_cmd, release_flag = get_dhcp_client(session)
+    # <TODO> Find a more stable dhcpcd cmd to get ip on RHEL10.
+    dhcp_cmd, release_flag = "dhclient", "-r"
+
     cmd = (
         f"ovs-vsctl add-br {ovs_bridge_name};"
         f"ovs-vsctl add-port {ovs_bridge_name} {iface_name};"
@@ -4707,7 +4713,7 @@ def delete_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
-    dhcp_cmd, release_flag = get_dhcp_client(session)
+    dhcp_cmd, release_flag = "dhclient", "-r"
     cmd = (
         f"ovs-vsctl del-port {ovs_bridge_name} {iface_name};"
         f"ovs-vsctl del-br {ovs_bridge_name};"
@@ -4825,6 +4831,7 @@ def create_linux_bridge_tmux(
             f"ip link set {iface_name} up; "
             f"ip link set {iface_name} master {linux_bridge_name}; "
             f"ip link set {linux_bridge_name} up; "
+            f"ifconfig {iface_name} 0; "
             f"pkill {dhcp_cmd}; "
             "sleep 6; "
             f"{dhcp_cmd} {linux_bridge_name};"
@@ -4856,12 +4863,12 @@ def delete_linux_bridge_tmux(
     :return: bridge deleted or raise exception
     """
     # Check if bridge exists based on session type
+    br_path = "/sys/class/net/%s" % linux_bridge_name
     if session:
         # For remote sessions, check bridge existence via command
-        bridge_exists = session.cmd_status("ip link show %s" % linux_bridge_name) == 0
+        bridge_exists = session.cmd_status("ls %s " % br_path) == 0
     else:
         # For local execution, check filesystem
-        br_path = "/sys/class/net/%s" % linux_bridge_name
         bridge_exists = os.path.exists(br_path)
 
     if not bridge_exists:
@@ -4875,8 +4882,8 @@ def delete_linux_bridge_tmux(
             f"{dhcp_cmd} {release_flag} {linux_bridge_name} || true; "
             f"{dhcp_cmd} {release_flag} {iface_name} || true; "
             f"ip link delete {linux_bridge_name}; "
-            "sleep 5; "
-            f"{dhcp_cmd} {iface_name}"
+            f"sleep 5;"
+            f'{dhcp_cmd} {iface_name}"'
         )
     else:
         cmd = "ip link delete %s" % linux_bridge_name
