@@ -135,8 +135,13 @@ class Params(IterableUserDict):
         :param type target_type: numeric type to return like int or float
         :return numerical type `target_type` converted parameter value
         :rtype: int or float
+        :note: For integer conversion, automatically detects base from string
+               prefix (0x for hex, 0o for octal, 0b for binary)
         """
-        return target_type(self.get(key, default))
+        value = self.get(key, default)
+        if target_type == int and isinstance(value, str):
+            return target_type(value, 0)
+        return target_type(value)
 
     def get_list(self, key, default="", delimiter=None, target_type=str):
         """
