@@ -36,9 +36,178 @@ try:
 except ImportError:
     import md5
 
+try:
+    # Monkey patch importlib.metadata.packages_distributions for Python < 3.10
+    # This is needed because some google libraries expect it to exist in stdlib importlib.metadata
+    # but it was only added in Python 3.10.
+    import sys
+    if sys.version_info < (3, 10):
+        import importlib.metadata
+        import importlib_metadata
+        if not hasattr(importlib.metadata, "packages_distributions"):
+            importlib.metadata.packages_distributions = importlib_metadata.packages_distributions
+except ImportError:
+    pass
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+    logging.getLogger("avocado.app").warning(
+        "google-generativeai library not found. Visual verification with Gemini is disabled."
+    )
+
 # Some directory/filename utils, for consistency
 
 LOG = logging.getLogger("avocado." + __name__)
+
+
+def verify_screen_with_gemini(
+    image_path,
+    prompt,
+    api_key=None,
+    model_name="gemini-pro-vision", # Use gemini-pro-vision for images
+    save_failed_image=True,
+    results_dir=None,
+    resize_max_dim=1024,
+):
+    """
+    Verify screen content using Google Gemini API.
+
+    :param image_path: Path to the image file (PPM format expected from QEMU).
+    :param prompt: Question to ask about the image.
+    :param api_key: Gemini API Key. If None, uses GEMINI_API_KEY env var.
+    :param model_name: Model version to use.
+    :param save_failed_image: Whether to save the image if validation "fails" (logic depends on prompt).
+    :param results_dir: Directory to save failed images.
+    :param resize_max_dim: Max dimension to resize image to (maintains aspect ratio).
+                           Set to None to disable resizing.
+    :return: The text response from Gemini (stripped).
+    """
+    if not genai:
+        raise ImportError(
+            "google-generativeai library is required for this feature. "
+            "Please install it using 'pip install google-generativeai'."
+        )
+
+    if not api_key:
+        api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not api_key:
+        raise ValueError("Gemini API Key is required (set GEMINI_API_KEY env var).")
+
+    # Configure Proxy if set in environment
+    # requests/urllib3 usually pick up HTTPS_PROXY automatically, but we ensure it's available.
+    if "HTTPS_PROXY" not in os.environ and "https_proxy" not in os.environ:
+        LOG.warning("No HTTPS_PROXY set. Gemini API access might fail if you are behind a firewall.")
+
+    # Force REST transport to avoid gRPC proxy issues and ensure better compatibility
+    genai.configure(api_key=api_key, transport="rest")
+
+    if not Image:
+        raise ImportError("Pillow (PIL) is required to process images.")
+
+    try:
+        # Open and process image
+        with Image.open(image_path) as img:
+            # Resize if requested to save bandwidth/quota
+            if resize_max_dim:
+                img.thumbnail((resize_max_dim, resize_max_dim))
+
+            # Convert to RGB (PPM is RGB, but good safety measure) and save to JPEG in memory
+            # JPEG is much smaller than PPM or PNG
+            import io
+
+            img_byte_arr = io.BytesIO()
+            img.convert("RGB").save(img_byte_arr, format="JPEG", quality=85)
+            img_jpeg = Image.open(img_byte_arr)
+
+            # Candidate models to try, in order of preference
+            candidate_models = [
+                "gemini-flash-latest", # Available per logs
+                "gemini-2.0-flash",    # Available per logs
+                "gemini-2.5-flash",    # Available per logs
+                "gemini-pro-latest",   # Available per logs
+                model_name, # The one passed in argument
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-pro-vision",
+            ]
+            # Remove duplicates while preserving order
+            candidate_models = list(dict.fromkeys(candidate_models))
+
+            response = None
+            last_error = None
+
+            for model_candidate in candidate_models:
+                try:
+                    LOG.info("Trying Gemini model: %s", model_candidate)
+                    model = genai.GenerativeModel(model_candidate)
+                    
+                    # Retry logic for each model
+                    max_retries = 2
+                    for attempt in range(max_retries):
+                        try:
+                            response = model.generate_content(
+                                [prompt, img_jpeg],
+                                generation_config=genai.types.GenerationConfig(
+                                    temperature=0.1
+                                )
+                            )
+                            break # Success inner loop
+                        except Exception as e:
+                            if "404" in str(e) or "not found" in str(e).lower():
+                                # Model not found, break inner retry to try next model
+                                raise e 
+                            if attempt == max_retries - 1:
+                                raise e
+                            LOG.warning("Gemini API call failed (attempt %d/%d) for model %s: %s. Retrying...", attempt + 1, max_retries, model_candidate, e)
+                            time.sleep(2)
+                    
+                    if response:
+                        break # Success outer loop
+
+                except Exception as e:
+                    last_error = e
+                    LOG.warning("Model %s failed: %s", model_candidate, e)
+                    continue
+
+            if not response:
+                LOG.error("All candidate models failed. Listing available models...")
+                try:
+                    for m in genai.list_models():
+                        LOG.info("Available model: %s (methods: %s)", m.name, m.supported_generation_methods)
+                except Exception as list_e:
+                    LOG.error("Failed to list models: %s", list_e)
+                
+                raise last_error or Exception("No working Gemini model found")
+
+            result_text = response.text.strip()
+            
+            # Simple heuristic: if prompt asks for YES/NO and we get NO, save image
+            if save_failed_image and results_dir:
+                # This logic is loose; caller should decide pass/fail, but we help debug here.
+                # If the response starts with "No" (case insensitive), we treat it as suspicious.
+                if result_text.lower().startswith("no"):
+                    try:
+                        timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        fail_filename = "gemini_fail_%s.jpg" % timestamp
+                        fail_path = os.path.join(results_dir, fail_filename)
+                        if not os.path.exists(results_dir):
+                            os.makedirs(results_dir)
+                        # Save the compressed/resized version we actually sent
+                        with open(fail_path, "wb") as f:
+                            f.write(img_byte_arr.getvalue())
+                        LOG.info("Saved failed visual check image to: %s", fail_path)
+                    except Exception as e:
+                        LOG.error("Failed to save debug image: %s", e)
+
+            return result_text
+
+    except Exception as e:
+        LOG.error("Gemini API call failed: %s", e)
+        # We re-raise to let the test fail with ERROR status
+        raise
 
 
 def _md5eval(data):
