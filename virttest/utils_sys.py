@@ -191,3 +191,23 @@ def get_qemu_log(vms, type="local", params=None, log_lines=10):
         if server_session:
             server_session.close()
     return logs
+
+
+def display_remote_log(params, test):
+    """
+    Display remote log content.
+
+    :param params: dict, test parameters.
+    :param test: test object.
+    """
+    log_path = params.get("libvirtd_debug_file")
+    remote_session = params.get("remote_session")
+    remote_file_type = params.get("remote_file_type", "virtqemud")
+    log_lines = params.get("log_lines", 50)
+    try:
+        cmd = f"tail -n {log_lines} {log_path}"
+        remote_output = remote_session.cmd_output(cmd, timeout=10).strip()
+        test.log.debug(f"=== Print {remote_file_type} log ===\n{remote_output}")
+
+    except Exception as e:
+        test.log.debug(f"Failed to get log: {str(e)} \n")
