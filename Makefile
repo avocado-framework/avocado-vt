@@ -1,19 +1,17 @@
 ifndef PYTHON
-PYTHON=$(shell which python3 2>/dev/null || which python2 2>/dev/null || which python 2>/dev/null)
+PYTHON=$(shell which python3 2>/dev/null || which python 2>/dev/null)
 endif
-VERSION=$(shell $(PYTHON) setup.py --version 2>/dev/null)
-PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
+VERSION=$(shell $(PYTHON) -m setuptools_scm 2>/dev/null)
+RELEASE_VERSION=$(shell git describe --tags --abbrev=0)
 DESTDIR=/
 AVOCADO_DIRNAME?=avocado
-
-RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
-RELEASE_SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1 $(VERSION))
 
 COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1)
 COMMIT_DATE=$(shell git log --pretty='format:%cd' --date='format:%Y%m%d' -n 1)
 SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1)
 MOCK_CONFIG=default
 ARCHIVE_BASE_NAME=avocado-vt
+PKG_NAME=avocado-framework-plugin-vt
 RPM_BASE_NAME=avocado-plugins-vt
 
 
@@ -21,8 +19,8 @@ all:
 	@echo
 	@echo "Development related targets:"
 	@echo "check:    Runs tree static check, unittests and fast functional tests"
-	@echo "develop:  Runs 'python setup.py --develop' on this tree alone"
-	@echo "link:     Runs 'python setup.py --develop' in all subprojects and links the needed resources"
+	@echo "develop:  Runs 'python -m pip install -e .' on this tree alone"
+	@echo "link:     Runs 'python -m pip install -e .' in all subprojects and links the needed resources"
 	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
 	@echo "unlink:   Disables egg links and unlinks needed resources"
 	@echo
@@ -42,9 +40,6 @@ all:
 
 include Makefile.include
 
-requirements: pip
-	- $(PYTHON) -m pip install -r requirements.txt
-
 check:
 	git submodule update --init --recursive
 	pre-commit run --all-files
@@ -56,12 +51,12 @@ clean:
 	done
 
 develop:
-	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
+	$(PYTHON) -m pip install -e .
 
 link: develop
 
 unlink:
-	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
+	$(PYTHON) -m pip uninstall -y $(PKG_NAME)
 	# For compatibility reasons remove old symlinks
 	for NAME in $$(ls -1 avocado_vt/conf.d); do\
 		CONF="etc/avocado/conf.d/$$NAME";\
@@ -71,8 +66,8 @@ unlink:
 
 pypi: clean
 	if test ! -d PYPI_UPLOAD; then mkdir PYPI_UPLOAD; fi
-	$(PYTHON) setup.py bdist_wheel -d PYPI_UPLOAD
-	$(PYTHON) setup.py sdist -d PYPI_UPLOAD
+	$(PYTHON) -m pip install build
+	$(PYTHON) -m build -o PYPI_UPLOAD
 	@echo
 	@echo "Please use the files on PYPI_UPLOAD dir to upload a new version to PyPI"
 	@echo "The URL to do that may be a bit tricky to find, so here it is:"
