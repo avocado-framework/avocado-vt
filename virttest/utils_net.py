@@ -1692,6 +1692,24 @@ def get_guest_nameserver(session):
     return output
 
 
+def _deactivate_ipv4ll_dhcpcd(session):
+    """
+    The command is more prone to requesting link local addresses, such as
+    169.254.200.199 and the guest ends up with two ipv4 addresses.
+    As this can lead to ipv4 discovery issues in this module and is
+    different from the previous behavior when using dhclient, deactivate it.
+
+    :param session: guest console session
+    """
+    cmd = "grep -qxF 'noipv4ll' /etc/dhcpcd.conf "
+    cmd += "|| echo 'noipv4ll' >> /etc/dhcpcd.conf"
+    status, _ = utils_misc.cmd_status_output(
+        cmd, shell=True, ignore_status=True, session=session
+    )
+    if status:
+        raise exceptions.TestError("Couldn't deactivate IPv4 local link setting.")
+
+
 def get_dhcp_client(session):
     """
     Return the available dhcp client command and its release argument.
@@ -1709,6 +1727,8 @@ def get_dhcp_client(session):
             "which %s" % cmd, shell=True, ignore_status=True, session=session
         )
         if status == 0:
+            if cmd == "dhcpcd":
+                _deactivate_ipv4ll_dhcpcd(session)
             return cmd, release_flag
 
     raise exceptions.TestError("No dhcp client found on the system")
