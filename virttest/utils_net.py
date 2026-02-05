@@ -1732,13 +1732,13 @@ def restart_guest_network(
         if mac_addr:
             nic_ifname = get_linux_ifname(session, mac_addr)
             restart_cmd = "ifconfig %s up; " % nic_ifname
-            restart_cmd += "%s; " % release_flag
+            restart_cmd += "%s %s; " % (dhcp_cmd, release_flag)
             if ip_version == "ipv6":
                 restart_cmd += "%s -6 %s" % (dhcp_cmd, nic_ifname)
             else:
                 restart_cmd += "%s %s" % (dhcp_cmd, nic_ifname)
         else:
-            restart_cmd = "%s; " % release_flag
+            restart_cmd += "%s %s; " % (dhcp_cmd, release_flag)
             if ip_version == "ipv6":
                 restart_cmd += "%s -6" % dhcp_cmd
             else:
