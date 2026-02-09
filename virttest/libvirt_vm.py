@@ -2264,16 +2264,20 @@ class VM(virt_vm.BaseVM):
                         )
                 # some other problem happened, raise normally
                 raise
-            # Wait for the domain to be created
-            utils_misc.wait_for(
-                func=self.is_alive,
-                timeout=60,
-                text=("waiting for domain %s to start" % self.name),
-            )
-            result = virsh.domuuid(self.name, uri=self.connect_uri)
-            self.uuid = result.stdout_text.strip()
-            # Create isa serial ports.
-            self.create_serial_console()
+            # Don't start VM and create console when user add --noreboot flag
+            if params.get("use_no_reboot") == "yes":
+                LOG.info("VM created with --noreboot, skipping start up")
+            else:
+                # Wait for the domain to be created
+                utils_misc.wait_for(
+                    func=self.is_alive,
+                    timeout=60,
+                    text=("waiting for domain %s to start" % self.name),
+                )
+                result = virsh.domuuid(self.name, uri=self.connect_uri)
+                self.uuid = result.stdout_text.strip()
+                # Create isa serial ports.
+                self.create_serial_console()
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
             lockfile.close()
