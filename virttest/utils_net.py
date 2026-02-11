@@ -1758,7 +1758,7 @@ def restart_guest_network(
             else:
                 restart_cmd += "%s %s" % (dhcp_cmd, nic_ifname)
         else:
-            restart_cmd += "%s %s; " % (dhcp_cmd, release_flag)
+            restart_cmd = "%s %s; " % (dhcp_cmd, release_flag)
             if ip_version == "ipv6":
                 restart_cmd += "%s -6" % dhcp_cmd
             else:
