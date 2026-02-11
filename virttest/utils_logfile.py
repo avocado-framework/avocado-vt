@@ -68,24 +68,20 @@ def log_line(filename, line):
             "Could not acquire exclusive lock to access" " _open_log_files"
         )
     log_file = get_log_filename(filename)
-    base_file = os.path.basename(log_file)
+    log_dir = os.path.dirname(log_file)
+    os.makedirs(log_dir, exist_ok=True)
+
     try:
-        if base_file not in _open_log_files:
-            # First, let's close the log files opened in old directories
-            close_log_file(base_file)
-            # Then, let's open the new file
-            try:
-                os.makedirs(os.path.dirname(log_file))
-            except OSError:
-                pass
-            _open_log_files[base_file] = open(log_file, "a")
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
         try:
             line = string_safe_encode(line)
         except UnicodeDecodeError:
             line = line.decode("utf-8", "ignore").encode("utf-8")
-        _open_log_files[base_file].write("%s: %s\n" % (timestr, line))
-        _open_log_files[base_file].flush()
+
+        with open(log_file, "a") as log_fd:
+            log_fd.write("%s: %s\n" % (timestr, line))
+            log_fd.flush()
+
     finally:
         _log_lock.release()
 
