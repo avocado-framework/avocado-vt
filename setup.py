@@ -71,9 +71,10 @@ if __name__ == "__main__":
             ],
         },
         install_requires=[
-            "packaging",
-            "six",
+            "aautils",
             "aexpect",
             "avocado-framework>=82.1",
+            "packaging",
+            "six",
         ],
     )
