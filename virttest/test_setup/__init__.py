@@ -714,6 +714,7 @@ class HugePageConfig(object):
                     LOG.debug("Kernel buddyinfo:\n{}".format(info))
         else:
             # Skip the optimization on remote host/local vm for now as it is not a must
+            LOG.debug("Test AI code review")
             pass
         if self.target_nodes:
             for node, num in six.iteritems(self.target_node_num):
