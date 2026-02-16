@@ -117,9 +117,9 @@ CPU_TYPES_RE = {
         "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
         "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
     ),
-    "EPYC-Milan-v2": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku,vaes,vpclmulqdq",
-    "EPYC-Milan-v1": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
-    "EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
+    "EPYC-Milan-v2": "ibrs,pcid,ssbd,invpcid,pku,vaes,vpclmulqdq",
+    "EPYC-Milan-v1": "ibrs,pcid,ssbd,invpcid,pku",
+    "EPYC-Milan": "ibrs,pcid,ssbd,invpcid,pku",
     "EPYC-Rome-v4": "rdpid,wbnoinvd,stibp,clwb,umip,ibrs",
     "EPYC-Rome-v3": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
     "EPYC-Rome-v2": "rdpid,wbnoinvd,stibp,clwb,umip,xsaves,ibrs",
