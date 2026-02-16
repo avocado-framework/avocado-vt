@@ -3,10 +3,22 @@ Linux kernel modules APIs
 """
 
 import logging
+import os
+import platform
+from enum import Enum
 
 from avocado.utils import linux_modules
 
 LOG = logging.getLogger(__name__)
+
+
+class ModuleConfig(Enum):
+    #: Config commented out or not set
+    NOT_SET = object()
+    #: Config compiled as loadable module (`=m`)
+    MODULE = object()
+    #: Config built-in to kernel (`=y`)
+    BUILTIN = object()
 
 
 def check_kernel_config(config_name, session=None):
@@ -21,6 +33,27 @@ def check_kernel_config(config_name, session=None):
     :return: Config status in running kernel (NOT_SET, BUILTIN, MODULE)
     :rtype: :class:`ModuleConfig`
     """
+    def check_host_kernel_config(config_name):
+        kernel_version = platform.uname()[2]
+
+        config_file = "/boot/config-" + kernel_version
+        if not os.path.exists(config_file):
+            config_file = "/lib/modules/%s/config" % kernel_version
+        with open(config_file, "r") as kernel_config:  # pylint: disable=W1514
+            for line in kernel_config:
+                line = line.split("=")
+
+                if len(line) != 2:
+                    continue
+
+                config = line[0].strip()
+                if config == config_name:
+                    option = line[1].strip()
+                    if option == "m":
+                        return ModuleConfig.MODULE
+                    else:
+                        return ModuleConfig.BUILTIN
+        return ModuleConfig.NOT_SET
 
     def check_session_kernel_config(config_name, session):
         """
@@ -54,7 +87,7 @@ def check_kernel_config(config_name, session=None):
         return linux_modules.ModuleConfig.NOT_SET
 
     return (
-        linux_modules.check_kernel_config(config_name)
+        check_host_kernel_config(config_name)
         if session is None
         else check_session_kernel_config(config_name, session)
     )
