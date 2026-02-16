@@ -423,7 +423,7 @@ class VM(virt_vm.BaseVM):
             state = None
         return VM(name, params, root_dir, address_cache, state)
 
-    def make_create_command(self, name=None, params=None, root_dir=None):
+    def make_create_command_old(self, name=None, params=None, root_dir=None):
         """
         Generate a libvirt command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
@@ -1552,6 +1552,1067 @@ class VM(virt_vm.BaseVM):
 
         return virt_install_cmd
 
+    def make_create_xml(self, name=None, params=None, root_dir=None):
+        """
+        Generate a libvirt command line. All parameters are optional. If a
+        parameter is not supplied, the corresponding value stored in the
+        class attributes is used.
+
+        :param name: The name of the object
+        :param params: A dict containing VM params
+        :param root_dir: Base directory for relative filenames
+
+        :note: The params dict should contain:
+               mem -- memory size in MBs
+               cdrom -- ISO filename to use with the qemu -cdrom parameter
+               extra_params -- a string to append to the qemu command
+               shell_port -- port of the remote shell daemon on the guest
+               (SSH, Telnet or the home-made Remote Shell Server)
+               shell_client -- client program to use for connecting to the
+               remote shell daemon on the guest (ssh, telnet or nc)
+               x11_display -- if specified, the DISPLAY environment variable
+               will be be set to this value for the qemu process (useful for
+               SDL rendering)
+               images -- a list of image object names, separated by spaces
+               nics -- a list of NIC object names, separated by spaces
+
+               For each image in images:
+               drive_format -- string to pass as 'if' parameter for this
+               image (e.g. ide, scsi)
+               image_snapshot -- if yes, pass 'snapshot=on' to qemu for
+               this image
+               image_boot -- if yes, pass 'boot=on' to qemu for this image
+               In addition, all parameters required by get_image_filename.
+
+               For each NIC in nics:
+               nic_model -- string to pass as 'model' parameter for this
+               NIC (e.g. e1000)
+        """
+        from virttest.utils_test import libvirt
+
+        # helper function for command line option wrappers
+        def has_option(help_text, option):
+            return bool(re.search(r"--%s" % option, help_text, re.MULTILINE))
+
+        def has_os_variant(os_text, os_variant):
+            return bool(re.search(r"%s" % os_variant, os_text, re.MULTILINE))
+
+        def has_sub_option(option, sub_option):
+            option_help_text = process.run("%s --%s help" %
+                                           (virt_install_binary, option),
+                                           verbose=False).stdout_text
+            return bool(re.search(r"%s" % sub_option, option_help_text, re.MULTILINE))
+
+        # Wrappers for all supported libvirt command line parameters.
+        # This is meant to allow support for multiple libvirt versions.
+        # Each of these functions receives the output of 'libvirt --help' as a
+        # parameter, and should add the requested command line option
+        # accordingly.
+
+        def add_name(help_text, name):
+            return " --name '%s'" % name
+
+        def add_machine_type(help_text, machine_type):
+            if has_option(help_text, "machine"):
+                return " --machine %s" % machine_type
+            else:
+                return ""
+
+        def add_hvm_or_pv(help_text, hvm_or_pv):
+            if hvm_or_pv == "hvm":
+                return " --hvm --accelerate"
+            elif hvm_or_pv == "pv":
+                return " --paravirt"
+            else:
+                LOG.warning("Unknown virt type hvm_or_pv, using default.")
+                return ""
+
+        def add_mem(help_text, mem, maxmem=None, hugepage=False,
+                    hotplugmaxmem=None, hotplugmemslots=1):
+            if has_option(help_text, "memory"):
+                cmd = " --memory=%s" % mem
+                if maxmem:
+                    if not has_sub_option('memory', 'maxmemory'):
+                        LOG.warning("maxmemory option not supported by "
+                                    "virt-install")
+                    else:
+                        cmd += ",maxmemory=%s" % maxmem
+                if hugepage:
+                    if not has_sub_option('memory', 'hugepages'):
+                        LOG.warning("hugepages option not supported by "
+                                    "virt-install")
+                    else:
+                        cmd += ",hugepages=yes"
+                if hotplugmaxmem:
+                    if not has_sub_option('memory', 'hotplugmemorymax'):
+                        LOG.warning("hotplugmemorymax option not supported"
+                                    "by virt-install")
+                    else:
+                        cmd += ",hotplugmemorymax=%s" % hotplugmaxmem
+                    if not has_sub_option('memory', 'hotplugmemoryslots'):
+                        LOG.warning("hotplugmemoryslots option not "
+                                    "supported by virt-install")
+                    else:
+                        cmd += ",hotplugmemoryslots=%d" % hotplugmemslots
+                return cmd
+            else:
+                return " --ram=%s" % mem
+
+        def add_check_cpu(help_text):
+            if has_option(help_text, "check-cpu"):
+                return " --check-cpu"
+            else:
+                return ""
+
+        def add_smp(help_text, smp, maxvcpus=None, sockets=None,
+                    cores=None, threads=None):
+            cmd = " --vcpu=%s" % smp
+            if maxvcpus:
+                cmd += ",maxvcpus=%s" % maxvcpus
+            if sockets:
+                cmd += ",sockets=%s" % sockets
+            if cores:
+                cmd += ",cores=%s" % cores
+            if threads:
+                cmd += ",threads=%s" % threads
+            return cmd
+
+        def add_numa():
+            """
+            Method to add Numa node to guest
+            :return: appended numa parameter to virt-install cmd
+            """
+            if not has_sub_option('cpu', 'cell'):
+                LOG.warning("virt-install version does not support numa cmd line")
+                return ""
+            cmd = " --cpu"
+            cell = "cell%s.cpus=%s,cell%s.id=%s,cell%s.memory=%s"
+            cells = ""
+            numa_val = {}
+            for numa_node in params.objects("guest_numa_nodes"):
+                numa_params = params.object_params(numa_node)
+                numa_mem = numa_params.get("numa_mem")
+                numa_cpus = numa_params.get("numa_cpus")
+                numa_nodeid = numa_params.get("numa_nodeid")
+                numa_memdev = numa_params.get("numa_memdev")
+                numa_distance = numa_params.get("numa_distance", "").split()
+                numa_val[numa_nodeid] = [numa_cpus, numa_mem, numa_memdev,
+                                         numa_distance]
+            if numa_val:
+                for cellid, value in numa_val.items():
+                    cells += "%s," % cell % (cellid, value[0], cellid, cellid,
+                                             cellid, value[1])
+                    if value[3]:  # numa_distance
+                        for siblingid in range(len(value[3])):
+                            cells += "cell%s.distances.sibling%s.id=%s," % (cellid,
+                                                                            siblingid,
+                                                                            siblingid)
+                            cells += "cell%s.distances.sibling%s.value=%s," % (cellid,
+                                                                               siblingid,
+                                                                               value[3][siblingid])
+            else:
+                # Lets calculate and assign the node cpu and memory
+                vcpus = int(params.get("smp"))
+                vcpu_max_cpus = params.get("vcpu_maxcpus")
+                max_mem = int(params.get("mem")) * 1024
+                maxmemory = params.get("maxmemory", None)
+                numa_nodes = int(params.get("numa_nodes", 2))
+                if vcpu_max_cpus:
+                    vcpus = int(vcpu_max_cpus)
+                if maxmemory:
+                    max_mem = int(maxmemory) * 1024
+                # we need at least 1 vcpu for 1 numa node
+                if numa_nodes > vcpus:
+                    numa_nodes = vcpus
+                    params['numa_nodes'] = vcpus
+                if vcpus > 1:
+                    cpus = vcpus // numa_nodes
+                    cpus_balance = vcpus % numa_nodes
+                    memory = max_mem // numa_nodes
+                    memory_balance = max_mem % numa_nodes
+                else:
+                    cpus = vcpus
+                    memory = max_mem
+                cpu_start = 0
+                for numa in range(numa_nodes):
+                    if numa == numa_nodes - 1 and vcpus > 1:
+                        cpus = cpus + cpus_balance
+                        memory = memory + memory_balance
+                    if cpus == 1:
+                        cpu_str = "%s" % (cpu_start + (cpus - 1))
+                    else:
+                        cpu_str = "%s-%s" % (cpu_start, cpu_start + (cpus - 1))
+                    cpu_start += cpus
+                    cells += "%s," % cell % (numa, cpu_str, numa, numa, numa, memory)
+            cmd += " %s" % cells
+            return cmd.strip(",")
+
+        def pin_numa(help_text, host_numa_node_list):
+            """
+            Method to pin guest numa with host numa
+            :param help_text: virt-install help message to check the option
+            :param host_numa_node_list: list of online host numa nodes
+
+            :return: parameter to pin host and guest numa with virt-install
+            """
+            if not has_option(help_text, "numatune"):
+                return ""
+            cmd = " --numatune"
+            numa_pin_mode = params.get("numa_pin_mode", "strict")
+            # If user gives specific host numa nodes to pin by comma separated
+            # string pin_to_host_numa_node = "0,1,2", check if the numa
+            # node is in online numa list and use.
+            host_numa = str(params.get("pin_to_host_numa_node", ""))
+            if host_numa:
+                host_numa_list = host_numa.split(',')
+                for each_numa in host_numa_list:
+                    if each_numa not in host_numa_node_list:
+                        LOG.error("host numa node - %s is not online or "
+                                  "doesn't have memory", each_numa)
+                        host_numa_list.remove(each_numa)
+                if host_numa_list:
+                    host_numa = ','.join(map(str, host_numa_list))
+                else:
+                    return ""
+            # If user haven't mention any specific host numa nodes, use
+            # available online numa nodes
+            else:
+                host_numa = ','.join((map(str, host_numa_node_list)))
+            cmd += " %s,mode=%s" % (host_numa, numa_pin_mode)
+            return cmd
+
+        def pin_hugepage(help_text, hp_size, guest_numa):
+            """
+            Method to pin hugepages to guest numa with virt-install
+
+            :param help_text: virt-install help message text
+            :param hp_size: hugepage size supported
+            :param guest_numa: guest numa nodes to be pinned with hugepage
+
+            :return: cmd parameter to pin hugepage with Numa with virt-install
+            """
+            if not has_option(help_text, "memorybacking"):
+                return ""
+            cmd = " --memorybacking"
+            hp_unit = params.get("hugepage_unit", "KiB")
+            cmd += " size=%s,nodeset=%s,unit=%s" % (hp_size, guest_numa, hp_unit)
+            # Instructs hypervisor to disable shared pages (memory merge, KSM) for
+            # this domain
+            if params.get("hp_nosharepages", "no") == "yes":
+                cmd += ",nosharepages=yes"
+
+            # memory pages belonging to the domain will be locked in host's memory
+            # and the host will not be allowed to swap them out
+            if params.get("hp_locked", "no") == "yes":
+                cmd += ",locked=yes"
+            return cmd
+
+        def add_cpu_mode(virt_install_cmd, mode='', model='',
+                         match='', vendor=False):
+            """
+            To add cpu mode, model etc... params
+            :param virt_install_cmd: previous virt install cmd line
+            :param mode: cpu mode host-passthrough, host-model, custom
+            :param model: cpu model (coreduo, power8 etc.)
+            :param match: minimum, exact, strict
+            :param vendor: cpu vendor
+            :return: updated virt_install_cmd
+            """
+            cmd = ''
+            cpu_match = re.match(r".*\s--cpu\s(\S+)\s", virt_install_cmd)
+            if cpu_match:
+                cmd = " --cpu %s," % cpu_match.group(1)
+            else:
+                cmd = " --cpu "
+            if mode and has_sub_option('cpu', 'mode'):
+                cmd += 'mode="%s",' % mode
+            if model and has_sub_option('cpu', 'model'):
+                cmd += 'model="%s",' % model
+            if match and has_sub_option('cpu', 'match'):
+                cmd += 'match="%s",' % match
+            if vendor and has_sub_option('cpu', 'vendor'):
+                cmd += 'vendor="%s",' % libvirt_xml.CapabilityXML().vendor
+            virt_install_cmd += cmd.strip(',')
+
+            return virt_install_cmd
+
+        def add_location(help_text, location):
+            if has_option(help_text, "location"):
+                return " --location %s" % location
+            else:
+                return ""
+
+        def add_cdrom(help_text, filename, index=None):
+            if has_option(help_text, "cdrom"):
+                return " --cdrom %s" % filename
+            else:
+                return ""
+
+        def add_pxe(help_text):
+            if has_option(help_text, "pxe"):
+                return " --pxe"
+            else:
+                return ""
+
+        def add_import(help_text):
+            if has_option(help_text, "import"):
+                return " --import"
+            else:
+                return ""
+
+        def add_controller(model=None):
+            """
+            Add controller option for virt-install command line.
+
+            :param model: string, controller model.
+            :return: string, empty or controller option.
+            """
+            if model == 'virtio-scsi':
+                return " --controller type=scsi,model=virtio-scsi"
+            else:
+                return ""
+
+        def check_controller(virt_install_cmd_line, controller):
+            """
+            Check for the controller already available in virt-install
+            command line.
+
+            :param virt_install_cmd_line: string, virt-install command line.
+            :param controller: string, controller model.
+            :return: True if succeed of False if failed.
+            """
+            found = False
+            output = re.findall(
+                r"controller\stype=(\S+),model=(\S+)", virt_install_cmd_line)
+            for item in output:
+                if controller in item[1]:
+                    found = True
+                    break
+            return found
+
+        def add_drive(help_text, filename, pool=None, vol=None, device=None,
+                      bus=None, perms=None, size=None, sparse=False,
+                      cache=None, fmt=None):
+            cmd = " --disk"
+            if filename:
+                cmd += " path=%s" % filename
+            elif pool:
+                if vol:
+                    cmd += " vol=%s/%s" % (pool, vol)
+                else:
+                    cmd += " pool=%s" % pool
+            if device:
+                cmd += ",device=%s" % device
+            if bus:
+                cmd += ",bus=%s" % bus
+            if perms:
+                cmd += ",%s" % perms
+            if size:
+                cmd += ",size=%s" % size.rstrip("Gg")
+            if sparse:
+                cmd += ",sparse=false"
+            if fmt:
+                cmd += ",format=%s" % fmt
+            if cache:
+                cmd += ",cache=%s" % cache
+            return cmd
+
+        def add_floppy(help_text, filename):
+            return " --disk path=%s,device=floppy,ro" % filename
+
+        def add_vnc(help_text, vnc_port=None):
+            if vnc_port:
+                return " --vnc --vncport=%d" % (vnc_port)
+            else:
+                return " --vnc"
+
+        def add_vnclisten(help_text, vnclisten):
+            if has_option(help_text, "vnclisten"):
+                return " --vnclisten=%s" % (vnclisten)
+            else:
+                return ""
+
+        def add_sdl(help_text):
+            if has_option(help_text, "sdl"):
+                return " --sdl"
+            else:
+                return ""
+
+        def add_nographic(help_text):
+            return " --nographics"
+
+        def add_video(help_text, video_device):
+            if has_option(help_text, "video"):
+                return " --video=%s" % (video_device)
+            else:
+                return ""
+
+        def add_uuid(help_text, uuid):
+            if has_option(help_text, "uuid"):
+                return " --uuid %s" % uuid
+            else:
+                return ""
+
+        def add_os_type(help_text, os_type):
+            if has_option(help_text, "os-type"):
+                return " --os-type %s" % os_type
+            else:
+                return ""
+
+        def add_os_variant(help_text, os_variant):
+            if has_option(help_text, "os-variant"):
+                return " --os-variant %s" % os_variant
+            else:
+                return ""
+
+        def add_pcidevice(help_text, pci_device):
+            if has_option(help_text, "host-device"):
+                return " --host-device %s" % pci_device
+            else:
+                return ""
+
+        def add_soundhw(help_text, sound_device):
+            if has_option(help_text, "soundhw"):
+                return " --soundhw %s" % sound_device
+            else:
+                return ""
+
+        def add_serial(help_text):
+            if has_option(help_text, "serial"):
+                return " --serial pty"
+            else:
+                return ""
+
+        def add_kernel_cmdline(help_text, cmdline):
+            return " -append %s" % cmdline
+
+        def add_connect_uri(help_text, uri):
+            if uri and has_option(help_text, "connect"):
+                return " --connect=%s" % uri
+            else:
+                return ""
+
+        def add_security(help_text, sec_type, sec_label=None, sec_relabel=None):
+            """
+            Return security options for install command.
+            """
+            if has_option(help_text, "security"):
+                result = " --security"
+                if sec_type == 'static':
+                    if sec_label is None:
+                        raise ValueError("Seclabel is not setted for static.")
+                    result += " type=static,label=%s" % (sec_label)
+                elif sec_type == 'dynamic':
+                    result += " type=dynamic"
+                else:
+                    raise ValueError("Security type %s is not supported."
+                                     % sec_type)
+                if sec_relabel is not None:
+                    result += ",relabel=%s" % sec_relabel
+            else:
+                result = ""
+
+            return result
+
+        def add_nic(help_text, nic_params):
+            """
+            Return additional command line params based on dict-like nic_params
+            """
+            mac = nic_params.get('mac')
+            nettype = nic_params.get('nettype')
+            netdst = nic_params.get('netdst')
+            nic_model = nic_params.get('nic_model')
+            nic_queues = nic_params.get('queues')
+            nic_driver = nic_params.get('net_driver')
+            if nettype:
+                result = " --network=%s" % nettype
+            else:
+                result = ""
+            if has_option(help_text, "bridge"):
+                # older libvirt (--network=NATdev --bridge=bridgename
+                # --mac=mac)
+                if nettype != 'user':
+                    result += ':%s' % netdst
+                if mac:  # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            else:
+                # newer libvirt (--network=mynet,model=virtio,mac=00:11)
+                if nettype != 'user':
+                    result += '=%s' % netdst
+                if nettype and nic_model:  # only supported along with nettype
+                    result += ",model=%s" % nic_model
+                if nettype and mac:
+                    result += ',mac=%s' % mac
+                if nettype and nic_queues and has_sub_option('network', 'driver_queues'):
+                    result += ',driver_queues=%s' % nic_queues
+                    if nic_driver and has_sub_option('network', 'driver_name'):
+                        result += ',driver_name=%s' % nic_driver
+                elif mac:  # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            LOG.debug("vm.make_create_command.add_nic returning: %s",
+                      result)
+            return result
+
+        def add_memballoon(help_text, memballoon_model):
+            """
+            Adding memballoon device to the vm.
+
+            :param help_text: string, virt-install help text.
+            :param memballon_model: string, memballoon model.
+            :return: string, empty or memballoon model option.
+            """
+            if has_option(help_text, "memballoon"):
+                result = " --memballoon model=%s" % memballoon_model
+            else:
+                LOG.warning("memballoon is not supported")
+                result = ""
+            LOG.debug("vm.add_memballoon returning: %s", result)
+            return result
+
+        def add_kernel(help_text, cmdline, kernel_path=None, initrd_path=None,
+                       kernel_args=None):
+            """
+            Adding Custom kernel option to boot.
+
+            : param help_text: string, virt-install help text
+            : param cmdline: string, current virt-install cmdline
+            : param kernel_path: string, custom kernel path.
+            : param initrd_path: string, custom initrd path.
+            : param kernel_args: string, custom boot args.
+            """
+            if has_option(help_text, "boot"):
+                if "--boot" in cmdline:
+                    result = ","
+                else:
+                    result = " --boot "
+                if has_sub_option("boot", "kernel") and kernel_path:
+                    result += "kernel=%s," % kernel_path
+                if has_sub_option("boot", "initrd") and initrd_path:
+                    result += "initrd=%s," % initrd_path
+                if has_sub_option("boot", "kernel_args") and kernel_args:
+                    result += "kernel_args=\"%s\"," % kernel_args
+            else:
+                result = ""
+                LOG.warning("boot option is not supported")
+            return result.rstrip(',')
+
+        def add_cputune(vcpu_cputune=""):
+            """
+            Add cputune for guest
+            """
+            if not vcpu_cputune:
+                return ""
+            cputune_list = vcpu_cputune.split(" ")
+            item = 0
+            cputune_str = " --cputune "
+            for vcpu, cpulist in enumerate(cputune_list):
+                if "N" in cpulist:
+                    continue
+                cputune_str += "vcpupin%s.cpuset=\"%s\",vcpupin%s.vcpu=\"%s\"," % (item, cpulist, item, vcpu)
+                item += 1
+            return cputune_str.rstrip(",")
+
+        def add_tpmdevice(help_text, device_path, model=None, type=None):
+            """
+            Add TPM device to guest xml
+            :param help_text: string, virt-install help text
+            :param device_path: path to TPM device
+            :param model: tpm device model to be added
+                          tpm-tis, tpm-crb, tpm-spapr etc
+            :param type: type of device attach
+                         passthrough, emulator
+            :return: string of tpm cmdline for virt-install
+            """
+            result = ""
+            if not has_option(help_text, "tpm"):
+                LOG.warning("tpm option is not supported in virt-install")
+                return result
+            if not (device_path and os.path.exists(device_path)):
+                LOG.warning("Given TPM device is not valid or not present")
+                return result
+            result = " --tpm path=%s" % device_path
+            if has_sub_option("tpm", "model") and model:
+                result += ",model=%s" % model
+            if has_sub_option("tpm", "type") and type:
+                result += ",type=%s" % type
+            return result
+
+        # End of command line option wrappers
+
+        if name is None:
+            name = self.name
+        if params is None:
+            params = self.params
+        if root_dir is None:
+            root_dir = self.root_dir
+
+        # Clone this VM using the new params
+        #vm = self.clone(name, params, root_dir, copy_state=True)
+
+        libvirt_vm_xml = """
+        <domain type='kvm'>
+  <name>avocado-vt-vm1</name>
+  <metadata>
+    <ns0:libosinfo xmlns:ns0="http://libosinfo.org/xmlns/libvirt/domain/1.0">
+      <ns0:os id="http://redhat.com/rhel/8.5"/>
+    </ns0:libosinfo>
+  </metadata>
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
+  <vcpu placement='static'>2</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-q35-rhel8.5.0'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <emulator>/usr/libexec/qemu-kvm</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x04' slot='0x00' function='0x0'/>
+    </disk>
+    <interface type='network'>
+      <mac address='52:54:00:ad:fd:f8'/>
+      <source network='default'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
+    </interface>
+      </devices>
+</domain>
+        """
+        xml_path = os.path.join(data_dir.get_tmp_dir(), self.name)
+        if os.path.exists(xml_path):
+            os.remove(xml_path)
+        with open(xml_path, 'w') as fp:
+            fp.write(libvirt_vm_xml)
+        return xml_path
+
+        virt_install_binary = utils_misc.get_path(
+            root_dir,
+            params.get("virt_install_binary",
+                       "virt-install"))
+
+        help_text = process.run("%s --help" % virt_install_binary,
+                                verbose=False).stdout_text
+
+        try:
+            os_text = process.run("osinfo-query os --fields short-id",
+                                  verbose=False).stdout_text
+        except process.CmdError:
+            os_text = process.run("%s --os-variant list" % virt_install_binary,
+                                  verbose=False).stdout_text
+
+        # Find all supported machine types, so we can rule out an unsupported
+        # machine type option passed in the configuration.
+        hvm_or_pv = params.get("hvm_or_pv", "hvm")
+        # default to 'uname -m' output
+        arch_name = params.get("vm_arch_name", platform.machine())
+        support_machine_type = libvirt.get_machine_types(arch_name, hvm_or_pv,
+                                                         ignore_status=False)
+        LOG.debug("Machine types supported for %s/%s: %s",
+                  hvm_or_pv, arch_name, support_machine_type)
+
+        # Start constructing the qemu command
+        virt_install_cmd = ""
+        # Set the X11 display parameter if requested
+        if params.get("x11_display"):
+            virt_install_cmd += "DISPLAY=%s " % params.get("x11_display")
+        # Add the qemu binary
+        virt_install_cmd += virt_install_binary
+
+        # set connect uri
+        virt_install_cmd += add_connect_uri(help_text, self.connect_uri)
+
+        # hvm or pv specified by libvirt switch (pv used  by Xen only)
+        if hvm_or_pv:
+            virt_install_cmd += add_hvm_or_pv(help_text, hvm_or_pv)
+
+        # Add the VM's name
+        virt_install_cmd += add_name(help_text, name)
+
+        # The machine_type format is [avocado-type:]machine_type
+        # where avocado-type is optional part and is used in
+        # tp-qemu to use different devices. Use only the second part
+        machine_type = params.get("machine_type").split(':', 1)[-1]
+        if machine_type:
+            if machine_type in support_machine_type:
+                virt_install_cmd += add_machine_type(help_text, machine_type)
+            else:
+                raise exceptions.TestSkipError("Unsupported machine type %s." %
+                                               (machine_type))
+
+        mem = params.get("mem")
+        maxmemory = params.get("maxmemory", None)
+
+        # hugepage setup in host will be taken care in env_process
+        hugepage = params.get("hugepage", "no") == "yes"
+        hotplugmaxmem = params.get("hotplugmaxmem", None)
+        hotplugmemslots = int(params.get("hotplugmemslots", 1))
+        if mem:
+            virt_install_cmd += add_mem(help_text, mem, maxmemory, hugepage,
+                                        hotplugmaxmem, hotplugmemslots)
+
+        # TODO: should we do the check before we call ? negative case ?
+        check_cpu = params.get("use_check_cpu")
+        if check_cpu:
+            virt_install_cmd += add_check_cpu(help_text)
+
+        smp = params.get("smp")
+        vcpu_max_cpus = params.get("vcpu_maxcpus")
+        vcpu_sockets = params.get("vcpu_sockets")
+        vcpu_cores = params.get("vcpu_cores")
+        vcpu_threads = params.get("vcpu_threads")
+        if smp:
+            virt_install_cmd += add_smp(help_text, smp, vcpu_max_cpus,
+                                        vcpu_sockets, vcpu_cores, vcpu_threads)
+        numa = params.get("numa", "no") == "yes"
+        if numa:
+            virt_install_cmd += add_numa()
+            if params.get("numa_pin", "no") == "yes":
+                # Get online host numa nodes
+                host_numa_node = utils_misc.NumaInfo()
+                host_numa_node_list = host_numa_node.online_nodes_withcpumem
+                # check if memory is available in host numa node
+                for each_numa in host_numa_node_list:
+                    if hugepage:
+                        hp = test_setup.HugePageConfig(params)
+                        free_hp = host_numa_node.read_from_node_meminfo(each_numa,
+                                                                        "HugePages_Free")
+                        free_mem = int(free_hp) * int(hp.get_hugepage_size())
+                    else:
+                        free_mem = int(host_numa_node.read_from_node_meminfo(each_numa,
+                                                                             'MemFree'))
+                    # Numa might be online but if it doesn't have free memory,
+                    # skip it
+                    if free_mem == 0:
+                        LOG.debug("Host numa node: %s doesn't have memory",
+                                  each_numa)
+                        host_numa_node_list.remove(each_numa)
+                if not host_numa_node_list:
+                    LOG.error("Host Numa nodes are not online or doesn't "
+                              "have memory to pin")
+                else:
+                    virt_install_cmd += pin_numa(help_text, host_numa_node_list)
+
+        if params.get("hugepage_pin", "no") == "yes":
+            if numa and hugepage:
+                # get host hugepage size
+                hp_obj = test_setup.HugePageConfig(params)
+                hp_size = hp_obj.get_hugepage_size()
+                # specify numa nodes to be backed by HP by comma separated
+                # string, hugepage_pinnned_numa = "0-2,4" to back guest numa
+                # nodes 0 to 2 and 4.
+                guest_numa = str(params.get("hugepage_pinned_numa"))
+                if guest_numa == 'None':
+                    # if user didn't mention hugepage_pinnned_numa use
+                    # numa_nodes to back all the numa nodes.
+                    guest_numa = int(params.get("numa_nodes", 2))
+                    guest_numa = ','.join(map(str, list(range(guest_numa))))
+                virt_install_cmd += pin_hugepage(help_text, hp_size, guest_numa)
+            else:
+                LOG.error("Can't pin hugepage without hugepage enabled"
+                          "and Numa enabled")
+
+        cpu_mode = params.get("virt_cpu_mode", '')
+        if cpu_mode:
+            virt_install_cmd = add_cpu_mode(virt_install_cmd,
+                                            mode=cpu_mode,
+                                            model=params.get('virt_cpu_model', ''),
+                                            match=params.get('virt_cpu_match', ''),
+                                            vendor=params.get('virt_cpu_vendor', False))
+        cputune_list = params.get("vcpu_cputune", "")
+        if cputune_list:
+            virt_install_cmd += add_cputune(cputune_list)
+        # TODO: directory location for vmlinuz/kernel for cdrom install ?
+        location = None
+        if params.get("medium") == 'url':
+            location = params.get('url')
+
+        elif params.get("medium") == 'kernel_initrd':
+            # directory location of kernel/initrd pair (directory layout must
+            # be in format libvirt will recognize)
+            location = params.get("image_dir")
+
+        elif params.get("medium") == 'nfs':
+            location = "nfs:%s:%s" % (params.get("nfs_server"),
+                                      params.get("nfs_dir"))
+
+        elif params.get("medium") == 'cdrom':
+            if params.get("use_libvirt_cdrom_switch") == 'yes':
+                virt_install_cmd += add_cdrom(
+                    help_text, params.get("cdrom_cd1"))
+            elif params.get("unattended_delivery_method") == "integrated":
+                cdrom_path = os.path.join(data_dir.get_data_dir(),
+                                          params.get("cdrom_unattended"))
+                virt_install_cmd += add_cdrom(help_text, cdrom_path)
+            else:
+                location = os.path.join(data_dir.get_data_dir(),
+                                        params.get("cdrom_cd1"))
+                kernel_dir = os.path.dirname(params.get("kernel"))
+                kernel_parent_dir = os.path.dirname(kernel_dir)
+                pxeboot_link = os.path.join(kernel_parent_dir, "pxeboot")
+                if os.path.islink(pxeboot_link):
+                    os.unlink(pxeboot_link)
+                if os.path.isdir(pxeboot_link):
+                    LOG.info("Removed old %s leftover directory", pxeboot_link)
+                    shutil.rmtree(pxeboot_link)
+                os.symlink(kernel_dir, pxeboot_link)
+
+        elif params.get("medium") == "import":
+            virt_install_cmd += add_import(help_text)
+
+        if location:
+            virt_install_cmd += add_location(help_text, location)
+
+        # Disable display when vga is disabled (used mainly by machines.cfg)
+        if params.get("vga") == "none":
+            virt_install_cmd += add_nographic(help_text)
+        elif params.get("display") == "vnc":
+            if params.get("vnc_autoport") == "yes":
+                vm.vnc_autoport = True
+            else:
+                vm.vnc_autoport = False
+            if not vm.vnc_autoport and params.get("vnc_port"):
+                vm.vnc_port = int(params.get("vnc_port"))
+            virt_install_cmd += add_vnc(help_text, vm.vnc_port)
+            if params.get("vnclisten"):
+                vm.vnclisten = params.get("vnclisten")
+            virt_install_cmd += add_vnclisten(help_text, vm.vnclisten)
+        elif params.get("display") == "sdl":
+            virt_install_cmd += add_sdl(help_text)
+        elif params.get("display") == "nographic":
+            virt_install_cmd += add_nographic(help_text)
+
+        video_device = params.get("video_device")
+        if video_device:
+            virt_install_cmd += add_video(help_text, video_device)
+
+        sound_device = params.get("sound_device")
+        if sound_device:
+            virt_install_cmd += add_soundhw(help_text, sound_device)
+
+        # if none is given a random UUID will be generated by libvirt
+        if params.get("uuid"):
+            virt_install_cmd += add_uuid(help_text, params.get("uuid"))
+
+        # selectable OS type
+        if params.get("use_os_type") == "yes":
+            virt_install_cmd += add_os_type(help_text, params.get("os_type"))
+
+        # selectable OS variant
+        if params.get("use_os_variant") == "yes":
+            if not has_os_variant(os_text, params.get("os_variant")):
+                raise exceptions.TestSkipError("Unsupported OS variant: %s.\n"
+                                               "Supported variants: %s" %
+                                               (params.get('os_variant'),
+                                                os_text))
+            virt_install_cmd += add_os_variant(
+                help_text, params.get("os_variant"))
+
+        # Add serial console
+        virt_install_cmd += add_serial(help_text)
+
+        # Add memballoon device
+        memballoon_model = params.get("memballoon_model")
+        if memballoon_model:
+            virt_install_cmd += add_memballoon(help_text, memballoon_model)
+
+        # If the PCI assignment step went OK, add each one of the PCI assigned
+        # devices to the command line.
+        if self.pci_devices:
+            for pci_id in self.pci_devices:
+                virt_install_cmd += add_pcidevice(help_text, pci_id)
+
+        for image_name in params.objects("images"):
+            basename = False
+            image_params = params.object_params(image_name)
+
+            base_dir = image_params.get("images_base_dir",
+                                        data_dir.get_data_dir())
+            if params.get("storage_type") == "nfs":
+                basename = True
+                base_dir = params["nfs_mount_dir"]
+            filename = storage.get_image_filename(image_params,
+                                                  base_dir, basename=basename)
+            if image_params.get("use_storage_pool") == "yes":
+                filename = None
+                virt_install_cmd += add_drive(help_text,
+                                              filename,
+                                              image_params.get("image_pool"),
+                                              image_params.get("image_vol"),
+                                              image_params.get("image_device"),
+                                              image_params.get("image_bus"),
+                                              image_params.get("image_perms"),
+                                              image_params.get("image_size"),
+                                              image_params.get("drive_sparse"),
+                                              image_params.get("drive_cache"),
+                                              image_params.get("image_format"))
+
+            if image_params.get("boot_drive") == "no":
+                continue
+            if filename:
+                libvirt_controller = image_params.get(
+                    "libvirt_controller", None)
+                _drive_format = image_params.get("drive_format")
+                if libvirt_controller:
+                    if not check_controller(virt_install_cmd, libvirt_controller):
+                        virt_install_cmd += add_controller(libvirt_controller)
+                    # this will reset the scsi-hd to scsi as we are adding controller
+                    # to mention the drive format
+                    if 'scsi' in _drive_format:
+                        _drive_format = "scsi"
+                virt_install_cmd += add_drive(help_text,
+                                              filename,
+                                              None,
+                                              None,
+                                              None,
+                                              _drive_format,
+                                              None,
+                                              image_params.get("image_size"),
+                                              image_params.get("drive_sparse"),
+                                              image_params.get("drive_cache"),
+                                              image_params.get("image_format"))
+
+        unattended_integrated = (params.get('unattended_delivery_method') !=
+                                 'integrated')
+        xen_pv = self.driver_type == 'xen' and params.get('hvm_or_pv') == 'pv'
+        if unattended_integrated and not xen_pv:
+            for cdrom in params.objects("cdroms"):
+                cdrom_params = params.object_params(cdrom)
+                iso = cdrom_params.get("cdrom")
+                if params.get("use_libvirt_cdrom_switch") == 'yes':
+                    # we don't want to skip the winutils iso
+                    if not cdrom == 'winutils':
+                        LOG.debug(
+                            "Using --cdrom instead of --disk for install")
+                        LOG.debug("Skipping CDROM:%s:%s", cdrom, iso)
+                        continue
+                if params.get("medium") == 'cdrom':
+                    if iso == params.get("cdrom_cd1"):
+                        LOG.debug("Using cdrom or url for install")
+                        LOG.debug("Skipping CDROM: %s", iso)
+                        continue
+
+                if iso:
+                    iso_path = utils_misc.get_path(root_dir, iso)
+                    iso_image_pool = image_params.get("iso_image_pool")
+                    iso_image_vol = image_params.get("iso_image_vol")
+                    virt_install_cmd += add_drive(help_text,
+                                                  iso_path,
+                                                  iso_image_pool,
+                                                  virt_install_cmd,
+                                                  'cdrom',
+                                                  None,
+                                                  None,
+                                                  None,
+                                                  None,
+                                                  None,
+                                                  None)
+
+        # We may want to add {floppy_otps} parameter for -fda
+        # {fat:floppy:}/path/. However vvfat is not usually recommended.
+        # Only support to add the main floppy if you want to add the second
+        # one please modify this part.
+        floppy = params.get("floppy_name")
+        if floppy:
+            floppy = utils_misc.get_path(data_dir.get_data_dir(), floppy)
+            virt_install_cmd += add_drive(help_text, floppy,
+                                          None,
+                                          None,
+                                          'floppy',
+                                          None,
+                                          None,
+                                          None,
+                                          None,
+                                          None,
+                                          None)
+
+        # setup networking parameters
+        for nic in vm.virtnet:
+            # make_create_command can be called w/o vm.create()
+            nic = vm.add_nic(**dict(nic))
+            LOG.debug("make_create_command() setting up command for"
+                      " nic: %s" % str(nic))
+            virt_install_cmd += add_nic(help_text, nic)
+
+        if params.get("use_no_reboot") == "yes":
+            virt_install_cmd += " --noreboot"
+
+        if params.get("use_autostart") == "yes":
+            virt_install_cmd += " --autostart"
+
+        if params.get("virt_install_debug") == "yes":
+            virt_install_cmd += " --debug"
+
+        emulator_path = params.get("emulator_path", None)
+        if emulator_path:
+            if not has_sub_option('boot', 'emulator'):
+                LOG.warning("emulator option not supported by virt-install")
+            else:
+                virt_install_cmd += " --boot emulator=%s" % emulator_path
+
+        bios_path = params.get("bios_path", None)
+        if bios_path:
+            if not has_sub_option('boot', 'loader'):
+                LOG.warning("bios option not supported by virt-install")
+            else:
+                if "--boot" in virt_install_cmd:
+                    virt_install_cmd += ","
+                else:
+                    virt_install_cmd += " --boot "
+                virt_install_cmd += "loader=%s" % bios_path
+
+        kernel = params.get("kernel", None)
+        initrd = params.get("initrd", None)
+        kernel_args = params.get("kernel_args", None)
+        if (kernel or initrd) and kernel_args:
+            virt_install_cmd += add_kernel(help_text, virt_install_cmd, kernel,
+                                           initrd, kernel_args)
+
+        # bz still open, not fully functional yet
+        if params.get("use_virt_install_wait") == "yes":
+            virt_install_cmd += (" --wait %s" %
+                                 params.get("virt_install_wait_time"))
+
+        kernel_params = params.get("kernel_params")
+        if kernel_params:
+            virt_install_cmd += " --extra-args '%s'" % kernel_params
+
+        virt_install_cmd += " --noautoconsole"
+        # Add TPM device
+        tpm_device = params.get("tpm_device_path", None)
+        if tpm_device:
+            tpm_model = params.get("tpm_model", None)
+            tpm_type = params.get("tpm_type", None)
+            virt_install_cmd += add_tpmdevice(help_text, tpm_device, tpm_model,
+                                              tpm_type)
+        sec_type = params.get("sec_type", None)
+        if sec_type:
+            sec_label = params.get("sec_label", None)
+            sec_relabel = params.get("sec_relabel", None)
+            virt_install_cmd += add_security(help_text, sec_type=sec_type,
+                                             sec_label=sec_label,
+                                             sec_relabel=sec_relabel)
+
+        # Additional qemu commandline options to virt-install directly
+        # helps to test new feature from qemu
+        if has_option(help_text, "qemu-commandline"):
+            virtinstall_qemu_cmdline = params.get("virtinstall_qemu_cmdline", "")
+            if virtinstall_qemu_cmdline:
+                virt_install_cmd += ' --qemu-commandline="%s"' % virtinstall_qemu_cmdline
+
+            compat = params.get("qemu_compat")
+            if compat:
+                # TODO: Add a check whether "-compat" is supported
+                virt_install_cmd += ' --qemu-commandline="-compat %s"' % compat
+
+        virtinstall_extra_args = params.get("virtinstall_extra_args", "")
+        if virtinstall_extra_args:
+            virt_install_cmd += " %s" % virtinstall_extra_args
+
+        return virt_install_cmd
+
     def get_serial_console_filename(self, name):
         """
         Return the serial console filename.
@@ -2221,6 +3282,201 @@ class VM(virt_vm.BaseVM):
                 # make_create_command() calls vm.add_nic (i.e. on a copy)
                 nic = self.add_nic(**nic_params)
                 LOG.debug("VM.create activating nic %s" % nic)
+                self.activate_nic(nic.nic_name)
+
+            # Make qemu command
+            xml_path = self.make_create_xml()
+
+            LOG.info("Running libvirt command (reformatted):")
+            for item in install_command.replace(" -", " \n    -").splitlines():
+                LOG.info("%s", item)
+            try:
+                #process.run(install_command, verbose=True, shell=True)
+                virsh.define(xml_path)
+                virsh.start(self.name)
+            except process.CmdError as details:
+                stderr = details.result.stderr_text.strip()
+                # This is a common newcomer mistake, be more helpful...
+                if stderr.count('IDE CDROM must use'):
+                    testname = params.get('name', "")
+                    if testname.count('unattended_install.cdrom'):
+                        if not testname.count('http_ks'):
+                            e_msg = ("Install command "
+                                     "failed:\n%s \n\nNote: "
+                                     "Older versions of "
+                                     "libvirt won't work "
+                                     "properly with kickstart "
+                                     "on cdrom  install. "
+                                     "Try using the "
+                                     "unattended_install.cdrom.http_ks method "
+                                     "instead." % details.result)
+                            raise exceptions.TestSkipError(e_msg)
+                if stderr.count('failed to launch bridge helper'):
+                    if utils_selinux.is_enforcing():
+                        raise exceptions.TestSkipError("SELinux is enabled "
+                                                       "and preventing the "
+                                                       "bridge helper from "
+                                                       "accessing the bridge. "
+                                                       "Consider running as "
+                                                       "root or placing "
+                                                       "SELinux into "
+                                                       "permissive mode.")
+                # some other problem happened, raise normally
+                raise
+            # Wait for the domain to be created
+            utils_misc.wait_for(func=self.is_alive, timeout=60,
+                                text=("waiting for domain %s to start" %
+                                      self.name))
+            result = virsh.domuuid(self.name, uri=self.connect_uri)
+            self.uuid = result.stdout_text.strip()
+            # Create isa serial ports.
+            self.create_serial_console()
+        finally:
+            fcntl.lockf(lockfile, fcntl.LOCK_UN)
+            lockfile.close()
+
+    @error_context.context_aware
+    def create_old(self, name=None, params=None, root_dir=None, timeout=5.0,
+                   migration_mode=None, mac_source=None, autoconsole=True):
+        """
+        Start the VM by running a qemu command.
+        All parameters are optional. If name, params or root_dir are not
+        supplied, the respective values stored as class attributes are used.
+
+        :param name: The name of the object
+        :param params: A dict containing VM params
+        :param root_dir: Base directory for relative filenames
+        :param migration_mode: If supplied, start VM for incoming migration
+                using this protocol (either 'tcp', 'unix' or 'exec')
+        :param migration_exec_cmd: Command to embed in '-incoming "exec: ..."'
+                (e.g. 'gzip -c -d filename') if migration_mode is 'exec'
+        :param mac_source: A VM object from which to copy MAC addresses. If not
+                specified, new addresses will be generated.
+
+        :raise VMCreateError: If qemu terminates unexpectedly
+        :raise VMKVMInitError: If KVM initialization fails
+        :raise VMHugePageError: If hugepage initialization fails
+        :raise VMImageMissingError: If a CD image is missing
+        :raise VMHashMismatchError: If a CD image hash has doesn't match the
+                expected hash
+        :raise VMBadPATypeError: If an unsupported PCI assignment type is
+                requested
+        :raise VMPAError: If no PCI assignable devices could be assigned
+        """
+        error_context.context("creating '%s'" % self.name)
+        self.destroy(free_mac_addresses=False)
+        if name is not None:
+            self.name = name
+        if params is not None:
+            self.params = params
+        if root_dir is not None:
+            self.root_dir = root_dir
+        name = self.name
+        params = self.params
+        root_dir = self.root_dir
+
+        if self.params.get("storage_type") == "nfs":
+            storage.copy_nfs_image(self.params, data_dir.get_data_dir(),
+                                   basename=True)
+        # Verify the md5sum of the ISO images
+        for cdrom in params.objects("cdroms"):
+            if params.get("medium") == "import":
+                break
+            cdrom_params = params.object_params(cdrom)
+            iso = cdrom_params.get("cdrom")
+            xen_pv = (self.driver_type == 'xen' and
+                      params.get('hvm_or_pv') == 'pv')
+            iso_is_ks = os.path.basename(iso) == 'ks.iso'
+            if xen_pv and iso_is_ks:
+                continue
+            if iso:
+                iso = utils_misc.get_path(data_dir.get_data_dir(), iso)
+                if not os.path.exists(iso):
+                    raise virt_vm.VMImageMissingError(iso)
+                compare = False
+                if cdrom_params.get("skip_hash", "no") == "yes":
+                    LOG.debug("Skipping hash comparison")
+                elif cdrom_params.get("md5sum_1m"):
+                    LOG.debug("Comparing expected MD5 sum with MD5 sum of "
+                              "first MB of ISO file...")
+                    actual_hash = crypto.hash_file(
+                        iso, 1048576, algorithm="md5")
+                    expected_hash = cdrom_params.get("md5sum_1m")
+                    compare = True
+                elif cdrom_params.get("md5sum"):
+                    LOG.debug("Comparing expected MD5 sum with MD5 sum of "
+                              "ISO file...")
+                    actual_hash = crypto.hash_file(iso, algorithm="md5")
+                    expected_hash = cdrom_params.get("md5sum")
+                    compare = True
+                elif cdrom_params.get("sha1sum"):
+                    LOG.debug("Comparing expected SHA1 sum with SHA1 sum "
+                              "of ISO file...")
+                    actual_hash = crypto.hash_file(iso, algorithm="sha1")
+                    expected_hash = cdrom_params.get("sha1sum")
+                    compare = True
+                if compare:
+                    if actual_hash == expected_hash:
+                        LOG.debug("Hashes match")
+                    else:
+                        raise virt_vm.VMHashMismatchError(actual_hash,
+                                                          expected_hash)
+
+        # Make sure the following code is not executed by more than one thread
+        # at the same time
+        lockfilename = os.path.join(data_dir.get_tmp_dir(),
+                                    "libvirt-autotest-vm-create.lock")
+        lockfile = open(lockfilename, "w+")
+        fcntl.lockf(lockfile, fcntl.LOCK_EX)
+
+        try:
+            # Handle port redirections
+            redir_names = params.objects("redirs")
+            host_ports = utils_misc.find_free_ports(
+                5000, 5899, len(redir_names))
+            self.redirs = {}
+            for i in range(len(redir_names)):
+                redir_params = params.object_params(redir_names[i])
+                guest_port = int(redir_params.get("guest_port"))
+                self.redirs[guest_port] = host_ports[i]
+
+            # Find available PCI devices
+            self.pci_devices = []
+            for device in params.objects("pci_devices"):
+                self.pci_devices.append(device)
+
+            # Find available VNC port, if needed
+            if params.get("display") == "vnc":
+                if params.get("vnc_autoport") == "yes":
+                    self.vnc_port = None
+                    self.vnc_autoport = True
+                else:
+                    self.vnc_port = utils_misc.find_free_port(5900, 6100)
+                    self.vnc_autoport = False
+
+            # Find available spice port, if needed
+            if params.get("spice"):
+                self.spice_port = utils_misc.find_free_port(8000, 8100)
+
+            # Find random UUID if specified 'uuid = random' in config file
+            if params.get("uuid") == "random":
+                f = open("/proc/sys/kernel/random/uuid")
+                self.uuid = f.read().strip()
+                f.close()
+
+            # Generate or copy MAC addresses for all NICs
+            for nic in self.virtnet:
+                nic_params = dict(nic)
+                if mac_source is not None:
+                    # Will raise exception if source doesn't
+                    # have corresponding nic
+                    LOG.debug("Copying mac for nic %s from VM %s",
+                              nic.nic_name, mac_source.name)
+                    nic_params['mac'] = mac_source.get_mac_address(
+                        nic.nic_name)
+                # make_create_command() calls vm.add_nic (i.e. on a copy)
+                nic = self.add_nic(**nic_params)
+                LOG.debug('VM.create activating nic %s' % nic)
                 self.activate_nic(nic.nic_name)
 
             # Make qemu command
