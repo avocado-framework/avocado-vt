@@ -4,14 +4,10 @@ source: clean
 
 source-release: clean
 	if test ! -d SOURCES; then mkdir SOURCES; fi
-	git archive --prefix="$(ARCHIVE_BASE_NAME)-$(VERSION)/" -o "SOURCES/$(ARCHIVE_BASE_NAME)-$(VERSION).tar.gz" $(VERSION)
+	git archive --prefix="$(ARCHIVE_BASE_NAME)-$(RELEASE_VERSION)/" -o "SOURCES/$(ARCHIVE_BASE_NAME)-$(RELEASE_VERSION).tar.gz" $(RELEASE_VERSION)
 
 install:
-	if [ "$$($(PYTHON) --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1)" == "2" ]; then \
-		$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE); \
-	else \
-		$(PYTHON) -m pip install --prefix $(DESTDIR) --upgrade .; \
-	fi
+	$(PYTHON) -m pip install --prefix $(DESTDIR) --upgrade .
 
 srpm: source
 	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
@@ -27,7 +23,7 @@ srpm-release: source-release
 
 rpm-release: srpm-release
 	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
-	mock -r $(MOCK_CONFIG) --resultdir BUILD/RPM -D "rel_build 1" --rebuild BUILD/SRPM/$(RPM_BASE_NAME)-$(VERSION)-*.src.rpm
+	mock -r $(MOCK_CONFIG) --resultdir BUILD/RPM -D "rel_build 1" --rebuild BUILD/SRPM/$(RPM_BASE_NAME)-$(RELEASE_VERSION)-*.src.rpm
 
 pip:
 	$(PYTHON) -m pip --version || $(PYTHON) -m ensurepip $(PYTHON_DEVELOP_ARGS) || $(PYTHON) -c "import os; import sys; import urllib; f = urllib.urlretrieve('https://bootstrap.pypa.io/get-pip.py')[0]; os.system('%s %s' % (sys.executable, f))"

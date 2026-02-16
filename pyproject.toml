@@ -1,0 +1,101 @@
+[build-system]
+requires = ["setuptools>=77.0.0", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "avocado-framework-plugin-vt"
+dynamic = ["version"]
+description = "Avocado Plugin for Virtualization Testing"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [
+    { name = "Avocado Developers", email = "avocado-devel@redhat.com" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "netifaces",
+    "packaging",
+    "six",
+    "aexpect",
+    "avocado-framework>=89.0",
+]
+
+[project.urls]
+Homepage = "http://github.com/avocado-framework/avocado-vt"
+Documentation = "https://avocado-vt.readthedocs.io"
+Issues = "https://github.com/avocado-framework/avocado-vt/issues"
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"
+
+[tool.setuptools.packages.find]
+include = ["avocado_vt", "virttest"]
+
+[tool.setuptools.package-data]
+avocado_vt = ["conf.d/**"]
+virttest = [
+    "test-providers.d/**",
+    "backends/**",
+    "shared/**",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint."messages control"]
+disable = ["all"]
+enable = ["spelling"]
+
+[tool.pylint.spelling]
+spelling-dict = "en_US"
+spelling-private-dict-file = "spell.ignore"
+
+[project.scripts]
+avocado-runner-avocado-vt = "avocado_vt.plugins.vt_runner:main"
+
+[project.entry-points."avocado.plugins.settings"]
+vt-settings = "avocado_vt.plugins.vt_settings:VTSettings"
+
+[project.entry-points."avocado.plugins.cli"]
+vt-list = "avocado_vt.plugins.vt_list:VTLister"
+vt = "avocado_vt.plugins.vt:VTRun"
+
+[project.entry-points."avocado.plugins.cli.cmd"]
+vt-bootstrap = "avocado_vt.plugins.vt_bootstrap:VTBootstrap"
+vt-list-guests = "avocado_vt.plugins.vt_list_guests:VTListGuests"
+vt-list-archs = "avocado_vt.plugins.vt_list_archs:VTListArchs"
+
+[project.entry-points."avocado.plugins.result_events"]
+vt-joblock = "avocado_vt.plugins.vt_joblock:VTJobLock"
+vt-cluster = "avocado_vt.plugins.vt_cluster:VTCluster"
+
+[project.entry-points."avocado.plugins.init"]
+vt-init = "avocado_vt.plugins.vt_init:VtInit"
+
+[project.entry-points."avocado.plugins.resolver"]
+avocado-vt = "avocado_vt.plugins.vt_resolver:VTResolver"
+
+[project.entry-points."avocado.plugins.discoverer"]
+avocado-vt = "avocado_vt.plugins.vt_resolver:VTDiscoverer"
+
+[project.entry-points."avocado.plugins.runnable.runner"]
+avocado-vt = "avocado_vt.plugins.vt_runner:VTTestRunner"
