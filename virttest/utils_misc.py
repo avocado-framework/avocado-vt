@@ -1811,7 +1811,7 @@ class NumaNode(object):
         else:
             self.dict[i].remove(thread)
 
-    def _flush_pin(self):
+    def flush_pin(self):
         """
         Flush pin dict, remove the record of exited process.
         """
@@ -1832,7 +1832,6 @@ class NumaNode(object):
         :param pid: Process ID.
         :param cpu: CPU ID, pin thread to free CPU if cpu ID isn't set
         """
-        self._flush_pin()
         if cpu:
             error_context.context("Pinning process %s to the CPU(%s)" % (pid, cpu))
         else:
