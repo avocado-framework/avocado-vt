@@ -16,7 +16,7 @@ from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import archive
 from avocado.utils import cpu as cpu_utils
-from avocado.utils import crypto
+from avocado.utils import crypto, path
 from avocado.utils import process as a_process
 from six.moves import xrange
 
@@ -43,7 +43,11 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
-from virttest.test_setup.gcov import ResetQemuGCov
+from virttest.test_setup.gcov import (
+    ResetGCov,
+    collect_gcovr_coverage,
+    collect_lcov_coverage,
+)
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.memory import HugePagesSetup, TransparentHugePagesSetup
@@ -1000,7 +1004,7 @@ def preprocess(test, params, env):
     # and last running during pre/postprocess. That way vms will be actually
     # off to ensure data is written to disk.
     _setup_manager.register(ProcessVMOff)
-    _setup_manager.register(ResetQemuGCov)
+    _setup_manager.register(ResetGCov)
     _setup_manager.register(VerifyHostDMesg)
     _setup_manager.register(SwitchSMTOff)
     _setup_manager.register(CheckRunningAsRoot)
@@ -1319,32 +1323,84 @@ def postprocess(test, params, env):
 
     # Collect code coverage report for qemu if enabled
     if params.get("gcov_qemu", "no") == "yes":
-        qemu_builddir = os.path.join(test.bindir, "build", "qemu")
-        if os.path.isdir(qemu_builddir) and utils_package.package_install("gcovr"):
-            gcov_qemu_dir = utils_misc.get_path(test.debugdir, "gcov_qemu")
-            os.makedirs(gcov_qemu_dir)
-            os.chdir(qemu_builddir)
-            collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
-            online_count = (
-                cpu_utils.online_count()
-                if hasattr(cpu_utils, "online_count")
-                else cpu_utils.online_cpus_count()
-            )
-            collect_cmd = "gcovr -j %s -o %s -s %s ." % (
-                online_count,
-                os.path.join(gcov_qemu_dir, "gcov.html"),
-                collect_cmd_opts,
-            )
-            a_process.system(collect_cmd, shell=True)
-            if params.get("gcov_qemu_compress", "no") == "yes":
-                os.chdir(test.debugdir)
-                archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
-                shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
+        qemu_builddir = params.get(
+            "gcov_qemu_builddir", os.path.join(test.bindir, "build", "qemu")
+        )
+        gcov_format = params.get("gcov_qemu_format", "html")
+        test_name = params.get("shortname", getattr(test, "name", "unknown_test"))
+        if hasattr(test_name, "uid"):
+            test_name = str(test_name.uid)
+
+        if gcov_format == "lcov":
+            try:
+                path.find_command("lcov")
+            except path.CmdNotFoundError:
+                LOG.warning("lcov package not installed, cannot collect QEMU coverage")
+            else:
+                gcov_qemu_dir = utils_misc.get_path(test.debugdir, "gcov_qemu")
+                collect_lcov_coverage(qemu_builddir, gcov_qemu_dir, test_name, "qemu")
+
+                if params.get("gcov_qemu_compress", "no") == "yes":
+                    os.chdir(test.debugdir)
+                    archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
+                    shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
         else:
-            LOG.warning(
-                "Check either qemu build directory availablilty"
-                " or install gcovr package for qemu coverage report"
-            )
+            if utils_package.package_install("gcovr"):
+                gcov_qemu_dir = utils_misc.get_path(test.debugdir, "gcov_qemu")
+                collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
+                collect_gcovr_coverage(
+                    qemu_builddir, gcov_qemu_dir, "qemu", collect_cmd_opts
+                )
+
+                if params.get("gcov_qemu_compress", "no") == "yes":
+                    os.chdir(test.debugdir)
+                    archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
+                    shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
+            else:
+                LOG.warning("gcovr package not installed, cannot collect QEMU coverage")
+
+    # Collect code coverage report for libvirt if enabled
+    if params.get("gcov_libvirt", "no") == "yes":
+        libvirt_builddir = params.get("gcov_libvirt_builddir", "/var/tmp/libvirt")
+        gcov_format = params.get("gcov_libvirt_format", "html")
+        test_name = params.get("shortname", getattr(test, "name", "unknown_test"))
+        if hasattr(test_name, "uid"):
+            test_name = str(test_name.uid)
+
+        if gcov_format == "lcov":
+            try:
+                path.find_command("lcov")
+            except path.CmdNotFoundError:
+                LOG.warning(
+                    "lcov package not installed, cannot collect libvirt coverage"
+                )
+            else:
+                gcov_libvirt_dir = utils_misc.get_path(test.debugdir, "gcov_libvirt")
+                collect_lcov_coverage(
+                    libvirt_builddir, gcov_libvirt_dir, test_name, "libvirt"
+                )
+
+                if params.get("gcov_libvirt_compress", "no") == "yes":
+                    os.chdir(test.debugdir)
+                    archive.compress("gcov_libvirt.tar.gz", gcov_libvirt_dir)
+                    shutil.rmtree(gcov_libvirt_dir, ignore_errors=True)
+        else:
+            if utils_package.package_install("gcovr"):
+                gcov_libvirt_dir = utils_misc.get_path(test.debugdir, "gcov_libvirt")
+                collect_cmd_opts = params.get("gcov_libvirt_collect_cmd_opts", "--html")
+                collect_gcovr_coverage(
+                    libvirt_builddir, gcov_libvirt_dir, "libvirt", collect_cmd_opts
+                )
+
+                if params.get("gcov_libvirt_compress", "no") == "yes":
+                    os.chdir(test.debugdir)
+                    archive.compress("gcov_libvirt.tar.gz", gcov_libvirt_dir)
+                    shutil.rmtree(gcov_libvirt_dir, ignore_errors=True)
+            else:
+                LOG.warning(
+                    "gcovr package not installed, cannot collect libvirt coverage"
+                )
+
     # Postprocess all VMs and images
     try:
         process(
