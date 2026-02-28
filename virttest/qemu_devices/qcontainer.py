@@ -4064,8 +4064,8 @@ class DevContainer(object):
 
             sev_obj_props.update(_gen_sev_common_props(params))
 
-            # Set policy=3 if vm_sev_policy is not set
-            sev_obj_props["policy"] = int(params.get("vm_sev_policy", 3))
+            # Set policy=0x3 if vm_sev_policy is not set
+            sev_obj_props["policy"] = params.get("vm_sev_policy", "0x3")
 
             # FIXME: If these files are host dependent, we have to find
             # another way to set them, because different files are needed
