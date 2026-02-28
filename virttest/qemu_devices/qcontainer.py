@@ -4091,6 +4091,9 @@ class DevContainer(object):
 
             snp_obj_props.update(_gen_sev_common_props(params))
 
+            # Default to 0x30000 if vm_sev_policy is not set
+            snp_obj_props["policy"] = params.get("vm_sev_policy", "0x30000")
+
             return backend, snp_obj_props
 
         def _gen_tdx_obj_props(obj_id, params):

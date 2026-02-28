@@ -139,9 +139,6 @@ class _QDeviceFormatManagement(object):
                     "cbitpos": self._str_to_dec,
                     "reduced-phys-bits": self._str_to_dec,
                 },
-                "sev-snp-guest": {
-                    "policy": self._hex_in_str_to_dec,
-                },
             },
             "netdev": {
                 "fd": self._unchanged,
