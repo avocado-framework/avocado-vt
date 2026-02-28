@@ -1,3 +1,5 @@
+import re
+
 from virttest import arch, test_setup, utils_kernel_module
 from virttest.test_setup.core import Setuper
 
@@ -7,10 +9,14 @@ class ReloadKVMModules(Setuper):
         super().__init__(test, params, env)
         self.kvm_module_handlers = []
 
+    def _get_param_prefix(self, module_name):
+        """Determine parameter prefix based on module name."""
+        return "kvm" if module_name == "kvm" else "kvm_probe"
+
     def setup(self):
         kvm_modules = arch.get_kvm_module_list()
         for module in reversed(kvm_modules):
-            param_prefix = module if module == "kvm" else "kvm_probe"
+            param_prefix = self._get_param_prefix(module)
             module_force_load = self.params.get_boolean(
                 "%s_module_force_load" % param_prefix
             )
@@ -25,7 +31,11 @@ class ReloadKVMModules(Setuper):
 
     def cleanup(self):
         for kvm_module in self.kvm_module_handlers:
-            kvm_module.restore()
+            param_prefix = self._get_param_prefix(kvm_module.module_name)
+            ignored_dict = self.params.get_dict(
+                "%s_module_ignored_parameters" % param_prefix, delimiter=";"
+            )
+            kvm_module.restore(ignored_dict)
 
 
 class KSMSetup(Setuper):
