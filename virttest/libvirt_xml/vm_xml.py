@@ -3844,6 +3844,8 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         "pmu",
         "kvm_poll_control",
         "ioapic",
+        "acpi",
+        "apic",
         "kvm_dirty_ring_state",
         "kvm_dirty_ring_size",
         "ras",
@@ -3926,6 +3928,16 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         accessors.XMLElementDict(
             property_name="ioapic", libvirtxml=self, parent_xpath="/", tag_name="ioapic"
         )
+        accessors.XMLElementBool(
+            property_name="acpi",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="acpi")
+        accessors.XMLElementBool(
+            property_name="apic",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="apic")
         accessors.XMLAttribute(
             property_name="kvm_dirty_ring_state",
             libvirtxml=self,
