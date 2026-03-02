@@ -35,6 +35,7 @@ from virttest import (
     utils_misc,
     utils_package,
     utils_selinux,
+    virsh,
 )
 from virttest.remote import RemoteRunner
 from virttest.staging import service, utils_memory
@@ -5011,3 +5012,21 @@ def check_class_rules(ifname, rule_id, bandwidth, expect_none=False):
         stacktrace.log_exc_info(sys.exc_info())
         return False
     return True
+
+
+def obtain_guest_ip_from_domifaddr(vm_name, mac):
+    """
+    Obtaining the guest ip address from virsh domifaddr command
+    :param: Mac address of the guest
+    :return: return ip-address if found for given mac in the
+             virsh domifaddr --full --source arp, else return None
+    """
+    output = virsh.domifaddr(vm_name, "--full --source arp")
+    lines = output.stdout.splitlines()
+    for line in lines:
+        if mac in line:
+            parts = line.split()
+            for part in parts:
+                if "/" in part:
+                    return part.split("/")[0]
+    return None
