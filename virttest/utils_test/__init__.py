@@ -1200,7 +1200,7 @@ class AvocadoGuest(object):
                 return False
             for plugin in self.plugins[self.installtype]:
                 cmd = "cd %s;" % os.path.join(self.plugins_path, plugin)
-                cmd += "%s setup.py install" % self.python
+                cmd += "%s install ." % self.pip_bin
                 if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
                     LOG.error("Avocado plugin %s git " "installation failed", plugin)
                     return False
@@ -1230,7 +1230,7 @@ class AvocadoGuest(object):
         if make:
             cmd += "make %s;" % make
         if install:
-            cmd += "%s setup.py install" % self.python
+            cmd += "%s install ." % self.pip_bin
         return self.session.cmd_status(cmd, timeout=self.timeout) == 0
 
     def repo_name(self, repo_path):
