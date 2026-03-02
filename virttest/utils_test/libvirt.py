@@ -1075,7 +1075,8 @@ class PoolVolumeTest(object):
                     return False
                 return True
             result = utils_misc.wait_for(
-                mk_label_wait, 10, 
+                mk_label_wait,
+                10,
                 text="Label not created as device is unavailable. " \
                 "Retrying...")
             # Disk pool does not allow to create volume by virsh command,
