@@ -1054,7 +1054,7 @@ class AvocadoGuest(object):
         self.avocado_vt = avocado_vt
         self.reinstall = reinstall
         self.add_args = add_args
-        self.ignore_result = "yes" if ignore_result else "no"
+        self.ignore_result = ignore_result
         self.session = None
         self.test_path = self.params.get("vm_test_path", "/var/tmp/avocado/")
         self.kvm_module = self.params.get("nested_kvm_module", "kvm_hv")
