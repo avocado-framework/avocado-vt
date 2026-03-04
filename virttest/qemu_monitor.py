@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import re
-import select
+import selectors
 import socket
 import threading
 import time
@@ -400,11 +400,13 @@ class Monitor(object):
     def _data_available(self, timeout=DATA_AVAILABLE_TIMEOUT):
         if self._server_closed:
             return False
-        timeout = max(0, timeout)
-        try:
-            return bool(select.select([self._socket], [], [], timeout)[0])
-        except socket.error as e:
-            raise MonitorSocketError("Verifying data on monitor socket", e)
+
+        with selectors.DefaultSelector() as selector:
+            try:
+                selector.register(self._socket, selectors.EVENT_READ)
+                return bool(selector.select(timeout))
+            except (ValueError, KeyError) as e:
+                raise MonitorSocketError("Verifying data on monitor socket", e)
 
     def _recvall(self):
         """
