@@ -2278,6 +2278,10 @@ class Parser(object):
             for _, _, op in new_content:
                 op.apply_to_dict(d)
             postfix_parse(d)
+            # Add subtest_id as a top-level param from _short_name_map_file
+            short_map = d.get("_short_name_map_file", {})
+            if "subtests.cfg" in short_map:
+                d["subtest_id"] = short_map["subtests.cfg"]
             yield d
 
 
