@@ -1480,11 +1480,12 @@ def parse_filter(lexer, tokens):
 class Parser(object):
     # pylint: disable=W0102
 
-    def __init__(self, filename=None, defaults=False, expand_defaults=[], debug=False):
+    def __init__(self, filename=None, defaults=False, expand_defaults=[], debug=False, keep_at_variants_in_shortnames=False):
         self.node = Node()
         self.debug = debug
         self.defaults = defaults
         self.expand_defaults = [LIdentifier(x) for x in expand_defaults]
+        self.keep_at_variants_in_shortnames = keep_at_variants_in_shortnames
 
         self.filename = filename
         if self.filename:
@@ -1787,7 +1788,7 @@ class Parser(object):
                             node3.default = True
                             already_default = True
 
-                        node3.append_to_shortname = not is_default
+                        node3.append_to_shortname = not is_default or self.keep_at_variants_in_shortnames
 
                         op = LUpdateFileMap()
                         op.set_operands(

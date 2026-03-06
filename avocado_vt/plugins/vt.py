@@ -68,6 +68,19 @@ def add_basic_vt_options(parser):
         help=help_msg,
     )
 
+    help_msg = (
+        "Keep @-prefixed variants (like @default) in short names. "
+        "Only works when --vt-short-names-when-config is also enabled."
+    )
+    add_option(
+        parser,
+        dest="vt.keep_at_variants_in_shortnames",
+        arg="--vt-keep-at-variants-in-shortnames",
+        action="store_true",
+        default=False,
+        help=help_msg,
+    )
+
     help_msg = "Choose test type (%s). Default: %%(default)s" % ", ".join(
         SUPPORTED_TEST_TYPES
     )
