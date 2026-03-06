@@ -25,6 +25,7 @@ import locale
 import logging
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -53,6 +54,7 @@ from virttest import (
     utils_misc,
     utils_net,
     utils_package,
+    utils_sys,
     virt_vm,
 )
 
@@ -214,16 +216,65 @@ def update_boot_option(
                     req_remove_args, session=session, remove_args=True
                 )
         else:
-            if not utils_package.package_install("grubby", session=session):
-                raise exceptions.TestError("Failed to install grubby package")
-            msg = "Update guest kernel option. "
-            cmd = "grubby --update-kernel=`grubby --default-kernel` "
-            if req_remove_args:
-                msg += " remove args: %s" % req_remove_args
-                cmd += '--remove-args="%s" ' % req_remove_args
-            if req_args:
-                msg += " add args: %s" % req_args
-                cmd += '--args="%s"' % req_args
+            image_mode = utils_sys.is_image_mode(session=session)
+            if image_mode:
+                get_ostree_cmd = "cat /proc/cmdline | grep -o 'ostree=[^ ]*'"
+                current_ostree = session.cmd_output(get_ostree_cmd).strip()
+                if not current_ostree:
+                    raise exceptions.TestError("System not booted via ostree/bootc.")
+
+                get_entry_cmd = (
+                    "grep -l '%s' /boot/loader/entries/*.conf | grep -v rescue | head -n 1"
+                    % shlex.quote(current_ostree)
+                )
+                target_entry = session.cmd_output(get_entry_cmd).strip()
+                target_entry = shlex.quote(target_entry)
+                if not target_entry:
+                    raise exceptions.TestError(
+                        "Fail to find active entry for %s" % current_ostree
+                    )
+                LOG.info("Active boot entry identified: %s", target_entry)
+
+                sed_cmds = []
+                if req_remove_args:
+                    for arg in req_remove_args.split():
+                        sed_cmds.append(
+                            "sed -i -E 's/\\b %s(=[^ ]*)?\\b//g' \"%s\""
+                            % (re.escape(arg), target_entry)
+                        )
+
+                if req_args:
+                    sed_cmds.append(
+                        "sed -i '/^options/ s/$/ %s/' \"%s\""
+                        % (re.escape(req_args), target_entry)
+                    )
+
+                full_sed_script = " && ".join(sed_cmds)
+                safe_sed_script = full_sed_script.replace('"', '\\"')
+                cmd = (
+                    'unshare -m /bin/bash -c "mount -o remount,rw /boot && %s"'
+                    % safe_sed_script
+                )
+                msg = "Modifying Bootc kernel args in %s by cmd '%s'" % (
+                    target_entry,
+                    cmd,
+                )
+            else:
+                if not utils_package.package_install("grubby", session=session):
+                    raise exceptions.TestError("Failed to install grubby package")
+                cmd = "grubby --update-kernel=`grubby --default-kernel` "
+                remove_opt = "--remove-args="
+                add_opt = "--args="
+
+                msg = "Update guest kernel option. "
+                if req_remove_args:
+                    safe_req_remove_args = shlex.quote(req_remove_args)
+                    msg += " remove args: %s" % safe_req_remove_args
+                    cmd += '%s"%s" ' % (remove_opt, safe_req_remove_args)
+                if req_args:
+                    safe_req_args = shlex.quote(req_args)
+                    msg += " add args: %s" % safe_req_args
+                    cmd += '%s"%s"' % (add_opt, safe_req_args)
             if req_remove_args or req_args:
                 __run_cmd_and_handle_error(
                     msg, cmd, session, "Failed to modify guest kernel option"
