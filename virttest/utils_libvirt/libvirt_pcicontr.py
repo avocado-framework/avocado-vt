@@ -126,3 +126,13 @@ def reset_pci_num(vm_name, num=15):
 
     # synchronize XML
     vmxml.sync()
+
+
+def get_pcie_root_index(vm_xml):
+    vm_controllers = vm_xml.devices.by_device_tag("controller")
+    for index in range(len(vm_controllers)):
+        if vm_controllers[index].model == "pcie-root":
+            return index
+    LOG.warning("The pcie-root controller is not found")
+
+    return -1
