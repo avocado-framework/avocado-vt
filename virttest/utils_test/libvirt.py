@@ -2507,7 +2507,7 @@ def create_tpm_dev(params):
     return tpm_dev
 
 
-def get_vm_device(vmxml, dev_tag, index=0):
+def get_vm_device(vmxml, dev_tag, index=0, model=None):
     """
     Get current vm device according to device tag
 
@@ -2517,7 +2517,13 @@ def get_vm_device(vmxml, dev_tag, index=0):
     :return: device object
     """
     xml_devices = vmxml.devices
-    dev_index = xml_devices.index(xml_devices.by_device_tag(dev_tag)[index])
+    devices_by_tag = xml_devices.by_device_tag(dev_tag)
+    if model:
+        for the_device in devices_by_tag:
+            if the_device.get("model") and the_device.model != model:
+                devices_by_tag.remove(the_device)
+
+    dev_index = xml_devices.index(devices_by_tag[index])
     dev_obj = xml_devices[dev_index]
     return (dev_obj, xml_devices)
 

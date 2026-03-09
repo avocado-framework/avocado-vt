@@ -48,6 +48,11 @@ class VMXMLDevices(list):
             self.append(item)
         return self
 
+    def remove(self, value):
+        self.__type_check__(value)
+        super(VMXMLDevices, self).remove(value)
+        return self
+
     def by_device_tag(self, tag):
         result = VMXMLDevices()
         for device in self:
