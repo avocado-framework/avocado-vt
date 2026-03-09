@@ -162,7 +162,7 @@ def create_vm_device_by_type(dev_type, dev_dict):
 
 
 def modify_vm_device(
-    vmxml, dev_type, dev_dict=None, index=0, virsh_instance=virsh, sync_vm=True
+    vmxml, dev_type, dev_dict=None, index=0, virsh_instance=virsh, sync_vm=True, dev_model=None
 ):
     """
      Get specified device , update it with given dev_dict if the device exists,
@@ -174,11 +174,12 @@ def modify_vm_device(
     :param index: device index
     :param virsh_instance: virsh instance
     :param sync_vm: boolean, True to execute sync, otherwise not
+    :param dev_model: str, the model for the device, like controller model 'pcie-root'
     :return: device object
     """
     dev_obj = None
     try:
-        dev_obj, xml_devices = libvirt.get_vm_device(vmxml, dev_type, index=index)
+        dev_obj, xml_devices = libvirt.get_vm_device(vmxml, dev_type, index=index, model=dev_model)
         dev_obj.setup_attrs(**dev_dict)
 
         vmxml.devices = xml_devices
