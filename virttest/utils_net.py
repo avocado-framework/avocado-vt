@@ -1718,10 +1718,13 @@ def get_dhcp_client(session):
     :return: tuple of dhcp command and its release argument, raises TestError if none found
     """
     dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-    if distro.detect().name == "rhel" and int(distro.detect().version) >= 10:
-        dhcp_clients = [dhcp_clients[1]]
-    else:
-        dhcp_clients = [dhcp_clients[0]]
+
+    if session is None:
+        distro_info = distro.detect()
+        if distro_info.name == "rhel" and int(distro_info.version) >= 10:
+            dhcp_clients = [dhcp_clients[1]]
+        else:
+            dhcp_clients = [dhcp_clients[0]]
     for cmd, release_flag in dhcp_clients:
         status, _ = utils_misc.cmd_status_output(
             "which %s" % cmd, shell=True, ignore_status=True, session=session
