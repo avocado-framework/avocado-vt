@@ -32,6 +32,7 @@ from virttest import (
     test_setup,
     utils_logfile,
     utils_misc,
+    utils_net,
     utils_package,
     utils_selinux,
     virsh,
@@ -939,7 +940,12 @@ class VM(virt_vm.BaseVM):
             else:
                 # newer libvirt (--network=mynet,model=virtio,mac=00:11)
                 if nettype != "user":
+                    br_name = utils_net.find_bridge_manager(netdst)
+                    if br_name is None:
+                        raise exceptions.TestError(f"Bridge '{netdst}' does not exist")
                     result += "=%s" % netdst
+                    if "OpenVSwitch" in br_name.__class__.__name__:
+                        result += ",virtualport_type=openvswitch"
                 if nettype and nic_model:  # only supported along with nettype
                     result += ",model=%s" % nic_model
                 if nettype and mac:
