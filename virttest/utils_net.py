@@ -1717,11 +1717,7 @@ def get_dhcp_client(session):
     :param session:  serial session or remote session
     :return: tuple of dhcp command and its release argument, raises TestError if none found
     """
-    dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-    if distro.detect().name == "rhel" and int(distro.detect().version) >= 10:
-        dhcp_clients = [dhcp_clients[1]]
-    else:
-        dhcp_clients = [dhcp_clients[0]]
+    dhcp_clients = [("dhcpcd", "-k"), ("dhclient", "-r")]
     for cmd, release_flag in dhcp_clients:
         status, _ = utils_misc.cmd_status_output(
             "which %s" % cmd, shell=True, ignore_status=True, session=session
