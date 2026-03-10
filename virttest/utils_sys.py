@@ -17,7 +17,7 @@ LOG = logging.getLogger("avocado." + __name__)
 
 
 # TODO: check function in avocado.utils after the next LTS
-def check_dmesg_output(pattern, expect=True, session=None):
+def check_dmesg_output(pattern, expect=True, session=None, ignore_status=True):
     """
     Check whether certain pattern exists in dmesg.
 
@@ -30,20 +30,30 @@ def check_dmesg_output(pattern, expect=True, session=None):
     func_get_dmesg = session.cmd if session else process.run
     dmesg = func_get_dmesg(dmesg_cmd)
 
-    prefix = "" if expect else "Not "
-    LOG.info('%sExpecting pattern: "%s".', prefix, pattern)
-
-    # Search for pattern
-    found = bool(re.search(pattern, dmesg))
-    log_content = ("" if found else "Not") + 'Found "%s"' % pattern
-    LOG.debug(log_content)
-
-    if found ^ expect:
-        LOG.error("Dmesg output does not meet expectation.")
-        return False
+    patterns = None
+    if isinstance(pattern, str):
+        patterns = [pattern]
+    elif isinstance(pattern, list):
+        patterns = pattern
     else:
-        LOG.info("Dmesg output met expectation")
-        return True
+        raise Exception("Invalid parameter type, expecting str or list") 
+    prefix = "" if expect else "Not "
+    LOG.info('%sExpecting pattern: "%s".', prefix, patterns)
+    for pat in patterns:
+        # Search for pattern
+        found = bool(re.search(pat, dmesg))
+        log_content = ("" if found else "Not") + 'Found "%s"' % pat
+        LOG.debug(log_content)
+
+        if found ^ expect:
+            LOG.error("Dmesg output does not meet expectation.")
+            if ignore_status:
+                return False
+            else:
+                raise Exception("Dmesg output does not meet expectation for pattern %s." % pat)
+        else:
+            LOG.info("Dmesg output met expectation")
+    return True
 
 
 def check_audit_log(audit_cmd, match_pattern):
