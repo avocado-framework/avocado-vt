@@ -65,9 +65,16 @@ def get_public_key(client_user=None):
                 'ssh-keygen -t rsa -q -N "" -f %s' % rsa_private_key_path, shell=True
             )
         else:
+            # Ensure the .ssh directory exists before trying to generate the key
+            if not os.path.exists(ssh_conf_path):
+                LOG.info("Creating directory %s", ssh_conf_path)
+                os.makedirs(ssh_conf_path, mode=0o700)
+                process.run("chown -R %s:%s %s" %
+                            (client_user, client_user, ssh_conf_path))
+
             process.system(
-                "su - %s -c 'ssh-keygen -t rsa -q -N \"\" -f %s'"
-                % (client_user, rsa_private_key_path),
+                "su - %s -c 'ssh-keygen -t rsa -q -N \"\" -f $HOME/.ssh/id_rsa'"
+                % client_user,
                 shell=True,
             )
         public_key_path = rsa_public_key_path
