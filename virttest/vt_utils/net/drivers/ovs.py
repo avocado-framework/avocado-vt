@@ -12,6 +12,19 @@
 #
 # Copyright: Red Hat (c) 2024 and Avocado contributors
 # Author: Houqi Zuo <hzuo@redhat.com>
+
+"""Module with Open vSwitch (OVS) functions.
+
+This module provides utility functions for managing Open vSwitch bridges
+using the ovs-vsctl command-line tool.
+
+Note:
+    These functions require the Open vSwitch software to be installed
+    and the ovs-vsctl command to be available in the system PATH.
+    Some operations may require appropriate privileges depending on
+    the OVS configuration.
+"""
+
 from avocado.utils import process
 
 
