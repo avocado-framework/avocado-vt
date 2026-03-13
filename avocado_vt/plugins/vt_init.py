@@ -59,6 +59,18 @@ if hasattr(plugin_interfaces, "Init"):
                 help_msg=help_msg,
             )
 
+            help_msg = (
+                "Keep @-prefixed variants (like @default) in short names. "
+                "Only works when short_names_when_config is also enabled."
+            )
+            settings.register_option(
+                section,
+                key="keep_at_variants_in_shortnames",
+                key_type=bool,
+                default=False,
+                help_msg=help_msg,
+            )
+
             help_msg = "Choose test type (%s). Default: %%(default)s" % ", ".join(
                 SUPPORTED_TEST_TYPES
             )

@@ -545,7 +545,12 @@ class VirtTestOptionsProcess(object):
                     % (vt_type_setting, vt_type, " ".join(SUPPORTED_TEST_TYPES))
                 )
 
-        self.cartesian_parser = cartesian_config.Parser(debug=False)
+        keep_at_variants = get_opt(self.config, "vt.keep_at_variants_in_shortnames")
+        if keep_at_variants is None:
+            keep_at_variants = False
+        self.cartesian_parser = cartesian_config.Parser(
+            debug=False, keep_at_variants_in_shortnames=keep_at_variants
+        )
 
         if vt_config:
             cfg = os.path.abspath(vt_config)
