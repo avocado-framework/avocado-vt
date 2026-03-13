@@ -241,7 +241,7 @@ class AccessorGeneratorBase(object):
             self.callable_name(operation),
             self.property_name,
             self.libvirtxml,
-            **self.dargs
+            **self.dargs,
         )
 
     def make_forbidden(self, operation):
