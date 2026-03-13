@@ -18,6 +18,7 @@ Handle Linux kernel modules
 
 import logging
 import os
+import re
 
 from avocado.utils import process
 
@@ -164,9 +165,25 @@ class KernelModuleHandler(object):
         for holder in self._module_holders:
             holder.restore()
 
-    def restore(self):
+    def _remove_key_value_pair(self, original, target):
+        """
+        Remove target key=value pair from a space-separated config string
+
+        :param original: source string with space-separated key=value pairs
+        :param target: specific key=value pair to remove
+        :return: modified string with the target pair removed if found
+        """
+
+        pattern = r"(\w+=\S+(?:\s+(?!\w+=)\S+)*)"
+        parts = re.findall(pattern, original)
+        result_parts = [p for p in parts if p.strip() != target.strip()]
+        return " ".join(result_parts)
+
+    def restore(self, ignored_params=None):
         """
         Restore previous module state.
+
+        :param ignored_params: params list to be ignored for module restore
 
         The state will only be restored if the original state
         was altered.
@@ -188,9 +205,16 @@ class KernelModuleHandler(object):
             # TODO: Handle cases were module cannot be removed
             self.unload_module()
             if self._was_loaded:
+                restore_config = self._config_backup
+                if ignored_params:
+                    for param in ignored_params:
+                        restore_config = self._remove_key_value_pair(
+                            restore_config, param
+                        )
+                        LOG.debug("Module restore ignores parameter '%s'.", param)
                 restore_cmd = "modprobe %s %s" % (
                     self._module_name,
-                    self._config_backup,
+                    restore_config,
                 )
                 LOG.debug("Restoring module state: %s", restore_cmd)
                 status, output = process.getstatusoutput(restore_cmd)
@@ -216,6 +240,12 @@ class KernelModuleHandler(object):
             self._was_loaded,
             self._config_backup,
         )
+
+    @property
+    def module_name(self):
+        """Read-only property"""
+
+        return self._module_name
 
     @property
     def was_loaded(self):
