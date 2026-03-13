@@ -27,7 +27,7 @@ def check_dmesg_output(pattern, expect=True, session=None):
     :return: True if result met expectation, False if not met
     """
     dmesg_cmd = "dmesg"
-    func_get_dmesg = session.cmd if session else process.run
+    func_get_dmesg = session.cmd if session else process.getoutput
     dmesg = func_get_dmesg(dmesg_cmd)
 
     prefix = "" if expect else "Not "
