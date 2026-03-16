@@ -118,6 +118,45 @@ def get_pf_pci(session=None, test_pf=None):
                 return pci_info.get("pci_id")
 
 
+def get_suitable_pf_pci(session=None):
+    """
+    Get the pci id of the suitable PF.
+    The PF's status could be UP or Down.
+
+    :param session: The session object to the host
+    :return: pf's pci id, eg. 0000:05:10.1
+    """
+    pf_info = get_pf_info(session=session)
+    pf_up_list = []
+    pf_down_list = []
+    for pci_info in pf_info.values():
+        if pci_info.get("status", "") == "up":
+            LOG.debug("Add a PF in up status:%s", pci_info.get("pci_id"))
+            pf_up_list.append(pci_info.get("pci_id"))
+        elif pci_info.get("status", "") == "down":
+            LOG.debug("Add a PF in down status:%s", pci_info.get("pci_id"))
+            pf_down_list.append(pci_info.get("pci_id"))
+    if len(pf_up_list) >= 2:
+        LOG.debug("At least two PFs are in up status, so a PF in up status "
+                  "will be returned:%s", pf_up_list[0])
+        return pf_up_list[0]
+    if len(pf_up_list) == 1 and pf_down_list:
+        LOG.debug("Only one PF is in up status, so a PF in "
+                  "down status will be returned:%s", pf_down_list[0])
+        return pf_down_list[0]
+    if pf_up_list:
+        LOG.debug("Only one PF is in up status and no PF in "
+                  "down status, so the PF in up status will "
+                  "be returned:%s", pf_up_list[0])
+        return pf_up_list[0]
+    if pf_down_list:
+        LOG.debug("No PFs are in up status, so a PF in "
+                  "down status will be returned:%s", pf_down_list[0])
+        return pf_down_list[0]
+
+    raise exceptions.TestError("No suitable PF found (up or down).")
+
+
 def get_pf_info_by_pci(pci_id, session=None):
     """
     Get the pci info by the given pci id
