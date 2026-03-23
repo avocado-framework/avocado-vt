@@ -202,8 +202,8 @@ class DevContainer(object):
         self.__qemu_help = self.execute_qemu("-help", 10)
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
-        self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
-        self.__object_help = self.execute_qemu("-object \? 2>&1", 10)
+        self.__device_help = self.execute_qemu(r"-device \? 2>&1", 10)
+        self.__object_help = self.execute_qemu(r"-object \? 2>&1", 10)
         self.__machines_info = utils_qemu.get_machines_info(qemu_binary)
         self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
         self.__qmp_cmds = get_qmp_cmds(
@@ -1131,7 +1131,7 @@ class DevContainer(object):
             bus_pattern = bus_pattern + "%s"
         missing_buses = [bus_pattern % i for i in xrange(bus_count)]
         for bus in self.__buses:
-            if bus.type == bus_type and re.match(bus_pattern % "\d+", bus.busid):
+            if bus.type == bus_type and re.match(bus_pattern % r"\d+", bus.busid):
                 if bus.busid in missing_buses:
                     missing_buses.remove(bus.busid)
         return missing_buses
@@ -1146,7 +1146,7 @@ class DevContainer(object):
             bus_pattern = bus_pattern + "%s"
         buses = []
         for bus in self.__buses:
-            if bus.busid and re.match(bus_pattern % "\d+", bus.busid):
+            if bus.busid and re.match(bus_pattern % r"\d+", bus.busid):
                 buses.append(bus.busid)
         i = 0
         while True:

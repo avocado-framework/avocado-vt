@@ -2678,7 +2678,7 @@ class VM(virt_vm.BaseVM):
                     )
                     try:
                         key_info = kernel_interface.SysFS(
-                            key_path, session=session, regex="\d+%s"
+                            key_path, session=session, regex=r"\d+%s"
                         )
                         key_value = str(key_info.sys_fs_value).rstrip("\n")
                     except IOError:

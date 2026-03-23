@@ -673,7 +673,7 @@ class VM(virt_vm.BaseVM):
 
         def add_smp(devices):
             smp_str = " -smp %d" % self.cpuinfo.smp
-            smp_pattern = "smp .*\[,maxcpus=.*\].*"
+            smp_pattern = r"smp .*\[,maxcpus=.*\].*"
             if devices.has_option(smp_pattern):
                 smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
             if self.cpuinfo.cores != 0:
@@ -1016,7 +1016,7 @@ class VM(virt_vm.BaseVM):
                 set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "nics")
             else:
                 dev = qdevices.QCustomDevice("pcidevice", parent_bus=pci_bus)
-            help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
+            help_cmd = r"%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
             pcidevice_help = process.run(
                 help_cmd, shell=True, verbose=False
             ).stdout_text
@@ -1513,12 +1513,12 @@ class VM(virt_vm.BaseVM):
             cmd = " -boot"
             options = []
             for p in list(opts.keys()):
-                pattern = "boot .*?(\[,?%s=(.*?)\]|\s+)" % p
+                pattern = r"boot .*?(\[,?%s=(.*?)\]|\s+)" % p
                 if devices.has_option(pattern):
                     option = opts[p]
                     if option is not None:
                         options.append("%s=%s" % (p, option))
-            if devices.has_option("boot \[a\|c\|d\|n\]"):
+            if devices.has_option(r"boot \[a\|c\|d\|n\]"):
                 cmd += " %s" % opts["once"]
             elif options:
                 cmd += " %s" % ",".join(options)
@@ -2599,7 +2599,7 @@ class VM(virt_vm.BaseVM):
                 index = None
             image_bootindex = None
             image_boot = image_params.get("image_boot")
-            if not re.search("boot=on\|off", devices.get_help_text(), re.MULTILINE):
+            if not re.search(r"boot=on\|off", devices.get_help_text(), re.MULTILINE):
                 if image_boot in ["yes", "on", True]:
                     image_bootindex = str(self.last_boot_index)
                     self.last_boot_index += 1
@@ -2873,7 +2873,7 @@ class VM(virt_vm.BaseVM):
                 index = None
             image_bootindex = None
             image_boot = image_params.get("image_boot")
-            if not re.search("boot=on\|off", devices.get_help_text(), re.MULTILINE):
+            if not re.search(r"boot=on\|off", devices.get_help_text(), re.MULTILINE):
                 if image_boot in ["yes", "on", True]:
                     image_bootindex = str(self.last_boot_index)
                     self.last_boot_index += 1
@@ -3336,7 +3336,7 @@ class VM(virt_vm.BaseVM):
             auto_close=False,
             output_func=utils_logfile.log_line,
             output_params=(log_name,),
-            prompt=self.params.get("shell_prompt", "[\#\$]"),
+            prompt=self.params.get("shell_prompt", r"[\#\$]"),
             status_test_command=self.params.get("status_test_command", "echo $?"),
         )
 
@@ -3433,7 +3433,7 @@ class VM(virt_vm.BaseVM):
             if not vga_type:
                 continue
 
-            help_cmd = "%s -device %s,\? 2>&1" % (self.qemu_binary, vga_type)
+            help_cmd = r"%s -device %s,\? 2>&1" % (self.qemu_binary, vga_type)
             help_info = process.run(help_cmd, shell=True, verbose=False).stdout_Text
             for pro in re.findall(r"%s.(\w+)=" % vga_type, help_info):
                 key = [vga_type.lower(), pro]
@@ -3816,7 +3816,7 @@ class VM(virt_vm.BaseVM):
                     # check whether ip version supported by nc
                     if (
                         process.system(
-                            "nc -h | grep -E '\-4 | \-6'",
+                            r"nc -h | grep -E '\-4 | \-6'",
                             shell=True,
                             ignore_status=True,
                         )
@@ -4301,7 +4301,7 @@ class VM(virt_vm.BaseVM):
 
         netdev_peer_re = self.params.get("netdev_peer_re")
         if not netdev_peer_re:
-            default_netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
+            default_netdev_peer_re = r"\s{2,}(.*?): .*?\\\s(.*?):"
             LOG.warning(
                 "Missing config netdev_peer_re for VM %s, " "using default %s",
                 self.name,
