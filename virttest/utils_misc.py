@@ -2343,26 +2343,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
         return ("%.20f" % data_size).rstrip("0")
 
 
-def get_free_disk(session, mount):
-    """
-    Get FreeSpace for given mount point.
-
-    :param session: shell Object.
-    :param mount: mount point(eg. C:, /mnt)
-
-    :return string: freespace M-bytes
-    """
-    if re.match(r"[a-zA-Z]:", mount):
-        cmd = "wmic logicaldisk where \"DeviceID='%s'\" " % mount
-        cmd += "get FreeSpace"
-        output = session.cmd_output(cmd)
-        free = "%sK" % re.findall(r"\d+", output)[0]
-    else:
-        cmd = "df -h %s" % mount
-        output = session.cmd_output(cmd)
-        free = re.findall(r"\b([\d.]+[BKMGPETZ])\b", output, re.M | re.I)[2]
-    free = float(normalize_data_size(free, order_magnitude="M"))
-    return int(free)
+from virttest.utils_disk.free_space import get_free_disk  # noqa: F811,E402,F401
 
 
 def get_free_mem(session, os_type):
