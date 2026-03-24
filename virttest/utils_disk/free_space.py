@@ -10,12 +10,9 @@ from virttest.utils_numeric import normalize_data_size
 def get_free_disk(session, mount):
     """Get FreeSpace for given mount point.
 
-    :param session: shell Object.
-    :type session: aexpect.ShellSession
-    :param mount: mount point(eg. C:, /mnt)
-    :type mount: str
-    :return: freespace in M-bytes
-    :rtype: int
+    :param aexpect.ShellSession session: shell Object.
+    :param str mount: mount point (e.g. C:, /mnt).
+    :return int: freespace in M-bytes.
     """
     if re.match(r"[a-zA-Z]:", mount):
         cmd = f"wmic logicaldisk where \"DeviceID='{mount}'\" "
@@ -34,12 +31,9 @@ def get_free_disk(session, mount):
 def check_free_disk(session, mount, required_mb):
     """Check that a guest mount point has enough free space.
 
-    :param session: Guest shell session object.
-    :type session: aexpect.ShellSession
-    :param mount: Mount point or drive letter (e.g. "/var/tmp", "C:").
-    :type mount: str
-    :param required_mb: Minimum required free space in MB.
-    :type required_mb: int
+    :param aexpect.ShellSession session: Guest shell session object.
+    :param str mount: Mount point or drive letter (e.g. "/var/tmp", "C:").
+    :param int required_mb: Minimum required free space in MB.
     :raises exceptions.TestError: When free space is below required_mb.
     """
     free_mb = get_free_disk(session, mount)
