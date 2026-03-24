@@ -61,13 +61,13 @@ def run_file_transfer(test, params, env):
         guest_path = "\\".join(filter(None, re.split(r"\\+", guest_path)))
     utils_disk.check_free_disk(session, tmp_dir, filesize)
 
-    cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
+    cmd = f"dd if=/dev/zero of={host_path} bs=10M count={count}"
     try:
-        error_context.context("Creating %dMB file on host" % filesize, LOG.info)
+        error_context.context(f"Creating {filesize}MB file on host", LOG.info)
         process.run(cmd)
         original_md5 = crypto.hash_file(host_path, algorithm="md5")
         error_context.context(
-            "Transferring file host -> guest, " "timeout: %ss" % transfer_timeout,
+            f"Transferring file host -> guest, timeout: {transfer_timeout}s",
             LOG.info,
         )
         vm.copy_files_to(
@@ -75,7 +75,7 @@ def run_file_transfer(test, params, env):
         )
 
         error_context.context(
-            "Transferring file guest -> host, " "timeout: %ss" % transfer_timeout,
+            f"Transferring file guest -> host, timeout: {transfer_timeout}s",
             LOG.info,
         )
         vm.copy_files_from(
@@ -97,7 +97,7 @@ def run_file_transfer(test, params, env):
             LOG.warning("Could not remove temp files in host: '%s'", detail)
         LOG.info("Cleaning temp file on guest")
         try:
-            session.cmd("%s %s" % (clean_cmd, guest_path))
+            session.cmd(f"{clean_cmd} {guest_path}")
         except aexpect.ShellError as detail:
             LOG.warning("Could not remove temp files in guest: '%s'", detail)
         finally:
@@ -137,7 +137,7 @@ def run_virtio_serial_file_transfer(
         for num in xrange(n_time):
             md5_host = "1"
             md5_guest = "2"
-            LOG.info("Data transfer repeat %s/%s." % (num + 1, n_time))
+            LOG.info("Data transfer repeat %s/%s.", num + 1, n_time)
             try:
                 args = (host_cmd, timeout)
                 host_thread = utils_misc.InterruptedThread(run_host_cmd, args)
@@ -146,7 +146,7 @@ def run_virtio_serial_file_transfer(
                 if action == "both":
                     if "Md5MissMatch" in g_output:
                         err = "Data lost during file transfer. Md5 miss match."
-                        err += " Script output:\n%s" % g_output
+                        err += f" Script output:\n{g_output}"
                         if md5_check:
                             raise exceptions.TestFail(err)
                         else:
@@ -157,7 +157,7 @@ def run_virtio_serial_file_transfer(
                         md5_guest = re.findall(md5_re, g_output)[0]
                     except Exception:
                         err = "Fail to get md5, script may fail."
-                        err += " Script output:\n%s" % g_output
+                        err += f" Script output:\n{g_output}"
                         raise exceptions.TestError(err)
             finally:
                 if host_thread:
@@ -166,7 +166,7 @@ def run_virtio_serial_file_transfer(
                     if action == "both":
                         if "Md5MissMatch" in output:
                             err = "Data lost during file transfer. Md5 miss "
-                            err += "match. Script output:\n%s" % output
+                            err += f"match. Script output:\n{output}"
                             if md5_check:
                                 raise exceptions.TestFail(err)
                             else:
@@ -177,12 +177,12 @@ def run_virtio_serial_file_transfer(
                             md5_host = re.findall(md5_re, output)[0]
                         except Exception:
                             err = "Fail to get md5, script may fail."
-                            err += " Script output:\n%s" % output
+                            err += f" Script output:\n{output}"
                             raise exceptions.TestError(err)
                 if action != "both" and md5_host != md5_guest:
                     err = "Data lost during file transfer. Md5 miss match."
-                    err += " Guest script output:\n %s" % g_output
-                    err += " Host script output:\n%s" % output
+                    err += f" Guest script output:\n {g_output}"
+                    err += f" Host script output:\n{output}"
                     if md5_check:
                         raise exceptions.TestFail(err)
                     else:
@@ -211,15 +211,15 @@ def run_virtio_serial_file_transfer(
     count = int(filesize)
 
     host_data_file = os.path.join(
-        dir_name, "tmp-%s" % utils_misc.generate_random_string(8)
+        dir_name, f"tmp-{utils_misc.generate_random_string(8)}"
     )
     guest_data_file = os.path.join(
-        tmp_dir, "tmp-%s" % utils_misc.generate_random_string(8)
+        tmp_dir, f"tmp-{utils_misc.generate_random_string(8)}"
     )
 
     if sender == "host" or sender == "both":
-        cmd = "dd if=/dev/zero of=%s bs=1M count=%d" % (host_data_file, count)
-        error_context.context("Creating %dMB file on host" % filesize, LOG.info)
+        cmd = f"dd if=/dev/zero of={host_data_file} bs=1M count={count}"
+        error_context.context(f"Creating {filesize}MB file on host", LOG.info)
         process.run(cmd)
     else:
         guest_file_create_cmd = "dd if=/dev/zero of=%s bs=1M count=%d"
@@ -227,7 +227,7 @@ def run_virtio_serial_file_transfer(
             "guest_file_create_cmd", guest_file_create_cmd
         )
         cmd = guest_file_create_cmd % (guest_data_file, count)
-        error_context.context("Creating %dMB file on host" % filesize, LOG.info)
+        error_context.context(f"Creating {filesize}MB file on host", LOG.info)
         session.cmd(cmd, timeout=600)
 
     if sender == "host":
@@ -247,23 +247,15 @@ def run_virtio_serial_file_transfer(
     host_script = os.path.join(
         data_dir.get_root_dir(), "shared", "deps", "serial", host_script
     )
-    host_cmd = "`command -v python python3 | head -1` %s -s %s -f %s -a %s" % (
-        host_script,
-        host_device,
-        host_data_file,
-        action,
-    )
+    host_cmd = (f"`command -v python python3 | head -1` {host_script}"
+                f" -s {host_device} -f {host_data_file} -a {action}")
     guest_script = params.get("guest_script", "VirtIoChannel_guest_send_receive.py")
     guest_script = os.path.join(guest_path, guest_script)
 
-    guest_cmd = "`command -v python python3 | head -1` %s -d %s -f %s -a %s" % (
-        guest_script,
-        port_name,
-        guest_data_file,
-        guest_action,
-    )
+    guest_cmd = (f"`command -v python python3 | head -1` {guest_script}"
+                 f" -d {port_name} -f {guest_data_file} -a {guest_action}")
     n_time = int(params.get("repeat_times", 1))
-    txt += " for %s times" % n_time
+    txt += f" for {n_time} times"
     try:
         env["serial_file_transfer_start"] = True
         transfer_data(
