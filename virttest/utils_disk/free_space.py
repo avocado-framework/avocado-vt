@@ -2,12 +2,12 @@
 
 import re
 
-from avocado.core import exceptions
+from avocado.core import exceptions  # pylint: disable=E0401
 
 from virttest.utils_numeric import normalize_data_size
 
 
-def get_free_disk(session, mount):
+def get_free_disk(session, mount: str):
     """Get FreeSpace for given mount point.
 
     :param aexpect.ShellSession session: shell Object.
@@ -19,6 +19,7 @@ def get_free_disk(session, mount):
         cmd += "get FreeSpace"
         output = session.cmd_output(cmd)
         digits = re.findall(r"\d+", output)[0]
+        # TODO: wmic returns bytes, this should be "B" not "K"
         free = f"{digits}K"
     else:
         cmd = f"df -h {mount}"

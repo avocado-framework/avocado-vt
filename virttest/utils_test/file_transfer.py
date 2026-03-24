@@ -247,13 +247,17 @@ def run_virtio_serial_file_transfer(
     host_script = os.path.join(
         data_dir.get_root_dir(), "shared", "deps", "serial", host_script
     )
-    host_cmd = (f"`command -v python python3 | head -1` {host_script}"
-                f" -s {host_device} -f {host_data_file} -a {action}")
+    host_cmd = (
+        f"`command -v python python3 | head -1` {host_script}"
+        f" -s {host_device} -f {host_data_file} -a {action}"
+    )
     guest_script = params.get("guest_script", "VirtIoChannel_guest_send_receive.py")
     guest_script = os.path.join(guest_path, guest_script)
 
-    guest_cmd = (f"`command -v python python3 | head -1` {guest_script}"
-                 f" -d {port_name} -f {guest_data_file} -a {guest_action}")
+    guest_cmd = (
+        f"`command -v python python3 | head -1` {guest_script}"
+        f" -d {port_name} -f {guest_data_file} -a {guest_action}"
+    )
     n_time = int(params.get("repeat_times", 1))
     txt += f" for {n_time} times"
     try:
