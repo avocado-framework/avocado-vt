@@ -50,11 +50,11 @@ except ImportError:
     pass
 
 try:
-    import google.generativeai as genai
+    from google import genai
 except ImportError:
     genai = None
     logging.getLogger("avocado.app").warning(
-        "google-generativeai library not found. Visual verification with Gemini is disabled."
+        "google-genai library not found. Visual verification with Gemini is disabled."
     )
 
 # Some directory/filename utils, for consistency
@@ -86,8 +86,8 @@ def verify_screen_with_gemini(
     """
     if not genai:
         raise ImportError(
-            "google-generativeai library is required for this feature. "
-            "Please install it using 'pip install google-generativeai'."
+            "google-genai library is required for this feature. "
+            "Please install it using 'pip install google-genai'."
         )
 
     if not api_key:
@@ -101,8 +101,8 @@ def verify_screen_with_gemini(
     if "HTTPS_PROXY" not in os.environ and "https_proxy" not in os.environ:
         LOG.warning("No HTTPS_PROXY set. Gemini API access might fail if you are behind a firewall.")
 
-    # Force REST transport to avoid gRPC proxy issues and ensure better compatibility
-    genai.configure(api_key=api_key, transport="rest")
+    # Create client with API key (new SDK uses Client object)
+    client = genai.Client(api_key=api_key)
 
     if not Image:
         raise ImportError("Pillow (PIL) is required to process images.")
@@ -142,15 +142,16 @@ def verify_screen_with_gemini(
             for model_candidate in candidate_models:
                 try:
                     LOG.info("Trying Gemini model: %s", model_candidate)
-                    model = genai.GenerativeModel(model_candidate)
-                    
+
                     # Retry logic for each model
                     max_retries = 2
                     for attempt in range(max_retries):
                         try:
-                            response = model.generate_content(
-                                [prompt, img_jpeg],
-                                generation_config=genai.types.GenerationConfig(
+                            # New SDK uses client.models.generate_content with 'contents' parameter
+                            response = client.models.generate_content(
+                                model=model_candidate,
+                                contents=[prompt, img_jpeg],
+                                config=genai.types.GenerateContentConfig(
                                     temperature=0.1
                                 )
                             )
@@ -158,12 +159,12 @@ def verify_screen_with_gemini(
                         except Exception as e:
                             if "404" in str(e) or "not found" in str(e).lower():
                                 # Model not found, break inner retry to try next model
-                                raise e 
+                                raise e
                             if attempt == max_retries - 1:
                                 raise e
                             LOG.warning("Gemini API call failed (attempt %d/%d) for model %s: %s. Retrying...", attempt + 1, max_retries, model_candidate, e)
                             time.sleep(2)
-                    
+
                     if response:
                         break # Success outer loop
 
@@ -175,11 +176,13 @@ def verify_screen_with_gemini(
             if not response:
                 LOG.error("All candidate models failed. Listing available models...")
                 try:
-                    for m in genai.list_models():
-                        LOG.info("Available model: %s (methods: %s)", m.name, m.supported_generation_methods)
+                    # New SDK uses client.models.list()
+                    for m in client.models.list():
+                        # Check if model supports generation
+                        LOG.info("Available model: %s", m.name)
                 except Exception as list_e:
                     LOG.error("Failed to list models: %s", list_e)
-                
+
                 raise last_error or Exception("No working Gemini model found")
 
             result_text = response.text.strip()
