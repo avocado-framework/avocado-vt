@@ -161,6 +161,7 @@ class VMXMLBase(LibvirtXMLBase):
             get: return VMMemTuneXML instance for the domain.
             set: Define memtune tag from a VMCPUTuneXML instance.
             del: remove memtune tag
+        iommufd: dictionary, enable/disable iommufd for whole vm
     """
 
     # Additional names of attributes and dictionary-keys instances may contain
@@ -208,6 +209,7 @@ class VMXMLBase(LibvirtXMLBase):
         "clock",
         "description",
         "genid",
+        "iommufd",
     )
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
@@ -519,6 +521,14 @@ class VMXMLBase(LibvirtXMLBase):
             parent_xpath="/",
             tag_name="idmap",
             subclass=VMIDMapXML,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementNest(
+            property_name="iommufd",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="iommufd",
+            subclass=IOMMUFDXML,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
@@ -2080,6 +2090,26 @@ class VMXML(VMXMLBase):
             raise xcepts.LibvirtXMLError(
                 "Invalid feature tag or attribute: %s" % detail
             )
+
+
+class IOMMUFDXML(base.LibvirtXMLBase):
+    """
+    VM IOMMUFD xml class.
+
+    Properties:
+
+    iommufd_attr:
+        dict.
+    """
+
+    __slots__ = ("iommufd_attr",)
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementDict(
+            "iommufd_attr", self, parent_xpath="/", tag_name="iommufd"
+        )
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        self.xml = "<iommufd/>"
 
 
 class VMCPUXML(base.LibvirtXMLBase):
