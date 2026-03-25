@@ -1,15 +1,19 @@
 import logging
 import os
+import re
 
 from avocado.utils import process as a_process
 from avocado.utils import service
 
+from virttest import utils_misc
 from virttest.test_setup.core import Setuper
 
 LOG = logging.getLogger("avocado." + __name__)
 
 
-def collect_lcov_coverage(build_dir, output_dir, test_name, component):
+def collect_lcov_coverage(
+    build_dir, output_dir, test_name, component, max_name_len=80, extra_opts=""
+):
     """
     Collect coverage data using lcov with per-test naming.
 
@@ -17,6 +21,8 @@ def collect_lcov_coverage(build_dir, output_dir, test_name, component):
     :param output_dir: Output directory for coverage files
     :param test_name: Name of the test for tracefile naming
     :param component: Component name (qemu or libvirt)
+    :param max_name_len: The max len of test name used in tracefile
+    :param extra_opts: Additional lcov command options
     :return: Path to generated tracefile, or None on failure
     """
     if not os.path.isdir(build_dir):
@@ -24,14 +30,28 @@ def collect_lcov_coverage(build_dir, output_dir, test_name, component):
         return None
 
     os.makedirs(output_dir, exist_ok=True)
-    tracefile = os.path.join(output_dir, "coverage_%s.info" % test_name)
+    tmp_test_name = test_name
+    if len(test_name) > max_name_len:
+        match = re.search(r"io-github-autotest-[^.]+\.(.*)", test_name)
+        if match:
+            short_name = match.group(1)
+        else:
+            short_name = test_name
+        # Ensure short_name + suffix doesn't exceed max_name_len
+        # Reserve 9 chars for "_" + 8-char random string
+        max_short_len = max_name_len - 9
+        if len(short_name) > max_short_len:
+            short_name = short_name[:max_short_len]
+        tmp_test_name = short_name + "_" + utils_misc.generate_random_string(8)
+
+    tracefile = os.path.join(output_dir, "coverage_%s.info" % tmp_test_name)
 
     # Collect coverage data with test name
     collect_cmd = (
         "lcov --capture "
         "--directory %s "
         "--output-file %s "
-        "--test-name %s " % (build_dir, tracefile, test_name)
+        "--test-name %s %s" % (build_dir, tracefile, test_name, extra_opts)
     )
 
     try:
