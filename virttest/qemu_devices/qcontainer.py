@@ -170,10 +170,19 @@ class DevContainer(object):
                     shell=True,
                     verbose=False,
                 ).stdout_text.splitlines()
+            names = []
             if cmds:
-                cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
-            if cmds:  # If no matches, return None
-                return cmds
+                names = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
+            if not names:
+                LOG.warning(
+                    "Could not list QMP commands for %s (query-commands line "
+                    "missing or unparsable). Check that this binary runs with "
+                    "'-qmp stdio -vnc none -S' and prints JSON monitor replies on "
+                    "stdout. Migration-related capability probes will assume QMP "
+                    "commands are absent.",
+                    qemu_binary,
+                )
+            return names
 
         self.__state = -1  # -1 synchronized, 0 synchronized after hotplug
         self.__qemu_binary = qemu_binary
@@ -802,7 +811,10 @@ class DevContainer(object):
         :param cmd: Desired command
         :return: Is the desired command supported by this qemu's QMP monitor?
         """
-        return cmd in self.__qmp_cmds
+        qmp_cmds = self.__qmp_cmds
+        if not qmp_cmds:
+            return False
+        return cmd in qmp_cmds
 
     def execute_qemu(self, options, timeout=5):
         """
