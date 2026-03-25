@@ -208,6 +208,7 @@ class VMXMLBase(LibvirtXMLBase):
         "clock",
         "description",
         "genid",
+        "launchsecurity",
     )
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
@@ -519,6 +520,14 @@ class VMXMLBase(LibvirtXMLBase):
             parent_xpath="/",
             tag_name="idmap",
             subclass=VMIDMapXML,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementNest(
+            property_name="launchsecurity",
+            libvirtxml=self,
+            parent_xpath="/",
+            tag_name="launchSecurity",
+            subclass=VMLaunchSecurityXML,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
@@ -4970,3 +4979,130 @@ class VMFeaturestlbflushXML(base.LibvirtXMLBase):
         )
         super(VMFeaturestlbflushXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = "<tlbflush/>"
+
+
+# Element of launchSecurity
+class VMLaunchSecurityXML(base.LibvirtXMLBase):
+    """
+    launchSecurity tag XML class
+
+    Elements:
+        launchsec_type
+        launchsec_kernelhashes
+        launchsec_vcek
+        launchsec_authorkey
+        launchsec_cbitpos
+        launchsec_reducedphysbits
+        launchsec_dhcert
+        launchsec_session
+        launchsec_guestviswrknd
+        launchsec_idblock
+        launchsec_idauth
+        launchsec_hostdata
+        launchsec_policy
+        launchsec_mrconfigid
+        launchsec_mrowner
+        launchsec_mrownerconfig
+        launchsec_qgs_path
+    """
+
+    __slots__ = (
+        "launchsec_type",
+        "launchsec_kernelhashes",
+        "launchsec_vcek",
+        "launchsec_authorkey",
+        "launchsec_cbitpos",
+        "launchsec_reducedphysbits",
+        "launchsec_dhcert",
+        "launchsec_session",
+        "launchsec_guestviswrknd",
+        "launchsec_idblock",
+        "launchsec_idauth",
+        "launchsec_hostdata",
+        "launchsec_policy",
+        "launchsec_mrconfigid",
+        "launchsec_mrowner",
+        "launchsec_mrownerconfig",
+        "launchsec_qgs_path",
+    )
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute(
+            "launchsec_type",
+            self,
+            parent_xpath="/",
+            tag_name="launchSecurity",
+            attribute="type",
+        )
+        accessors.XMLAttribute(
+            "launchsec_kernelhashes",
+            self,
+            parent_xpath="/",
+            tag_name="launchSecurity",
+            attribute="kernelHashes",
+        )
+        accessors.XMLAttribute(
+            "launchsec_vcek",
+            self,
+            parent_xpath="/",
+            tag_name="launchSecurity",
+            attribute="vcek",
+        )
+        accessors.XMLAttribute(
+            "launchsec_authorkey",
+            self,
+            parent_xpath="/",
+            tag_name="launchSecurity",
+            attribute="authorKey",
+        )
+        accessors.XMLElementInt(
+            "launchsec_cbitpos", self, parent_xpath="/", tag_name="cbitpos"
+        )
+        accessors.XMLElementInt(
+            "launchsec_reducedphysbits",
+            self,
+            parent_xpath="/",
+            tag_name="reducedPhysBits",
+        )
+        accessors.XMLElementText(
+            "launchsec_dhcert", self, parent_xpath="/", tag_name="dhCert"
+        )
+        accessors.XMLElementText(
+            "launchsec_session", self, parent_xpath="/", tag_name="session"
+        )
+        accessors.XMLElementText(
+            "launchsec_guestviswrknd",
+            self,
+            parent_xpath="/",
+            tag_name="guestVisibleWorkarounds",
+        )
+        accessors.XMLElementText(
+            "launchsec_idblock", self, parent_xpath="/", tag_name="idBlock"
+        )
+        accessors.XMLElementText(
+            "launchsec_idauth", self, parent_xpath="/", tag_name="idAuth"
+        )
+        accessors.XMLElementText(
+            "launchsec_hostdata", self, parent_xpath="/", tag_name="hostData"
+        )
+        accessors.XMLElementText(
+            "launchsec_mrconfigid", self, parent_xpath="/", tag_name="mrConfigId"
+        )
+        accessors.XMLElementText(
+            "launchsec_mrowner", self, parent_xpath="/", tag_name="mrOwner"
+        )
+        accessors.XMLElementText(
+            "launchsec_mrownerconfig", self, parent_xpath="/", tag_name="mrOwnerConfig"
+        )
+        accessors.XMLElementText(
+            "launchsec_policy", self, parent_xpath="/", tag_name="policy"
+        )
+        accessors.XMLAttribute(
+            "launchsec_qgs_path",
+            self,
+            parent_xpath="/",
+            tag_name="quoteGenerationService",
+            attribute="path",
+        )
+        super(VMLaunchSecurityXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = "<launchSecurity/>"
