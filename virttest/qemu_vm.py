@@ -3083,9 +3083,12 @@ class VM(virt_vm.BaseVM):
         # to define and start.
         for hostdev in params.objects("vm_hostdevs"):
             hostdev_params = params.object_params(hostdev)
-            dev = devices.hostdev_define_by_params(hostdev, hostdev_params)
-            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "hostdev")
-            devices.insert(dev)
+            devs = devices.hostdev_define_by_params(hostdev, hostdev_params)
+            for dev in devs:
+                set_cmdline_format_by_cfg(
+                    dev, self._get_cmdline_format_cfg(), "hostdev"
+                )
+                devices.insert(dev)
 
         disable_kvm_option = ""
         if devices.has_option("no-kvm"):
