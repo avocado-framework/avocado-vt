@@ -30,18 +30,15 @@ def collect_lcov_coverage(
         return None
 
     os.makedirs(output_dir, exist_ok=True)
-    tmp_test_name = test_name
-    if len(test_name) > max_name_len:
-        match = re.search(r"io-github-autotest-[^.]+\.(.*)", test_name)
-        if match:
-            short_name = match.group(1)
-        else:
-            short_name = test_name
-        # Ensure short_name + suffix doesn't exceed max_name_len
+    tmp_test_name = re.sub(r"[=()]", "_", test_name)
+    if len(tmp_test_name) > max_name_len:
         # Reserve 9 chars for "_" + 8-char random string
         max_short_len = max_name_len - 9
-        if len(short_name) > max_short_len:
-            short_name = short_name[:max_short_len]
+        short_name = (
+            tmp_test_name[:max_short_len]
+            if len(tmp_test_name) > max_short_len
+            else tmp_test_name
+        )
         tmp_test_name = short_name + "_" + utils_misc.generate_random_string(8)
 
     tracefile = os.path.join(output_dir, "coverage_%s.info" % tmp_test_name)
@@ -51,7 +48,7 @@ def collect_lcov_coverage(
         "lcov --capture "
         "--directory %s "
         "--output-file %s "
-        "--test-name %s %s" % (build_dir, tracefile, test_name, extra_opts)
+        '--test-name "%s" %s' % (build_dir, tracefile, test_name, extra_opts)
     )
 
     try:

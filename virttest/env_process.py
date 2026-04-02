@@ -1323,116 +1323,32 @@ def postprocess(test, params, env):
             sosreport_path = vm.sosreport()
             LOG.info("Sosreport for guest: %s", sosreport_path)
 
-    # Collect code coverage report for qemu if enabled
+    # Collect code coverage report for qemu/libvirt if enabled
+    if (
+        params.get("gcov_qemu", "no") == "yes"
+        or params.get("gcov_libvirt", "no") == "yes"
+    ):
+        test_name_mode = params.get("gcov_test_name_mode", "name")
+        if test_name_mode == "id":
+            test_name = params.get("id", "unknown_test")
+        elif test_name_mode == "id_extract":
+            test_id = params.get("id", "")
+            if test_id:
+                match = re.search(r"io-github-autotest-[^.]+\.(.*)", test_id)
+                if match:
+                    test_name = match.group(1) if match else test_id
+            else:
+                test_name = "unknown_test"
+        else:
+            test_name = params.get("name", "unknown_test")
+        if hasattr(test_name, "uid"):
+            test_name = str(test_name.uid)
+
     if params.get("gcov_qemu", "no") == "yes":
-        qemu_builddir = params.get(
-            "gcov_qemu_builddir", os.path.join(test.bindir, "build", "qemu")
-        )
-        gcov_format = params.get("gcov_qemu_format", "html")
-        test_name = params.get("shortname", getattr(test, "name", "unknown_test"))
-        if hasattr(test_name, "uid"):
-            test_name = str(test_name.uid)
-        # Save to test-results/gcov_libvirt/ to avoid long path issues
-        # test.debugdir is typically: .../test-results/{test-dir}/
-        # Navigate up to test-results/ and create gcov_qemu/ there
-        test_results_dir = os.path.dirname(test.debugdir)
-        gcov_qemu_dir = os.path.join(test_results_dir, "gcov_qemu")
-        os.makedirs(gcov_qemu_dir, exist_ok=True)
+        _collect_component_coverage(params, test, "qemu", test_name)
 
-        if gcov_format == "lcov":
-            try:
-                path.find_command("lcov")
-            except path.CmdNotFoundError:
-                LOG.warning("lcov package not installed, cannot collect QEMU coverage")
-            else:
-                lcov_extra_opts = params.get(
-                    "gcov_qemu_lcov_opts",
-                    "--rc lcov_function_coverage=0 --no-external --ignore-errors gcov",
-                )
-                collect_lcov_coverage(
-                    qemu_builddir,
-                    gcov_qemu_dir,
-                    test_name,
-                    "qemu",
-                    extra_opts=lcov_extra_opts,
-                )
-
-                if params.get("gcov_qemu_compress", "no") == "yes":
-                    os.chdir(test_results_dir)
-                    archive.compress("lcov_qemu.tar.gz", gcov_qemu_dir)
-                    shutil.copy2("lcov_qemu.tar.gz", test.debugdir)
-                    shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
-        else:
-            if utils_package.package_install("gcovr"):
-                collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
-                collect_gcovr_coverage(
-                    qemu_builddir, gcov_qemu_dir, "qemu", collect_cmd_opts
-                )
-
-                if params.get("gcov_qemu_compress", "no") == "yes":
-                    os.chdir(test_results_dir)
-                    archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
-                    shutil.copy2("gcov_qemu.tar.gz", test.debugdir)
-                    shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
-            else:
-                LOG.warning("gcovr package not installed, cannot collect QEMU coverage")
-
-    # Collect code coverage report for libvirt if enabled
     if params.get("gcov_libvirt", "no") == "yes":
-        libvirt_builddir = params.get("gcov_libvirt_builddir", "/var/tmp/libvirt")
-        gcov_format = params.get("gcov_libvirt_format", "html")
-        test_name = params.get("shortname", getattr(test, "name", "unknown_test"))
-        if hasattr(test_name, "uid"):
-            test_name = str(test_name.uid)
-
-        # Save to test-results/gcov_libvirt/ to avoid long path issues
-        # test.debugdir is typically: .../test-results/{test-dir}/
-        # Navigate up to test-results/ and create gcov_libvirt/ there
-        test_results_dir = os.path.dirname(test.debugdir)
-        gcov_libvirt_dir = os.path.join(test_results_dir, "gcov_libvirt")
-        os.makedirs(gcov_libvirt_dir, exist_ok=True)
-
-        if gcov_format == "lcov":
-            try:
-                path.find_command("lcov")
-            except path.CmdNotFoundError:
-                LOG.warning(
-                    "lcov package not installed, cannot collect libvirt coverage"
-                )
-            else:
-                lcov_extra_opts = params.get(
-                    "gcov_libvirt_lcov_opts",
-                    "--rc lcov_function_coverage=0 --no-external --ignore-errors gcov",
-                )
-                collect_lcov_coverage(
-                    libvirt_builddir,
-                    gcov_libvirt_dir,
-                    test_name,
-                    "libvirt",
-                    extra_opts=lcov_extra_opts,
-                )
-
-                if params.get("gcov_libvirt_compress", "no") == "yes":
-                    os.chdir(test_results_dir)
-                    archive.compress("lcov_libvirt.tar.gz", gcov_libvirt_dir)
-                    shutil.copy2("lcov_libvirt.tar.gz", test.debugdir)
-                    shutil.rmtree(gcov_libvirt_dir, ignore_errors=True)
-        else:
-            if utils_package.package_install("gcovr"):
-                collect_cmd_opts = params.get("gcov_libvirt_collect_cmd_opts", "--html")
-                collect_gcovr_coverage(
-                    libvirt_builddir, gcov_libvirt_dir, "libvirt", collect_cmd_opts
-                )
-
-                if params.get("gcov_libvirt_compress", "no") == "yes":
-                    os.chdir(test_results_dir)
-                    archive.compress("gcov_libvirt.tar.gz", gcov_libvirt_dir)
-                    shutil.copy2("gcov_libvirt.gz", test.debugdir)
-                    shutil.rmtree(gcov_libvirt_dir, ignore_errors=True)
-            else:
-                LOG.warning(
-                    "gcovr package not installed, cannot collect libvirt coverage"
-                )
+        _collect_component_coverage(params, test, "libvirt", test_name)
 
     # Postprocess all VMs and images
     try:
@@ -1648,6 +1564,75 @@ def postprocess_on_error(test, params, env):
     :param env: The environment (a dict-like object).
     """
     params.update(params.object_params("on_error"))
+
+
+def _collect_component_coverage(params, test, component, test_name):
+    """
+    Collect code coverage report for a component (qemu or libvirt).
+
+    :param params: Test parameters
+    :param test: Test object
+    :param component: Component name ("qemu" or "libvirt")
+    :param test_name: Test name for coverage file naming
+    """
+    # Get component-specific builddir
+    if component == "qemu":
+        default_builddir = os.path.join(test.bindir, "build", "qemu")
+    else:  # libvirt
+        default_builddir = "/var/tmp/libvirt"
+
+    builddir = params.get(f"gcov_{component}_builddir", default_builddir)
+    gcov_format = params.get(f"gcov_{component}_format", "html")
+
+    # Setup output directory
+    # Navigate up to test-results/ and create gcov_{component}/ there
+    test_results_dir = os.path.dirname(test.debugdir)
+    gcov_dir = os.path.join(test_results_dir, f"gcov_{component}")
+    os.makedirs(gcov_dir, exist_ok=True)
+
+    if gcov_format == "lcov":
+        try:
+            path.find_command("lcov")
+        except path.CmdNotFoundError:
+            LOG.warning(
+                "lcov package not installed, cannot collect %s coverage",
+                component.upper(),
+            )
+        else:
+            lcov_extra_opts = params.get(
+                f"gcov_{component}_lcov_opts",
+                "--rc lcov_function_coverage=0 --no-external --ignore-errors gcov",
+            )
+            collect_lcov_coverage(
+                builddir,
+                gcov_dir,
+                test_name,
+                component,
+                extra_opts=lcov_extra_opts,
+            )
+
+            if params.get(f"gcov_{component}_compress", "no") == "yes":
+                os.chdir(test_results_dir)
+                archive.compress(f"lcov_{component}.tar.gz", gcov_dir)
+                shutil.copy2(f"lcov_{component}.tar.gz", test.debugdir)
+                shutil.rmtree(gcov_dir, ignore_errors=True)
+    else:
+        if utils_package.package_install("gcovr"):
+            collect_cmd_opts = params.get(
+                f"gcov_{component}_collect_cmd_opts", "--html"
+            )
+            collect_gcovr_coverage(builddir, gcov_dir, component, collect_cmd_opts)
+
+            if params.get(f"gcov_{component}_compress", "no") == "yes":
+                os.chdir(test_results_dir)
+                archive.compress(f"gcov_{component}.tar.gz", gcov_dir)
+                shutil.copy2(f"gcov_{component}.tar.gz", test.debugdir)
+                shutil.rmtree(gcov_dir, ignore_errors=True)
+        else:
+            LOG.warning(
+                "gcovr package not installed, cannot collect %s coverage",
+                component.upper(),
+            )
 
 
 def _get_screendump_format(params):
