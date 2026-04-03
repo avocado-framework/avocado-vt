@@ -70,13 +70,15 @@ def version_compare(major, minor, update, session=None):
     return False
 
 
-def is_libvirt_feature_supported(params, ignore_error=False):
+def is_libvirt_feature_supported(params, ignore_error=False, session=None):
     """
     Check whether the function is supported in this libvirt version by comparing
     the installed libvirt version
 
     :param params: Dictionary with the test parameters
     :param ignore_error: Whether to raise an exception
+    :param session: Shell session on remote host. When provided, the version
+        check is performed on the remote host instead of locally.
     :raise: When ignore_error is set False, raise TestCancel if the feature is
         not supported
     :return: True if the feature is supported;
@@ -97,7 +99,7 @@ def is_libvirt_feature_supported(params, ignore_error=False):
     )
 
     if func_supported_since_libvirt_ver:
-        if not version_compare(*func_supported_since_libvirt_ver):
+        if not version_compare(*func_supported_since_libvirt_ver, session=session):
             if ignore_error:
                 LOG.error(unsupported_err_msg)
                 return False
