@@ -4664,7 +4664,9 @@ def create_ovs_bridge(
                 "No network interfaces in UP state found for bridge creation"
             )
         iface_name = up_ifaces[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(
+        ["tmux"], session
+    ) or not utils_package.package_install_any(["dhcp-client", "dhcpcd"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output(
@@ -4721,7 +4723,9 @@ def delete_ovs_bridge(
                 "No network interfaces in UP state found for bridge deletion"
             )
         iface_name = up_ifaces[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(
+        ["tmux"], session
+    ) or not utils_package.package_install_any(["dhcp-client", "dhcpcd"], session):
         raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output(
@@ -4830,7 +4834,9 @@ def create_linux_bridge_tmux(
     """
     # Create bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"], session):
+    if not utils_package.package_install(
+        ["tmux", "net-tools"], session
+    ) or not utils_package.package_install_any(["dhcp-client", "dhcpcd"], session):
         raise exceptions.TestError("Failed to install the required packages.")
     if session:
         bridge_exists = session.cmd_status("ip link show %s" % linux_bridge_name) == 0
