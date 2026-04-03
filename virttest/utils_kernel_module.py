@@ -22,6 +22,7 @@ import os
 from avocado.utils import process
 
 LOG = logging.getLogger("avocado." + __name__)
+INVALID_MODULE_PARAM_PAIRS = {"vmentry_l1d_flush": "not required"}
 
 
 class KernelModuleError(Exception):
@@ -132,8 +133,9 @@ class KernelModuleHandler(object):
         current_config = self.current_config
         if not force:
             do_not_load = False
+            params_dict = dict(item.split("=", 1) for item in params.split())
             if current_config and all(
-                x in current_config.split() for x in params.split()
+                (k, v) in current_config.items() for k, v in params_dict.items()
             ):
                 LOG.debug(
                     "Not reloading module. Current module configuration"
@@ -141,7 +143,7 @@ class KernelModuleHandler(object):
                     " Requested: '%s'. Current: '%s'. Use force=True to"
                     " force loading.",
                     self._module_name,
-                    params,
+                    params_dict,
                     current_config,
                 )
                 do_not_load = True
@@ -164,9 +166,31 @@ class KernelModuleHandler(object):
         for holder in self._module_holders:
             holder.restore()
 
-    def restore(self):
+    def _separate_dict(self, source_dict, ref_dict):
+        """
+        Split source_dict into two dictionaries by exact key-value matches in ref_dict.
+
+        :param source_dict: Source dictionary to filter
+        :param ref_dict: Reference dictionary to compare
+        :return: A tuple containing two dictionaries:
+            - unique_dict: dict of unique key-value pairs in source_dict
+            - common_dict: dict of common key-value pairs in source_dict and ref_dict
+        """
+        unique_dict = {}
+        common_dict = {}
+        ref_set = set(ref_dict.items())
+        for k, v in source_dict.items():
+            if (k, v) in ref_set:
+                common_dict[k] = v
+            else:
+                unique_dict[k] = v
+        return unique_dict, common_dict
+
+    def restore(self, ignored_params=None):
         """
         Restore previous module state.
+
+        :param ignored_params: params dict to be ignored for module restore
 
         The state will only be restored if the original state
         was altered.
@@ -188,9 +212,22 @@ class KernelModuleHandler(object):
             # TODO: Handle cases were module cannot be removed
             self.unload_module()
             if self._was_loaded:
+                restore_dict = self._config_backup
+                if ignored_params:
+                    restore_dict, ignored_dict = self._separate_dict(
+                        self._config_backup,
+                        ignored_params,
+                    )
+                    if ignored_dict:
+                        LOG.debug(
+                            "Module restore ignores parameter pairs '%s'.", ignored_dict
+                        )
+                restore_string = " ".join(
+                    "%s=%s" % (k, v) for k, v in restore_dict.items()
+                )
                 restore_cmd = "modprobe %s %s" % (
                     self._module_name,
-                    self._config_backup,
+                    restore_string,
                 )
                 LOG.debug("Restoring module state: %s", restore_cmd)
                 status, output = process.getstatusoutput(restore_cmd)
@@ -218,6 +255,12 @@ class KernelModuleHandler(object):
         )
 
     @property
+    def module_name(self):
+        """Read-only property"""
+
+        return self._module_name
+
+    @property
     def was_loaded(self):
         """Read-only property"""
 
@@ -239,7 +282,7 @@ class KernelModuleHandler(object):
         """
         Get current module parameters if found
 
-        :return: String holding module config 'param1=value1 param2=value2 ...', None if
+        :return: Dict holding module config parameter and value pairs, None if
          module not loaded
         """
 
@@ -248,14 +291,23 @@ class KernelModuleHandler(object):
             return
         # Some modules do not have parameters
         elif not os.path.exists(self._module_params_path):
-            return ""
+            return {}
 
         mod_params = {}
         params = os.listdir(self._module_params_path)
         for param in params:
             with open(os.path.join(self._module_params_path, param), "r") as param_file:
-                mod_params[param] = param_file.read().strip()
-        return " ".join("%s=%s" % _ for _ in mod_params.items())
+                value = param_file.read().strip()
+                # Automatically filter out known invalid param pairs
+                if (param, value) in INVALID_MODULE_PARAM_PAIRS.items():
+                    LOG.debug(
+                        "Module parameter '%s' has invalid value '%s', skipping",
+                        param,
+                        value,
+                    )
+                    continue
+                mod_params[param] = value
+        return mod_params
 
     @property
     def module_holders(self):
