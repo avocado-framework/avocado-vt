@@ -3929,6 +3929,7 @@ def get_linux_iface_info(iface="", mac=None, session=None):
 
     try:
         ip_output_str = run_func(ip_cmd).strip()
+        ip_output_str = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', ip_output_str)
         LOG.debug(f"Interface info {iface}:\n{ip_output_str}")
         ip_info = json.loads(ip_output_str)
     except Exception as why:
@@ -4117,6 +4118,7 @@ def get_default_gateway_json(
 
     try:
         ip_output_str = run_func(cmd).strip()
+        ip_output_str = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', ip_output_str)
         LOG.debug(f"ip route output:\n{ip_output_str}")
         ip_route = json.loads(ip_output_str)
     except Exception as why:
