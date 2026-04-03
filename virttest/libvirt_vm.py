@@ -2778,7 +2778,7 @@ class VM(virt_vm.BaseVM):
         def _execute_shell_reboot(session):
             """Execute reboot command via shell session."""
             reboot_cmd = self.params.get("reboot_command")
-            session.cmd(reboot_cmd, ignore_all_errors=True)
+            session.sendline(reboot_cmd)
 
         def _check_system_event_reboot(timeout):
             """Check if system is reboot via libvirt events."""
@@ -2811,10 +2811,14 @@ class VM(virt_vm.BaseVM):
                 if not serial:
                     session = self.wait_for_login(nic_index=nic_index, timeout=timeout)
                 else:
-                    session = self.wait_for_serial_login(timeout=timeout)
+                    session = self.wait_for_serial_login(
+                        timeout=timeout, recreate_serial_console=True
+                    )
 
             if isinstance(session, remote.RemoteSession):
-                serial_console = self.wait_for_serial_login(timeout=timeout)
+                serial_console = self.wait_for_serial_login(
+                    timeout=timeout, recreate_serial_console=True
+                )
 
             _reboot = partial(_execute_shell_reboot, session)
             _check_go_down = partial(
