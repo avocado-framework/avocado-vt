@@ -2729,6 +2729,9 @@ class DevContainer(object):
                     ),
                 ):
                     protocol_node.set_param("aio", aio)
+                    if aio and fmt in ("scsi-generic",):
+                        LOG.warning(f'The driver {fmt} does not support "aio: {aio}"')
+                        protocol_node.set_param("aio", None)
             else:
                 devices[-1].set_param("aio", aio)
             if aio == "native":
@@ -2790,6 +2793,12 @@ class DevContainer(object):
                         self.cache_map[cache]["cache.direct"],
                         self.cache_map[cache]["cache.no-flush"],
                     )
+                    if fmt in ("scsi-generic",):
+                        LOG.warning(
+                            f"The driver {fmt} does not support "
+                            f'"cache.direct: {direct}, cache.no-flush: {no_flush}"'
+                        )
+                        direct, no_flush = (None, None)
                 dev.set_param("cache.direct", direct)
                 dev.set_param("cache.no-flush", no_flush)
             if top_node is not protocol_node:
@@ -2962,7 +2971,8 @@ class DevContainer(object):
         devices[-1].set_param("bootindex", bootindex)
         if Flags.BLOCKDEV in self.caps:
             if isinstance(protocol_node, qdevices.QBlockdevProtocolHostDevice):
-                self.cache_map[cache]["write-cache"] = None
+                if cache:
+                    self.cache_map[cache]["write-cache"] = None
             write_cache = None if not cache else self.cache_map[cache]["write-cache"]
             devices[-1].set_param("write-cache", write_cache)
             if "scsi-generic" == fmt:
