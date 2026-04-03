@@ -1754,3 +1754,7 @@ class GuestFSModiDisk(object):
         """
         if self.g:
             self.g.close()
+
+
+from virttest.utils_disk.free_space import check_free_disk  # noqa: E402,F401
+from virttest.utils_disk.free_space import get_free_disk  # noqa: E402,F401
