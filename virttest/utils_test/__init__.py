@@ -25,6 +25,7 @@ import locale
 import logging
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -53,6 +54,7 @@ from virttest import (
     utils_misc,
     utils_net,
     utils_package,
+    utils_sys,
     virt_vm,
 )
 
@@ -214,16 +216,73 @@ def update_boot_option(
                     req_remove_args, session=session, remove_args=True
                 )
         else:
-            if not utils_package.package_install("grubby", session=session):
-                raise exceptions.TestError("Failed to install grubby package")
-            msg = "Update guest kernel option. "
-            cmd = "grubby --update-kernel=`grubby --default-kernel` "
-            if req_remove_args:
-                msg += " remove args: %s" % req_remove_args
-                cmd += '--remove-args="%s" ' % req_remove_args
-            if req_args:
-                msg += " add args: %s" % req_args
-                cmd += '--args="%s"' % req_args
+            if utils_sys.is_image_mode(session=session):
+                get_ostree_cmd = "cat /proc/cmdline | grep -o 'ostree=[^ ]*'"
+                current_ostree = session.cmd_output(get_ostree_cmd).strip()
+                if not current_ostree:
+                    raise exceptions.TestError("System not booted via ostree/bootc.")
+
+                get_entry_cmd = (
+                    "grep -l '%s' /boot/loader/entries/*.conf | grep -v rescue | head -n 1"
+                    % shlex.quote(current_ostree)
+                )
+                target_entry = session.cmd_output(get_entry_cmd).strip()
+                if not target_entry:
+                    raise exceptions.TestError(
+                        "Fail to find active entry for %s" % current_ostree
+                    )
+
+                content = session.cmd_output("cat %s" % shlex.quote(target_entry))
+                lines = content.splitlines()
+                new_lines = []
+                found_options = False
+                for line in lines:
+                    if line.startswith("options "):
+                        found_options = True
+                        args = line.split()[1:]
+
+                        if req_remove_args:
+                            remove_list = req_remove_args.split()
+                            args = [a for a in args if a not in remove_list]
+
+                        if req_args:
+                            add_list = req_args.split()
+                            for arg in add_list:
+                                if arg not in args:
+                                    args.append(arg)
+
+                        new_lines.append("options %s" % " ".join(args))
+                    else:
+                        new_lines.append(line)
+
+                if not found_options:
+                    raise exceptions.TestError(
+                        "Could not find 'options' line in %s" % target_entry
+                    )
+
+                updated_content = "\n".join(new_lines)
+                cmd = (
+                    "unshare -m /bin/bash -c '"
+                    "mount -o remount,rw /boot && "
+                    "cat <<EOF > %s\n%s\nEOF\n"
+                    "mount -o remount,ro /boot'"
+                    % (shlex.quote(target_entry), updated_content)
+                )
+                msg = "Modifying Bootc kernel args in %s by cmd '%s'" % (
+                    target_entry,
+                    cmd,
+                )
+            else:
+                if not utils_package.package_install("grubby", session=session):
+                    raise exceptions.TestError("Failed to install grubby package")
+                msg = "Update guest kernel option. "
+                cmd = "grubby --update-kernel=`grubby --default-kernel` "
+                if req_remove_args:
+                    msg += " remove args: %s" % req_remove_args
+                    cmd += '--remove-args="%s" ' % req_remove_args
+                if req_args:
+                    msg += " add args: %s" % req_args
+                    cmd += '--args="%s"' % req_args
             if req_remove_args or req_args:
                 __run_cmd_and_handle_error(
                     msg, cmd, session, "Failed to modify guest kernel option"
