@@ -354,9 +354,13 @@ class VirtTestOptionsProcess(object):
             LOG.info("Config provided, ignoring %s", defconfig_setting)
 
     def _process_malloc_perturb(self):
-        self.cartesian_parser.assign(
-            "malloc_perturb", get_opt(self.config, "vt.qemu.malloc_perturb")
-        )
+        malloc_perturb_setting = "config vt.qemu.malloc_perturb"
+        if not get_opt(self.config, "vt.config"):
+            self.cartesian_parser.assign(
+                "malloc_perturb", get_opt(self.config, "vt.qemu.malloc_perturb")
+            )
+        else:
+            LOG.info("Config provided, ignoring %s", malloc_perturb_setting)
 
     def _process_qemu_specific_options(self):
         """
