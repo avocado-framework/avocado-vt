@@ -2116,6 +2116,9 @@ class VM(virt_vm.BaseVM):
         """
         error_context.context("creating '%s'" % self.name)
         self.destroy(free_mac_addresses=False)
+        if self.is_persistent():
+            if not self.undefine():
+                raise virt_vm.VMError(f"Failed to undefine persistent VM {self.name}")
         if name is not None:
             self.name = name
         if params is not None:
