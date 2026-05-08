@@ -112,6 +112,12 @@ class VirtTest(test.VirtTest):
                 self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
+def _vt_test_subprocess_main(queue, runnable):
+    """Run a VirtTest in a child process (forkserver/spawn-safe)."""
+    vt_test = VirtTest(queue, runnable)
+    vt_test.runTest()
+
+
 class VTTestRunner(BaseRunner):
     """
     Runner for Avocado-VT (aka VirtTest) tests
@@ -155,8 +161,10 @@ class VTTestRunner(BaseRunner):
         else:
             try:
                 queue = multiprocessing.SimpleQueue()
-                vt_test = VirtTest(queue, self.runnable)
-                process = multiprocessing.Process(target=vt_test.runTest)
+                process = multiprocessing.Process(
+                    target=_vt_test_subprocess_main,
+                    args=(queue, self.runnable),
+                )
                 process.start()
                 while True:
                     time.sleep(RUNNER_RUN_CHECK_INTERVAL)
