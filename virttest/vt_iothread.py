@@ -1,7 +1,5 @@
 """AUTOtest implementation of iothread manager classes for QEMU."""
 
-import itertools
-
 from virttest.qemu_devices.qdevices import QIOThread
 
 
@@ -20,7 +18,7 @@ class IOThreadManagerBase(object):
         self._iothread_finder = {}
         for iothread in iothreads or []:
             self._iothread_finder[iothread.get_aid()] = iothread
-        self._index = itertools.count(len(iothreads))
+        self._next_iothread_index = len(iothreads or [])
 
     def find_iothread(self, iothread_id):
         """Find iothread with the id specified."""
@@ -28,7 +26,9 @@ class IOThreadManagerBase(object):
 
     def _create_iothread(self):
         """Create and return new iothread object."""
-        return QIOThread(self.ID_PATTERN % next(self._index))
+        idx = self._next_iothread_index
+        self._next_iothread_index += 1
+        return QIOThread(self.ID_PATTERN % idx)
 
     def request_iothread(self, iothread):
         """
