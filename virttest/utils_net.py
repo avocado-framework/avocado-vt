@@ -1243,11 +1243,24 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names, queue_size=None):
     """
     clean_ovs_env(selinux_mode="permissive", page_size=hp_num, clean_ovs=True)
 
-    # Install openvswitch
+    # Install openvswitch using utils_package which auto-detects package manager
+    # Try different openvswitch package names in order of preference
+    ovs_installed = False
     for pkg in ["openvswitch2.15", "openvswitch2.11", "openvswitch"]:
-        if process.system("yum info %s" % pkg, ignore_status=True) == 0:
-            utils_package.package_install(pkg)
-            break
+        try:
+            pkg_mgr = utils_package.LocalPackageMgr(pkg)
+            # Check if package exists in repositories by attempting to get info
+            if pkg_mgr.is_installed(pkg) or utils_package.package_install(pkg):
+                ovs_installed = True
+                break
+        except Exception as e:
+            LOG.debug("Package %s not available: %s", pkg, e)
+            continue
+    
+    if not ovs_installed:
+        raise exceptions.TestError(
+            "Failed to install openvswitch. Tried: openvswitch2.15, openvswitch2.11, openvswitch"
+        )
 
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
