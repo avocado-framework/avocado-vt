@@ -826,8 +826,12 @@ class VMXML(VMXMLBase):
     def undefine(self, options=None, virsh_instance=base.virsh):
         """Undefine this VM with libvirt retaining XML in instance"""
         os_attrs = self.os.fetch_attrs()
-        nvram = any([os_attrs.get("os_firmware") == "efi", os_attrs.get("nvram")])
-        if nvram:
+        has_uefi_vars = any([
+            os_attrs.get("os_firmware") == "efi",
+            os_attrs.get("nvram"),
+            os_attrs.get("varstore_attrs"),
+        ])
+        if has_uefi_vars:
             nvram_option = "--keep-nvram"
             if options is None:
                 options = nvram_option
@@ -3528,7 +3532,7 @@ class VMOSXML(base.LibvirtXMLBase):
     Elements:
         os:           list attributes - firmware
         type:         text attributes - arch, machine
-        loader:       path
+        loader:       path  attributes - readonly, type, format, stateless, secure
         boots:        list attributes - dev
         bootmenu:          attributes - enable, timeout
         smbios:            attributes - mode
@@ -3540,6 +3544,8 @@ class VMOSXML(base.LibvirtXMLBase):
         initrd:       text
         cmdline:      text
         dtb:          text
+        nvram:        text  attributes - template, type, format
+        varstore:           attributes - template, path
         firmware:     list attribute - feature
         acpi:         list attribute - table
     TODO:
@@ -3566,9 +3572,11 @@ class VMOSXML(base.LibvirtXMLBase):
         "initargs",
         "loader_readonly",
         "loader_type",
+        "loader_format",
         "nvram",
         "nvram_attrs",
         "nvram_source",
+        "varstore_attrs",
         "secure",
         "bootmenu_timeout",
         "os_firmware",
@@ -3579,7 +3587,6 @@ class VMOSXML(base.LibvirtXMLBase):
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText("type", self, parent_xpath="/", tag_name="type")
-        accessors.XMLElementText("loader", self, parent_xpath="/", tag_name="loader")
         accessors.XMLAttribute(
             "arch", self, parent_xpath="/", tag_name="type", attribute="arch"
         )
@@ -3635,12 +3642,16 @@ class VMOSXML(base.LibvirtXMLBase):
         accessors.XMLElementText("cmdline", self, parent_xpath="/", tag_name="cmdline")
         accessors.XMLElementText("dtb", self, parent_xpath="/", tag_name="dtb")
         accessors.XMLElementText("init", self, parent_xpath="/", tag_name="init")
+        accessors.XMLElementText("loader", self, parent_xpath="/", tag_name="loader")
         accessors.XMLAttribute(
             "loader_readonly",
             self,
             parent_xpath="/",
             tag_name="loader",
             attribute="readonly",
+        )
+        accessors.XMLAttribute(
+            "secure", self, parent_xpath="/", tag_name="loader", attribute="secure"
         )
         accessors.XMLAttribute(
             "loader_type", self, parent_xpath="/", tag_name="loader", attribute="type"
@@ -3651,6 +3662,13 @@ class VMOSXML(base.LibvirtXMLBase):
             parent_xpath="/",
             tag_name="loader",
             attribute="stateless",
+        )
+        accessors.XMLAttribute(
+            "loader_format",
+            self,
+            parent_xpath="/",
+            tag_name="loader",
+            attribute="format",
         )
         accessors.XMLElementText("nvram", self, parent_xpath="/", tag_name="nvram")
         accessors.XMLElementDict(
@@ -3664,8 +3682,8 @@ class VMOSXML(base.LibvirtXMLBase):
             subclass=self.NvramSourceXML,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
-        accessors.XMLAttribute(
-            "secure", self, parent_xpath="/", tag_name="loader", attribute="secure"
+        accessors.XMLElementDict(
+            "varstore_attrs", self, parent_xpath="/", tag_name="varstore"
         )
         accessors.XMLAttribute(
             "os_firmware", self, parent_xpath="/", tag_name="os", attribute="firmware"
