@@ -121,8 +121,6 @@ class TransparentHugePageConfig(object):
         cleanup.
         """
         self.params = params
-        # Get test type to determine if rules should be created
-        self.test_type = params.get("acl_test_type", "positive")
         self.env = env
         self.session = session
 
@@ -558,7 +556,7 @@ class HugePageConfig(object):
         if obj.sys_fs_value < int(pagenum):
             error_msg = (
                 "Only allocated %d pages %skiB huge pages, "
-                "but requried %s" % (obj.sys_fs_value, pagesize, pagenum)
+                "but required %s" % (obj.sys_fs_value, pagesize, pagenum)
             )
             if not ignore_error:
                 raise exceptions.TestSetupFail(error_msg)
@@ -2392,8 +2390,6 @@ class EGDConfig(object):
 
     def __init__(self, params, env):
         self.params = params
-        # Get test type to determine if rules should be created
-        self.test_type = params.get("acl_test_type", "positive")
         self.env = env
 
     def __get_tarball(self):
@@ -2503,8 +2499,6 @@ class StraceQemu(object):
         self.env = env
         self.test = test
         self.params = params
-        # Get test type to determine if rules should be created
-        self.test_type = params.get("acl_test_type", "positive")
         self.process = path.find_command("strace")
 
     @property
