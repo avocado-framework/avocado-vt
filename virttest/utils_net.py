@@ -1243,11 +1243,14 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names, queue_size=None):
     """
     clean_ovs_env(selinux_mode="permissive", page_size=hp_num, clean_ovs=True)
 
-    # Install openvswitch
-    for pkg in ["openvswitch2.15", "openvswitch2.11", "openvswitch"]:
-        if process.system("yum info %s" % pkg, ignore_status=True) == 0:
-            utils_package.package_install(pkg)
-            break
+    # Check if openvswitch is installed by checking for ovs-vsctl command
+    try:
+        utils_path.find_command("ovs-vsctl")
+    except utils_path.CmdNotFoundError:
+        raise exceptions.TestError(
+            "openvswitch is not installed. "
+            "Please install openvswitch before running this test."
+        )
 
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
