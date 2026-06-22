@@ -43,7 +43,7 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.g
 # old way of retrieving snapshot sources
 #Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
 %endif
-BuildRequires: python3-devel, python3-setuptools, python3-six
+BuildRequires: python3-devel, python3-setuptools, python3-six, python3-wheel
 Requires: python3-six
 BuildArch: noarch
 Requires: autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, nc, git
@@ -87,7 +87,7 @@ Xunit output, among others.
 
 %install
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/avocado/conf.d
-%{__python3} setup.py install --root %{buildroot} --skip-build
+%{__python3} -m pip install --prefix=%{buildroot} --no-build-isolation .
 %{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
 
 %files -n python3-%{name}
