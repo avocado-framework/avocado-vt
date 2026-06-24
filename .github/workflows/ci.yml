@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: &py_versions ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: &py_versions ["3.10", "3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
 
     steps:
@@ -83,6 +83,6 @@ jobs:
     - name: Build package
       run: python -m build
     - name: Build eggs (legacy)
-      if: ${{ contains(fromJSON('["3.9","3.10","3.11"]'), matrix.python-version) }}
+      if: ${{ contains(fromJSON('["3.10","3.11"]'), matrix.python-version) }}
       run: python setup.py bdist_egg
     - run: echo "🥑 This job's status is ${{ job.status }}."
