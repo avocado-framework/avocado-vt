@@ -10,10 +10,12 @@ from avocado.utils import cpu, distro, genio, linux_modules
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
+from cartconf.parser import Parser
+
 from virttest.vt_cluster import cluster, node
 from virttest.vt_resmgr import resmgr
 
-from . import arch, asset, cartesian_config, data_dir, defaults, utils_selinux
+from . import arch, asset, data_dir, defaults, utils_selinux
 from .compat import get_opt
 
 LOG = logging.getLogger("avocado.app")
@@ -93,7 +95,7 @@ def get_guest_os_info_list(test_name, guest_os):
     """
     os_info_list = []
 
-    cartesian_parser = cartesian_config.Parser()
+    cartesian_parser = Parser()
     cartesian_parser.parse_file(
         data_dir.get_backend_cfg_path(test_name, "guest-os.cfg")
     )
@@ -518,7 +520,7 @@ def create_subtests_cfg(t_type):
         for line in shared_file_obj.readlines():
             line = line.strip()
             if re.match("type\s*=.*", line):
-                cartesian_parser = cartesian_config.Parser()
+                cartesian_parser = Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())
                 values = td["type"].split(" ")
@@ -552,7 +554,7 @@ def create_subtests_cfg(t_type):
         for line in shared_file_obj.readlines():
             line = line.strip()
             if re.match("type\s*=.*", line):
-                cartesian_parser = cartesian_config.Parser()
+                cartesian_parser = Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())
                 values = td["type"].split(" ")
