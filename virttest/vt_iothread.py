@@ -22,6 +22,17 @@ class IOThreadManagerBase(object):
             self._iothread_finder[iothread.get_aid()] = iothread
         self._index = itertools.count(len(iothreads))
 
+    def __getstate__(self):
+        """Return a pickle-safe state for the iothread manager."""
+        state = self.__dict__.copy()
+        state.pop("_index", None)
+        return state
+
+    def __setstate__(self, state):
+        """Restore the manager state and rebuild the internal counter."""
+        self.__dict__.update(state)
+        self._index = itertools.count(len(self._iothread_finder))
+
     def find_iothread(self, iothread_id):
         """Find iothread with the id specified."""
         return self._iothread_finder.get(iothread_id)

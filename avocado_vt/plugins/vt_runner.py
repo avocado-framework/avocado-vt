@@ -154,9 +154,13 @@ class VTTestRunner(BaseRunner):
             )
         else:
             try:
-                queue = multiprocessing.SimpleQueue()
+                if "fork" in multiprocessing.get_all_start_methods():
+                    context = multiprocessing.get_context("fork")
+                else:
+                    context = multiprocessing
+                queue = context.SimpleQueue()
                 vt_test = VirtTest(queue, self.runnable)
-                process = multiprocessing.Process(target=vt_test.runTest)
+                process = context.Process(target=vt_test.runTest)
                 process.start()
                 while True:
                     time.sleep(RUNNER_RUN_CHECK_INTERVAL)
