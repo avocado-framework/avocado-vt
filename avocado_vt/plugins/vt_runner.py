@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import sys
 import time
 import traceback
 
@@ -182,6 +183,8 @@ class RunnerApp(BaseRunnerApp):
 
 
 def main():
+    if sys.version_info >= (3, 14):
+        multiprocessing.set_start_method("fork")
     if LTS:
         nrunner_main(RunnerApp)
     else:
