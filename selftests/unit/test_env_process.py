@@ -30,6 +30,7 @@ class QEMUVersion(unittest.TestCase):
                 "0.12.1",
                 "qemu-kvm-0.12.1.2-2.503.el6_9.3",
             ),
+            "QEMU emulator version 10.1.3": ("10.1.3", None),
         }
         for version, expected in list(versions_expected.items()):
             match = re.match(QEMU_VERSION_RE, version)
