@@ -31,7 +31,7 @@ from avocado.core.settings import settings
 from avocado.core.output import LOG_UI, LOG_JOB as log
 from avocado.core.plugin_interfaces import CLI
 
-from .. import cmd_parser
+from virttest import cmd_parser
 
 
 class Auto(CLI):

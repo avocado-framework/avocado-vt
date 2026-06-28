@@ -26,8 +26,7 @@ from PyQt4 import QtGui, QtCore
 
 from avocado.utils import process
 from avocado.core.settings import settings
-
-from avocado_i2n.states import setup as ss
+from virttest.states import setup as ss
 
 # virtual user backend has to be available in order to use these tools at all
 from guibot.guibot import GuiBot
@@ -43,7 +42,7 @@ class GUITestGenerator(QtGui.QWidget):
         Construct the main control window of the GUI test generator.
 
         :param vmnet: network of available vms
-        :type vmnet: :py:class:`avocado_i2n.vmnet.network.VMNetwork`
+        :type vmnet: :py:class:`virttest.vmnet.network.VMNetwork`
         :param parent: parent widget
         :type parent: :py:class:`QWidget`
         """

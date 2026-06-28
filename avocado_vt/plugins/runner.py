@@ -49,8 +49,7 @@ from avocado.core.task.runtime import RuntimeTask, PreRuntimeTask, PostRuntimeTa
 from avocado.core.task.statemachine import TaskStateMachine, Worker
 from avocado.core.dispatcher import SpawnerDispatcher
 from virttest.utils_params import Params
-
-from ..cartgraph import TestGraph, TestWorker, TestNode
+from virttest.cartgraph import TestGraph, TestWorker, TestNode
 
 logging = log.getLogger("avocado.job." + __name__)
 

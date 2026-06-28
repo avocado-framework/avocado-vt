@@ -26,8 +26,8 @@ from collections import namedtuple
 
 from avocado.core.output import LOG_UI, LOG_JOB as logging
 
-from avocado_i2n.cartgraph import TestGraph
-from avocado_i2n.intertest_setup import with_cartesian_graph
+from virttest.cartgraph import TestGraph
+from virttest.intertest_setup import with_cartesian_graph
 
 
 #: list of all available manual steps or simply semi-automation tools

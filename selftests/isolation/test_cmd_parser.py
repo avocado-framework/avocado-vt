@@ -4,8 +4,8 @@ import unittest
 import unittest_importer
 
 from avocado import Test
-import avocado_i2n.cmd_parser as cmd
-import avocado_i2n.params_parser as param
+import virttest.cmd_parser as cmd
+import virttest.params_parser as param
 
 
 class CmdParserTest(Test):
