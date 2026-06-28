@@ -53,11 +53,26 @@ jobs:
         run: |
          mkdir -p /tmp/dummy_bin
          touch /tmp/dummy_bin/arping
+         touch /tmp/dummy_bin/qemu-img
+         touch /tmp/dummy_bin/qemu-io
+         touch /tmp/dummy_bin/qemu-kvm
          touch /tmp/dummy_bin/tcpdump
          chmod 777 /tmp/dummy_bin/*
          echo "/tmp/dummy_bin" >> $GITHUB_PATH
-      - name: Setup Avocado-vt for functional tests
-        run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+      - name: Cache Avocado VT bootstrap data
+        uses: actions/cache@v4
+        with:
+          path: ~/avocado/data/avocado-vt/images
+          key: avocado-vt-images-${{ runner.os }}-${{ hashFiles('virttest/shared/downloads/*.ini') }}
+          restore-keys: |
+            avocado-vt-images-${{ runner.os }}-
+      - name: Set up Avocado VT for integration tests
+        run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-type=qemu --yes-to-all
+      - name: Minimal isolation (unit) tests
+        run: |
+          python3 selftests/run
+      - name: Minimal integration (functional) tests
+        run: AVOCADO_LOG_DEBUG=yes avocado -V run --dry-run --vt-type qemu "only reboot"
       - run: echo "This job's status is ${{ job.status }}."
 
   package-build:
