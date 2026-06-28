@@ -21,7 +21,7 @@ import logging
 from aexpect import remote_door as door
 from avocado.core import exceptions
 from virttest import error_context
-from avocado_i2n.states import setup as ss
+from virttest.states import setup as ss
 
 # custom imports
 pass

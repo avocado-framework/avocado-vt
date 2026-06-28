@@ -59,11 +59,11 @@ from avocado.core import data_dir
 from avocado.core.suite import TestSuite
 from avocado.core.settings import settings
 from avocado.core.output import LOG_UI
+from avocado_vt.plugins.runner import TestRunner
 from virttest.utils_params import Params
 
 from . import params_parser as param
 from .cartgraph import TestGraph, TestNode
-from .plugins.runner import TestRunner
 
 logging = log.getLogger("avocado.job." + __name__)
 

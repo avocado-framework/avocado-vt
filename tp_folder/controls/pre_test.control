@@ -20,10 +20,10 @@ from avocado_vt.test import VirtTest
 from virttest import env_process
 from virttest.utils_params import Params
 from virttest.utils_env import Env
-from avocado_i2n.states import setup as ss
-from avocado_i2n.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
-from avocado_i2n.states.vmnet import VMNetBackend
-from avocado_i2n.vmnet import VMNetwork
+from virttest.states import setup as ss
+from virttest.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
+from virttest.states.vmnet import VMNetBackend
+from virttest.vmnet import VMNetwork
 
 # deployed utilities
 utility_path = os.path.join(params["suite_path"], "utils")
@@ -43,7 +43,7 @@ logging.info(f"Adding env process stage hooks")
 def close_sessions(fn: Callable[[VirtTest, Params, Env], None]) -> Callable[[VirtTest, Params, Env], None]:
     def wrapper(test: "VirtTest", params: "Params", env: "Env") -> None:
         fn(test, params, env)
-        from avocado_i2n.states import pool
+        from virttest.states import pool
         for session in pool.TransferOps._session_cache.values():
             session.close()
         # TODO: consider better localization for this (needed for GUI tests)

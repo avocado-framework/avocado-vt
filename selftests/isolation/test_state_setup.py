@@ -10,17 +10,17 @@ from avocado import Test
 from avocado.core import exceptions
 from avocado.utils import process
 from virttest import utils_params
+# use old name to reduce amount of changes in the unit tests
+from virttest.states import setup as ss
+from virttest.states import qcow2
+from virttest.states import lvm
+from virttest.states import ramfile
+from virttest.states import lxc
+from virttest.states import btrfs
+from virttest.states import pool
+from virttest.states import vmnet
 
 import unittest_importer
-# use old name to reduce amount of changes in the unit tests
-from avocado_i2n.states import setup as ss
-from avocado_i2n.states import qcow2
-from avocado_i2n.states import lvm
-from avocado_i2n.states import ramfile
-from avocado_i2n.states import lxc
-from avocado_i2n.states import btrfs
-from avocado_i2n.states import pool
-from avocado_i2n.states import vmnet
 
 
 class MockDriver(unittest.TestCase):
@@ -62,7 +62,7 @@ class MockDriver(unittest.TestCase):
         if backend == "lvm":
             mock_driver.lv_check.return_value = root_exists
             mock_driver.lv_list.return_value = state_names
-            with mock.patch('avocado_i2n.states.lvm.lv_utils', mock_driver):
+            with mock.patch('virttest.states.lvm.lv_utils', mock_driver):
                 yield mock_driver
         elif backend in ["qcow2", "qcow2vt"]:
             if backend == "qcow2":
@@ -76,7 +76,7 @@ class MockDriver(unittest.TestCase):
                 size = "0 B" if state_type == "image" else "1 GiB"
                 output += f"0         {state}         {size} 0000-00-00 00:00:00   00:00:00.000\n"
             mock_driver.return_value.snapshot_list.return_value = output
-            with mock.patch('avocado_i2n.states.qcow2.QemuImg', mock_driver):
+            with mock.patch('virttest.states.qcow2.QemuImg', mock_driver):
                 yield mock_driver
         elif backend == "qcow2ext":
             self.mock_vms["vm1"].is_alive.return_value = False
@@ -89,8 +89,8 @@ class MockDriver(unittest.TestCase):
             class QemuImgMock():
                 def __init__(self, params, root_dir, tag):
                     self.image_filename = os.path.join(root_dir, tag)
-            with mock.patch('avocado_i2n.states.qcow2.QemuImg', QemuImgMock):
-                with mock.patch('avocado_i2n.states.qcow2.os', mock_driver):
+            with mock.patch('virttest.states.qcow2.QemuImg', QemuImgMock):
+                with mock.patch('virttest.states.qcow2.os', mock_driver):
                     yield mock_driver
         elif backend == "ramfile":
             ramfile.RamfileBackend.image_state_backend.show.return_value = state_names
@@ -99,7 +99,7 @@ class MockDriver(unittest.TestCase):
             mock_driver.path.join = os.path.join
             mock_driver.path.exists = self.mock_file_exists
             self.exist_switch = root_exists
-            with mock.patch('avocado_i2n.states.ramfile.os', mock_driver):
+            with mock.patch('virttest.states.ramfile.os', mock_driver):
                 yield mock_driver
         else:
             raise ValueError(f"Unsupported backend for testing {backend}")
@@ -245,11 +245,11 @@ class MockDriver(unittest.TestCase):
 # they cover still supported, any newly introduced state backends should be
 # covered by actual integration tests though (currently qcow2ext and some
 # repeated but highly refurbished backends here)
-@mock.patch('avocado_i2n.states.lvm.os.mkdir', mock.Mock(return_value=0))
-@mock.patch('avocado_i2n.states.lvm.os.makedirs', mock.Mock(return_value=0))
-@mock.patch('avocado_i2n.states.lvm.os.rmdir', mock.Mock(return_value=0))
-@mock.patch('avocado_i2n.states.lvm.os.unlink', mock.Mock(return_value=0))
-@mock.patch('avocado_i2n.states.lvm.shutil.rmtree', mock.Mock(return_value=0))
+@mock.patch('virttest.states.lvm.os.mkdir', mock.Mock(return_value=0))
+@mock.patch('virttest.states.lvm.os.makedirs', mock.Mock(return_value=0))
+@mock.patch('virttest.states.lvm.os.rmdir', mock.Mock(return_value=0))
+@mock.patch('virttest.states.lvm.os.unlink', mock.Mock(return_value=0))
+@mock.patch('virttest.states.lvm.shutil.rmtree', mock.Mock(return_value=0))
 class StatesBoundaryTest(Test):
 
     def setUp(self):
@@ -289,7 +289,7 @@ class StatesBoundaryTest(Test):
 
         self.mock_file_exists = mock.MagicMock()
         # TODO: qcow2 is still needed for LVM root setting and too many tests
-        exists_patch = mock.patch('avocado_i2n.states.qcow2.os.path.exists',
+        exists_patch = mock.patch('virttest.states.qcow2.os.path.exists',
                                   self.mock_file_exists)
         exists_patch.start()
         self.addCleanup(exists_patch.stop)
@@ -690,8 +690,8 @@ class StatesBoundaryTest(Test):
                 with self.driver.mock_show([], backend_type, True) as driver:
                     ss.get_states(self.run_params, self.env)
 
-    @mock.patch('avocado_i2n.states.lvm.env_process', mock.Mock(return_value=0))
-    @mock.patch('avocado_i2n.states.lvm.process')
+    @mock.patch('virttest.states.lvm.env_process', mock.Mock(return_value=0))
+    @mock.patch('virttest.states.lvm.process')
     def test_set_root_image_lvm(self, mock_process):
         """Test that root setting with the LVM backend works."""
         backend = "lvm"
@@ -742,7 +742,7 @@ class StatesBoundaryTest(Test):
             driver.lv_take_snapshot.assert_called_once_with('disk_vm1', 'LogVol', 'current_state')
         mock_process.run.assert_called_with('vgcreate disk_vm1 /dev/loop0', sudo=True)
 
-    @mock.patch('avocado_i2n.states.qcow2.env_process')
+    @mock.patch('virttest.states.qcow2.env_process')
     def test_set_root_image_qcow2(self, mock_env_process):
         """Test that root setting with the QCOW2 backend works."""
         backend = "qcow2"
@@ -781,8 +781,8 @@ class StatesBoundaryTest(Test):
             self.mock_vms["vm1"].destroy.assert_called_once_with(gracefully=True)
         mock_env_process.preprocess_image.assert_not_called()
 
-    @mock.patch('avocado_i2n.states.ramfile.env_process')
-    @mock.patch('avocado_i2n.states.qcow2.env_process')
+    @mock.patch('virttest.states.ramfile.env_process')
+    @mock.patch('virttest.states.qcow2.env_process')
     def test_set_root_vm(self, _mock_env1, _mock_env2):
         """Test that root setting with a vm state backend works."""
         for backend in ["qcow2vt", "ramfile"]:
@@ -808,7 +808,7 @@ class StatesBoundaryTest(Test):
                     if backend == "ramfile":
                         driver.makedirs.assert_called_once_with("/images/vm1-abc.def", exist_ok=True)
 
-    @mock.patch('avocado_i2n.states.lvm.vg_cleanup')
+    @mock.patch('virttest.states.lvm.vg_cleanup')
     def test_unset_root_image_lvm(self, mock_vg_cleanup):
         """Test that root unsetting with the LVM backend works."""
         backend = "lvm"
@@ -836,8 +836,8 @@ class StatesBoundaryTest(Test):
             driver.vg_check.assert_called_once_with('disk_vm1')
         mock_vg_cleanup.assert_called_once_with('virtual_hdd_vm1', '/tmp/disk_vm1', 'disk_vm1', None, True)
 
-    @mock.patch('avocado_i2n.states.qcow2.os')
-    @mock.patch('avocado_i2n.states.qcow2.env_process')
+    @mock.patch('virttest.states.qcow2.os')
+    @mock.patch('virttest.states.qcow2.env_process')
     def test_unset_root_image_qcow2(self, mock_env_process, mock_os):
         """Test that root unsetting with the QCOW2 backend works."""
         backend = "qcow2"
@@ -895,7 +895,7 @@ class StatesBoundaryTest(Test):
                         ss.BACKENDS["qcow2vt"]().__getattribute__(do)(run_params, self.env)
                     del self.run_params[f"{do}_state"]
 
-    @mock.patch('avocado_i2n.states.qcow2.os.path.isfile')
+    @mock.patch('virttest.states.qcow2.os.path.isfile')
     def test_qcow2_convert(self, mock_isfile):
         """Test auxiliary qcow2 module conversion functionality."""
         self.run_params["raw_image"] = "ext_image"
@@ -932,7 +932,7 @@ class StatesBoundaryTest(Test):
             driver.return_value.assert_not_called()
 
 
-@mock.patch('avocado_i2n.states.pool.os.makedirs', mock.Mock(return_value=0))
+@mock.patch('virttest.states.pool.os.makedirs', mock.Mock(return_value=0))
 class StatesPoolTest(Test):
 
     def setUp(self):
@@ -1004,8 +1004,8 @@ class StatesPoolTest(Test):
             self.mock_vms[vm_name].name = vm_name
             self.mock_vms[vm_name].params = self.run_params.object_params(vm_name)
 
-    @mock.patch('avocado_i2n.states.pool.SKIP_LOCKS', False)
-    @mock.patch('avocado_i2n.states.pool.fcntl')
+    @mock.patch('virttest.states.pool.SKIP_LOCKS', False)
+    @mock.patch('virttest.states.pool.fcntl')
     def test_pool_locks(self, mock_fcntl):
         """Test auxiliary pool module locks functionality."""
         self._create_mock_vms()
@@ -1027,7 +1027,7 @@ class StatesPoolTest(Test):
         self.assertTrue(image_locked)
         mock_fcntl.lockf.assert_called_once()
 
-    @mock.patch("avocado_i2n.states.pool.os.path.exists",
+    @mock.patch("virttest.states.pool.os.path.exists",
                 mock.MagicMock(return_value=False))
     def test_check_root(self):
         """Test that root checking prioritizes local root then pool root."""
@@ -1948,7 +1948,7 @@ class StatesSetupTest(Test):
         self.backend.show.assert_called_once()
         self.assertFalse(exists)
 
-    @mock.patch("avocado_i2n.states.setup.check_states")
+    @mock.patch("virttest.states.setup.check_states")
     def test_get(self, mock_show):
         """Test that state getting works with default policies."""
         self._set_up_generic_params("get", "state", "objects", "object1")
@@ -1983,7 +1983,7 @@ class StatesSetupTest(Test):
 
         # assert state retrieval is aborted if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             with self.assertRaises(exceptions.TestAbortError):
                 ss.get_states(self.run_params, self.env)
@@ -1991,7 +1991,7 @@ class StatesSetupTest(Test):
 
         # assert state retrieval is aborted if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestAbortError):
                 ss.get_states(self.run_params, self.env)
@@ -2004,7 +2004,7 @@ class StatesSetupTest(Test):
 
         # assert state retrieval is reused if available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.get_states(self.run_params, self.env)
             self.backend.get.assert_called_once()
@@ -2016,14 +2016,14 @@ class StatesSetupTest(Test):
 
         # assert state retrieval is ignored if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.get_states(self.run_params, self.env)
             self.backend.get.assert_not_called()
 
         # assert state retrieval is ignored if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.get_states(self.run_params, self.env)
             self.backend.get.assert_not_called()
@@ -2035,7 +2035,7 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             with self.assertRaises(exceptions.TestError):
                 ss.get_states(self.run_params, self.env)
@@ -2043,13 +2043,13 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestError):
                 ss.get_states(self.run_params, self.env)
             self.backend.get.assert_not_called()
 
-    @mock.patch("avocado_i2n.states.setup.check_states")
+    @mock.patch("virttest.states.setup.check_states")
     def test_set(self, mock_show):
         """Test that state setting works with default policies."""
         self._set_up_generic_params("set", "state", "objects", "object1")
@@ -2094,7 +2094,7 @@ class StatesSetupTest(Test):
 
         # assert state saving is aborted if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             with self.assertRaises(exceptions.TestAbortError):
                 ss.set_states(self.run_params, self.env)
@@ -2102,7 +2102,7 @@ class StatesSetupTest(Test):
 
         # assert state saving is aborted if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestAbortError):
                 ss.set_states(self.run_params, self.env)
@@ -2115,7 +2115,7 @@ class StatesSetupTest(Test):
 
         # assert state saving is skipped if reusable state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.set_states(self.run_params, self.env)
             self.backend.set.assert_not_called()
@@ -2127,7 +2127,7 @@ class StatesSetupTest(Test):
 
         # assert state saving is forced if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.set_states(self.run_params, self.env)
             self.backend.unset.assert_called_once()
@@ -2135,7 +2135,7 @@ class StatesSetupTest(Test):
 
         # assert state saving is forced if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.set_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
@@ -2144,7 +2144,7 @@ class StatesSetupTest(Test):
         # assert state saving cannot be forced if state root is not available
         self.backend.reset_mock()
         self.backend.check_root.return_value = False
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestError):
                 ss.set_states(self.run_params, self.env)
@@ -2157,7 +2157,7 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             with self.assertRaises(exceptions.TestError):
                 ss.set_states(self.run_params, self.env)
@@ -2165,13 +2165,13 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestError):
                 ss.set_states(self.run_params, self.env)
             self.backend.set.assert_not_called()
 
-    @mock.patch("avocado_i2n.states.setup.check_states")
+    @mock.patch("virttest.states.setup.check_states")
     def test_unset(self, mock_show):
         """Test that state unsetting works with default policies."""
         self._set_up_generic_params("unset", "state", "objects", "object1")
@@ -2205,13 +2205,13 @@ class StatesSetupTest(Test):
 
         # assert state removal is skipped if reusable state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.unset_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
 
         # assert state removal is aborted if state is not available
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestAbortError):
                 ss.unset_states(self.run_params, self.env)
@@ -2224,14 +2224,14 @@ class StatesSetupTest(Test):
 
         # assert state removal is forced if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.unset_states(self.run_params, self.env)
             self.backend.unset.assert_called_once()
 
         # assert state removal is ignored if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.unset_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
@@ -2243,7 +2243,7 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             with self.assertRaises(exceptions.TestError):
                 ss.unset_states(self.run_params, self.env)
@@ -2251,7 +2251,7 @@ class StatesSetupTest(Test):
 
         # assert invalid policy x if state is not available
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             with self.assertRaises(exceptions.TestError):
                 ss.unset_states(self.run_params, self.env)
@@ -2263,7 +2263,7 @@ class StatesSetupTest(Test):
         self.run_params["push_mode"] = "ff"
 
         self.backend.reset_mock()
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.push_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
@@ -2272,14 +2272,14 @@ class StatesSetupTest(Test):
         # test push disabled for root/boot states
         self.backend.reset_mock()
         self._set_up_generic_params("push", "root", "objects", "object1")
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.push_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
             self.backend.set.assert_not_called()
         self.backend.reset_mock()
         self._set_up_generic_params("push", "boot", "objects", "object1")
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.push_states(self.run_params, self.env)
             self.backend.unset.assert_not_called()
@@ -2289,7 +2289,7 @@ class StatesSetupTest(Test):
         """Test that popping with a state backend works."""
         self._set_up_generic_params("pop", "state", "objects", "object1")
 
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=True)):
             ss.pop_states(self.run_params, self.env)
             self.backend.get.assert_called_once()
@@ -2298,14 +2298,14 @@ class StatesSetupTest(Test):
         # test pop disabled for root/boot states
         self.backend.reset_mock()
         self._set_up_generic_params("pop", "root", "objects", "object1")
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.pop_states(self.run_params, self.env)
             self.backend.get.assert_not_called()
             self.backend.unset.assert_not_called()
         self.backend.reset_mock()
         self._set_up_generic_params("pop", "root", "objects", "object1")
-        with mock.patch('avocado_i2n.states.setup.check_states',
+        with mock.patch('virttest.states.setup.check_states',
                         mock.MagicMock(return_value=False)):
             ss.pop_states(self.run_params, self.env)
             self.backend.get.assert_not_called()
