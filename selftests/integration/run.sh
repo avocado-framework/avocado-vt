@@ -3,7 +3,7 @@ set -eux
 
 readonly test_suite="${TEST_SUITE:-/root/avocado-i2n-libs/tp_folder}"
 readonly test_results="${TEST_RESULTS:-/root/avocado/job-results}"
-readonly i2n_config="${I2N_CONFIG:-/etc/avocado/conf.d/i2n.conf}"
+readonly i2n_config="${I2N_CONFIG:-/etc/avocado/conf.d/vt.conf}"
 
 # local environment preparation
 echo
@@ -32,8 +32,8 @@ slots = ['c101', 'c102', 'c103', 'c104', 'c105']
 EOF
 mkdir -p /etc/avocado/conf.d
 # TODO: use VT's approach to register the plugin config
-if [ ! -f /etc/avocado/conf.d/i2n.conf ]; then
-    ln -s ~/avocado-i2n-libs/avocado_i2n/conf.d/i2n.conf "${i2n_config}"
+if [ ! -f /etc/avocado/conf.d/vt.conf ]; then
+    ln -s ~/avocado-i2n-libs/avocado_i2n/conf.d/vt.conf "${i2n_config}"
 fi
 sed -i "s#suite_path = .*#suite_path = ${test_suite}#" "${i2n_config}"
 rm ${HOME}/avocado_overwrite_* -fr

@@ -64,7 +64,7 @@ _devel_tp_folder = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "tp_folder")
 )
 settings.register_option(
-    section="i2n.common",
+    section="vt.common",
     key="suite_path",
     key_type=str,
     default=_devel_tp_folder,
@@ -74,7 +74,7 @@ settings.register_option(
 
 def custom_configs_dir() -> str:
     """Get custom directory for all config files."""
-    suite_path = settings.as_dict().get("i2n.common.suite_path")
+    suite_path = settings.as_dict().get("vt.common.suite_path")
     return os.path.join(suite_path, "configs")
 
 
@@ -351,7 +351,7 @@ class Reparsable:
         parser = cartesian_config.Parser()
         hostname = os.environ.get("PREFIX", os.environ.get("HOSTNAME", "avocado"))
         parser.parse_string("hostname = %s\n" % hostname)
-        suite_path = settings.as_dict().get("i2n.common.suite_path")
+        suite_path = settings.as_dict().get("vt.common.suite_path")
         parser.parse_string("suite_path = %s\n" % suite_path)
         parser.parse_string(
             "test_pre_hook = %s\n"

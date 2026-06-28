@@ -57,7 +57,7 @@ class Manu(CLICmd):
         parser = super(Manu, self).configure(parser)
 
         settings.register_option(
-            section="i2n.manu",
+            section="vt.manu",
             key="params",
             key_type=list,
             default=[],
@@ -80,7 +80,7 @@ class Manu(CLICmd):
         os.environ["LANG"] = "en_US.UTF-8"
 
         config["run.suite_runner"] = "traverser"
-        config["params"] = config["i2n.manu.params"]
+        config["params"] = config["vt.manu.params"]
         try:
             cmd_parser.params_from_cmd(config)
         except (ValueError, param.EmptyCartesianProduct) as error:

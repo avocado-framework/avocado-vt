@@ -1,0 +1,46 @@
+NAME = "Pre-state hook"
+PARAMS = {}
+ACTION = "check"
+DOC = """
+Control for a pre-test-run environment localized state check.
+"""
+
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(module)-16.16s '
+                    'L%(lineno)-.4d %(levelname)-5.5s| %(message)s')
+logging.getLogger('avocado.test').setLevel(9)
+logging.getLogger('avocado.test').parent = logging.getLogger('')
+
+# custom imports
+from virttest.utils_params import Params
+from avocado_i2n.states import setup as ss
+from avocado_i2n.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
+
+logging.info("%s control file.", NAME)
+
+
+# MAIN PART
+
+logging.info(f"Adding default state backends")
+ss.BACKENDS = {"qcow2": qcow2.QCOW2Backend, "qcow2ext": qcow2.QCOW2ExtBackend,
+               "lvm": lvm.LVMBackend,
+               "lxc": lxc.LXCBackend, "btrfs": btrfs.BtrfsBackend,
+               "qcow2vt": qcow2.QCOW2VTBackend, "ramfile": ramfile.RamfileBackend,
+               "vmnet": vmnet.VMNetBackend}
+ramfile.RamfileBackend.image_state_backend = qcow2.QCOW2ExtBackend
+
+try:
+    if ACTION == "check":
+        assert ss.check_states(Params(PARAMS), env=None)
+    elif ACTION == "get":
+        ss.get_states(Params(PARAMS), env=None)
+    elif ACTION == "set":
+        ss.set_states(Params(PARAMS), env=None)
+    elif ACTION == "unset":
+        ss.unset_states(Params(PARAMS), env=None)
+finally:
+    for session in pool.TransferOps._session_cache.values():
+        session.close()
+
+
+logging.info("%s control file finished.", NAME)
