@@ -97,7 +97,7 @@ __all__ = [
 
 def load_addons_tools() -> None:
     """Load all custom manual steps defined in the test suite tools folder."""
-    suite_path = settings.as_dict().get("i2n.common.suite_path")
+    suite_path = settings.as_dict().get("vt.common.suite_path")
     tools_path = os.path.join(suite_path, "tools")
     sys.path.append(tools_path)
     # we have no other choice to avoid loading at intertest import
@@ -192,7 +192,7 @@ def unittest(config: dict[str, Any], tag: str = "") -> None:
     util_unittests = unittest.TestSuite()
     util_testrunner = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
 
-    root_path = settings.as_dict().get("i2n.common.suite_path")
+    root_path = settings.as_dict().get("vt.common.suite_path")
     subtests_filter = config["tests_params"].get("ut_filter", "*_unittest.py")
 
     subtests_path = os.path.join(root_path, "utils")
