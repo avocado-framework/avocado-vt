@@ -22,10 +22,9 @@ INTERFACE
 import os
 
 from avocado.core.output import LOG_UI, LOG_JOB as logging
-
-from avocado_i2n import params_parser as param
-from avocado_i2n.cartgraph import TestGraph
-from avocado_i2n.intertest_setup import with_cartesian_graph, update
+from virttest import params_parser as param
+from virttest.cartgraph import TestGraph
+from virttest.intertest_setup import with_cartesian_graph, update
 
 
 #: list of all available manual steps or simply semi-automation tools

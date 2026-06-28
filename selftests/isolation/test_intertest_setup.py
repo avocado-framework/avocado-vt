@@ -6,12 +6,12 @@ import contextlib
 import re
 
 from avocado import Test
+from avocado_vt.plugins.runner import TestRunner
 from virttest import utils_params
+from virttest import intertest_setup
 
 import unittest_importer
 from unittest_utils import DummyTestRun, DummyStateControl
-from avocado_i2n import intertest_setup
-from avocado_i2n.plugins.runner import TestRunner
 
 
 @contextlib.contextmanager
@@ -30,11 +30,11 @@ def new_job(config):
     yield job
 
 
-@mock.patch('avocado_i2n.intertest_setup.new_job', new_job)
-@mock.patch('avocado_i2n.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
-@mock.patch('avocado_i2n.cartgraph.node.door', DummyStateControl)
-@mock.patch('avocado_i2n.cartgraph.worker.TestWorker.start', mock.MagicMock())
-@mock.patch('avocado_i2n.plugins.runner.SpawnerDispatcher', mock.MagicMock())
+@mock.patch('virttest.intertest_setup.new_job', new_job)
+@mock.patch('virttest.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
+@mock.patch('virttest.cartgraph.node.door', DummyStateControl)
+@mock.patch('virttest.cartgraph.worker.TestWorker.start', mock.MagicMock())
+@mock.patch('avocado_vt.plugins.runner.SpawnerDispatcher', mock.MagicMock())
 @mock.patch.object(TestRunner, 'run_test_task', DummyTestRun.mock_run_test_task)
 class IntertestSetupTest(Test):
 
@@ -311,7 +311,7 @@ class IntertestSetupTest(Test):
         for vm_action in ["start", "stop"]:
             with self.subTest(f"Net {vm_action}"):
                 setup_func = getattr(intertest_setup, vm_action)
-                from avocado_i2n.cartgraph import TestWorker
+                from virttest.cartgraph import TestWorker
                 operation = mock.MagicMock()
                 with mock.patch.object(TestWorker, vm_action, operation):
                     setup_func(self.config, tag="0")

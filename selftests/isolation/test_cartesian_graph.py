@@ -7,13 +7,13 @@ import asyncio
 from avocado import Test, skip
 from avocado.core import exceptions
 from avocado.core.suite import TestSuite, resolutions_to_runnables
+from avocado_vt.plugins.loader import TestLoader
+from avocado_vt.plugins.runner import TestRunner
+from virttest import params_parser as param
+from virttest.cartgraph import *
 
 import unittest_importer
 from unittest_utils import DummyTestRun, DummyStateControl
-from avocado_i2n import params_parser as param
-from avocado_i2n.plugins.loader import TestLoader
-from avocado_i2n.plugins.runner import TestRunner
-from avocado_i2n.cartgraph import *
 
 
 class CartesianWorkerTest(Test):
@@ -1688,8 +1688,8 @@ class CartesianNodeTest(Test):
         TestSwarm.run_swarms["localhost"].workers += [worker3]
         self.assertTrue(flat_node.should_parse(worker3))
 
-    @mock.patch('avocado_i2n.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
-    @mock.patch('avocado_i2n.cartgraph.node.door', DummyStateControl)
+    @mock.patch('virttest.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
+    @mock.patch('virttest.cartgraph.node.door', DummyStateControl)
     def test_default_run_decision(self):
         """Test expectations on the default decision policy of whether to run or skip a test node."""
         self.config["tests_str"] += "only tutorial1\n"
@@ -1758,7 +1758,7 @@ class CartesianNodeTest(Test):
         test_node1.results = [{"name": "install.net2", "status": "PASS"}]
         self.assertTrue(test_node1.default_run_decision(worker1))
 
-    @mock.patch('avocado_i2n.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
+    @mock.patch('virttest.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
     def test_default_clean_decision(self):
         """Test expectations on the default decision policy of whether to clean or not a test node."""
         self.config["tests_str"] = "only leaves\n"
@@ -2020,7 +2020,7 @@ class CartesianNodeTest(Test):
         self.assertEqual(node.params[f"nets_host_{worker.id}"], worker.params[f"nets_host"])
 
         # an impossible situation with different worker ids must be validated against
-        with mock.patch('avocado_i2n.cartgraph.TestNode.shared_result_worker_ids', new_callable=mock.PropertyMock) as mock_ids:
+        with mock.patch('virttest.cartgraph.TestNode.shared_result_worker_ids', new_callable=mock.PropertyMock) as mock_ids:
             mock_ids.return_value = {"net2"}
             with self.assertRaises(RuntimeError):
                 node.pull_locations()
@@ -2100,9 +2100,9 @@ class CartesianNodeTest(Test):
             test_node.validate()
 
 
-@mock.patch('avocado_i2n.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
-@mock.patch('avocado_i2n.cartgraph.node.door', DummyStateControl)
-@mock.patch('avocado_i2n.plugins.runner.SpawnerDispatcher', mock.MagicMock())
+@mock.patch('virttest.cartgraph.worker.remote.wait_for_login', mock.MagicMock())
+@mock.patch('virttest.cartgraph.node.door', DummyStateControl)
+@mock.patch('avocado_vt.plugins.runner.SpawnerDispatcher', mock.MagicMock())
 @mock.patch.object(TestRunner, 'run_test_task', DummyTestRun.mock_run_test_task)
 class CartesianGraphTest(Test):
 
@@ -4185,10 +4185,10 @@ class CartesianGraphTest(Test):
         # expect a single cleanup call only for the states of enforcing cleanup policy
         self.assertEqual(DummyStateControl.asserted_states["unset"]["guisetup.noop"][self.shared_pool], 1)
 
-    @mock.patch('avocado_i2n.plugins.runner.StatusRepo')
-    @mock.patch('avocado_i2n.plugins.runner.StatusServer')
-    @mock.patch('avocado_i2n.plugins.runner.TestGraph')
-    @mock.patch('avocado_i2n.plugins.loader.TestGraph')
+    @mock.patch('avocado_vt.plugins.runner.StatusRepo')
+    @mock.patch('avocado_vt.plugins.runner.StatusServer')
+    @mock.patch('avocado_vt.plugins.runner.TestGraph')
+    @mock.patch('avocado_vt.plugins.loader.TestGraph')
     def test_loader_runner_entries(self, mock_load_graph, mock_run_graph,
                                    mock_status_server, _mock_status_repo):
         """Test that the default loader and runner entries work as expected."""

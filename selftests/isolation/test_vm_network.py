@@ -8,10 +8,10 @@ import re
 from avocado import Test
 from avocado.core import exceptions
 from virttest import utils_params
+from virttest import vmnet
+from virttest.vmnet import VMNetwork
 
 import unittest_importer
-from avocado_i2n import vmnet
-from avocado_i2n.vmnet import VMNetwork
 
 
 class VMNetworkTest(Test):
@@ -138,9 +138,9 @@ class VMNetworkTest(Test):
         self.vmnet.reattach_interface(client, server)
         self.vmnet.reattach_interface(client, server, proxy_nic="b1")
 
-    @mock.patch('avocado_i2n.vmnet.network.os.rename', mock.Mock(return_value=0))
-    @mock.patch('avocado_i2n.vmnet.network.process', mock.Mock())
-    @mock.patch('avocado_i2n.vmnet.network.utils_net')
+    @mock.patch('virttest.vmnet.network.os.rename', mock.Mock(return_value=0))
+    @mock.patch('virttest.vmnet.network.process', mock.Mock())
+    @mock.patch('virttest.vmnet.network.utils_net')
     def test_host_networking(self, utils_net):
         """Test host networking services like DHCP, DNS, firewall, and bridges."""
         self.run_params["ip_provider_b1_vm1"] = "10.1.0.254"

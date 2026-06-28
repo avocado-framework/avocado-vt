@@ -13,8 +13,8 @@ logging.getLogger('avocado.test').parent = logging.getLogger('')
 
 # custom imports
 from virttest.utils_params import Params
-from avocado_i2n.states import setup as ss
-from avocado_i2n.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
+from virttest.states import setup as ss
+from virttest.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
 
 logging.info("%s control file.", NAME)
 
