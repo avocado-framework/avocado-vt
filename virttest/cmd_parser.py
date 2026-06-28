@@ -64,7 +64,7 @@ def params_from_cmd(config: Params) -> None:
         some standards for doing this first. Until then, the user won't directly
         interact with these keys anyway.
     """
-    suite_path = settings.as_dict().get("i2n.common.suite_path", ".")
+    suite_path = settings.as_dict().get("vt.common.suite_path", ".")
     sys.path.insert(1, os.path.join(suite_path, "utils"))
 
     # validate typed vm names and possible vm specific restrictions

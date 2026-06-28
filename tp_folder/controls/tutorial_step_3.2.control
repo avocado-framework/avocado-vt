@@ -1,0 +1,107 @@
+NAME = __file__
+URI = ""
+DOC = """
+Control for Tutorial pt. 3 -- *Multi-VM example*
+
+This control file makes use of shared test parameters (in the form of
+a remote object) to return statuses and inform the host test back. It
+requires the same backends as the ones for a general remote object
+sharing by the remote door.
+"""
+
+import os
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(module)-16.16s '
+                    'L%(lineno)-.4d %(levelname)-5.5s| %(message)s')
+
+# custom imports
+from Pyro5.client import Proxy
+
+# deployed utilities
+sys.path.append("/tmp/utils")
+import sample_utility
+from avocado.utils import process
+
+logging.info("%s control file.", NAME)
+
+
+# HELPERS
+
+class ProxyParams(Proxy):
+    """
+    Serialized version of the test parameters that connects to
+    all remote methods and reimplements indexing (subscripting)
+    through a couple of hacks until we figure out a more natural
+    way.
+    """
+
+    def __getitem__(self, key):
+        if self.get(key) is None:
+            raise KeyError
+        else:
+            return self.get(key)
+
+    def __setitem__(self, key, item):
+        self.update({key: item})
+
+    def __delitem__(self, key):
+        raise NotImplementedError("The current methods for setting the serialized parameters "
+                                  "are pure hacks until we figure out something better")
+
+    def get_dict(self, key, default='', delimiter=None, need_order=False):
+        """
+        Proxy implementation to handle unserializable ordered dictionary
+        in case the `need_order` switch is on.
+
+        Parameters and implementation are equivalent to the remote ones.
+
+        .. todo:: We can provide proxy ordered dictionary in remote-code
+                  unaware way like above instead of duplicating code.
+        """
+        if need_order:
+            import collections
+            result = collections.OrderedDict()
+        else:
+            result = dict()
+        for entry in self.get_list(key, default, delimiter):
+            index = entry.find('=')
+            if index == -1:
+                raise ValueError('failed to find "=" in "{0}" (value for {1})'
+                                 .format(entry, key))
+            result[entry[:index]] = entry[index+1:]
+        return result
+
+
+def params_from_uri(uri):
+    """
+    Proxify the remote params from the guest control file's URI.
+
+    :param str uri: URI of the remote parameters
+    :returns: the remote parameters
+    :rtype: ProxyParams object
+    """
+    logging.info("Restore the test parameters object from the host")
+    params = ProxyParams(uri)
+    return params
+
+
+# MAIN PART
+
+params = params_from_uri(URI)
+failed_checks = 0
+
+own_name = params.get("server", "vm2")
+other_name = params.get("client", "vm1")
+logging.info("Identified own name '%s' and peer name '%s'", own_name, other_name)
+
+hostname = process.run("hostname", shell=True).stdout_text.rstrip()
+failed_checks += 1 if hostname != own_name else 0
+logging.debug("First check %s != %s with %s failed so far", hostname, own_name, failed_checks)
+failed_checks += 1 if hostname == other_name else 0
+logging.debug("Second check %s == %s with %s failed so far", hostname, other_name, failed_checks)
+
+params["failed_checks"] = failed_checks
+
+
+logging.info("%s control file finished.", NAME)

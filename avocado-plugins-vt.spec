@@ -100,6 +100,7 @@ Xunit output, among others.
 %{python3_sitelib}/avocado_framework_plugin_vt*
 %{python3_sitelib}/virttest*
 %{_bindir}/avocado-runner-avocado-vt
+%{_datadir}/avocado-plugins-vt/tp_folder/*
 
 
 %changelog
