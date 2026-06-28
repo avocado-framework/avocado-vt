@@ -1,0 +1,11 @@
+$ORIGIN #ZONENAME#.
+
+$TTL 3D
+
+@	SOA     #ZONENAME#.     root.#ZONENAME#. (12 4h 1h 1w 1h)
+
+@	IN	NS	#ZONENAME#.
+
+#ZONENAME#.     IN	 A	 #ZONEIP#
+
+www                                     IN	A	#ZONEIP#
