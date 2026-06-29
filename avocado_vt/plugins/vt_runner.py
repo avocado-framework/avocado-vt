@@ -112,6 +112,17 @@ class VirtTest(test.VirtTest):
                 self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
+# Wrapper function to run vt_test
+def run_vt_test(queue, runnable):
+    try:
+        vt_test = VirtTest(queue, runnable)
+    except Exception:  # pylint: disable=broad-exception-caught
+        queue.put(messages.StderrMessage.get(traceback.format_exc()))
+        queue.put(messages.FinishedMessage.get("error"))
+        return
+    vt_test.runTest()
+
+
 class VTTestRunner(BaseRunner):
     """
     Runner for Avocado-VT (aka VirtTest) tests
@@ -150,13 +161,15 @@ class VTTestRunner(BaseRunner):
             != 1
         ):
             yield messages.FinishedMessage.get(
-                "cancel", fail_reason="parallel run is not" " allowed for vt tests"
+                "cancel", fail_reason="parallel run is not allowed for vt tests"
             )
         else:
             try:
                 queue = multiprocessing.SimpleQueue()
-                vt_test = VirtTest(queue, self.runnable)
-                process = multiprocessing.Process(target=vt_test.runTest)
+                # Use wrapper function instead of bound method to run vt test
+                process = multiprocessing.Process(
+                    target=run_vt_test, args=(queue, self.runnable)
+                )
                 process.start()
                 while True:
                     time.sleep(RUNNER_RUN_CHECK_INTERVAL)
