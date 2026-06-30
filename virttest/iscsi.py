@@ -727,7 +727,7 @@ class IscsiLIO(_IscsiComm):
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
             portal_info = process.run(check_portal).stdout_text
             # Check for both IPv4 (0.0.0.0:3260) and IPv6 ([::]:3260 or [::0]:3260) default portals
-            if "0.0.0.0:3260" not in portal_info and "[::]:3260" not in portal_info and "[::0]:3260" not in portal_info:
+            if not any(portal in portal_info for portal in ("0.0.0.0:3260", "[::]:3260", "[::0]:3260")):
                 # Create portal
                 # 0.0.0.0 means binding to INADDR_ANY (IPv4)
                 # [::] or [::0] means binding to in6addr_any (IPv6)
