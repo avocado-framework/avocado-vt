@@ -4393,7 +4393,7 @@ class VM(virt_vm.BaseVM):
         else:
             vcpus_info = self.monitor.info("cpus", debug=debug).splitlines()
             vcpu_pids = [
-                int(vcpu_info.split("thread_id=")[1]) for vcpu_info in vcpus_info
+                int(re.search(r'thread_id=\s*(\d+)', vcpu_info).group(1)) for vcpu_info in vcpus_info
             ]
 
         return vcpu_pids
@@ -5715,7 +5715,7 @@ class VM(virt_vm.BaseVM):
             if not utils_misc.wait_for(
                 # no monitor.migrate-status method
                 lambda: re.search(
-                    "(status.*completed)", str(self.monitor.info("migrate")), re.M
+                    "([Ss]tatus.*completed)", str(self.monitor.info("migrate")), re.M
                 ),
                 self.MIGRATE_TIMEOUT,
                 2,
