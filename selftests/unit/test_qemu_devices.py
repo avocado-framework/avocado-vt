@@ -21,7 +21,6 @@ import six
 from avocado.utils.process import CmdResult
 from six.moves import xrange
 
-from avocado import Test
 from virttest import qemu_monitor
 from virttest.qemu_devices import qcontainer, qdevices
 from virttest.unittest_utils import mock
@@ -68,7 +67,7 @@ class MockHMPMonitor(qemu_monitor.HumanMonitor):
         pass
 
 
-class Devices(Test):
+class Devices(unittest.TestCase):
     """set of qemu devices tests"""
 
     def test_q_base_device(self):
@@ -150,7 +149,7 @@ class Devices(Test):
         self.assertEqual(out, exp, "QMP command corrupted:\n%s\n%s" % (out, exp))
 
 
-class Buses(Test):
+class Buses(unittest.TestCase):
     """Set of bus-representation tests"""
 
     def test_q_sparse_bus(self):
@@ -669,7 +668,7 @@ Slots:
         self.assertEqual("usb1.0(uhci): {1:a'usb-kbd',2:a'usb-kbd'}", hub3.str_short())
 
 
-class Container(Test):
+class Container(unittest.TestCase):
     """Tests related to the abstract representation of qemu machine"""
 
     def setUp(self):

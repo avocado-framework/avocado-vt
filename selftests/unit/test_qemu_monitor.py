@@ -11,7 +11,6 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 
 import six
 
-from avocado import Test
 from virttest import qemu_monitor
 
 
@@ -25,7 +24,7 @@ class MockMonitor(qemu_monitor.Monitor):
         pass
 
 
-class InfoNumaTests(Test):
+class InfoNumaTests(unittest.TestCase):
     def testZeroNodes(self):
         d = "0 nodes\n"
         r = qemu_monitor.Monitor.parse_info_numa(d)
@@ -43,7 +42,7 @@ class InfoNumaTests(Test):
         self.assertEqual(r, [(12, set([0, 2, 4])), (34, set([1, 3, 5]))])
 
 
-class InfoBlocks(Test):
+class InfoBlocks(unittest.TestCase):
     def testParseBlocks(self):
         info_1_4 = """ide0-hd0: removable=0 io-status=ok file=c.qcow2 backing_file=b.qcow2 backing_file_depth=2 ro=0 drv=qcow2 encrypted=0 bps=0 bps_rd=0 bps_wr=0 iops=0 iops_rd=0 iops_wr=0
 scsi0-hd0: removable=0 io-status=ok file=a.qcow ro=1 drv=raw encrypted=0 bps=0 bps_rd=0 bps_wr=0 iops=0 iops_rd=0 iops_wr=0

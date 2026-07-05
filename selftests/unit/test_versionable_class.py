@@ -14,7 +14,6 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from avocado import Test
 from virttest.unittest_utils import mock
 from virttest.versionable_class import Manager, VersionableClass, factory
 
@@ -267,7 +266,7 @@ class AA(Sys_Container, BB, System_Container):
         return super(man[cls, AA], cls).__new__(cls, *args, **kargs)
 
 
-class TestVersionableClass(Test):
+class TestVersionableClass(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.version = 1

@@ -8,7 +8,6 @@ from copy import deepcopy
 from string import ascii_lowercase as ascii_lc
 from time import sleep
 
-from avocado import Test
 from virttest import _wrappers
 
 
@@ -112,7 +111,7 @@ class baseImportTests(ABC):
         self.assertEqual(pre_sys_path, sys.path)
 
 
-class ImportModuleTest(baseImportTests, Test):
+class ImportModuleTest(baseImportTests, unittest.TestCase):
     def _check_import(self, name, value, path=""):
         """Wraps the import checking workflow used in some tests"""
         module = _wrappers.import_module(name, path)
@@ -180,7 +179,7 @@ class ImportModuleTest(baseImportTests, Test):
             check(res.result(), mod_data)
 
 
-class LoadSourceTest(baseImportTests, Test):
+class LoadSourceTest(baseImportTests, unittest.TestCase):
     def _check_import(self, name, value, path=""):
         path = os.path.join(path, f"{name}.py")
         module = _wrappers.load_source(name, path)

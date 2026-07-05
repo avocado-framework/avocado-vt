@@ -7,8 +7,6 @@ import sys
 import unittest
 
 import six
-
-from avocado import Test
 from avocado.utils import process
 
 try:
@@ -57,7 +55,7 @@ toggle='no'/></features></guest></capabilities>"""
 CAPABILITIES = _CAPABILITIES % UUID
 
 
-class LibvirtXMLTestBase(Test):
+class LibvirtXMLTestBase(unittest.TestCase):
 
     # Override instance methods needed for testing
 

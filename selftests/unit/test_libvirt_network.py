@@ -7,7 +7,6 @@ import os
 import sys
 import unittest
 
-from avocado import Test
 from avocado.utils.process import CmdResult
 
 # simple magic for using scripts within a source tree
@@ -31,7 +30,7 @@ global _net_state
 _net_state = {"active": False, "autostart": False, "persistent": False}
 
 
-class NetworkTestBase(Test):
+class NetworkTestBase(unittest.TestCase):
     """
     Base class for NetworkXML test providing fake virsh commands.
     """

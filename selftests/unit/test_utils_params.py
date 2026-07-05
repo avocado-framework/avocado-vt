@@ -10,7 +10,6 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from avocado import Test
 from virttest import utils_params
 
 BASE_DICT = {
@@ -70,7 +69,7 @@ CORRECT_RESULT_MAPPING = {
 }
 
 
-class TestParams(Test):
+class TestParams(unittest.TestCase):
     def setUp(self):
         self.params = utils_params.Params(BASE_DICT)
 

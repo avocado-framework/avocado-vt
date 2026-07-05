@@ -18,7 +18,6 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from avocado import Test
 from virttest import utils_config
 
 # Test conf file content
@@ -42,7 +41,7 @@ f = test
 """
 
 
-class SectionlessConfigTest(Test):
+class SectionlessConfigTest(unittest.TestCase):
     def test_accessers(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name
@@ -271,7 +270,7 @@ class SectionlessConfigTest(Test):
             os.remove(config_path)
 
 
-class LibvirtConfigCommonTest(Test):
+class LibvirtConfigCommonTest(unittest.TestCase):
     class UnimplementedConfig(utils_config.LibvirtConfigCommon):
         pass
 
@@ -367,7 +366,7 @@ class LibvirtConfigCommonTest(Test):
             os.remove("/tmp/config_unittest.conf")
 
 
-class LibvirtConfigTest(Test):
+class LibvirtConfigTest(unittest.TestCase):
     def test_accessers(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name

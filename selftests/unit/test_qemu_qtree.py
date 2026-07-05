@@ -19,7 +19,6 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 import six
 from six.moves import xrange
 
-from avocado import Test
 from virttest import qemu_qtree
 from virttest.unittest_utils import mock
 
@@ -190,7 +189,7 @@ params = ParamsDict(
 )
 
 
-class QtreeContainerTest(Test):
+class QtreeContainerTest(unittest.TestCase):
     """QtreeContainer tests"""
 
     def test_qtree(self):
@@ -257,7 +256,7 @@ class QtreeContainerTest(Test):
         self.assertRaises(ValueError, qtree.parse_info_qtree, info)
 
 
-class QtreeDiskContainerTest(Test):
+class QtreeDiskContainerTest(unittest.TestCase):
     """QtreeDiskContainer tests"""
 
     def setUp(self):
@@ -327,7 +326,7 @@ Host: scsi1 Channel: 00 Id: 00 Lun: 00
         self.assertEqual(disks.check_guests_proc_scsi(_guest_proc_scsi), (0, 1, 1, 0))
 
 
-class KvmQtreeClassTest(Test):
+class KvmQtreeClassTest(unittest.TestCase):
     """Additional tests for qemu_qtree classes"""
 
     def test_qtree_bus_bus(self):

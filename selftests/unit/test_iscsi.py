@@ -3,7 +3,6 @@ import os
 import sys
 import unittest
 
-from avocado import Test
 from avocado.utils import path, process
 from avocado.utils.process import CmdResult
 
@@ -16,7 +15,7 @@ from virttest import iscsi, utils_package, utils_selinux
 from virttest.unittest_utils import mock
 
 
-class iscsi_test(Test):
+class iscsi_test(unittest.TestCase):
     def setup_stubs_init(self):
         pass
 
