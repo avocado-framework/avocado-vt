@@ -9,11 +9,10 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from avocado import Test
 from virttest import propcan
 
 
-class TestPropCanBase(Test):
+class TestPropCanBase(unittest.TestCase):
     def test_empty_init(self):
         self.assertRaises(NotImplementedError, propcan.PropCanBase)
 
@@ -198,7 +197,7 @@ class TestPropCanBase(Test):
         self.assertEqual(testdict, kwargs)
 
 
-class TestPropCan(Test):
+class TestPropCan(unittest.TestCase):
     def setUp(self):
         logging.disable(logging.INFO)
 

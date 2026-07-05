@@ -8,7 +8,6 @@ if sys.version_info[:2] == (2, 6):
 else:
     import unittest
 
-from avocado import Test
 from virttest import cartesian_config
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,7 +15,7 @@ RHELDIR = os.path.join(BASEDIR, "shared", "cfg", "guest-os", "Linux", "RHEL")
 UNATTENDEDDIR = os.path.join(BASEDIR, "shared", "unattended")
 
 
-class CartesianCfgLint(Test):
+class CartesianCfgLint(unittest.TestCase):
     @staticmethod
     def get_cfg_as_dict(path, drop_only=True, drop_conditional_assigment=True):
         """

@@ -3,7 +3,6 @@ import os
 import sys
 import unittest
 
-from avocado import Test
 from avocado.utils.process import CmdResult
 
 # simple magic for using scripts within a source tree
@@ -27,7 +26,7 @@ global _pools_output
 _pools_output = _DEFAULT_POOL
 
 
-class PoolTestBase(Test):
+class PoolTestBase(unittest.TestCase):
     @staticmethod
     def _pool_list(option="--all", **dargs):
         # Bogus output of virsh commands
