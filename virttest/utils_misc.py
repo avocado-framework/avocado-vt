@@ -671,7 +671,7 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
     :return: interface name associated with the pci id
     """
     if not nic_regex:
-        nic_regex = "\w+(?=: flags)|\w+(?=\s*Link)"
+        nic_regex = r"\w+(?=: flags)|\w+(?=\s*Link)"
     cmd = "ifconfig -a"
     status, output = cmd_status_output(cmd, shell=True, session=session)
     if status != 0:
@@ -1174,8 +1174,8 @@ def strip_console_codes(output, custom_codes=None):
     return_str = ""
     index = 0
     output = "\x1b[m%s" % output
-    console_codes = "%[G@8]|\[[@A-HJ-MPXa-hl-nqrsu\`]"
-    console_codes += "|\[[\d;]+[HJKgqnrm]|#8|\([B0UK]|\)|\[\d+S"
+    console_codes = r"%[G@8]|\[[@A-HJ-MPXa-hl-nqrsu\`]"
+    console_codes += r"|\[[\d;]+[HJKgqnrm]|#8|\([B0UK]|\)|\[\d+S"
     if custom_codes is not None and custom_codes not in console_codes:
         console_codes += "|%s" % custom_codes
     while index < len(output):
@@ -1536,7 +1536,7 @@ class NumaInfo(object):
         else:
             all_nodes = all_nodes_path
         numa_sys = kernel_interface.SysFS(
-            all_nodes, session=self.session, regex="\d+%s"
+            all_nodes, session=self.session, regex=r"\d+%s"
         )
         return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
@@ -1552,7 +1552,7 @@ class NumaInfo(object):
         else:
             online_nodes = online_nodes_path
         numa_sys = kernel_interface.SysFS(
-            online_nodes, session=self.session, regex="\d+%s"
+            online_nodes, session=self.session, regex=r"\d+%s"
         )
         return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
@@ -1581,7 +1581,7 @@ class NumaInfo(object):
                 LOG.error("Can not get distance information for" " node %s" % node_id)
                 return []
             numa_sys = kernel_interface.SysFS(
-                distance_path, session=self.session, regex="\d+%s"
+                distance_path, session=self.session, regex=r"\d+%s"
             )
             node_distance = str(numa_sys.sys_fs_value)
 
@@ -1631,7 +1631,7 @@ class NumaInfo(object):
         for node in self.get_online_nodes():
             numa_sys = kernel_interface.SysFS(cpulist_file % node, session=self.session)
             node_cpus = ""
-            convert_list = re.findall("(\d+-\d+|\d+)", str(numa_sys.sys_fs_value))
+            convert_list = re.findall(r"(\d+-\d+|\d+)", str(numa_sys.sys_fs_value))
             for cstr in convert_list:
                 start = min(int(cstr.split("-")[0]), int(cstr.split("-")[-1]))
                 end = max(int(cstr.split("-")[0]), int(cstr.split("-")[-1]))
@@ -1648,7 +1648,7 @@ class NumaInfo(object):
         online_nodes_mem = get_path(self.numa_sys_path, "has_normal_memory")
         if check_isfile(online_nodes_mem, session=self.session):
             numa_sys = kernel_interface.SysFS(
-                online_nodes_mem, session=self.session, regex="\d+%s"
+                online_nodes_mem, session=self.session, regex=r"\d+%s"
             )
             nodes_info = str(numa_sys.sys_fs_value)
         else:
@@ -1666,7 +1666,7 @@ class NumaInfo(object):
         online_nodes_cpu = get_path(self.numa_sys_path, "has_cpu")
         if check_isfile(online_nodes_cpu, session=self.session):
             numa_sys = kernel_interface.SysFS(
-                online_nodes_cpu, session=self.session, regex="\d+%s"
+                online_nodes_cpu, session=self.session, regex=r"\d+%s"
             )
             nodes_info = str(numa_sys.sys_fs_value)
         else:
@@ -1732,7 +1732,7 @@ class NumaNode(object):
             cpulist_path = "/sys/devices/system/node/node%s/cpulist" % i
             try:
                 numa_sys = kernel_interface.SysFS(
-                    cpulist_path, session=self.session, regex="\d+%s"
+                    cpulist_path, session=self.session, regex=r"\d+%s"
                 )
                 cpus = str(numa_sys.sys_fs_value)
             except Exception as info:
@@ -1748,7 +1748,7 @@ class NumaNode(object):
                 # separated by blank. There number of '-' in the list depends
                 # on the physical architecture of the hardware.
                 try:
-                    convert_list = re.findall("\d+-\d+", cpus)
+                    convert_list = re.findall(r"\d+-\d+", cpus)
                     for cstr in convert_list:
                         _ = " "
                         start = min(int(cstr.split("-")[0]), int(cstr.split("-")[1]))
@@ -1786,7 +1786,7 @@ class NumaNode(object):
             try:
                 key_path = eval(key + "_path")
                 numa_sys = kernel_interface.SysFS(
-                    key_path, session=self.session, regex="-?\d+%s"
+                    key_path, session=self.session, regex=r"-?\d+%s"
                 )
                 key_val = str(numa_sys.sys_fs_value).rstrip("\n")
                 cpu_topo[key] = key_val
@@ -2378,7 +2378,7 @@ def get_free_mem(session, os_type):
         free = "%s kB" % get_mem_info(session, "MemFree")
     else:
         output = session.cmd_output("wmic OS get FreePhysicalMemory")
-        free = "%sK" % re.findall("\d+", output)[0]
+        free = "%sK" % re.findall(r"\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
 
@@ -2396,7 +2396,7 @@ def get_cache_mem(session, os_type):
         cmd_get_cache = 'powershell -command "get-ciminstance -classname'
         cmd_get_cache += ' win32_perfrawdata_perfos_memory |select CacheBytes"'
         output = session.cmd_output(cmd_get_cache)
-        cache = re.findall("\d+", output)[0]
+        cache = re.findall(r"\d+", output)[0]
     else:
         cache = get_mem_info(session, "Cached") + get_mem_info(session, "Buffers")
         cache = "%s kB" % cache
@@ -2853,7 +2853,7 @@ def get_image_snapshot(image_file):
         snap_info = process.run(cmd, ignore_status=False).stdout_text.strip()
         snap_list = []
         if snap_info:
-            pattern = "(\d+) +[0-9a-zA-Z]+ +.*"
+            pattern = r"(\d+) +[0-9a-zA-Z]+ +.*"
             for line in snap_info.splitlines():
                 snap_list.extend(re.findall(r"%s" % pattern, line))
         return snap_list
@@ -3104,7 +3104,7 @@ class KSMController(object):
             "ps -C ksmtuned -o pid=", ignore_status=True
         ).stdout_text
         if process_id:
-            return int(re.findall("\d+", process_id)[0])
+            return int(re.findall(r"\d+", process_id)[0])
         return 0
 
     def start_ksmtuned(self):
@@ -3159,7 +3159,7 @@ class KSMController(object):
         else:
             output = process.run("ksmctl info").stdout_text
             try:
-                running = re.findall("\d+", output)[0]
+                running = re.findall(r"\d+", output)[0]
             except IndexError:
                 raise KSMError
         if running != "0":
@@ -3224,7 +3224,7 @@ class KSMController(object):
         else:
             output = process.run("ksmctl info").stdout_text
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
-            ksminfos = re.findall("\d+", output)
+            ksminfos = re.findall(r"\d+", output)
             if len(ksminfos) != 3:
                 raise KSMError
             try:
@@ -3542,7 +3542,7 @@ def get_pci_vendor_device(pci_id, session=None):
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
-            vd = re.match("\w\w\w\w:\w\w\w\w", string)
+            vd = re.match(r"\w\w\w\w:\w\w\w\w", string)
             if vd is not None:
                 pci_vd.append(vd.group(0))
                 break

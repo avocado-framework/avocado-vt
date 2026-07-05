@@ -336,7 +336,7 @@ def preprocess_vm(test, params, env, name):
             if disable_pci_msi == "yes":
                 if "pci=" in kernel_extra_params_add:
                     kernel_extra_params_add = re.sub(
-                        "pci=.*?\s+", "pci=nomsi ", kernel_extra_params_add
+                        r"pci=.*?\s+", "pci=nomsi ", kernel_extra_params_add
                     )
                 else:
                     kernel_extra_params_add += " pci=nomsi"
@@ -1415,7 +1415,7 @@ def postprocess(test, params, env):
         _screendump_thread = None
 
     # Encode an HTML 5 compatible video from the screenshots produced
-    dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
+    dir_rex = r"(screendump\S*_[0-9]+_iter%s)" % test.iteration
     for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
         screendump_dir = os.path.join(test.debugdir, screendump_dir)
         if params.get("encode_video_files", "yes") == "yes" and glob.glob(

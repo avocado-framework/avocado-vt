@@ -42,13 +42,13 @@ COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
 
 
 def normalize_data_size(size):
-    if re.match(".*\d$", str(size)):
+    if re.match(r".*\d$", str(size)):
         size = "%s%s" % (size, UNIT)
     size = float(utils_misc.normalize_data_size(size, UNIT, 1024))
     return int(math.ceil(size))
 
 
-def cmd_output(cmd, res="[\w/]+"):
+def cmd_output(cmd, res=r"[\w/]+"):
     result = process.run(cmd, ignore_status=True)
     if result.exit_status != 0:
         LOG.warning(result)
@@ -67,7 +67,7 @@ class Volume(object):
         self.path = name
         self.size = normalize_data_size(size)
 
-    def get_attr(self, cmd, attr, res="[\w/]+"):
+    def get_attr(self, cmd, attr, res=r"[\w/]+"):
         """
         Get attribute of volume, if not found return None;
 
@@ -397,7 +397,7 @@ class LVM(object):
             params["vg_name"] = vg_name
         if lv_name.startswith("/dev"):
             if "mapper" not in lv_name:
-                match = re.search("/dev/([\w_]+)/([\w_]+)", lv_name)
+                match = re.search(r"/dev/([\w_]+)/([\w_]+)", lv_name)
                 vg_name, lv_name = [x[1:] for x in match.groups()]
                 params["lv_name"] = lv_name
                 params["vg_name"] = vg_name
@@ -660,7 +660,7 @@ class EmulatedLVM(LVM):
         cmd = "losetup -j %s" % emulate_image_file
         output = process.run(cmd).stdout_text
         try:
-            pv_name = re.findall("(/dev/loop\d+)", output, re.M | re.I)[-1]
+            pv_name = re.findall(r"(/dev/loop\d+)", output, re.M | re.I)[-1]
             pv = self.get_vol(pv_name, "pvs")
         except IndexError:
             pv = None
@@ -704,7 +704,7 @@ class EmulatedLVM(LVM):
             emulate_image_file = self.get_emulate_image_name()
             cmd = "losetup -j %s" % emulate_image_file
             output = process.run(cmd).stdout_text
-            devices = re.findall("(/dev/loop\d+)", output, re.M | re.I)
+            devices = re.findall(r"(/dev/loop\d+)", output, re.M | re.I)
             for dev in devices:
                 cmd = "losetup -d %s" % dev
                 LOG.info("disconnect %s", dev)

@@ -1181,7 +1181,7 @@ class BaseVM(object):
             username = self.params.get("username", "")
         if not password:
             password = self.params.get("password", "")
-        prompt = "^\s*#"
+        prompt = r"^\s*#"
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
         address = self.get_address(nic_index)
@@ -1574,7 +1574,7 @@ class BaseVM(object):
         out = self.session.cmd_output_safe(cmd)
         # Removing the escape sequence from the output
         out_no_escape = astring.strip_console_codes(out)
-        return int(re.search("\d+", out_no_escape, re.M).group())
+        return int(re.search(r"\d+", out_no_escape, re.M).group())
 
     def get_memory_size(self, cmd=None, timeout=60):
         """

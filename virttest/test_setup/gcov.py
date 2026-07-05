@@ -202,7 +202,7 @@ class ResetGCov(Setuper):
                 # (libvirt/qemu process may need write access)
                 reset_cmd = "make clean-coverage;%s -version;" % qemu_bin
                 reset_cmd += (
-                    'find %s -name "*.gcda" -exec chmod a=rwx {} \;' % qemu_builddir
+                    r'find %s -name "*.gcda" -exec chmod a=rwx {} \;' % qemu_builddir
                 )
                 try:
                     a_process.system(reset_cmd, shell=True)
