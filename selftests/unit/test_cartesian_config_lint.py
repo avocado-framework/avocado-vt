@@ -34,10 +34,10 @@ class CartesianCfgLint(unittest.TestCase):
         """
         lines = open(path).readlines()
         if drop_only:
-            lines = [l for l in lines if not re.match("^\s*only\s+", l)]
+            lines = [l for l in lines if not re.match(r"^\s*only\s+", l)]
         if drop_conditional_assigment:
             lines = [
-                l for l in lines if not re.match("^\s*[a-zA-Z0-9_]+([\s,])?.*\:$", l)
+                l for l in lines if not re.match(r"^\s*[a-zA-Z0-9_]+([\s,])?.*\:$", l)
             ]
         lines.insert(0, "variants:")
         content = "\n".join(lines)

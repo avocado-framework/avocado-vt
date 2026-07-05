@@ -187,7 +187,7 @@ class LibvirtXMLTestBase(unittest.TestCase):
             raise ValueError(
                 "Dummy virsh for testing does not support to_file" " parameter"
             )
-        if name is not "pci_0000_00_00_0":
+        if name != "pci_0000_00_00_0":
             raise ValueError(
                 "Dummy virsh for testing only support " " device name pci_0000_00_00_0"
             )
@@ -974,7 +974,7 @@ class testDiskXML(LibvirtXMLTestBase):
     def test_vm_get(self):
         vmxml = vm_xml.VMXML.new_from_dumpxml("foobar", virsh_instance=self.dummy_virsh)
         for device in vmxml.devices:
-            if device.device_tag is "disk":
+            if device.device_tag == "disk":
                 self._check_disk(device)
             else:
                 continue

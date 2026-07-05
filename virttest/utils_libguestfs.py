@@ -272,7 +272,7 @@ class GuestfishSession(aexpect.ShellSession):
     """
 
     # Check output against list of known error-status strings
-    ERROR_REGEX_LIST = ["libguestfs: error:\s*"]
+    ERROR_REGEX_LIST = [r"libguestfs: error:\s*"]
 
     def __init__(self, guestfs_exec=None, a_id=None, prompt=r"><fs>\s*"):
         """
@@ -333,7 +333,7 @@ class GuestfishRemote(object):
     """
 
     # Check output against list of known error-status strings
-    ERROR_REGEX_LIST = ["libguestfs: error:\s*"]
+    ERROR_REGEX_LIST = [r"libguestfs: error:\s*"]
 
     def __init__(self, guestfs_exec=None, a_id=None):
         """
@@ -349,7 +349,7 @@ class GuestfishRemote(object):
                 )
             except process.CmdError as detail:
                 raise LibguestfsCmdError(detail)
-            self.a_id = re.search(b"\d+", ret.stdout.strip()).group()
+            self.a_id = re.search(rb"\d+", ret.stdout.strip()).group()
         else:
             self.a_id = a_id
 
@@ -3888,7 +3888,7 @@ class GuestfishPersistent(Guestfish):
         """
         aug-ls - list Augeas nodes under augpath
 
-        This is just a shortcut for listing "aug_match" "path/\*" and sorting the resulting nodes
+        This is just a shortcut for listing "aug_match" "path/\\*" and sorting the resulting nodes
         into alphabetical order.
         """
         return self.inner_cmd("aug-ls %s" % augpath)

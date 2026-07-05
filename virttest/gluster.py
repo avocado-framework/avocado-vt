@@ -472,7 +472,7 @@ def add_rpc_insecure(filepath):
     if not match:
         LOG.info("not match")
         cmd = (
-            "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s"
+            r"sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s"
             % filepath
         )
         process.system(cmd, shell=True)

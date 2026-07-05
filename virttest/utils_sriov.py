@@ -220,7 +220,7 @@ def get_vf_mac(ethname, vf_idx=0, session=None, is_admin=True):
         pf_pci = get_pci_from_iface(ethname, session)
         vf_pci = get_vf_pci_id(pf_pci, vf_index=vf_idx, session=session)
         vf_iface = get_iface_name(vf_pci, session=session)
-        cmd = "ip link show %s |awk '/link\/ether/ {print $2}'" % vf_iface
+        cmd = r"ip link show %s |awk '/link\/ether/ {print $2}'" % vf_iface
 
     status, vf_mac = utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, session=session

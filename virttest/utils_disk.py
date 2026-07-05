@@ -257,7 +257,7 @@ def get_windows_disks_index(session, image_size, timeout=60):
         disk_size = str(int(image_size[:-1]) * 1024) + " MB"
     else:
         disk_size = image_size[:-1] + " GB"
-    regex_str = "Disk (\d+).*?%s.*?%s" % (disk_size, disk_size)
+    regex_str = r"Disk (\d+).*?%s.*?%s" % (disk_size, disk_size)
     for disk in disks.splitlines():
         if disk.startswith("  Disk"):
             o = re.findall(regex_str, disk, re.I | re.M)
@@ -540,7 +540,7 @@ def clean_partition_linux(session, did, timeout=360):
     list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
     output = session.cmd_output(list_disk_cmd)
     output = output.splitlines()
-    regex_str = did + "\w*(\d+)"
+    regex_str = did + r"\w*(\d+)"
     rm_cmd = 'parted -s "/dev/%s" rm %s'
     for line in output:
         partition = re.findall(regex_str, line, re.I | re.M)
@@ -694,7 +694,7 @@ def get_scsi_info(device_source):
     """
     cmd = "lsscsi | grep %s | awk '{print $1}'" % device_source
     cmd_result = process.run(cmd, shell=True)
-    scsi_info = re.findall("\d+", str(cmd_result.stdout.strip()))
+    scsi_info = re.findall(r"\d+", str(cmd_result.stdout.strip()))
     if len(scsi_info) != 4:
         raise exceptions.TestError("Got wrong scsi info: %s" % scsi_info)
     return ":".join(scsi_info)
@@ -924,7 +924,7 @@ def set_drive_letter(session, did, partition_no=1, target_letter=None):
     detail_cmd = _wrap_windows_cmd(detail_cmd)
     details = session.cmd_output(detail_cmd % did)
     for line in details.splitlines():
-        pattern = "\s+Volume\s+\d+"
+        pattern = r"\s+Volume\s+\d+"
         if re.search(pattern, line, re.I | re.M):
             drive_letter = line.split()[2]
             break

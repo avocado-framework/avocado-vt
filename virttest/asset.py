@@ -154,7 +154,7 @@ class ConfigLoader:
         """
         octet1 = "([1-9][0-9]{,1}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
         octet = "([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
-        pattern = "^" + octet1 + "\.(" + octet + "\.){2}" + octet + "$"
+        pattern = "^" + octet1 + r"\.(" + octet + r"\.){2}" + octet + "$"
         if re.match(pattern, parameter) is None:
             return False
         else:

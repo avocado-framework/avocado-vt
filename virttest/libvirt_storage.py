@@ -455,7 +455,7 @@ class PoolVolume(object):
         for line in lines:
             # Path may be not standard unix path
             try:
-                path = re.findall("\s+\S*/.*", line)[0]
+                path = re.findall(r"\s+\S*/.*", line)[0]
             except IndexError:
                 # Do not find a path
                 path = ""

@@ -83,7 +83,7 @@ class Node(object):
         self._password = self._config.get("password", "root")
         self._username = self._config.get("username", "root")
         self._shell_port = self._config.get("shell_port", "22")
-        self._shell_prompt = self._config.get("shell_prompt", "^\[.*\][\#\$]\s*$")
+        self._shell_prompt = self._config.get("shell_prompt", r"^\[.*\][\#\$]\s*$")
 
         self._proxy_port = self._config.get("proxy_port", "9999")
         self._uri = "http://%s:%s/" % (self._host, self._proxy_port)

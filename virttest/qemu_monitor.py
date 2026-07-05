@@ -1321,17 +1321,17 @@ class HumanMonitor(Monitor):
         job = dict()
         output = str(self.info("block-jobs"))
         for line in output.split("\n"):
-            if "No" in re.match("\w+", output).group(0):
+            if "No" in re.match(r"\w+", output).group(0):
                 continue
             if device in line:
-                if "Streaming" in re.match("\w+", output).group(0):
+                if "Streaming" in re.match(r"\w+", output).group(0):
                     job["type"] = "stream"
                 else:
                     job["type"] = "mirror"
                 job["device"] = device
-                job["offset"] = int(re.findall("\d+", output)[-3])
-                job["len"] = int(re.findall("\d+", output)[-2])
-                job["speed"] = int(re.findall("\d+", output)[-1])
+                job["offset"] = int(re.findall(r"\d+", output)[-3])
+                job["len"] = int(re.findall(r"\d+", output)[-2])
+                job["speed"] = int(re.findall(r"\d+", output)[-1])
                 break
         return job
 
@@ -1350,7 +1350,7 @@ class HumanMonitor(Monitor):
         backing_file = None
         block_info = self.query("block")
         try:
-            pattern = "%s:.*backing_file=([^\s]*)" % device
+            pattern = r"%s:.*backing_file=([^\s]*)" % device
             backing_file = re.search(pattern, block_info, re.M).group(1)
         except Exception:
             pass
@@ -2341,7 +2341,7 @@ class QMPMonitor(Monitor):
                             # check the expect type of qemu and update.
                             if opt[0] != "fd":
                                 value = int(value)
-                        elif re.match("^[0-9]+\.[0-9]*$", value):
+                        elif re.match(r"^[0-9]+\.[0-9]*$", value):
                             value = float(value)
                         elif re.findall("true", value, re.I):
                             value = True

@@ -231,7 +231,7 @@ def lv_check(vg_name, lv_name):
     result = process.run(cmd, ignore_status=True)
 
     # unstable approach but currently works
-    lvpattern = r"LV Path\s+/dev/" + vg_name + r"/" + lv_name + "\s+"
+    lvpattern = r"LV Path\s+/dev/" + vg_name + r"/" + lv_name + r"\s+"
     match = re.search(lvpattern, result.stdout_text.rstrip())
     if match:
         LOG.debug("Provided logical volume exists: /dev/" + vg_name + "/" + lv_name)

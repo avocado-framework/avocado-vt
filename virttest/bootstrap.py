@@ -517,7 +517,7 @@ def create_subtests_cfg(t_type):
         shared_file_obj = open(shared_file, "r")
         for line in shared_file_obj.readlines():
             line = line.strip()
-            if re.match("type\s*=.*", line):
+            if re.match(r"type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())
@@ -551,7 +551,7 @@ def create_subtests_cfg(t_type):
         shared_file_obj = open(shared_file, "r")
         for line in shared_file_obj.readlines():
             line = line.strip()
-            if re.match("type\s*=.*", line):
+            if re.match(r"type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
                 td = next(cartesian_parser.get_dicts())

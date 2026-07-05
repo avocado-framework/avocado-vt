@@ -81,7 +81,7 @@ class VTJobLock(Pre, Post):
         try:
             files = os.listdir(self.lock_dir)
             pattern = re.compile(
-                r"avocado-vt-joblock-[0-9a-f]{40}-[0-9]+" "-[0-9a-z]{8}\.pid"
+                r"avocado-vt-joblock-[0-9a-f]{40}-[0-9]+-[0-9a-z]{8}\.pid"
             )
             return [os.path.join(self.lock_dir, _) for _ in files if pattern.match(_)]
         except OSError as e:

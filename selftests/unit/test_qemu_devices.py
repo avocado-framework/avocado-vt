@@ -687,14 +687,14 @@ class Container(unittest.TestCase):
             verbose=False,
         ).and_return(QEMU_HELP)
         qcontainer.process.system_output.expect_call(
-            "%s -device \? 2>&1" % qemu_cmd,
+            r"%s -device \? 2>&1" % qemu_cmd,
             timeout=10,
             ignore_status=True,
             shell=True,
             verbose=False,
         ).and_return(QEMU_DEVICES)
         qcontainer.process.system_output.expect_call(
-            "%s -M \?" % qemu_cmd,
+            r"%s -M \?" % qemu_cmd,
             timeout=10,
             ignore_status=True,
             shell=True,

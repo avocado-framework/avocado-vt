@@ -117,7 +117,7 @@ class VirshSession(aexpect.ShellSession):
 
     # No way to get virsh sub-command "exit" status
     # Check output against list of known error-status strings
-    ERROR_REGEX_LIST = ["error:\s*.+$", ".*failed.*"]
+    ERROR_REGEX_LIST = [r"error:\s*.+$", ".*failed.*"]
 
     def __init__(
         self,
@@ -3354,11 +3354,13 @@ def snapshot_list(name, options=None, **dargs):
     if sc_output.exit_status != 0:
         raise process.CmdError(cmd, sc_output, "Failed to get list of snapshots")
 
-    data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*", sc_output.stdout_text)
+    data = re.findall(
+        r"\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*", sc_output.stdout_text
+    )
     for rec in data:
         if not rec:
             continue
-        ret.append(re.match("\S*", rec).group())
+        ret.append(re.match(r"\S*", rec).group())
 
     return ret
 
@@ -3416,7 +3418,7 @@ def snapshot_info(name, snapshot, **dargs):
         raise process.CmdError(cmd, sc_output, "Failed to get snapshot info")
 
     for val in values:
-        data = re.search("(?<=%s:) *(\w.*|\w*)" % val, sc_output.stdout_text)
+        data = re.search(r"(?<=%s:) *(\w.*|\w*)" % val, sc_output.stdout_text)
         if data is None:
             continue
         ret[val] = data.group(0).strip()
