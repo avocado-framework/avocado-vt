@@ -1,5 +1,7 @@
 import unittest
 
+from avocado import Test
+
 from virttest.libvirt_xml.devices import memory
 
 test_xml_pairs = []
@@ -202,7 +204,7 @@ attrs_6 = {
 groups = len([x for x in locals() if x.startswith("TESTXML_")])
 
 
-class TestMemoryXML(unittest.TestCase):
+class TestMemoryXML(Test):
     def test_setup_memory_default(self):
         for i in range(groups):
             print(i)

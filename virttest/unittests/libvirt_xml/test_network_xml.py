@@ -1,5 +1,7 @@
 import unittest
 
+from avocado import Test
+
 from virttest.libvirt_xml import network_xml
 
 # TODO: The current test doesn't cover all attributes of a network xml.
@@ -102,7 +104,7 @@ network_attrs = {
 }
 
 
-class TestNetworkXML(unittest.TestCase):
+class TestNetworkXML(Test):
     def test_setup_network_default(self):
         network = network_xml.NetworkXML()
         network.setup_attrs(**network_attrs)

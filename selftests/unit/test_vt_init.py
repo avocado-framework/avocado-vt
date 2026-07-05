@@ -3,10 +3,12 @@ import os
 import tempfile
 import unittest
 
+from avocado import Test
+
 from selftests import BASEDIR
 
 
-class VtInitTest(unittest.TestCase):
+class VtInitTest(Test):
     @staticmethod
     def _swap():
         data_dir = os.path.join(BASEDIR, "selftests", ".data")

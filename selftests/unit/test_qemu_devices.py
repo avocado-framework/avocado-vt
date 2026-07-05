@@ -18,6 +18,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 import six
+from avocado import Test, skip
 from avocado.utils.process import CmdResult
 from six.moves import xrange
 
@@ -67,7 +68,7 @@ class MockHMPMonitor(qemu_monitor.HumanMonitor):
         pass
 
 
-class Devices(unittest.TestCase):
+class Devices(Test):
     """set of qemu devices tests"""
 
     def test_q_base_device(self):
@@ -149,7 +150,7 @@ class Devices(unittest.TestCase):
         self.assertEqual(out, exp, "QMP command corrupted:\n%s\n%s" % (out, exp))
 
 
-class Buses(unittest.TestCase):
+class Buses(Test):
     """Set of bus-representation tests"""
 
     def test_q_sparse_bus(self):
@@ -668,7 +669,7 @@ Slots:
         self.assertEqual("usb1.0(uhci): {1:a'usb-kbd',2:a'usb-kbd'}", hub3.str_short())
 
 
-class Container(unittest.TestCase):
+class Container(Test):
     """Tests related to the abstract representation of qemu machine"""
 
     def setUp(self):
@@ -952,11 +953,10 @@ fdc
         out = qdev.str_bus_short()
         assert out == exp, "Bus representation is corrupted:\n%s\n%s" % (out, exp)
 
+    @skip("Current hotplug state handling diverges from this legacy workflow")
+    @unittest.skip("Current hotplug state handling diverges from this legacy workflow")
     def test_qdev_hotplug(self):
         """Test the hotplug/unplug functionality"""
-        self.skipTest(
-            "Current hotplug state handling diverges from this legacy workflow"
-        )
         qdev = self.create_qdev("vm1", False, True)
         devs = qdev.machine_by_params(ParamsDict({"machine_type": "pc"}))
         for dev in devs:
@@ -1252,8 +1252,9 @@ fdc
             qdev2.str_long(),
         )
 
+    @skip("Current PCIe parent-bus matching rejects this legacy topology")
+    @unittest.skip("Current PCIe parent-bus matching rejects this legacy topology")
     def test_pci(self):
-        self.skipTest("Current PCIe parent-bus matching rejects this legacy topology")
         qdev = self.create_qdev("vm1")
         devs = qdev.machine_by_params(ParamsDict({"machine_type": "pc"}))
         for dev in devs:

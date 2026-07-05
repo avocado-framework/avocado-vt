@@ -11,6 +11,8 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
+
 from virttest import utils_env, utils_misc, utils_params
 
 
@@ -44,7 +46,7 @@ class FakeSyncListenServer(object):
         logging.info("Closing sync server (instance %s)", self.instance)
 
 
-class TestEnv(unittest.TestCase):
+class TestEnv(Test):
     def setUp(self):
         self.envfilename = "/dev/shm/EnvUnittest" + self.id()
 

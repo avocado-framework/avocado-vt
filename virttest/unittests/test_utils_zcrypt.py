@@ -16,6 +16,8 @@ try:
 except ImportError:
     import mock
 
+from avocado import Test
+
 import virttest
 from virttest.utils_zcrypt import CryptoDeviceInfoBuilder
 
@@ -29,7 +31,7 @@ OUT_OK = (
 virttest.utils_zcrypt.cmd_status_output = mock.Mock(return_value=(0, OUT_OK))
 
 
-class LszcryptCmd(unittest.TestCase):
+class LszcryptCmd(Test):
     def setUp(self):
         self.info = CryptoDeviceInfoBuilder.get()
 
