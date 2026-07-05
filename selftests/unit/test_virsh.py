@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 
+from avocado import Test
 from avocado.utils import process
 
 # simple magic for using scripts within a source tree
@@ -72,7 +73,7 @@ def FakeVirshFactory(preserve=None):
     return fake_virsh
 
 
-class ModuleLoad(unittest.TestCase):
+class ModuleLoad(Test):
     from virttest import virsh
 
 
@@ -222,7 +223,7 @@ class ConstructorsTest(ModuleLoad):
 
 
 # Ensure the following tests ONLY run if a valid virsh command exists #####
-class ModuleLoadCheckVirsh(unittest.TestCase):
+class ModuleLoadCheckVirsh(Test):
     from virttest import virsh
 
     def run(self, result=None):

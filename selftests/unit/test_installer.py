@@ -9,10 +9,11 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
 from virttest import cartesian_config, installer
 
 
-class installer_test(unittest.TestCase):
+class installer_test(Test):
     def setUp(self):
         self.registry = installer.InstallerRegistry()
 

@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 
+from avocado import Test
 from avocado.utils import path
 
 # simple magic for using scripts within a source tree
@@ -14,7 +15,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 from virttest import utils_libguestfs as lgf
 
 
-class LibguestfsTest(unittest.TestCase):
+class LibguestfsTest(Test):
     def test_lgf_cmd_check(self):
         cmds = ["virt-ls", "virt-cat"]
         for cmd in cmds:
@@ -40,7 +41,7 @@ class LibguestfsTest(unittest.TestCase):
             logging.warning("Command %s not installed, skipping unittest...", cmd)
 
 
-class SlotsCheckTest(unittest.TestCase):
+class SlotsCheckTest(Test):
     def test_LibguestfsBase_default_slots(self):
         """Default slots' value check"""
         lfb = lgf.LibguestfsBase()

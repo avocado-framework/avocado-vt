@@ -5,8 +5,10 @@ import unittest
 
 from selftests import BASEDIR
 
+from avocado import Test
 
-class VtInitTest(unittest.TestCase):
+
+class VtInitTest(Test):
     @staticmethod
     def _swap():
         data_dir = os.path.join(BASEDIR, "selftests", ".data")
