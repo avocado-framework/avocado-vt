@@ -74,11 +74,11 @@ class TestParams(unittest.TestCase):
         self.params = utils_params.Params(BASE_DICT)
 
     def testObjects(self):
-        self.assertEquals(self.params.objects("images"), ["image1", "stg"])
+        self.assertEqual(self.params.objects("images"), ["image1", "stg"])
 
     def testObjectsParams(self):
         for key in list(CORRECT_RESULT_MAPPING.keys()):
-            self.assertEquals(
+            self.assertEqual(
                 self.params.object_params(key), CORRECT_RESULT_MAPPING[key]
             )
 

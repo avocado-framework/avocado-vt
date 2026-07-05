@@ -90,8 +90,8 @@ class test_ElementTree(xml_test_data):
 class test_TempXMLFile(xml_test_data):
     def test_prefix_sufix(self):
         filename = os.path.basename(self.XMLFILE)
-        self.assert_(filename.startswith(xml_utils.TMPPFX))
-        self.assert_(filename.endswith(xml_utils.TMPSFX))
+        self.assertTrue(filename.startswith(xml_utils.TMPPFX))
+        self.assertTrue(filename.endswith(xml_utils.TMPSFX))
 
     def test_test_TempXMLFile_canread(self):
         tmpf = xml_utils.TempXMLFile()
@@ -194,12 +194,12 @@ class test_XMLTreeFile(xml_test_data):
 
     def test_init_str(self):
         xml = self.class_to_test(self.XMLSTR)
-        self.assert_(xml.sourcefilename is not None)
+        self.assertTrue(xml.sourcefilename is not None)
         self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_init_xml(self):
         xml = self.class_to_test(self.XMLFILE)
-        self.assert_(xml.sourcefilename is not None)
+        self.assertTrue(xml.sourcefilename is not None)
         self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_restore_from_string(self):
