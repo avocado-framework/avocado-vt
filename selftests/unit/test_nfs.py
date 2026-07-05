@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 
+from avocado import Test
 from avocado.utils import path, process
 
 # simple magic for using scripts within a source tree
@@ -35,7 +36,7 @@ class FakeService(object):
         return self.get_stdout("restart")
 
 
-class nfs_test(unittest.TestCase):
+class nfs_test(Test):
     def setup_stubs_init(self):
         path.find_command.expect_call("mount")
         path.find_command.expect_call("service")

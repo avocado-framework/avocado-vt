@@ -9,10 +9,11 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
 from virttest import data_dir, remote
 
 
-class RemoteFileTest(unittest.TestCase):
+class RemoteFileTest(Test):
     tmp_dir = data_dir.get_tmp_dir()
     test_file_path = os.path.join(tmp_dir, "remote_file")
     default_data = ["RemoteFile Test.\n", "Pattern Line."]

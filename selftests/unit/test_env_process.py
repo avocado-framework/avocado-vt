@@ -6,10 +6,11 @@ if sys.version_info[:2] == (2, 6):
 else:
     import unittest
 
+from avocado import Test
 from virttest.env_process import QEMU_VERSION_RE
 
 
-class QEMUVersion(unittest.TestCase):
+class QEMUVersion(Test):
     def test_regex(self):
         versions_expected = {
             "QEMU emulator version 2.9.0(qemu-kvm-rhev-2.9.0-16.el7_4.8)": (

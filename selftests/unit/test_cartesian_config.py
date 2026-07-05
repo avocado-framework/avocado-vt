@@ -10,13 +10,14 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
 from virttest import cartesian_config
 
 mydir = os.path.dirname(__file__)
 testdatadir = os.path.join(mydir, "unittest_data")
 
 
-class CartesianConfigTest(unittest.TestCase):
+class CartesianConfigTest(Test):
     def _checkDictionaries(self, parser, reference):
         result = list(parser.get_dicts())
         # as the dictionary list is very large, test each item individually:

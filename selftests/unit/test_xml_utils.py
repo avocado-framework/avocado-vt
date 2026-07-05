@@ -13,10 +13,11 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
 from virttest import xml_utils
 
 
-class xml_test_data(unittest.TestCase):
+class xml_test_data(Test):
     def get_tmp_files(self, prefix, suffix):
         path_string = os.path.join("/tmp", "%s*%s" % (prefix, suffix))
         return glob.glob(path_string)

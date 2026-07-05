@@ -1,11 +1,12 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from avocado import Test
 from virttest.test_setup.networking import BridgeConfig, NetworkProxies
 from virttest.utils_params import Params
 
 
-class TestProxySetuper(unittest.TestCase):
+class TestProxySetuper(Test):
     def setUp(self):
         self._test_mock = Mock()
         self._env_mock = Mock()
@@ -108,7 +109,7 @@ class TestProxySetuper(unittest.TestCase):
             np.setup()
 
 
-class TestBridgeSetuper(unittest.TestCase):
+class TestBridgeSetuper(Test):
     def setUp(self):
         self._test_mock = Mock()
         self._env_mock = Mock()

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 
+from avocado import Test
 from avocado.utils import process
 
 # simple magic for using scripts within a source tree
@@ -16,7 +17,7 @@ from virttest import build_helper, cartesian_config, utils_misc, utils_package
 from virttest.unittest_utils import mock
 
 
-class TestUtilsMisc(unittest.TestCase):
+class TestUtilsMisc(Test):
     def test_get_archive_tarball_name(self):
         tarball_name = utils_misc.get_archive_tarball_name("/tmp", "tmp-archive", "bz2")
         self.assertEqual(tarball_name, "tmp-archive.tar.bz2")
@@ -123,7 +124,7 @@ all_nodes_contents = "0\n"
 online_nodes_contents = "0\n"
 
 
-class TestNumaNode(unittest.TestCase):
+class TestNumaNode(Test):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.god.stub_with(process, "run", utils_run)
