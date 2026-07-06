@@ -25,7 +25,6 @@ Avocado VT Plugin
 
 Avocado-VT is a compatibility plugin that lets you execute virtualization
 related tests (then known as virt-test), with all conveniences provided by
-Avocado.
 
 Getting started with Avocado
 =============================
