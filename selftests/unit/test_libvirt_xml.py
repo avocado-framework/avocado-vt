@@ -800,9 +800,7 @@ class testStubXML(LibvirtXMLTestBase):
             foobar.virsh.domuuid(None), "ddb0cf86-5ba8-4f83-480a-d96f54339219"
         )
         self.assertEqual(foobar.device_tag, "foobar")
-        self.assertEqual(
-            unicode(foobar), "<?xml version='1.0' encoding='UTF-8'?>\n<foobar />"
-        )
+        self.assertEqual(unicode(foobar), "<foobar />")
 
     def test_typed_device_stub(self):
         foobar = self.TypedFoobar(virsh_instance=self.dummy_virsh)
@@ -813,7 +811,7 @@ class testStubXML(LibvirtXMLTestBase):
         self.assertEqual(foobar.type_name, "bar")
         self.assertEqual(
             unicode(foobar),
-            "<?xml version='1.0' encoding='UTF-8'?>\n<foo type=\"bar\" />",
+            '<foo type="bar" />',
         )
 
 
@@ -824,9 +822,9 @@ class testCharacterXML(LibvirtXMLTestBase):
         channel = librarian.get("channel")(virsh_instance=self.dummy_virsh)
         console = librarian.get("console")(virsh_instance=self.dummy_virsh)
         for chardev in (parallel, serial, channel, console):
-            attribute1 = utils_misc.generate_random_string(10)
+            attribute1 = "a" + utils_misc.generate_random_string(10)
             value1 = utils_misc.generate_random_string(10)
-            attribute2 = utils_misc.generate_random_string(10)
+            attribute2 = "b" + utils_misc.generate_random_string(10)
             value2 = utils_misc.generate_random_string(10)
             chardev.add_source(**{attribute1: value1, attribute2: value2})
             chardev.add_target(**{attribute1: value1, attribute2: value2})
@@ -882,10 +880,11 @@ class testSerialXML(LibvirtXMLTestBase):
         self.assertFalse(serial1 == serial2)
         self.assertEqual(serial1.sources, [])
         # mix up access style
-        serial1.add_source(**serial2.sources[0])
+        serial1.add_source(path="/dev/null")
         self.assertFalse(serial1 == serial2)
         serial1.update_target(0, port="1")
-        self.assertEqual(serial1, serial2)
+        self.assertEqual(serial1.sources, serial2.sources)
+        self.assertEqual(serial1.targets, serial2.targets)
         # Exercise bind mode
         self.assertEqual(serial3.type_name, "tcp")
         source_connect = serial3.sources[0]

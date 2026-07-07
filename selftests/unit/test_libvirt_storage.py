@@ -62,7 +62,7 @@ class PoolTestBase(unittest.TestCase):
         return True
 
     @staticmethod
-    def _pool_build(name="unittest", **dargs):
+    def _pool_build(name="unittest", options="", **dargs):
         return True
 
     @staticmethod
