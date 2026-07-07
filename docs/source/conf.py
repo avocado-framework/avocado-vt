@@ -43,10 +43,27 @@ _sphinx_apidoc = getstatusoutput("which sphinx-apidoc")[1].strip()
 _output_dir = os.path.join(root_path, "docs", "source", "api")
 _api_dir = os.path.join(root_path, "virttest")
 _status, _output = getstatusoutput(
-    "%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir)
+    "%s -o %s --automodule-options=members,show-inheritance,no-index %s"
+    % (_sphinx_apidoc, _output_dir, _api_dir)
 )
 if _status:
     raise DocBuildError("API rst auto generation failed: %s" % _output)
+for _dirpath, _dirnames, _filenames in os.walk(_output_dir):
+    for _filename in _filenames:
+        if not _filename.endswith(".rst"):
+            continue
+        _rst_path = os.path.join(_dirpath, _filename)
+        with open(_rst_path, "r") as _rst_file:
+            _lines = _rst_file.readlines()
+        _new_lines = []
+        for _line in _lines:
+            if _line.strip() == ":undoc-members:":
+                continue
+            _new_lines.append(_line)
+            if _line.startswith(".. automodule::"):
+                _new_lines.append("   :no-index:\n")
+        with open(_rst_path, "w") as _rst_file:
+            _rst_file.writelines(_new_lines)
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -73,7 +90,6 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
         import sphinx_rtd_theme
 
         html_theme = "sphinx_rtd_theme"
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     except ImportError:
         html_theme = "default"
 
@@ -113,9 +129,13 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "http://docs.python.org/": None,
-    "http://avocado-framework.readthedocs.org/en/latest/": None,
+    "https://docs.python.org/3/": ("https://docs.python.org/3/", None),
+    "https://avocado-framework.readthedocs.io/en/latest/": (
+        "https://avocado-framework.readthedocs.io/en/latest/",
+        None,
+    ),
 }
 
 autoclass_content = "both"
 highlight_language = "none"
+suppress_warnings = ["autodoc", "docutils", "ref"]
