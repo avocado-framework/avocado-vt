@@ -75,6 +75,7 @@ virbr2        8000.525400c0b080    yes        em1
             ]
 
             self.stdout = self.get_stdout()
+            self.stdout_text = self.stdout
             self.__class__.iter += 1
 
         def get_stdout(self):

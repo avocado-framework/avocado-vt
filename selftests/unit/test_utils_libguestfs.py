@@ -63,16 +63,22 @@ class SlotsCheckTest(unittest.TestCase):
     def test_Guestfish_slots(self):
         """Test Guestfish slots"""
         try:
+            env_clean = (
+                "unset GUESTFISH_PS1;unset GUESTFISH_OUTPUT;"
+                "unset GUESTFISH_RESTORE;unset GUESTFISH_INIT; "
+            )
             gf = lgf.Guestfish()
-            self.assertEqual(gf.lgf_exec, "guestfish")
+            self.assertEqual(gf.lgf_exec, env_clean + "guestfish")
             gf = lgf.Guestfish(disk_img="test.img", ro_mode=True, inspector=True)
-            self.assertEqual(gf.lgf_exec, "guestfish -a 'test.img' --ro -i")
+            self.assertEqual(gf.lgf_exec, env_clean + "guestfish -a 'test.img' --ro -i")
             gf = lgf.Guestfish(
                 libvirt_domain="test",
                 inspector=True,
                 uri="qemu+ssh://root@EXAMPLE/system",
             )
-            gf_cmd = "guestfish -c 'qemu+ssh://root@EXAMPLE/system' -d 'test' -i"
+            gf_cmd = (
+                env_clean + "guestfish -c 'qemu+ssh://root@EXAMPLE/system' -d 'test' -i"
+            )
             self.assertEqual(gf.lgf_exec, gf_cmd)
         except lgf.LibguestfsCmdError:
             logging.warning("Command guestfish not present, skipping " "unittest...")

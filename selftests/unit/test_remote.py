@@ -73,7 +73,7 @@ class RemoteFileTest(unittest.TestCase):
         _pattern_list = [r"^Pattern"]
         remote_file.remove(_pattern_list)
         test_data = self._read_test_file()
-        except_data = ["RemoteFile Test."]
+        except_data = ["RemoteFile Test.\n"]
         for index in range(len(except_data)):
             self.assertEqual(except_data[index], test_data[index])
         del remote_file

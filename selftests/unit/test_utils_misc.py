@@ -127,7 +127,9 @@ class TestNumaNode(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.god.stub_with(process, "run", utils_run)
-        self.god.stub_with(utils_package, "package_install", lambda *args, **kwargs: True)
+        self.god.stub_with(
+            utils_package, "package_install", lambda *args, **kwargs: True
+        )
         all_nodes = tempfile.NamedTemporaryFile(delete=False, mode="w")
         all_nodes.write(all_nodes_contents)
         all_nodes.close()
