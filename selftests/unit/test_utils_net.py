@@ -7,6 +7,7 @@ import os
 import random
 import shelve
 import sys
+import tempfile
 import time
 import unittest
 
@@ -86,10 +87,13 @@ virbr2        8000.525400c0b080    yes        em1
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
+        self.sysfs_net_dir = tempfile.mkdtemp(prefix="utils_net_sysfs_")
+        TestBridge.FakeCmd.iter = 0
 
         def utils_run(*args, **kargs):
             return TestBridge.FakeCmd(*args, **kargs)
 
+        self.god.stub_with(utils_net, "SYSFS_NET_PATH", self.sysfs_net_dir)
         self.god.stub_with(process, "run", utils_run)
 
     def test_getstructure(self):
@@ -130,6 +134,7 @@ virbr2        8000.525400c0b080    yes        em1
 
     def tearDown(self):
         self.god.unstub_all()
+        os.rmdir(self.sysfs_net_dir)
 
 
 class TestVirtIface(unittest.TestCase):

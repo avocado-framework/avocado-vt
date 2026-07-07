@@ -1089,7 +1089,7 @@ class Bridge(object):
         """
         Get bridge list.
         """
-        sysfs_path = "/sys/class/net"
+        sysfs_path = SYSFS_NET_PATH
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)

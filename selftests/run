@@ -112,6 +112,10 @@ def test_suite():
     loader = unittest.TestLoader()
     selftests_dir = os.path.dirname(os.path.abspath(__file__))
     basedir = os.path.dirname(selftests_dir)
+    unitdir = os.path.join(selftests_dir, "unit")
+    for path in (basedir, unitdir):
+        if path not in sys.path:
+            sys.path.insert(0, path)
     for section in ["functional", "unit", "doc"]:
         suite.addTests(
             loader.discover(

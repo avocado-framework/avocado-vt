@@ -6,8 +6,6 @@ import unittest
 
 from avocado.utils import process, script
 
-from virttest import data_dir
-
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 BASE_DIR = os.path.abspath(BASE_DIR)
 
@@ -44,6 +42,7 @@ TEST_STATUSES_CFG = """variants:
         start_vm = no
         vms = ''
         main_vm = ''
+        other_tests_dirs = %s
         variants:
             - skip:
                 result_param = 'skip'
@@ -78,27 +77,35 @@ class BasicTests(unittest.TestCase):
 
     def test_statuses(self):
         os.chdir(BASE_DIR)
-        test_path = os.path.join(
-            data_dir.get_test_providers_dir(),
+        avocado_data_dir = os.path.join(self.tmpdir, "avocado-data")
+        providers_download_dir = os.path.join(
+            avocado_data_dir,
+            "avocado-vt",
+            "virttest",
+            "test-providers.d",
             "downloads",
-            "io-github-autotest-qemu",
-            "generic",
+        )
+        os.makedirs(os.path.join(providers_download_dir, "selftest"))
+        avocado_config = script.make_script(
+            os.path.join(self.tmpdir, "avocado.conf"),
+            "[datadir.paths]\ndata_dir = %s\n" % avocado_data_dir,
+        )
+        test_provider_dir = os.path.join(self.tmpdir, "test_provider")
+        test_path = os.path.join(
+            test_provider_dir,
             "tests",
             "test_statuses.py",
         )
-        self.assertTrue(
-            os.path.exists(os.path.dirname(test_path)),
-            "The qemu providers dir does not exists, Avocado-vt "
-            "is probably not configured properly.",
-        )
+        os.makedirs(os.path.dirname(test_path))
         self.rm_files.append(test_path)
         script.make_script(test_path, TEST_STATUSES_PY)
         cfg = script.make_script(
-            os.path.join(self.tmpdir, "test_statuses.cfg"), TEST_STATUSES_CFG
+            os.path.join(self.tmpdir, "test_statuses.cfg"),
+            TEST_STATUSES_CFG % test_provider_dir,
         )
         result = process.run(
-            "avocado --show all run --vt-config %s "
-            "--job-results-dir %s test_statuses" % (cfg, self.tmpdir),
+            "avocado --config %s --show all run --vt-config %s "
+            "--job-results-dir %s test_statuses" % (avocado_config, cfg, self.tmpdir),
             timeout=15,
             ignore_status=True,
         )
