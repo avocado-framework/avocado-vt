@@ -12,18 +12,17 @@ BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 BASE_DIR = os.path.abspath(BASE_DIR)
 
 TEST_STATUSES_PY = """from avocado.core import exceptions
-from autotest.client.shared import error
 import logging
 
 def run(test, params, env):
     result_param = params.get("result_param")
 
     if result_param == "autotest_skip":
-        raise error.TestNAError("my skip")
+        raise exceptions.TestCancel("my skip")
     elif result_param == "autotest_fail":
-        raise error.TestFail("my fail")
+        raise exceptions.TestFail("my fail")
     elif result_param == "autotest_error":
-        raise error.TestError("my error")
+        raise exceptions.TestError("my error")
     elif result_param == "other exception":
         raise Exception("asefsadf")
     elif 'skip' in result_param:
@@ -99,7 +98,8 @@ class BasicTests(unittest.TestCase):
         )
         result = process.run(
             "avocado --show all run --vt-config %s "
-            "--job-results-dir %s" % (cfg, self.tmpdir),
+            "--job-results-dir %s test_statuses" % (cfg, self.tmpdir),
+            timeout=15,
             ignore_status=True,
         )
         self.assertEqual(result.exit_status, 1, "Exit status is not 1:\n%s" % result)
