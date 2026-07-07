@@ -51,7 +51,7 @@ if is_registering_settings_required():
 
     def get_settings_value(section, key, **kwargs):
         namespace = "%s.%s" % (section, key)
-        return settings.as_dict().get(namespace)
+        return settings.as_dict().get(namespace, kwargs.get("default"))
 
     def add_option(parser, arg, **kwargs):
         """Add a command-line argument parser to an existing option."""

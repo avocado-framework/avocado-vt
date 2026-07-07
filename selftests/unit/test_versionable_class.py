@@ -371,7 +371,7 @@ class TestVersionableClass(unittest.TestCase):
         m = factory(AA, system_version=0, qemu_version=0)()
         mm = factory(BB, qemu_version=3)()
 
-        f = open("/tmp/pick", "w+")
+        f = open("/tmp/pick", "wb+")
         cPickle.dump(m, f, cPickle.HIGHEST_PROTOCOL)
         cPickle.dump(mm, f, cPickle.HIGHEST_PROTOCOL)
         f.close()
@@ -385,7 +385,7 @@ class TestVersionableClass(unittest.TestCase):
         del mm
         del globals()[name]
 
-        f = open("/tmp/pick", "r+")
+        f = open("/tmp/pick", "rb")
         c = cPickle.load(f)
         cc = cPickle.load(f)
         f.close()
