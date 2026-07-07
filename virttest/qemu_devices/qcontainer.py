@@ -172,8 +172,9 @@ class DevContainer(object):
                 ).stdout_text.splitlines()
             if cmds:
                 cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
-            if cmds:  # If no matches, return None
+            if cmds:
                 return cmds
+            return []
 
         self.__state = -1  # -1 synchronized, 0 synchronized after hotplug
         self.__qemu_binary = qemu_binary
