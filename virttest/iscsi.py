@@ -89,7 +89,15 @@ def iscsi_login(target_name, portal):
     """
     cmd = "iscsiadm --mode node --login --targetname %s" % target_name
     cmd += " --portal %s" % portal
-    output = process.run(cmd).stdout_text
+    try:
+        output = process.run(cmd).stdout_text
+    except process.CmdError as e:
+        # iscsiadm exit code 15 means a session is already present —
+        # treat this as a successful login rather than a hard failure.
+        if e.result.exit_status == 15:
+            LOG.debug("iSCSI session for %s already present, reusing it", target_name)
+            return target_name
+        raise
 
     target_login = ""
     if "successful" in output:
@@ -662,7 +670,7 @@ class IscsiLIO(_IscsiComm):
         # confirm if the target exists and create iSCSI target
         cmd = "targetcli ls /iscsi 1"
         output = process.run(cmd).stdout_text
-        if not re.findall("%s$" % self.target, output, re.M):
+        if not re.findall(re.escape(self.target), output, re.M):
             LOG.debug("Need to export target in host")
 
             # Set selinux to permissive mode to make sure
@@ -686,6 +694,7 @@ class IscsiLIO(_IscsiComm):
                 self.device,
                 self.emulated_image,
             )
+            file_exists = None
             try:
                 output = process.run(device_cmd).stdout_text
             except process.CmdError as e:
@@ -694,12 +703,20 @@ class IscsiLIO(_IscsiComm):
                     str(e),
                     re.DOTALL | re.IGNORECASE,
                 )
-                if file_exists and self.allow_multipath:
-                    LOG.info(f"Allow Multipath, skipping error {e}")
+                if file_exists:
+                    # Backstore already exists from a previous (possibly
+                    # unclean) run — reuse it instead of failing.
+                    LOG.warning(
+                        "Backstore %s already exists, reusing it: %s",
+                        self.device,
+                        e,
+                    )
+                    output = ""
                 else:
                     raise e
             if (
                 not self.allow_multipath
+                and not file_exists
                 and "Created %s" % self.iscsi_backend not in output
             ):
                 raise exceptions.TestFail(
@@ -718,7 +735,18 @@ class IscsiLIO(_IscsiComm):
 
             # Create an IQN with a target named target_name
             target_cmd = "targetcli /iscsi/ create %s" % self.target
-            output = process.run(target_cmd).stdout_text
+            try:
+                output = process.run(target_cmd).stdout_text
+            except process.CmdError as e:
+                if re.search(r"already exists in configFS", str(e), re.IGNORECASE):
+                    # Target survived from a previous unclean run — reuse it.
+                    LOG.warning(
+                        "iSCSI target %s already exists in configFS, reusing it",
+                        self.target,
+                    )
+                    output = "Created target"  # satisfy the check below
+                else:
+                    raise
             if "Created target" not in output:
                 raise exceptions.TestFail(
                     "Failed to create target %s. (%s)" % (self.target, output)
@@ -726,7 +754,8 @@ class IscsiLIO(_IscsiComm):
 
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
             portal_info = process.run(check_portal).stdout_text
-            # Check for both IPv4 (0.0.0.0:3260) and IPv6 ([::]:3260 or [::0]:3260) default portals
+            # Check for both IPv4 (0.0.0.0:3260) and IPv6
+            # ([::]:3260 or [::0]:3260) default portals
             if not any(
                 portal in portal_info
                 for portal in ("0.0.0.0:3260", "[::]:3260", "[::0]:3260")
