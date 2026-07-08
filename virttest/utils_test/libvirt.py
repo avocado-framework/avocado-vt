@@ -596,6 +596,7 @@ def setup_or_cleanup_iscsi(
             # The new block device might not become immediately available
             # so wait for it both for iscsiadm as well as the filesystem
             # to have finished the setup
+            process.run("udevadm settle", ignore_status=True)
             iscsi_device = utils_misc.wait_for(
                 _iscsi.get_device_name, 5, 0, 1, "Searching iscsi device name."
             )
