@@ -5451,3 +5451,21 @@ def domthrottlegroupset(name, throttle_group, options="", **dargs):
 
     cmd = "domthrottlegroupset %s %s %s" % (name, throttle_group, options)
     return command(cmd, **dargs)
+
+
+def await_condition(name, condition, timeout=None, **dargs):
+    """
+    Wait for a domain condition to be met (virsh await).
+
+    :param name: domain name, id, or uuid
+    :param condition: condition string ('domain-inactive',
+                      'guest-agent-available')
+    :param timeout: optional --timeout value in seconds; omitted if None
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "await %s --condition %s" % (name, condition)
+    if timeout is not None:
+        cmd += " --timeout %s" % timeout
+        dargs.setdefault("timeout", int(timeout) + 10)
+    return command(cmd, **dargs)
