@@ -69,8 +69,7 @@ jobs:
       - name: Set up Avocado VT for integration tests
         run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-type=qemu --yes-to-all
       - name: Minimal isolation (unit) tests
-        run: |
-          python3 selftests/run
+        run: python3 selftests/run -v
       - name: Minimal integration (functional) tests
         run: AVOCADO_LOG_DEBUG=yes avocado -V run --dry-run --vt-type qemu "only reboot"
       - run: echo "This job's status is ${{ job.status }}."
