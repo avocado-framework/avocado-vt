@@ -225,12 +225,19 @@ class ConstructorsTest(ModuleLoad):
 class ModuleLoadCheckVirsh(unittest.TestCase):
     from virttest import virsh
 
-    def run(self, *args, **dargs):
+    def run(self, result=None):
         test_virsh = self.virsh.Virsh()
         if test_virsh["virsh_exec"] == "/bin/true":
-            return  # Don't run any tests, no virsh executable was found
+            if result is None:
+                result = self.defaultTestResult()
+            result.startTest(self)
+            try:
+                result.addSkip(self, "no virsh executable was found")
+            finally:
+                result.stopTest(self)
+            return result
         else:
-            super(ModuleLoadCheckVirsh, self).run(*args, **dargs)
+            return super(ModuleLoadCheckVirsh, self).run(result)
 
 
 class SessionManagerTest(ModuleLoadCheckVirsh):
