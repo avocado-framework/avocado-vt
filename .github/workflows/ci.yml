@@ -22,11 +22,11 @@ jobs:
     steps:
       - run: echo "Job triggered by a ${{ github.event_name }} event on branch is ${{ github.ref }} in repository is ${{ github.repository }}"
       - name: Check out repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           check-latest: true
@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-travis.txt
       - name: Check out Avocado libs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: 'avocado-framework/avocado'
           path: 'avocado-libs'
@@ -53,11 +53,25 @@ jobs:
         run: |
          mkdir -p /tmp/dummy_bin
          touch /tmp/dummy_bin/arping
+         touch /tmp/dummy_bin/qemu-img
+         touch /tmp/dummy_bin/qemu-io
+         touch /tmp/dummy_bin/qemu-kvm
          touch /tmp/dummy_bin/tcpdump
          chmod 777 /tmp/dummy_bin/*
          echo "/tmp/dummy_bin" >> $GITHUB_PATH
-      - name: Setup Avocado-vt for functional tests
-        run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+      - name: Cache Avocado VT bootstrap data
+        uses: actions/cache@v6
+        with:
+          path: ~/avocado/data/avocado-vt/images
+          key: avocado-vt-images-${{ runner.os }}-${{ hashFiles('virttest/shared/downloads/*.ini') }}
+          restore-keys: |
+            avocado-vt-images-${{ runner.os }}-
+      - name: Set up Avocado VT for integration tests
+        run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-type=qemu --yes-to-all
+      - name: Minimal isolation (unit) tests
+        run: python3 selftests/run -v
+      - name: Minimal integration (functional) tests
+        run: AVOCADO_LOG_DEBUG=yes avocado -V run --dry-run --vt-type qemu "only reboot"
       - run: echo "This job's status is ${{ job.status }}."
 
   package-build:
@@ -70,9 +84,9 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         check-latest: true

@@ -40,7 +40,9 @@ class nfs_test(unittest.TestCase):
         path.find_command.expect_call("mount")
         path.find_command.expect_call("service")
         path.find_command.expect_call("exportfs")
-        service.Factory.create_service.expect_call("nfs").and_return(FakeService("nfs"))
+        service.Factory.create_service.expect_call("nfs-server").and_return(
+            FakeService("nfs-server")
+        )
         service.Factory.create_service.expect_call("rpcbind").and_return(
             FakeService("rpcbind")
         )
@@ -48,7 +50,7 @@ class nfs_test(unittest.TestCase):
         export_dir = self.nfs_params.get("export_dir") or mount_src.split(":")[-1]
         export_ip = self.nfs_params.get("export_ip", "*")
         export_options = self.nfs_params.get("export_options", "").strip()
-        nfs.Exportfs.expect_new(export_dir, export_ip, export_options)
+        nfs.Exportfs.expect_new(export_dir, export_ip, export_options, session=None)
 
     def setup_stubs_setup(self, nfs_obj):
         os.makedirs.expect_call(nfs_obj.export_dir)
@@ -64,7 +66,7 @@ class nfs_test(unittest.TestCase):
         ).and_return(True)
 
     def setup_stubs_cleanup(self, nfs_obj):
-        utils_misc.umount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir, "nfs")
+        utils_misc.umount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir, "nfs,nfs4")
         nfs_obj.exportfs.reset_export.expect_call()
 
     def setUp(self):

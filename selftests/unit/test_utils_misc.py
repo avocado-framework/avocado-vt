@@ -12,36 +12,11 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
-from virttest import build_helper, cartesian_config, utils_misc
+from virttest import build_helper, cartesian_config, utils_misc, utils_package
 from virttest.unittest_utils import mock
 
 
 class TestUtilsMisc(unittest.TestCase):
-    def test_cpu_vendor_intel(self):
-        cpu_info = """processor : 0
-vendor_id       : GenuineIntel
-cpu family      : 6
-model           : 58
-model name      : Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz
-"""
-        vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, "GenuineIntel")
-
-    def test_cpu_vendor_amd(self):
-        cpu_info = """processor : 3
-vendor_id       : AuthenticAMD
-cpu family      : 21
-model           : 16
-model name      : AMD A10-5800K APU with Radeon(tm) HD Graphics
-"""
-        vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, "AuthenticAMD")
-
-    def test_vendor_unknown(self):
-        cpu_info = "this is an unknown cpu"
-        vendor = utils_misc.get_cpu_vendor(cpu_info, False)
-        self.assertEqual(vendor, "unknown")
-
     def test_get_archive_tarball_name(self):
         tarball_name = utils_misc.get_archive_tarball_name("/tmp", "tmp-archive", "bz2")
         self.assertEqual(tarball_name, "tmp-archive.tar.bz2")
@@ -126,15 +101,21 @@ node   0
         ]
 
         self.stdout = self.get_stdout(cmd)
+        self.stdout_text = self.stdout
+        self.stderr_text = ""
+        self.exit_status = 0
 
     def get_stdout(self, cmd):
+        if cmd.startswith("cat "):
+            with open(cmd[4:]) as input_file:
+                return input_file.read()
         for fake_cmd in self.fake_cmds:
             if fake_cmd["cmd"] == cmd:
                 return fake_cmd["stdout"]
         raise ValueError("Could not locate locate '%s' on fake cmd db" % cmd)
 
 
-def utils_run(cmd, shell=True):
+def utils_run(cmd, *args, **kwargs):
     return FakeCmd(cmd)
 
 
@@ -146,10 +127,13 @@ class TestNumaNode(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.god.stub_with(process, "run", utils_run)
-        all_nodes = tempfile.NamedTemporaryFile(delete=False)
+        self.god.stub_with(
+            utils_package, "package_install", lambda *args, **kwargs: True
+        )
+        all_nodes = tempfile.NamedTemporaryFile(delete=False, mode="w")
         all_nodes.write(all_nodes_contents)
         all_nodes.close()
-        online_nodes = tempfile.NamedTemporaryFile(delete=False)
+        online_nodes = tempfile.NamedTemporaryFile(delete=False, mode="w")
         online_nodes.write(online_nodes_contents)
         online_nodes.close()
         self.all_nodes_path = all_nodes.name

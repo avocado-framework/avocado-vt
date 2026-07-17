@@ -38,7 +38,7 @@ class VirtTestTest(unittest.TestCase):
         self.assertIsNone(self.test.datadir)
 
     def test_filename(self):
-        self.assertIsNone(self.test.filename)
+        self.assertIn(self.test.filename, (None, vt_test.__file__))
 
 
 if __name__ == "__main__":

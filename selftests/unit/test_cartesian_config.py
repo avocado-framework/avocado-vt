@@ -20,11 +20,11 @@ class CartesianConfigTest(unittest.TestCase):
     def _checkDictionaries(self, parser, reference):
         result = list(parser.get_dicts())
         # as the dictionary list is very large, test each item individually:
-        self.assertEquals(len(result), len(reference))
+        self.assertEqual(len(result), len(reference))
         for resdict, refdict in list(zip(result, reference)):
             # checking the dict name first should make some errors more visible
-            self.assertEquals(resdict.get("name"), refdict.get("name"))
-            self.assertEquals(resdict, refdict)
+            self.assertEqual(resdict.get("name"), refdict.get("name"))
+            self.assertEqual(resdict, refdict)
 
     def _checkConfigDump(self, config, dump):
         """Check if the parser output matches a config file dump"""
@@ -1231,7 +1231,7 @@ class CartesianConfigTest(unittest.TestCase):
         lexer.get_next_check([cartesian_config.LIndent])
         lexer.get_next_check([cartesian_config.LOnly])
         p_filter = cartesian_config.parse_filter(lexer, lexer.rest_line())
-        self.assertEquals(
+        self.assertEqual(
             p_filter,
             [
                 [

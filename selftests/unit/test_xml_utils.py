@@ -47,16 +47,20 @@ class xml_test_data(unittest.TestCase):
         /usr/libexec/qemu-kvm</emulator></domain></arch><features><cpuselection
         /><deviceboot/><pae/><nonpae/><acpi default='on' toggle='yes'/><apic
         default='on' toggle='no'/></features></guest></capabilities>"""
+        self._preexisting_tmp_files = set(
+            self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX)
+        )
         (fd, self.XMLFILE) = tempfile.mkstemp(
             suffix=xml_utils.TMPSFX, prefix=xml_utils.TMPPFX
         )
-        os.write(fd, self.XMLSTR)
+        os.write(fd, self.XMLSTR.encode())
         os.close(fd)
         self.canonicalize_test_xml()
 
     def tearDown(self):
         os.unlink(self.XMLFILE)
-        leftovers = self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX)
+        leftovers = set(self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX))
+        leftovers -= self._preexisting_tmp_files
         if len(leftovers) > 0:
             self.fail("Leftover files: %s" % str(leftovers))
 
@@ -69,7 +73,7 @@ class xml_test_data(unittest.TestCase):
     def is_same_contents(self, filename, other=None):
         """Compare filename contents with XMLSTR, or contents of other"""
         try:
-            with open(filename, "rb") as f:
+            with open(filename) as f:
                 s = f.read()
         except (IOError, OSError):
             logging.warning("File %s does not exist" % filename)
@@ -77,7 +81,7 @@ class xml_test_data(unittest.TestCase):
         if other is None:
             return s == self.XMLSTR
         else:
-            with open(other, "rb") as other_f:
+            with open(other) as other_f:
                 other_s = other_f.read()
             return s == other_s
 
@@ -90,8 +94,8 @@ class test_ElementTree(xml_test_data):
 class test_TempXMLFile(xml_test_data):
     def test_prefix_sufix(self):
         filename = os.path.basename(self.XMLFILE)
-        self.assert_(filename.startswith(xml_utils.TMPPFX))
-        self.assert_(filename.endswith(xml_utils.TMPSFX))
+        self.assertTrue(filename.startswith(xml_utils.TMPPFX))
+        self.assertTrue(filename.endswith(xml_utils.TMPSFX))
 
     def test_test_TempXMLFile_canread(self):
         tmpf = xml_utils.TempXMLFile()
@@ -130,7 +134,7 @@ class test_XMLBackup(xml_test_data):
 
     def test_rebackup_file(self):
         xmlbackup = self.class_to_test(self.XMLFILE)
-        with open(xmlbackup.name, "wb") as oops:
+        with open(xmlbackup.name, "w") as oops:
             oops.write("foobar")
         self.assertFalse(self.is_same_contents(xmlbackup.name))
         xmlbackup.backup()
@@ -194,12 +198,12 @@ class test_XMLTreeFile(xml_test_data):
 
     def test_init_str(self):
         xml = self.class_to_test(self.XMLSTR)
-        self.assert_(xml.sourcefilename is not None)
+        self.assertTrue(xml.sourcefilename is not None)
         self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_init_xml(self):
         xml = self.class_to_test(self.XMLFILE)
-        self.assert_(xml.sourcefilename is not None)
+        self.assertTrue(xml.sourcefilename is not None)
         self.assertEqual(xml.sourcebackupfile.name, xml.sourcefilename)
 
     def test_restore_from_string(self):

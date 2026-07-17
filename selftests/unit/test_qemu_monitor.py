@@ -28,7 +28,7 @@ class InfoNumaTests(unittest.TestCase):
     def testZeroNodes(self):
         d = "0 nodes\n"
         r = qemu_monitor.Monitor.parse_info_numa(d)
-        self.assertEquals(r, [])
+        self.assertEqual(r, [])
 
     def testTwoNodes(self):
         d = (
@@ -39,7 +39,7 @@ class InfoNumaTests(unittest.TestCase):
             + "node 1 size: 34 MB\n"
         )
         r = qemu_monitor.Monitor.parse_info_numa(d)
-        self.assertEquals(r, [(12, set([0, 2, 4])), (34, set([1, 3, 5]))])
+        self.assertEqual(r, [(12, set([0, 2, 4])), (34, set([1, 3, 5]))])
 
 
 class InfoBlocks(unittest.TestCase):

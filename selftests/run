@@ -6,6 +6,7 @@ __author__ = "Lucas Meneghel Rodrigues <lmr@redhat.com>"
 import logging
 import os
 import sys
+import tempfile
 
 if sys.version_info[:2] == (2, 6):
     import unittest2 as unittest
@@ -14,12 +15,109 @@ else:
 
 logger = logging.getLogger(__name__)
 
+VERBOSE_TESTS = "-v" in sys.argv or "--verbose" in sys.argv
+
+
+AVOCADO_VT_ENTRY_POINTS = """\
+[console_scripts]
+avocado-runner-avocado-vt = avocado_vt.plugins.vt_runner:main
+
+[avocado.plugins.settings]
+vt-settings = avocado_vt.plugins.vt_settings:VTSettings
+
+[avocado.plugins.cli]
+vt-list = avocado_vt.plugins.vt_list:VTLister
+vt = avocado_vt.plugins.vt:VTRun
+
+[avocado.plugins.cli.cmd]
+vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap
+vt-list-guests = avocado_vt.plugins.vt_list_guests:VTListGuests
+vt-list-archs = avocado_vt.plugins.vt_list_archs:VTListArchs
+
+[avocado.plugins.result_events]
+vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock
+vt-cluster = avocado_vt.plugins.vt_cluster:VTCluster
+
+[avocado.plugins.init]
+vt-init = avocado_vt.plugins.vt_init:VtInit
+
+[avocado.plugins.resolver]
+avocado-vt = avocado_vt.plugins.vt_resolver:VTResolver
+
+[avocado.plugins.discoverer]
+avocado-vt = avocado_vt.plugins.vt_resolver:VTDiscoverer
+
+[avocado.plugins.runnable.runner]
+avocado-vt = avocado_vt.plugins.vt_runner:VTTestRunner
+"""
+
+
+def add_source_tree_dependencies():
+    selftests_dir = os.path.dirname(os.path.abspath(__file__))
+    basedir = os.path.dirname(selftests_dir)
+    parentdir = os.path.dirname(basedir)
+    if basedir in sys.path:
+        sys.path.remove(basedir)
+    sys.path.insert(0, basedir)
+    unitdir = os.path.join(selftests_dir, "unit")
+    if unitdir in sys.path:
+        sys.path.remove(unitdir)
+    sys.path.insert(1, unitdir)
+
+    source_trees = [
+        (os.path.join(parentdir, "avocado"), "avocado"),
+        (os.path.join(parentdir, "aexpect"), "aexpect"),
+    ]
+
+    bindir = os.path.join(tempfile.gettempdir(), "avocado-vt-selftests-bin")
+    os.makedirs(bindir, exist_ok=True)
+
+    dist_info = os.path.join(bindir, "avocado_vt_selftests-0.dist-info")
+    os.makedirs(dist_info, exist_ok=True)
+    with open(os.path.join(dist_info, "METADATA"), "w") as metadata:
+        metadata.write("Metadata-Version: 2.1\n")
+        metadata.write("Name: avocado-vt-selftests\n")
+        metadata.write("Version: 0\n")
+    with open(os.path.join(dist_info, "entry_points.txt"), "w") as entry_points:
+        entry_points.write(AVOCADO_VT_ENTRY_POINTS)
+
+    pythonpath_entries = [bindir, basedir, unitdir]
+    for path, package in source_trees:
+        if os.path.isdir(os.path.join(path, package)) and path not in sys.path:
+            sys.path.insert(2, path)
+        if os.path.isdir(os.path.join(path, package)):
+            pythonpath_entries.append(path)
+
+    existing_pythonpath = os.environ.get("PYTHONPATH")
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    os.environ["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
+
+    wrappers = {
+        "avocado": "from avocado.core.main import main\nraise SystemExit(main())\n",
+        "aexpect_helper": (
+            "from aexpect.scripts.aexpect_helper import main\n"
+            "raise SystemExit(main())\n"
+        ),
+    }
+    for name, body in wrappers.items():
+        path = os.path.join(bindir, name)
+        with open(path, "w") as wrapper:
+            wrapper.write("#!/usr/bin/env python3\n")
+            wrapper.write(body)
+        os.chmod(path, 0o755)
+    os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
+
 
 def test_suite():
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     selftests_dir = os.path.dirname(os.path.abspath(__file__))
     basedir = os.path.dirname(selftests_dir)
+    unitdir = os.path.join(selftests_dir, "unit")
+    for path in (basedir, unitdir):
+        if path not in sys.path:
+            sys.path.insert(0, path)
     for section in ["functional", "unit", "doc"]:
         suite.addTests(
             loader.discover(
@@ -30,7 +128,11 @@ def test_suite():
 
 
 if __name__ == "__main__":
-    runner = unittest.TextTestRunner()
+    try:
+        import avocado
+    except ImportError as error:
+        add_source_tree_dependencies()
+    runner = unittest.TextTestRunner(verbosity=2 if VERBOSE_TESTS else 1)
     result = runner.run(test_suite())
     if result.failures or result.errors:
         sys.exit(1)

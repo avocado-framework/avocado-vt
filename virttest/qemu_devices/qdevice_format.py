@@ -358,11 +358,12 @@ class _QDeviceFormatManagement(object):
         device_args = self._special_args_in_json[dev_type]
         new_args = dict()
         # convert type
+        driver_args = device_args.get(driver, {})
         for key, value in params.items():
-            if key in device_args[driver]:
-                value = device_args[driver][key](value)
+            if key in driver_args:
+                value = driver_args[key](value)
                 new_args[key] = value
-                if device_args[driver][key].__name__ is self._unchanged.__name__:
+                if driver_args[key].__name__ is self._unchanged.__name__:
                     continue
 
             if key in device_args["general"]:

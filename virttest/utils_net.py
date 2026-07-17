@@ -1089,7 +1089,7 @@ class Bridge(object):
         """
         Get bridge list.
         """
-        sysfs_path = "/sys/class/net"
+        sysfs_path = SYSFS_NET_PATH
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
@@ -1114,6 +1114,22 @@ class Bridge(object):
             # Get ports
             brif_path = os.path.join(br_iface_path, "brif")
             result[br_iface]["iface"] = os.listdir(brif_path)
+        if result:
+            return result
+        try:
+            output = process.run("brctl show", ignore_status=True).stdout_text
+        except Exception:
+            return result
+        current_bridge = None
+        for line in output.splitlines()[1:]:
+            if not line.strip():
+                continue
+            fields = line.split()
+            if len(fields) >= 3:
+                current_bridge = fields[0]
+                result[current_bridge] = {"stp": fields[2], "iface": fields[3:]}
+            elif current_bridge is not None:
+                result[current_bridge]["iface"].extend(fields)
         return result
 
     def list_br(self):
@@ -3082,7 +3098,11 @@ class ParamsNet(VMNet):
                 else:
                     nic_dict[propertea] = nic_params.get(propertea, existing_value)
 
-                if propertea == "netdst" and "shell:" in nic_dict[propertea]:
+                if (
+                    propertea == "netdst"
+                    and nic_dict[propertea]
+                    and "shell:" in nic_dict[propertea]
+                ):
                     nic_dict[propertea] = process.getoutput(
                         nic_dict[propertea].split(":", 1)[1]
                     )

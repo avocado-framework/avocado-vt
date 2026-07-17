@@ -74,11 +74,11 @@ class TestParams(unittest.TestCase):
         self.params = utils_params.Params(BASE_DICT)
 
     def testObjects(self):
-        self.assertEquals(self.params.objects("images"), ["image1", "stg"])
+        self.assertEqual(self.params.objects("images"), ["image1", "stg"])
 
     def testObjectsParams(self):
         for key in list(CORRECT_RESULT_MAPPING.keys()):
-            self.assertEquals(
+            self.assertEqual(
                 self.params.object_params(key), CORRECT_RESULT_MAPPING[key]
             )
 
@@ -119,16 +119,18 @@ class TestParams(unittest.TestCase):
         self.params["oct_val"] = "0o755"
         self.params["bin_val"] = "0b11111111"
         self.assertEqual(7, self.params.get_numeric("something"))
-        self.assertEqual(7, self.params.get_numeric("something"), int)
-        self.assertEqual(7.0, self.params.get_numeric("something"), float)
+        self.assertEqual(7, self.params.get_numeric("something", target_type=int))
+        self.assertEqual(7.0, self.params.get_numeric("something", target_type=float))
         self.assertEqual(11, self.params.get_numeric("foobar"))
-        self.assertEqual(11, self.params.get_numeric("something"), int)
-        self.assertEqual(11.0, self.params.get_numeric("foobar"), float)
+        self.assertEqual(11, self.params.get_numeric("foobar", target_type=int))
+        self.assertEqual(11.0, self.params.get_numeric("foobar", target_type=float))
         self.assertEqual(13, self.params.get_numeric("barsome"))
-        self.assertEqual(13, self.params.get_numeric("barsome"), int)
-        self.assertEqual(13.17, self.params.get_numeric("barsome"), float)
+        self.assertEqual(13, self.params.get_numeric("barsome", target_type=int))
+        self.assertEqual(13.17, self.params.get_numeric("barsome", target_type=float))
         self.assertEqual(17, self.params.get_numeric("joke", 17))
-        self.assertEqual(17.13, self.params.get_numeric("joke", 17.13), float)
+        self.assertEqual(
+            17.13, self.params.get_numeric("joke", 17.13, target_type=float)
+        )
         # Test automatic base detection (0x/0o/0b prefixes)
         self.assertEqual(255, self.params.get_numeric("hex_val"))
         self.assertEqual(493, self.params.get_numeric("oct_val"))

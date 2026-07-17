@@ -7,6 +7,7 @@ import os
 import random
 import shelve
 import sys
+import tempfile
 import time
 import unittest
 
@@ -75,6 +76,7 @@ virbr2        8000.525400c0b080    yes        em1
             ]
 
             self.stdout = self.get_stdout()
+            self.stdout_text = self.stdout
             self.__class__.iter += 1
 
         def get_stdout(self):
@@ -85,10 +87,13 @@ virbr2        8000.525400c0b080    yes        em1
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
+        self.sysfs_net_dir = tempfile.mkdtemp(prefix="utils_net_sysfs_")
+        TestBridge.FakeCmd.iter = 0
 
         def utils_run(*args, **kargs):
             return TestBridge.FakeCmd(*args, **kargs)
 
+        self.god.stub_with(utils_net, "SYSFS_NET_PATH", self.sysfs_net_dir)
         self.god.stub_with(process, "run", utils_run)
 
     def test_getstructure(self):
@@ -129,6 +134,7 @@ virbr2        8000.525400c0b080    yes        em1
 
     def tearDown(self):
         self.god.unstub_all()
+        os.rmdir(self.sysfs_net_dir)
 
 
 class TestVirtIface(unittest.TestCase):
@@ -248,12 +254,12 @@ class TestVmNetStyle(unittest.TestCase):
         )
         self.assertEqual(style["mac_prefix"], "9a")
         self.assertEqual(style["container_class"], utils_net.QemuIface)
-        self.assert_(issubclass(style["container_class"], utils_net.VirtIface))
+        self.assertTrue(issubclass(style["container_class"], utils_net.VirtIface))
 
     def test_libvirt(self):
         style = self.get_style("libvirt", utils_misc.generate_random_string(16))
         self.assertEqual(style["container_class"], utils_net.LibvirtIface)
-        self.assert_(issubclass(style["container_class"], utils_net.VirtIface))
+        self.assertTrue(issubclass(style["container_class"], utils_net.VirtIface))
 
 
 class TestVmNet(unittest.TestCase):
@@ -466,9 +472,9 @@ class TestVmNetSubclasses(unittest.TestCase):
         for fakevm in self.fakevm_generator():
             test_params = fakevm.get_params()
             virtnet = utils_net.ParamsNet(test_params, fakevm.name)
-            self.assert_(virtnet.container_class)
-            self.assert_(virtnet.mac_prefix)
-            self.assert_(issubclass(virtnet.__class__, list))
+            self.assertTrue(virtnet.container_class)
+            self.assertTrue(virtnet.mac_prefix)
+            self.assertTrue(issubclass(virtnet.__class__, list))
             # Assume params actually came from CartesianResult because
             # Checking this takes a very long time across all combinations
             param_nics = (
@@ -483,7 +489,7 @@ class TestVmNetSubclasses(unittest.TestCase):
                 # index correspondence already established/asserted
                 virtnet_nic = virtnet[virtnet_index]
                 params_nic = param_nics[virtnet_index]
-                self.assert_(issubclass(virtnet_nic.__class__, propcan.PropCan))
+                self.assertTrue(issubclass(virtnet_nic.__class__, propcan.PropCan))
                 self.assertEqual(
                     virtnet_nic.nic_name,
                     params_nic,
@@ -524,10 +530,10 @@ class TestVmNetSubclasses(unittest.TestCase):
             virtnet = utils_net.DbNet(
                 test_params, fakevm.name, self.db_filename, fakevm.instance
             )
-            self.assert_(hasattr(virtnet, "container_class"))
-            self.assert_(hasattr(virtnet, "mac_prefix"))
-            self.assert_(not hasattr(virtnet, "lock"))
-            self.assert_(not hasattr(virtnet, "db"))
+            self.assertTrue(hasattr(virtnet, "container_class"))
+            self.assertTrue(hasattr(virtnet, "mac_prefix"))
+            self.assertTrue(not hasattr(virtnet, "lock"))
+            self.assertTrue(not hasattr(virtnet, "db"))
             vm_name_params = test_params.object_params(fakevm.name)
             nic_name_list = vm_name_params.objects("nics")
             for nic_name in nic_name_list:
@@ -556,14 +562,14 @@ class TestVmNetSubclasses(unittest.TestCase):
         self.assertEqual(len(db_keys), self.db_item_count)
         for key in db_keys:
             db_value = eval(db[key], {}, {})
-            self.assert_(isinstance(db_value, list))
-            self.assert_(len(db_value) > 0)
-            self.assert_(isinstance(db_value[0], dict))
+            self.assertTrue(isinstance(db_value, list))
+            self.assertTrue(len(db_value) > 0)
+            self.assertTrue(isinstance(db_value[0], dict))
             for nic in db_value:
                 mac = nic.get("mac")
                 if mac:
                     # Another test already checked mac_is_valid behavior
-                    self.assert_(utils_net.VirtIface.mac_is_valid(mac))
+                    self.assertTrue(utils_net.VirtIface.mac_is_valid(mac))
             self.print_and_inc()
         db.close()
 
@@ -689,7 +695,7 @@ class TestVmNetSubclasses(unittest.TestCase):
                 result = virtnet.generate_ifname(virtnet_index)
                 self.assertEqual(result, virtnet[virtnet_index].ifname)
                 # assume less than 10 nics
-                self.assert_(len(result) < 11)
+                self.assertTrue(len(result) < 11)
             if len(virtnet) == 2:
                 break  # no need to test every possible combination
 

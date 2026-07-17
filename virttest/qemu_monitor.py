@@ -705,10 +705,11 @@ class Monitor(object):
         Parse output of "query block" into dict of disk params
         """
         blocks = {}
+        enable_blockdev = getattr(self, "_enable_blockdev", False)
         for item in info:
             if (
                 not item.get("inserted").get("node-name")
-                if self._enable_blockdev
+                if enable_blockdev
                 else not item.get("device")
             ):
                 raise ValueError(
@@ -717,7 +718,7 @@ class Monitor(object):
                 )
             name = (
                 item.get("inserted").get("node-name")
-                if self._enable_blockdev
+                if enable_blockdev
                 else item.pop("device")
             )
             blocks[name] = {}

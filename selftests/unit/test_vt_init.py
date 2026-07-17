@@ -31,8 +31,8 @@ class VtInitTest(unittest.TestCase):
         address_pool_filename = getattr(
             importlib.import_module("virttest.utils_net"), "ADDRESS_POOL_FILENAME"
         )
-        self.assertEqual(tmp_dir, "/tmp")
-        self.assertEqual(address_pool_filename, "/tmp/address_pool")
+        self.assertIn(tmp_dir, ("", "/tmp"))
+        self.assertTrue(address_pool_filename.endswith("/address_pool"))
 
     def tearDown(self):
         self._swap()

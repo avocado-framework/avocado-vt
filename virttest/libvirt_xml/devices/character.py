@@ -40,7 +40,10 @@ class CharacterBase(base.TypedDeviceBase):
         """
         Convenience method for appending a source from dictionary of attributes
         """
-        sources = self.sources
+        try:
+            sources = self.sources or []
+        except AttributeError:
+            sources = []
         new_source = self.Source()
         new_source.setup_attrs(attrs=attributes)
         sources.append(new_source)
@@ -73,7 +76,7 @@ class CharacterBase(base.TypedDeviceBase):
             return "source", item
         elif isinstance(item, dict):
             source = CharacterBase.Source()
-            source.setup_attrs(**item)
+            source.setup_attrs(attrs=item)
             return "source", source
         else:
             raise xcepts.LibvirtXMLError(
@@ -107,6 +110,28 @@ class CharacterBase(base.TypedDeviceBase):
             )
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<source/>"
+
+        def __getitem__(self, key):
+            try:
+                return super(CharacterBase.Source, self).__getitem__(key)
+            except KeyError:
+                return self.attrs[key]
+
+        def keys(self):
+            return self.attrs.keys()
+
+        def items(self):
+            return self.attrs.items()
+
+        def values(self):
+            return self.attrs.values()
+
+        def __eq__(self, other):
+            if isinstance(other, CharacterBase.Source):
+                return self.attrs == other.attrs
+            if isinstance(other, dict):
+                return self.attrs == other
+            return super(CharacterBase.Source, self).__eq__(other)
 
         @staticmethod
         def marshal_from_seclabels(item, index, libvirtxml):

@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import inspect
 import os
 import shlex
 import shutil
@@ -103,7 +104,13 @@ class VirtTest(test.Test, utils.TestUtils):
 
         if "methodName" not in kwargs:
             kwargs["methodName"] = "runTest"
+        job = kwargs.get("job")
+        test_init_params = inspect.signature(test.Test.__init__).parameters
+        if job is not None and "job" not in test_init_params:
+            kwargs.pop("job")
         super(VirtTest, self).__init__(**kwargs)
+        if job is not None and not hasattr(self, "job"):
+            self.job = job
 
         self.builddir = os.path.join(
             self.workdir, "backends", vt_params.get("vm_type", "")

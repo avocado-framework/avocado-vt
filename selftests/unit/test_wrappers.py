@@ -56,7 +56,7 @@ class baseImportTests(ABC):
         create_module(
             cls._tmp_sub_module_name, cls._subdir_inner_val, cls._tmp_sub_module_dir
         )
-        os.makedirs(cls._aux_sub_mod_dir)
+        os.makedirs(cls._aux_sub_mod_dir, exist_ok=True)
         # Wait a bit so the import mechanism cache can be refreshed
         sleep(2)
 
