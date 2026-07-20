@@ -2814,7 +2814,11 @@ class VM(virt_vm.BaseVM):
                     session = self.wait_for_serial_login(timeout=timeout)
 
             if isinstance(session, remote.RemoteSession):
-                serial_console = self.wait_for_serial_login(timeout=timeout)
+                serial_console = self.wait_for_serial_login(
+                    timeout=timeout,
+                    recreate_serial_console=True,
+                    status_check=False,
+                )
 
             _reboot = partial(_execute_shell_reboot, session)
             _check_go_down = partial(
@@ -2838,10 +2842,15 @@ class VM(virt_vm.BaseVM):
                 session.close()
             if serial_console:
                 serial_console.close()
+            self.cleanup_serial_console()
 
         error_context.context("logging in after reboot", LOG.info)
         if serial:
-            return self.wait_for_serial_login(timeout=timeout)
+            return self.wait_for_serial_login(
+                timeout=timeout,
+                recreate_serial_console=True,
+                status_check=False,
+            )
         return self.wait_for_login(nic_index, timeout=timeout)
 
     def screendump(self, filename, debug=False):
