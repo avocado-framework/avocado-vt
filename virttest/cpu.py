@@ -108,12 +108,12 @@ CPU_TYPES = {
 }
 CPU_TYPES_RE = {
     "EPYC-Genoa-v1": (
-        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "la57,avx512f,avx512dq,avx512ifma,avx512cd,"
         "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
         "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
     ),
     "EPYC-Genoa": (
-        "la57,vnmi,avx512f,avx512dq,avx512ifma,avx512cd,"
+        "la57,avx512f,avx512dq,avx512ifma,avx512cd,"
         "avx512bw,avx512vl,avx512vbmi,avx512_vbmi2|avx512vbmi2,gfni,"
         "avx512_vnni,avx512_bitalg,avx512_vpopcntdq,avx512_bf16"
     ),
