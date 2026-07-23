@@ -1,0 +1,29 @@
+#
+# DHCP Server Configuration file.
+# Using sample configuration file for ISC dhcpd
+#
+
+# option definitions common to all supported networks...
+#option domain-name "example.org";
+#option domain-name-servers ns1.example.org, ns2.example.org;
+default-lease-time 600;
+max-lease-time 7200;
+
+# Use this to enble / disable dynamic dns updates globally.
+#ddns-update-style none;
+
+# If this DHCP server is the official DHCP server for the local
+# network, the authoritative directive should be uncommented.
+authoritative;
+
+subnet #IP# netmask #NETMASK# {
+  range #RANGE_START# #RANGE_STOP#;
+  option domain-name-servers #DNSSERVERS#;
+  option routers #ROUTERS#;
+}
+
+host #VMNAME# {
+   option host-name "#VMHOSTNAME#";
+   hardware ethernet #INIC_MAC#;
+   fixed-address #INIC_IP#;
+}
