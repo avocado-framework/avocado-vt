@@ -2,23 +2,19 @@
    :target: https://github.com/psf/black
    :alt: Black
 
-.. |ci| image:: https://img.shields.io/github/actions/workflow/status/avocado-framework/avocado-vt/ci.yml?logo=githubactions&label=ci
+.. |ci| image:: https://img.shields.io/github/actions/workflow/status/avocado-framework/avocado-vt/ci.yml?branch=master&event=push&logo=githubactions&label=CI
    :target: https://github.com/avocado-framework/avocado-vt/actions/workflows/ci.yml
    :alt: Avocado-vt CI
-
-.. |cirrus| image:: https://img.shields.io/cirrus/github/avocado-framework/avocado-vt?logo=cirrusci&label=Cirrus
-   :target: https://cirrus-ci.com/github/avocado-framework/avocado-vt
-   :alt: Cirrus CI
 
 .. |deepwiki| image:: https://deepwiki.com/badge.svg
    :target: https://deepwiki.com/avocado-framework/avocado-vt
    :alt: DeepWiki
 
-.. |pypi-version| image:: https://img.shields.io/pypi/v/avocado-framework-plugin-vt?logo=pypi&label=Pypi
+.. |pypi-version| image:: https://img.shields.io/pypi/v/avocado-framework-plugin-vt?logo=pypi&label=PyPI
    :target: https://pypi.org/project/avocado-framework-plugin-vt
    :alt: PyPI - Version
 
-|ci| |cirrus| |black| |deepwiki| |pypi-version|
+|ci| |black| |deepwiki| |pypi-version|
 
 Avocado VT Plugin
 =================
@@ -37,7 +33,7 @@ Getting started with Avocado-VT
 ===============================
 
 The recommended way of installing Avocado-VT is through RPM packages.
-Documentation on how to install it can be found on `Read the Docs <http://avocado-vt.readthedocs.org/en/latest/GetStartedGuide.html>`__.
+Documentation on how to install it can be found on `Read the Docs <https://avocado-vt.readthedocs.io/en/latest/GetStartedGuide.html>`__.
 
 For a more interactive and auto-updating experience, you can also refer to
 the `Avocado-VT DeepWiki page <https://deepwiki.com/avocado-framework/avocado-vt>`__,
