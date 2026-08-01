@@ -198,8 +198,7 @@ def cmd_status_output(
     except Exception as info:
         status = 1
         stdout = to_text(info)
-    finally:
-        return status, stdout
+    return status, stdout
 
 
 def write_keyval(path, dictionary, type_tag=None, tap_report=None):
@@ -4460,17 +4459,18 @@ def get_distro(session=None):
     """
     if not session:
         return distro.detect().name
+    distro_name = ""
+    cmd = "cat /etc/os-release | grep '^ID='"
+    try:
+        status, output = session.cmd_status_output(cmd, timeout=300)
+    except Exception as info:
+        LOG.debug("Unable to get the distro name: %s", info)
+        return distro_name
+    if status:
+        LOG.debug("Unable to get the distro name: %s" % output)
     else:
-        distro_name = ""
-        cmd = "cat /etc/os-release | grep '^ID='"
-        try:
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            if status:
-                LOG.debug("Unable to get the distro name: %s" % output)
-            else:
-                distro_name = output.split("=")[1].strip()
-        finally:
-            return distro_name
+        distro_name = output.split("=")[1].strip()
+    return distro_name
 
 
 def get_guest_distro_info(vm, serial=False):
@@ -4662,12 +4662,13 @@ def get_sosreport(
     except Exception as info:
         if ignore_status:
             LOG.error(info)
+            return None
         else:
             raise exceptions.TestError(info)
     finally:
         if session:
             session.close()
-        return host_path
+    return host_path
 
 
 def asterisk_passwd(passwd):
