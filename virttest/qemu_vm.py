@@ -1692,6 +1692,10 @@ class VM(virt_vm.BaseVM):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
                 set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "pcic")
                 pcics.append(dev)
+                # To avoid SeaBIOS out of IO issues always disable
+                # "io-reserve" on "pcie-root-port"
+                if params.object_params(pcic).get("type") == "pcie-root-port":
+                    pcics[-1].set_param("io-reserve", "0")
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             devices.insert(pcics)
