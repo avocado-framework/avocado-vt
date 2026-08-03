@@ -19,14 +19,16 @@ INTERFACE
 
 """
 
+import logging
 import os
 import subprocess
-import logging
 
 # avocado imports
 from avocado.core import exceptions
+
 try:
     from aexpect import ops_linux as ops
+
     OPS_AVAILABLE = True
 except ImportError:
     log.warning("The session ops of an upgraded aexpect package are not available")
@@ -35,8 +37,7 @@ except ImportError:
 # custom imports
 from sample_utility import sleep
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -73,9 +74,7 @@ def extract_tarball(params, vm):
     """
     log.info("Enter tutorial test variant one: extract and run a file.")
     tarball_path = os.path.join(
-        params["deployed_test_data_path"],
-        "tutorial_step_2",
-        "check_names.tar.gz"
+        params["deployed_test_data_path"], "tutorial_step_2", "check_names.tar.gz"
     )
 
     # One way to execute commands remotely on the guest VM is to
@@ -85,9 +84,10 @@ def extract_tarball(params, vm):
 
     # A sanity check just in case (use entire hash output to deal with CentOS locale problems)
     if params["md5sum"] not in hash_out:
-        raise exceptions.TestError("MD5 checksum mismatch of file %s: "
-                                   "expected %s, got:\n%s"
-                                   % (tarball_path, params["md5sum"], hash_out))
+        raise exceptions.TestError(
+            "MD5 checksum mismatch of file %s: "
+            "expected %s, got:\n%s" % (tarball_path, params["md5sum"], hash_out)
+        )
 
     vm.session.cmd("tar -xf %s -C %s" % (tarball_path, TARBALL_DESTINATION))
 
@@ -104,11 +104,7 @@ def run_extracted_script(params, vm):
     """
     scriptdir = params["script"]
     scriptname = scriptdir + ".sh"
-    scriptabspath = os.path.join(
-        TARBALL_DESTINATION,
-        scriptdir,
-        scriptname
-    )
+    scriptabspath = os.path.join(TARBALL_DESTINATION, scriptdir, scriptname)
 
     # The easiest and most universal way to run a command on a vm is using its
     # session (usually one but more available after additional logins)
@@ -118,8 +114,10 @@ def run_extracted_script(params, vm):
         # to be executed on a guest VM. This can be considered another way to remotely
         # run operations on a guest.
         if not ops.is_regular_file(vm.session, scriptabspath):
-            raise exceptions.TestError("Expected file %s to have been extracted, "
-                                       "but it doesn't exist." % scriptabspath)
+            raise exceptions.TestError(
+                "Expected file %s to have been extracted, "
+                "but it doesn't exist." % scriptabspath
+            )
         else:
             log.info("The extracted script was also verified through session ops")
 
@@ -151,8 +149,10 @@ def check_files(params, vm):
         if OPS_AVAILABLE:
             result2 = ops.is_regular_file(vm.session, fullpath)
             assert result == result2
-        log.info(f"  - Verifying the presence of file {fullpath} -> "
-                 f"{result and 'exists' or 'nil'}.")
+        log.info(
+            f"  - Verifying the presence of file {fullpath} -> "
+            f"{result and 'exists' or 'nil'}."
+        )
         return result
 
     missing = [f for f in must_exist if not aux(f)]
@@ -161,18 +161,29 @@ def check_files(params, vm):
     if missing and unwanted:
         log.info("Unluckily, we encountered both unwanted and missing files.")
         raise exceptions.TestFail(
-            "%d mandatory files not found in path %s: \"%s\";\n"
-            "%d unwanted files in path %s: \"%s\"."
-            % (len(missing), files_prefix, ", ".join(missing),
-               len(unwanted), files_prefix, ", ".join(unwanted)))
+            '%d mandatory files not found in path %s: "%s";\n'
+            '%d unwanted files in path %s: "%s".'
+            % (
+                len(missing),
+                files_prefix,
+                ", ".join(missing),
+                len(unwanted),
+                files_prefix,
+                ", ".join(unwanted),
+            )
+        )
     elif missing:
         log.info("Unluckily, some required files were missing.")
-        raise exceptions.TestFail("%d mandatory files not found in path %s: \"%s\"."
-                                  % (files_prefix, len(missing), ", ".join(missing)))
+        raise exceptions.TestFail(
+            '%d mandatory files not found in path %s: "%s".'
+            % (files_prefix, len(missing), ", ".join(missing))
+        )
     elif unwanted:
         log.info("Unluckily, we tripped over files we really struggled to avoid.")
-        raise exceptions.TestFail("%d unwanted files in path %s: \"%s\"."
-                                  % (files_prefix, len(unwanted), ", ".join(unwanted)))
+        raise exceptions.TestFail(
+            '%d unwanted files in path %s: "%s".'
+            % (files_prefix, len(unwanted), ", ".join(unwanted))
+        )
 
 
 ###############################################################################

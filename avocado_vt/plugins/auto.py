@@ -24,12 +24,13 @@ INTERFACE
 
 """
 
-import os
 import argparse
+import os
 
-from avocado.core.settings import settings
-from avocado.core.output import LOG_UI, LOG_JOB as log
+from avocado.core.output import LOG_JOB as log
+from avocado.core.output import LOG_UI
 from avocado.core.plugin_interfaces import CLI
+from avocado.core.settings import settings
 
 from virttest import cmd_parser
 

@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,docstring-first-line-empty,import-outside-toplevel,logging-fstring-interpolation,missing-param-doc,missing-raises-doc,no-else-continue,no-else-raise,redefined-builtin,too-many-branches,too-many-statements,unnecessary-pass,unused-import,use-implicit-booleaness-not-comparison-to-zero
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,12 +26,12 @@ INTERFACE
 
 """
 
-import os
-from typing import Any
-from typing import Generator
 import logging as log
+import os
+from typing import Any, Generator
 
 from avocado.core import exceptions
+
 from avocado_vt.test import VirtTest
 from virttest.utils_env import Env
 from virttest.utils_params import Params
@@ -204,7 +205,7 @@ def _state_check_chain(
         state_params["check_opts"] = "soft_boot=no"
         state_params["soft_boot"] = "no"
 
-    # restrict inner call parameteric object types and names
+    # restrict inner call parametric object types and names
     composite_types = params_obj_type.split("/")
     composite_names = params_obj_name.split("/")
     for composite_type, composite_name in zip(composite_types, composite_names):

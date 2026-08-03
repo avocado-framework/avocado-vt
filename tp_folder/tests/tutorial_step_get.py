@@ -12,9 +12,9 @@ INTERFACE
 
 """
 
-import time
-import os
 import logging
+import os
+import time
 
 # avocado imports
 from avocado.core import exceptions
@@ -22,8 +22,7 @@ from avocado.core import exceptions
 # custom imports
 from sample_utility import sleep
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################

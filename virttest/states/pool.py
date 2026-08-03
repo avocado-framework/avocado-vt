@@ -25,23 +25,23 @@ INTERFACE
 
 """
 
+import contextlib
+import errno
+import fcntl
+import json
+import logging as log
 import os
+import shutil
 import time
 from typing import Any
-import logging as log
 
-import shutil
-import contextlib
-import fcntl
-import errno
-import json
-
-from aexpect import remote, ops_linux as ops
+from aexpect import ops_linux as ops
+from aexpect import remote
 from aexpect.client import RemoteSession
 from avocado.utils import crypto
-from virttest.utils_params import Params
 
 from virttest.qemu_storage import QemuImg
+from virttest.utils_params import Params
 
 from .setup import StateBackend
 

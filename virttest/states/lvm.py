@@ -30,16 +30,16 @@ INTERFACE
 
 """
 
+import logging
 import os
 import re
-import logging
 import shutil
 import time
 from typing import Any
 
 from avocado.core import exceptions
-from avocado.utils import process
-from avocado.utils import lv_utils
+from avocado.utils import lv_utils, process
+
 from virttest import env_process
 from virttest.utils_params import Params
 

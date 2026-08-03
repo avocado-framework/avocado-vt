@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,docstring-first-line-empty,import-outside-toplevel,missing-raises-doc,missing-return-doc,too-many-branches,too-many-locals,too-many-statements,ungrouped-imports,unused-argument,unused-import,use-implicit-booleaness-not-comparison-to-string
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,16 +26,17 @@ INTERFACE
 
 """
 
-import sys
+import logging
 import os
 import re
+import sys
 from typing import Any, Callable
-import logging
 
 from avocado.core.settings import settings
+
+from avocado_vt.test import VirtTest
 from virttest import env_process
 from virttest.utils_env import Env
-from avocado_vt.test import VirtTest
 from virttest.utils_params import Params
 
 from . import params_parser as param
@@ -90,7 +92,7 @@ def params_from_cmd(config: Params) -> None:
                 f"must be of the form <key>=<val>"
             )
         key, value = re_param.group(1, 2)
-        if key == "only" or key == "no":
+        if key in ("only", "no"):
             # detect if this is the primary restriction to escape defaults
             for variant in re.split(r",|\.|\.\.", value):
                 if variant in available_restrictions:
@@ -194,7 +196,7 @@ def params_from_cmd(config: Params) -> None:
     )
 
     # set default off and on state backends
-    from .states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
+    from .states import btrfs, lvm, lxc, pool, qcow2, ramfile, vmnet
 
     ss.BACKENDS = {
         "qcow2": qcow2.QCOW2Backend,

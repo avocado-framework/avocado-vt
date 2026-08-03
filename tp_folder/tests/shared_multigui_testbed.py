@@ -28,16 +28,15 @@ INTERFACE
 
 """
 
-import sys
-import random
-from PyQt4 import QtGui, QtCore
 import logging
+import random
+import sys
 
 # custom imports
-from multi_gui_utils import GUITestGenerator, Windows, Linux
+from multi_gui_utils import GUITestGenerator, Linux, Windows
+from PyQt4 import QtCore, QtGui
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -63,8 +62,8 @@ def stress_test(gui, name, *args):
 
     def interrupted():
         gui.button_run.setText("Run")
-        gui.disconnect(gui.button_run, QtCore.SIGNAL('clicked()'), interrupt)
-        gui.connect(gui.button_run, QtCore.SIGNAL('clicked()'), gui.run)
+        gui.disconnect(gui.button_run, QtCore.SIGNAL("clicked()"), interrupt)
+        gui.connect(gui.button_run, QtCore.SIGNAL("clicked()"), gui.run)
         if gui.interrupted:
             log.info("Current stress test interrupted")
             gui.interrupted = False
@@ -72,8 +71,8 @@ def stress_test(gui, name, *args):
             log.info("Current stress test completed")
 
     gui.button_run.setText("Stop")
-    gui.disconnect(gui.button_run, QtCore.SIGNAL('clicked()'), gui.run)
-    gui.connect(gui.button_run, QtCore.SIGNAL('clicked()'), interrupt)
+    gui.disconnect(gui.button_run, QtCore.SIGNAL("clicked()"), gui.run)
+    gui.connect(gui.button_run, QtCore.SIGNAL("clicked()"), interrupt)
 
     if name == "mouse-grid":
         gui.worker = StressTestMouseGrid(gui, *args)
@@ -96,6 +95,7 @@ class StressTestMouseGrid(QtCore.QThread):
 
     Tested functionality: **mouse**
     """
+
     def __init__(self, gui, step=10):
         """
         Construct the stress test.
@@ -111,10 +111,11 @@ class StressTestMouseGrid(QtCore.QThread):
     def run(self):
         """Run the stress test."""
         from guibot.guibot.location import Location
+
         l = Location(0, 0)
-        for i in range(0, 500/self.step):
+        for i in range(0, 500 / self.step):
             l.xpos = 100 + self.step * i
-            for j in range(0, 500/self.step):
+            for j in range(0, 500 / self.step):
                 l.ypos = 100 + self.step * j
                 self.gui.user.click(l)
                 if self.gui.interrupted:
@@ -132,6 +133,7 @@ class StressTestMouseHit(QtCore.QThread):
 
     Tested functionality: **mouse**
     """
+
     def __init__(self, gui, trials=100):
         """
         Construct the stress test.
@@ -147,6 +149,7 @@ class StressTestMouseHit(QtCore.QThread):
     def run(self):
         """Run the stress test."""
         from guibot.guibot.location import Location
+
         l = Location(100, 100)
         for i in range(self.trials):
             log.info(f"Performing hover-click hit {i}")
@@ -169,6 +172,7 @@ class StressTestAllKeys(QtCore.QThread):
 
     Tested functionality: **keyboard**
     """
+
     def __init__(self, gui):
         """
         Construct the stress test.
@@ -207,6 +211,7 @@ class StressTestCustom(QtCore.QThread):
 
     Tested functionality: **mouse, keyboard, GUI control, etc.**
     """
+
     def __init__(self, gui, visual_os="windows"):
         """
         Construct the stress test.
@@ -249,6 +254,7 @@ class StressTestCustom(QtCore.QThread):
 # TEST MAIN
 ###############################################################################
 
+
 def run(test, params, env):
     """
     Main test run.
@@ -266,16 +272,18 @@ def run(test, params, env):
     vmnet = env.get_vmnet()
     mt = GUITestGenerator(vmnet)
     mt.show()
-    mt.text_edit.setText("self.stress_test(self, 'mouse-grid', 10)\u2029"
-                         "self.stress_test(self, 'mouse-hit', 100)\u2029"
-                         "self.stress_test(self, 'all-keys')\u2029"
-                         "self.stress_test(self, 'custom')\u2029")
+    mt.text_edit.setText(
+        "self.stress_test(self, 'mouse-grid', 10)\u2029"
+        "self.stress_test(self, 'mouse-hit', 100)\u2029"
+        "self.stress_test(self, 'all-keys')\u2029"
+        "self.stress_test(self, 'custom')\u2029"
+    )
     mt.stress_test = stress_test
 
     log.info("GUI test generator's GUI initiated")
     # TODO: Once this is converted from pseudotest to an actual tool,
     # we will be free to do this
-    #sys.exit(app.exec_())
+    # sys.exit(app.exec_())
     app.exec_()
 
     log.info("Testbed completed successfully!")

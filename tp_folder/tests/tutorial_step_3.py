@@ -19,28 +19,31 @@ INTERFACE
 
 """
 
-import time
-import os
 import logging
+import os
+import time
 
 # avocado imports
 from avocado.core import exceptions
+
 from virttest import error_context
+
 try:
     from aexpect import remote_door as door
+
     DOOR_AVAILABLE = True
 except ImportError:
     log.warning("The remote door of an upgraded aexpect package is not available")
     import types
-    door = types.ModuleType('door')
+
+    door = types.ModuleType("door")
     door.run_remotely = lambda x: x
     DOOR_AVAILABLE = False
 
 # custom imports
 from sample_utility import sleep
 
-
-log = logging = logging.getLogger('avocado.test.log')
+log = logging = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -63,6 +66,7 @@ def check_walk(params):
 
     # This code is ran remotely so no imports on the host are valid
     import os
+
     for base_path, dir_names, file_names in os.walk(walk_prefix):
         if walk_goal in file_names:
             break
@@ -117,7 +121,9 @@ def run(test, params, env):
         # which provides us with different functions to share code between
         # the host machine and a guest virtual machine (vm).
         if not DOOR_AVAILABLE:
-            raise exceptions.TestSkipError("The remote door of an upgraded aexpect package is not available")
+            raise exceptions.TestSkipError(
+                "The remote door of an upgraded aexpect package is not available"
+            )
         door.DUMP_CONTROL_DIR = test.logdir
         door.REMOTE_PYTHON_BINARY = "python3.6"
 
@@ -153,12 +159,15 @@ def run(test, params, env):
                 "subprocess",
                 "call",
                 "dir " + client_vm.params["tmp_dir"].replace("\\", r"\\"),
-                shell=True
+                shell=True,
             )
 
         # A bit more flexible way to run code on the vm is using a decorated
         # function with multiple locally written but remotely executed lines.
         if params.get_boolean("remote_decorator_check"):
+            # The decorator prepends the remote session to the wrapped call.
+            # Pylint only sees the original one-argument function signature.
+            # pylint: disable-next=too-many-function-args
             check_walk(server_vm.session, params)
 
         # One advanced but last resort method is to use a control file which is
@@ -169,26 +178,41 @@ def run(test, params, env):
             # dicts for one time use by th control file.
             control_path = server_vm.params["control_file"]
             control_path = door.set_subcontrol_parameter(control_path, "EXTRA_SLEEP", 2)
-            control_path = door.set_subcontrol_parameter(control_path, "ROOT_DIR", params["root_dir"])
-            control_path = door.set_subcontrol_parameter_list(control_path, "DETECT_DIRS", ["utils", "packages"])
-            control_path = door.set_subcontrol_parameter_dict(control_path, "SIMPLE_PARAMS",
-                                                              {"client": server_vm.params["client"],
-                                                               "server": server_vm.params["server"]})
+            control_path = door.set_subcontrol_parameter(
+                control_path, "ROOT_DIR", params["root_dir"]
+            )
+            control_path = door.set_subcontrol_parameter_list(
+                control_path, "DETECT_DIRS", ["utils", "packages"]
+            )
+            control_path = door.set_subcontrol_parameter_dict(
+                control_path,
+                "SIMPLE_PARAMS",
+                {
+                    "client": server_vm.params["client"],
+                    "server": server_vm.params["server"],
+                },
+            )
             door.run_subcontrol(server_vm.session, control_path)
             # It becomes more intricate but possible to share the Cartesian
             # configuration between the host test and the control file and thus
             # allowing for return arguments from the control but we need a remote
             # object backend as additional satisfied dependency.
             if host_serialization and guest_serialization:
-                log.info("Performing extra hostname check using shared parameters control")
-                control_path = server_vm.params["control_file"].replace("step_3", "step_3.2")
-                control_path = door.set_subcontrol_parameter_object(control_path,
-                                                                    "virttest.utils_params.Params",
-                                                                    server_vm.params)
+                log.info(
+                    "Performing extra hostname check using shared parameters control"
+                )
+                control_path = server_vm.params["control_file"].replace(
+                    "step_3", "step_3.2"
+                )
+                control_path = door.set_subcontrol_parameter_object(
+                    control_path, "virttest.utils_params.Params", server_vm.params
+                )
                 door.run_subcontrol(server_vm.session, control_path)
                 failed_checks = server_vm.params["failed_checks"]
                 if failed_checks > 0:
-                    raise exceptions.TestFail("%s hostname checks failed" % failed_checks)
+                    raise exceptions.TestFail(
+                        "%s hostname checks failed" % failed_checks
+                    )
 
         # The highest complexity but most permanent approach (supports multiple
         # calls switching back and forth from guest to host) is using a remote
@@ -198,11 +222,15 @@ def run(test, params, env):
         # remote objects (we usually use pyro and pickle or serpent serializers).
         if params.get_boolean("remote_object_check"):
             if not guest_serialization or not host_serialization:
-                raise exceptions.TestSkipError("The remote door object backend (pyro) is not available")
-            sysmisc = door.get_remote_object("sample_utility",
-                                             session=server_vm.wait_for_login(),
-                                             host=server_vm.params["ip_" + server_vm.params["ro_nic"]],
-                                             port=server_vm.params["ro_port"])
+                raise exceptions.TestSkipError(
+                    "The remote door object backend (pyro) is not available"
+                )
+            sysmisc = door.get_remote_object(
+                "sample_utility",
+                session=server_vm.wait_for_login(),
+                host=server_vm.params["ip_" + server_vm.params["ro_nic"]],
+                port=server_vm.params["ro_port"],
+            )
             sysmisc.sleep(5)
 
     log.info("It would appear that the test terminated in a civilized manner.")

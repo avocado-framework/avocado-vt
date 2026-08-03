@@ -1,3 +1,4 @@
+# pylint: disable=docstring-first-line-empty,duplicate-code,logging-fstring-interpolation,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-return,redefined-builtin,unused-variable,use-implicit-booleaness-not-comparison-to-zero
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,13 +26,13 @@ INTERFACE
 
 """
 
+import logging as log
 import os
 from typing import Any
-import logging as log
 
 from virttest import env_process
-from virttest.virt_vm import VMCreateError
 from virttest.utils_params import Params
+from virttest.virt_vm import VMCreateError
 
 from .pool import SourcedStateBackend
 
@@ -66,7 +67,7 @@ class RamfileBackend(SourcedStateBackend):
             if len(images_states) == 0:
                 images_states = image_snapshots
             else:
-                images_states = images_states.intersect(image_snapshots)
+                images_states = images_states.intersection(image_snapshots)
 
         states = []
         for snapshot in snapshots:

@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,differing-param-doc,docstring-first-line-empty,duplicate-code,import-outside-toplevel,logging-fstring-interpolation,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-continue,no-else-raise,no-self-use,pointless-string-statement,redefined-argument-from-local,redefined-builtin,too-many-arguments,too-many-branches,too-many-instance-attributes,too-many-lines,too-many-locals,too-many-positional-arguments,too-many-public-methods,too-many-statements,unnecessary-dunder-call,unused-import,unused-variable,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,useless-object-inheritance
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -31,21 +32,21 @@ INTERFACE
 
 from __future__ import annotations
 
+import asyncio
+import collections
+import itertools
+import logging as log
 import os
 import re
 import time
-from typing import Any
-import logging as log
-import collections
-import itertools
-import asyncio
+from typing import Any, Callable
 
 from virttest.utils_params import Params
 
 from .. import params_parser as param
-from . import PrefixTreeNode, PrefixTree, TestNode
-from . import TestSwarm, TestWorker
-from . import TestObject, NetObject, VMObject, ImageObject
+from .node import PrefixTree, PrefixTreeNode, TestNode
+from .object import ImageObject, NetObject, TestObject, VMObject
+from .worker import TestSwarm, TestWorker
 
 logging = log.getLogger("avocado.job." + __name__)
 
@@ -125,7 +126,7 @@ class TestGraph(object):
 
         :param objects: candidate test objects
         """
-        if not (isinstance(objects, list) or isinstance(objects, tuple)):
+        if not isinstance(objects, (list, tuple)):
             objects = [objects]
         for test_object in objects:
             # TODO: consider separate flat-composite inclusion like:
@@ -139,7 +140,7 @@ class TestGraph(object):
 
         :param nodes: candidate test nodes
         """
-        if not (isinstance(nodes, list) or isinstance(nodes, tuple)):
+        if not isinstance(nodes, (list, tuple)):
             nodes = [nodes]
         for test_node in nodes:
             self.nodes_index.insert(test_node)
@@ -151,7 +152,7 @@ class TestGraph(object):
 
         :param workers: candidate test workers
         """
-        if not (isinstance(workers, list) or isinstance(workers, tuple)):
+        if not isinstance(workers, (list, tuple)):
             workers = [workers]
         for test_worker in workers:
             self.workers[test_worker.params["shortname"]] = test_worker
@@ -165,15 +166,13 @@ class TestGraph(object):
         :param dump_dir: directory for the dump image
         :param filename: file to load the setup information from
         """
-        with open(os.path.join(dump_dir, filename), "r") as f:
+        with open(os.path.join(dump_dir, filename), "r", encoding="utf-8") as f:
             str_list = f.read()
         setup_list = re.findall(r"(\w+-\w+) (\d) (\d)", str_list)
-        for i in range(len(setup_list)):
-            assert (
-                self.nodes[i].long_prefix == setup_list[i][0]
-            ), "Corrupted setup list file"
-            self.nodes[i].should_run = lambda x: bool(int(setup_list[i][1]))
-            self.nodes[i].should_clean = lambda x: bool(int(setup_list[i][2]))
+        for i, setup in enumerate(setup_list):
+            assert self.nodes[i].long_prefix == setup[0], "Corrupted setup list file"
+            self.nodes[i].should_run = lambda _slot, value=setup[1]: bool(int(value))
+            self.nodes[i].should_clean = lambda _slot, value=setup[2]: bool(int(value))
 
     def save_setup_list(self, dump_dir: str, filename: str = "setup_list") -> None:
         """
@@ -187,7 +186,7 @@ class TestGraph(object):
             should_run = 1 if test.should_run() else 0
             should_clean = 1 if test.should_clean() else 0
             str_list += "%s %i %i\n" % (test.long_prefix, should_run, should_clean)
-        with open(os.path.join(dump_dir, filename), "w") as f:
+        with open(os.path.join(dump_dir, filename), "w", encoding="utf-8") as f:
             f.write(str_list)
 
     def report_progress(self) -> None:
@@ -271,7 +270,7 @@ class TestGraph(object):
         object_name: str = "",
         worker_name: str = "",
         flag_type: str = "run",
-        flag: function = lambda self, slot: slot not in self.workers,
+        flag: Callable = lambda self, slot: slot not in self.workers,
         skip_parents: bool = False,
         skip_children: bool = False,
     ) -> None:
@@ -343,7 +342,7 @@ class TestGraph(object):
         self,
         graph: TestGraph,
         flag_type: str = "run",
-        flag: function = lambda self, slot: slot not in self.workers,
+        flag: Callable = lambda self, slot: slot not in self.workers,
         skip_object_roots: bool = False,
         skip_shared_root: bool = False,
     ) -> None:
@@ -431,6 +430,8 @@ class TestGraph(object):
                 regex = (
                     r"^(?!.*(\.|^)(" + or_restriction.replace(",", "|") + r")(\.|$))"
                 )
+            else:
+                continue
             filtered_objects = self.get_objects(
                 param_val=regex, subset=filtered_objects
             )
@@ -508,6 +509,8 @@ class TestGraph(object):
                 regex = (
                     r"^(?!.*(\.|^)(" + or_restriction.replace(",", "|") + r")(\.|$))"
                 )
+            else:
+                continue
             filtered_nodes = self.get_nodes(param_val=regex, subset=filtered_nodes)
         return TestGraph._unique_filter(filtered_nodes) if unique else filtered_nodes
 
@@ -669,10 +672,10 @@ class TestGraph(object):
             test_object.update_restrs(component_restrs)
             # apply only_vm restrictions for nets during runtime (after initial parsing)
             if category == "nets":
-                for key in test_object.restrs.keys():
-                    if test_object.restrs.get(key, "") != "" and key in test_object.id:
+                for key, object_restriction in test_object.restrs.items():
+                    if object_restriction and key in test_object.id:
                         filtered_objects = TestGraph().get_objects_by_restr(
-                            test_object.restrs[key], subset=[test_object]
+                            object_restriction, subset=[test_object]
                         )
                         if len(filtered_objects) == 0:
                             raise param.EmptyCartesianProduct(
@@ -890,7 +893,7 @@ class TestGraph(object):
 
         config = param.Reparsable()
         config.parse_next_batch(
-            base_file=f"sets.cfg", base_str=restriction, base_dict=params
+            base_file="sets.cfg", base_str=restriction, base_dict=params
         )
 
         test_nodes = []
@@ -1750,7 +1753,9 @@ class TestGraph(object):
                 "all..internal..noop", setup_dict, unique=True
             )
         except RuntimeError as error:
-            raise RuntimeError(f"A unique shared root must be parsable: {error}")
+            raise RuntimeError(
+                f"A unique shared root must be parsable: {error}"
+            ) from error
         logging.debug(f"Parsed shared root {root_for_all.params['shortname']}")
         self.new_nodes(root_for_all)
 
@@ -2127,9 +2132,11 @@ class TestGraph(object):
                 if next in occupied_at:
                     if occupied_wait > test_duration:
                         logging.warning(
-                            f"Worker {worker.id} spent {occupied_wait:.2f}>{test_duration:.2f} seconds "
-                            f"waiting for occupied nodes "
-                            + ", ".join(n.id for n in occupied_at)
+                            "Worker %s spent %.2f>%.2f seconds waiting for occupied nodes %s",
+                            worker.id,
+                            occupied_wait,
+                            test_duration,
+                            ", ".join(n.id for n in occupied_at),
                         )
                         # allow reentrancy as best shot at recovering from an otherwise fatal error
                         next.params["max_concurrent_tries"] = (

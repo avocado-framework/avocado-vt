@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 
+import re
+import shutil
 import unittest
 import unittest.mock as mock
-import shutil
-import re
 
 from avocado import Test
 from avocado.core import exceptions
-from virttest import utils_params
-from virttest import vmnet
-from virttest.vmnet import VMNetwork
 
-import unittest_importer
+from virttest import utils_params, vmnet
+from virttest.vmnet import VMNetwork
 
 
 class VMNetworkTest(Test):
@@ -39,7 +37,7 @@ class VMNetworkTest(Test):
         self.run_params["netdst_b1_vm2"] = "virbr2"
         self.run_params["netdst_b2_vm2"] = "virbr3"
 
-        self.env = mock.MagicMock(name='env')
+        self.env = mock.MagicMock(name="env")
         self.env.get_vm = mock.MagicMock(side_effect=self._get_mock_vm)
         self.env.create_vm = mock.MagicMock(side_effect=self._create_mock_vm)
 
@@ -56,8 +54,9 @@ class VMNetworkTest(Test):
 
     def _create_mock_vms(self):
         for vm_name in self.run_params.objects("vms"):
-            self._create_mock_vm("qemu", None, vm_name,
-                                 self.run_params.object_params(vm_name), "")
+            self._create_mock_vm(
+                "qemu", None, vm_name, self.run_params.object_params(vm_name), ""
+            )
 
     def test_representation(self):
         """Test for correct vm network and component representations."""
@@ -127,7 +126,7 @@ class VMNetworkTest(Test):
         self.vmnet = VMNetwork(self.run_params, self.env)
         node1.interfaces.clear()
         # BUG: this test succeeds in full module run locally but not in the CI
-        #with self.assertRaises(IndexError):
+        # with self.assertRaises(IndexError):
         #    self.vmnet.integrate_node(node1)
 
     def test_reattach_interface(self):
@@ -138,9 +137,9 @@ class VMNetworkTest(Test):
         self.vmnet.reattach_interface(client, server)
         self.vmnet.reattach_interface(client, server, proxy_nic="b1")
 
-    @mock.patch('virttest.vmnet.network.os.rename', mock.Mock(return_value=0))
-    @mock.patch('virttest.vmnet.network.process', mock.Mock())
-    @mock.patch('virttest.vmnet.network.utils_net')
+    @mock.patch("virttest.vmnet.network.os.rename", mock.Mock(return_value=0))
+    @mock.patch("virttest.vmnet.network.process", mock.Mock())
+    @mock.patch("virttest.vmnet.network.utils_net")
     def test_host_networking(self, utils_net):
         """Test host networking services like DHCP, DNS, firewall, and bridges."""
         self.run_params["ip_provider_b1_vm1"] = "10.1.0.254"
@@ -230,179 +229,210 @@ class VMNetworkTest(Test):
         """Test a site-to-site tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
         # tunnel types
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.right_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.left_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.left_params['vpnconn_peer_type'], 'IP')
-        self.assertEqual(tunnel.right_params['vpnconn_peer_type'], 'IP')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.right_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.left_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.left_params["vpnconn_peer_type"], "IP")
+        self.assertEqual(tunnel.right_params["vpnconn_peer_type"], "IP")
 
         # tunnel end points/sites
-        self.assertEqual(tunnel.left_params['vpnconn_remote_net'], '172.18.0.0')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_net'], '172.17.0.0')
-        self.assertEqual(tunnel.left_params['vpnconn_remote_netmask'], '255.255.0.0')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_netmask'], '255.255.0.0')
-        self.assertEqual(tunnel.left_params['vpnconn_peer_ip'], '10.2.0.1')
-        self.assertEqual(tunnel.right_params['vpnconn_peer_ip'], '10.1.0.1')
-        self.assertEqual(tunnel.left_params['vpnconn_activation'], 'ALWAYS')
-        self.assertEqual(tunnel.right_params['vpnconn_activation'], 'ALWAYS')
+        self.assertEqual(tunnel.left_params["vpnconn_remote_net"], "172.18.0.0")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_net"], "172.17.0.0")
+        self.assertEqual(tunnel.left_params["vpnconn_remote_netmask"], "255.255.0.0")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_netmask"], "255.255.0.0")
+        self.assertEqual(tunnel.left_params["vpnconn_peer_ip"], "10.2.0.1")
+        self.assertEqual(tunnel.right_params["vpnconn_peer_ip"], "10.1.0.1")
+        self.assertEqual(tunnel.left_params["vpnconn_activation"], "ALWAYS")
+        self.assertEqual(tunnel.right_params["vpnconn_activation"], "ALWAYS")
 
         # authentication
-        self.assertEqual(tunnel.left_params['vpnconn_key_type'], 'NONE')
-        self.assertEqual(tunnel.right_params['vpnconn_key_type'], 'NONE')
+        self.assertEqual(tunnel.left_params["vpnconn_key_type"], "NONE")
+        self.assertEqual(tunnel.right_params["vpnconn_key_type"], "NONE")
 
         # other
         self.assertTrue(tunnel.connects_nodes(tunnel.left, tunnel.right))
         self.assertIn("[tunnel]", str(tunnel))
 
-    @mock.patch.object(vmnet.VMTunnel, 'configure_on_endpoint', mock.MagicMock())
+    @mock.patch.object(vmnet.VMTunnel, "configure_on_endpoint", mock.MagicMock())
     def test_configure_tunnel_between_vms_internetip(self):
         """Test a point-to-site tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "internetip"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "internetip"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_lan_type'], 'INTERNETIP')
-        self.assertEqual(tunnel.right_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.left_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_type'], 'EXTERNALIP')
-        self.assertEqual(tunnel.left_params['vpnconn_peer_type'], 'IP')
-        self.assertEqual(tunnel.right_params['vpnconn_peer_type'], 'IP')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_lan_type"], "INTERNETIP")
+        self.assertEqual(tunnel.right_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.left_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_type"], "EXTERNALIP")
+        self.assertEqual(tunnel.left_params["vpnconn_peer_type"], "IP")
+        self.assertEqual(tunnel.right_params["vpnconn_peer_type"], "IP")
 
-    @mock.patch.object(vmnet.VMTunnel, 'configure_on_endpoint', mock.MagicMock())
+    @mock.patch.object(vmnet.VMTunnel, "configure_on_endpoint", mock.MagicMock())
     def test_configure_tunnel_between_vms_externalip(self):
         """Test a site-to-point tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "externalip"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "externalip"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.right_params['vpnconn_lan_type'], 'INTERNETIP')
-        self.assertEqual(tunnel.left_params['vpnconn_remote_type'], 'EXTERNALIP')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.left_params['vpnconn_peer_type'], 'IP')
-        self.assertEqual(tunnel.right_params['vpnconn_peer_type'], 'IP')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.right_params["vpnconn_lan_type"], "INTERNETIP")
+        self.assertEqual(tunnel.left_params["vpnconn_remote_type"], "EXTERNALIP")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.left_params["vpnconn_peer_type"], "IP")
+        self.assertEqual(tunnel.right_params["vpnconn_peer_type"], "IP")
 
-    @mock.patch.object(vmnet.VMTunnel, 'configure_on_endpoint', mock.MagicMock())
+    @mock.patch.object(vmnet.VMTunnel, "configure_on_endpoint", mock.MagicMock())
     def test_configure_tunnel_between_vms_dynip(self):
         """Test a roadwarrior tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "dynip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "dynip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.right_params['vpnconn_lan_type'], 'NIC')
-        self.assertEqual(tunnel.left_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.right_params['vpnconn_remote_type'], 'CUSTOM')
-        self.assertEqual(tunnel.left_params['vpnconn_peer_type'], 'DYNIP')
-        self.assertEqual(tunnel.right_params['vpnconn_peer_type'], 'IP')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.right_params["vpnconn_lan_type"], "NIC")
+        self.assertEqual(tunnel.left_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.right_params["vpnconn_remote_type"], "CUSTOM")
+        self.assertEqual(tunnel.left_params["vpnconn_peer_type"], "DYNIP")
+        self.assertEqual(tunnel.right_params["vpnconn_peer_type"], "IP")
 
     def test_configure_tunnel_between_vms_psk_basic(self):
         """Test a PSK tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth={"type": "psk", "psk": "the secret",
-                                                      "left_id": "arnold@vm1", "right_id": "arnold@vm2"})
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth={
+                "type": "psk",
+                "psk": "the secret",
+                "left_id": "arnold@vm1",
+                "right_id": "arnold@vm2",
+            },
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_key_type'], 'PSK')
-        self.assertEqual(tunnel.right_params['vpnconn_key_type'], 'PSK')
-        self.assertEqual(tunnel.left_params['vpnconn_psk'], 'the secret')
-        self.assertEqual(tunnel.right_params['vpnconn_psk'], 'the secret')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_own_id'], 'arnold@vm1')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_own_id'], 'arnold@vm2')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_own_id_type'], 'CUSTOM')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_own_id_type'], 'CUSTOM')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_foreign_id'], 'arnold@vm2')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_foreign_id'], 'arnold@vm1')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_foreign_id_type'], 'CUSTOM')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_foreign_id_type'], 'CUSTOM')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_key_type"], "PSK")
+        self.assertEqual(tunnel.right_params["vpnconn_key_type"], "PSK")
+        self.assertEqual(tunnel.left_params["vpnconn_psk"], "the secret")
+        self.assertEqual(tunnel.right_params["vpnconn_psk"], "the secret")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_own_id"], "arnold@vm1")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_own_id"], "arnold@vm2")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_own_id_type"], "CUSTOM")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_own_id_type"], "CUSTOM")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_foreign_id"], "arnold@vm2")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_foreign_id"], "arnold@vm1")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_foreign_id_type"], "CUSTOM")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_foreign_id_type"], "CUSTOM")
 
     def test_configure_tunnel_between_vms_psk_ip(self):
         """Test a PSK (IP type) tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth={"type": "psk", "psk": "the secret",
-                                                      "left_id": "", "right_id": ""})
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth={"type": "psk", "psk": "the secret", "left_id": "", "right_id": ""},
+        )
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_key_type'], 'PSK')
-        self.assertEqual(tunnel.right_params['vpnconn_key_type'], 'PSK')
-        self.assertEqual(tunnel.left_params['vpnconn_psk'], 'the secret')
-        self.assertEqual(tunnel.right_params['vpnconn_psk'], 'the secret')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_own_id'], '')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_own_id'], '')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_own_id_type'], 'IP')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_own_id_type'], 'IP')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_foreign_id'], '')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_foreign_id'], '')
-        self.assertEqual(tunnel.left_params['vpnconn_psk_foreign_id_type'], 'IP')
-        self.assertEqual(tunnel.right_params['vpnconn_psk_foreign_id_type'], 'IP')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_key_type"], "PSK")
+        self.assertEqual(tunnel.right_params["vpnconn_key_type"], "PSK")
+        self.assertEqual(tunnel.left_params["vpnconn_psk"], "the secret")
+        self.assertEqual(tunnel.right_params["vpnconn_psk"], "the secret")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_own_id"], "")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_own_id"], "")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_own_id_type"], "IP")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_own_id_type"], "IP")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_foreign_id"], "")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_foreign_id"], "")
+        self.assertEqual(tunnel.left_params["vpnconn_psk_foreign_id_type"], "IP")
+        self.assertEqual(tunnel.right_params["vpnconn_psk_foreign_id_type"], "IP")
 
     def test_configure_tunnel_between_vms_pubkey(self):
         """Test a public key tunnel setup and end-configuration between vms."""
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
         try:
-            self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                    local1={"type": "nic", "nic": "lan_nic"},
-                                                    remote1={"type": "custom", "nic": "lan_nic"},
-                                                    peer1={"type": "ip", "nic": "internet_nic"},
-                                                    auth={"type": "pubkey"})
+            self.vmnet.configure_tunnel_between_vms(
+                "vpn1",
+                self.mock_vms["vm1"],
+                self.mock_vms["vm2"],
+                local1={"type": "nic", "nic": "lan_nic"},
+                remote1={"type": "custom", "nic": "lan_nic"},
+                peer1={"type": "ip", "nic": "internet_nic"},
+                auth={"type": "pubkey"},
+            )
         except NotImplementedError:
             pass
         tunnel = self.vmnet.tunnels["vpn1"]
 
-        self.assertEqual(tunnel.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel.left_params['vpnconn_key_type'], 'PUBLIC')
-        self.assertEqual(tunnel.right_params['vpnconn_key_type'], 'PUBLIC')
+        self.assertEqual(tunnel.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel.left_params["vpnconn_key_type"], "PUBLIC")
+        self.assertEqual(tunnel.right_params["vpnconn_key_type"], "PUBLIC")
 
-        self.assertEqual(tunnel.left_params['vpnconn_own_key_name'], 'sample-key')
-        self.assertEqual(tunnel.right_params['vpnconn_foreign_key_name'], 'sample-key')
+        self.assertEqual(tunnel.left_params["vpnconn_own_key_name"], "sample-key")
+        self.assertEqual(tunnel.right_params["vpnconn_foreign_key_name"], "sample-key")
 
     def test_configure_roadwarrior_vpn_on_server(self):
         """Test pure roadwarrior tunnel setup and end-configuration on the server."""
@@ -410,14 +440,18 @@ class VMNetworkTest(Test):
         self.run_params["ip_provider_b1_vm2"] = "10.2.0.1"
         self.vmnet = VMNetwork(self.run_params, self.env)
         try:
-            self.vmnet.configure_roadwarrior_vpn_on_server("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                           local1={"type": "nic", "nic": "lan_nic"},
-                                                           remote1={"type": "modeconfig", "modeconfig_ip": "172.30.0.1"},
-                                                           auth={"type": "pubkey"})
+            self.vmnet.configure_roadwarrior_vpn_on_server(
+                "vpn1",
+                self.mock_vms["vm1"],
+                self.mock_vms["vm2"],
+                local1={"type": "nic", "nic": "lan_nic"},
+                remote1={"type": "modeconfig", "modeconfig_ip": "172.30.0.1"},
+                auth={"type": "pubkey"},
+            )
         except NotImplementedError:
             pass
 
-    @mock.patch.object(vmnet.VMTunnel, 'configure_on_endpoint', mock.MagicMock())
+    @mock.patch.object(vmnet.VMTunnel, "configure_on_endpoint", mock.MagicMock())
     def test_configure_vpn_route(self):
         """Test tunnel routing setup among many vms."""
         self.run_params["vms"] += " vm3"
@@ -426,91 +460,137 @@ class VMNetworkTest(Test):
 
         self._create_mock_vms()
         self.vmnet = VMNetwork(self.run_params, self.env)
-        self.vmnet.configure_tunnel_between_vms("vpn1", self.mock_vms["vm1"], self.mock_vms["vm2"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn1",
+            self.mock_vms["vm1"],
+            self.mock_vms["vm2"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel1 = self.vmnet.tunnels["vpn1"]
-        self.vmnet.configure_tunnel_between_vms("vpn2", self.mock_vms["vm2"], self.mock_vms["vm3"],
-                                                local1={"type": "nic", "nic": "lan_nic"},
-                                                remote1={"type": "custom", "nic": "lan_nic"},
-                                                peer1={"type": "ip", "nic": "internet_nic"},
-                                                auth=None)
+        self.vmnet.configure_tunnel_between_vms(
+            "vpn2",
+            self.mock_vms["vm2"],
+            self.mock_vms["vm3"],
+            local1={"type": "nic", "nic": "lan_nic"},
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         tunnel2 = self.vmnet.tunnels["vpn2"]
 
-        self.vmnet.configure_vpn_route([self.mock_vms["vm1"], self.mock_vms["vm2"], self.mock_vms["vm3"]],
-                                       ["vpn1", "vpn2"],
-                                        remote1={"type": "custom", "nic": "lan_nic"},
-                                        peer1={"type": "ip", "nic": "internet_nic"},
-                                        auth=None)
+        self.vmnet.configure_vpn_route(
+            [self.mock_vms["vm1"], self.mock_vms["vm2"], self.mock_vms["vm3"]],
+            ["vpn1", "vpn2"],
+            remote1={"type": "custom", "nic": "lan_nic"},
+            peer1={"type": "ip", "nic": "internet_nic"},
+            auth=None,
+        )
         route1 = self.vmnet.tunnels["vpn1fwd"]
         route2 = self.vmnet.tunnels["vpn2fwd"]
 
-        self.assertEqual(tunnel1.left_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel1.right_params['vpnconn'], 'vpn1')
-        self.assertEqual(tunnel2.left_params['vpnconn'], 'vpn2')
-        self.assertEqual(tunnel2.right_params['vpnconn'], 'vpn2')
-        self.assertEqual(route1.left_params['vpnconn'], 'vpn1fwd')
-        self.assertEqual(route1.right_params['vpnconn'], 'vpn1fwd')
-        self.assertEqual(route2.right_params['vpnconn'], 'vpn2fwd')
-        self.assertEqual(route2.right_params['vpnconn'], 'vpn2fwd')
+        self.assertEqual(tunnel1.left_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel1.right_params["vpnconn"], "vpn1")
+        self.assertEqual(tunnel2.left_params["vpnconn"], "vpn2")
+        self.assertEqual(tunnel2.right_params["vpnconn"], "vpn2")
+        self.assertEqual(route1.left_params["vpnconn"], "vpn1fwd")
+        self.assertEqual(route1.right_params["vpnconn"], "vpn1fwd")
+        self.assertEqual(route2.right_params["vpnconn"], "vpn2fwd")
+        self.assertEqual(route2.right_params["vpnconn"], "vpn2fwd")
 
-        self.assertEqual(route1.left_params['vpnconn_lan_type'], 'CUSTOM')
-        self.assertEqual(route1.right_params['vpnconn_lan_type'], 'CUSTOM')
-        self.assertEqual(route2.left_params['vpnconn_lan_type'], 'CUSTOM')
-        self.assertEqual(route2.right_params['vpnconn_lan_type'], 'CUSTOM')
+        self.assertEqual(route1.left_params["vpnconn_lan_type"], "CUSTOM")
+        self.assertEqual(route1.right_params["vpnconn_lan_type"], "CUSTOM")
+        self.assertEqual(route2.left_params["vpnconn_lan_type"], "CUSTOM")
+        self.assertEqual(route2.right_params["vpnconn_lan_type"], "CUSTOM")
 
-        self.assertEqual(route1.left_params['vpnconn_remote_type'],
-                         tunnel1.left_params['vpnconn_remote_type'])
-        self.assertEqual(route1.right_params['vpnconn_remote_type'],
-                         tunnel1.right_params['vpnconn_remote_type'])
-        self.assertEqual(route1.left_params['vpnconn_peer_type'],
-                         tunnel1.left_params['vpnconn_peer_type'])
-        self.assertEqual(route1.right_params['vpnconn_peer_type'],
-                         tunnel1.right_params['vpnconn_peer_type'])
+        self.assertEqual(
+            route1.left_params["vpnconn_remote_type"],
+            tunnel1.left_params["vpnconn_remote_type"],
+        )
+        self.assertEqual(
+            route1.right_params["vpnconn_remote_type"],
+            tunnel1.right_params["vpnconn_remote_type"],
+        )
+        self.assertEqual(
+            route1.left_params["vpnconn_peer_type"],
+            tunnel1.left_params["vpnconn_peer_type"],
+        )
+        self.assertEqual(
+            route1.right_params["vpnconn_peer_type"],
+            tunnel1.right_params["vpnconn_peer_type"],
+        )
 
-        self.assertEqual(route2.left_params['vpnconn_remote_type'],
-                         tunnel2.left_params['vpnconn_remote_type'])
-        self.assertEqual(route2.right_params['vpnconn_remote_type'],
-                         tunnel2.right_params['vpnconn_remote_type'])
-        self.assertEqual(route2.left_params['vpnconn_peer_type'],
-                         tunnel2.left_params['vpnconn_peer_type'])
-        self.assertEqual(route2.right_params['vpnconn_peer_type'],
-                         tunnel2.right_params['vpnconn_peer_type'])
+        self.assertEqual(
+            route2.left_params["vpnconn_remote_type"],
+            tunnel2.left_params["vpnconn_remote_type"],
+        )
+        self.assertEqual(
+            route2.right_params["vpnconn_remote_type"],
+            tunnel2.right_params["vpnconn_remote_type"],
+        )
+        self.assertEqual(
+            route2.left_params["vpnconn_peer_type"],
+            tunnel2.left_params["vpnconn_peer_type"],
+        )
+        self.assertEqual(
+            route2.right_params["vpnconn_peer_type"],
+            tunnel2.right_params["vpnconn_peer_type"],
+        )
 
-        self.assertEqual(tunnel1.right_params['vpnconn_remote_net'], '172.17.0.0')
-        self.assertEqual(tunnel2.left_params['vpnconn_remote_net'], '172.19.0.0')
-        self.assertEqual(tunnel1.left_params['vpnconn_remote_net'], '172.18.0.0')
-        self.assertEqual(route1.left_params['vpnconn_remote_net'], '172.19.0.0')
-        self.assertEqual(route1.right_params['vpnconn_remote_net'],
-                         tunnel1.right_params['vpnconn_remote_net'])
-        self.assertEqual(route2.right_params['vpnconn_remote_net'], '172.17.0.0')
-        self.assertEqual(tunnel2.right_params['vpnconn_remote_net'], '172.18.0.0')
-        self.assertEqual(route2.left_params['vpnconn_remote_net'],
-                         tunnel2.left_params['vpnconn_remote_net'])
+        self.assertEqual(tunnel1.right_params["vpnconn_remote_net"], "172.17.0.0")
+        self.assertEqual(tunnel2.left_params["vpnconn_remote_net"], "172.19.0.0")
+        self.assertEqual(tunnel1.left_params["vpnconn_remote_net"], "172.18.0.0")
+        self.assertEqual(route1.left_params["vpnconn_remote_net"], "172.19.0.0")
+        self.assertEqual(
+            route1.right_params["vpnconn_remote_net"],
+            tunnel1.right_params["vpnconn_remote_net"],
+        )
+        self.assertEqual(route2.right_params["vpnconn_remote_net"], "172.17.0.0")
+        self.assertEqual(tunnel2.right_params["vpnconn_remote_net"], "172.18.0.0")
+        self.assertEqual(
+            route2.left_params["vpnconn_remote_net"],
+            tunnel2.left_params["vpnconn_remote_net"],
+        )
 
-        self.assertEqual(tunnel1.left_params['vpnconn_peer_ip'], '10.2.0.1')
-        self.assertEqual(tunnel1.right_params['vpnconn_peer_ip'], '10.1.0.1')
-        self.assertEqual(tunnel2.left_params['vpnconn_peer_ip'], '10.3.1.1')
-        self.assertEqual(tunnel1.right_params['vpnconn_peer_ip'], '10.1.0.1')
-        self.assertEqual(route1.left_params['vpnconn_peer_ip'],
-                         tunnel1.left_params['vpnconn_peer_ip'])
-        self.assertEqual(route1.right_params['vpnconn_peer_ip'],
-                         tunnel1.right_params['vpnconn_peer_ip'])
-        self.assertEqual(route2.left_params['vpnconn_peer_ip'],
-                         tunnel2.left_params['vpnconn_peer_ip'])
-        self.assertEqual(route2.right_params['vpnconn_peer_ip'],
-                         tunnel2.right_params['vpnconn_peer_ip'])
+        self.assertEqual(tunnel1.left_params["vpnconn_peer_ip"], "10.2.0.1")
+        self.assertEqual(tunnel1.right_params["vpnconn_peer_ip"], "10.1.0.1")
+        self.assertEqual(tunnel2.left_params["vpnconn_peer_ip"], "10.3.1.1")
+        self.assertEqual(tunnel1.right_params["vpnconn_peer_ip"], "10.1.0.1")
+        self.assertEqual(
+            route1.left_params["vpnconn_peer_ip"],
+            tunnel1.left_params["vpnconn_peer_ip"],
+        )
+        self.assertEqual(
+            route1.right_params["vpnconn_peer_ip"],
+            tunnel1.right_params["vpnconn_peer_ip"],
+        )
+        self.assertEqual(
+            route2.left_params["vpnconn_peer_ip"],
+            tunnel2.left_params["vpnconn_peer_ip"],
+        )
+        self.assertEqual(
+            route2.right_params["vpnconn_peer_ip"],
+            tunnel2.right_params["vpnconn_peer_ip"],
+        )
 
-        self.assertEqual(route1.left_params['vpnconn_activation'],
-                         tunnel1.left_params['vpnconn_activation'])
-        self.assertEqual(route1.right_params['vpnconn_activation'],
-                         tunnel1.right_params['vpnconn_activation'])
-        self.assertEqual(route2.left_params['vpnconn_activation'],
-                         tunnel2.left_params['vpnconn_activation'])
-        self.assertEqual(route2.right_params['vpnconn_activation'],
-                         tunnel2.right_params['vpnconn_activation'])
+        self.assertEqual(
+            route1.left_params["vpnconn_activation"],
+            tunnel1.left_params["vpnconn_activation"],
+        )
+        self.assertEqual(
+            route1.right_params["vpnconn_activation"],
+            tunnel1.right_params["vpnconn_activation"],
+        )
+        self.assertEqual(
+            route2.left_params["vpnconn_activation"],
+            tunnel2.left_params["vpnconn_activation"],
+        )
+        self.assertEqual(
+            route2.right_params["vpnconn_activation"],
+            tunnel2.right_params["vpnconn_activation"],
+        )
 
     def test_connectivity_validate(self):
         """Test all connectivity testing methods of the vm network."""
@@ -549,7 +629,10 @@ class VMNetworkTest(Test):
         self.vmnet.ssh_connectivity_validate(client, server, require_blocked=True)
         client.session.read_until_last_line_matches.return_value = (1, "vm2.net.lan")
         self.vmnet.ssh_hostname(client, server)
-        client.session.read_until_last_line_matches.return_value = (1, "ETA 1s 100% done")
+        client.session.read_until_last_line_matches.return_value = (
+            1,
+            "ETA 1s 100% done",
+        )
         self.vmnet.scp_files("file1", "file2", client, server)
         # HACK: let's pretend for a moment that the client is an ephemeral node
         self.vmnet.nodes[client.name]._ephemeral = True
@@ -566,5 +649,5 @@ class VMNetworkTest(Test):
         self.vmnet.tftp_connectivity_validate("hi", "path", client, server)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

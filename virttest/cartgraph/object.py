@@ -1,3 +1,4 @@
+# pylint: disable=docstring-first-line-empty,invalid-overridden-method,missing-return-doc,too-many-instance-attributes,unused-import,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,useless-object-inheritance
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or

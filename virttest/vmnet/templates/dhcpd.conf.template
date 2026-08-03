@@ -9,7 +9,7 @@
 default-lease-time 600;
 max-lease-time 7200;
 
-# Use this to enble / disable dynamic dns updates globally.
+# Use this to enable / disable dynamic dns updates globally.
 #ddns-update-style none;
 
 # If this DHCP server is the official DHCP server for the local

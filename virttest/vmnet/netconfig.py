@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,differing-param-doc,docstring-first-line-empty,method-hidden,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-return,no-self-use,pointless-string-statement,property-with-parameters,too-many-instance-attributes,too-many-public-methods,unused-argument,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,useless-object-inheritance,wrong-import-order
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -32,13 +33,13 @@ INTERFACE
 
 """
 
-from typing import Any
-import logging as log
-
 import ipaddress
+import logging as log
+from typing import Any
+
+from avocado.core import exceptions
 
 from .interface import VMInterface
-from avocado.core import exceptions
 
 logging = log.getLogger("avocado.job." + __name__)
 
@@ -309,7 +310,7 @@ class VMNetconfig(object):
         :returns: whether the interface is already present in the netconfig
         """
         return (
-            interface.ip in self.interfaces.keys()
+            interface.ip in self.interfaces
             and self.interfaces[interface.ip] == interface
         )
 
@@ -365,11 +366,11 @@ class VMNetconfig(object):
         )
 
         own = ipaddress.ip_interface("%s/%s" % (self.net_ip, self.mask_bit))
-        for key in addresses.keys():
-            if addresses[key] not in own.network:
+        for key, address in addresses.items():
+            if address not in own.network:
                 raise exceptions.TestError(
                     "The predefined %s %s is not in the netconfig"
-                    " %s" % (key, addresses[key], self.net_ip)
+                    " %s" % (key, address, self.net_ip)
                 )
 
         # validate interfaces

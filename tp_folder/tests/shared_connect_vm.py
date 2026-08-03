@@ -12,8 +12,8 @@ INTERFACE
 
 """
 
-import time
 import os
+import time
 
 # avocado imports
 from avocado.core import exceptions

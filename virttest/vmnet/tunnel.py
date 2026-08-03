@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,docstring-first-line-empty,duplicate-code,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-return,no-self-use,pointless-string-statement,raising-format-tuple,too-many-arguments,too-many-branches,too-many-instance-attributes,too-many-locals,too-many-positional-arguments,too-many-statements,use-implicit-booleaness-not-comparison-to-string,useless-object-inheritance
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -33,13 +34,13 @@ INTERFACE
 
 """
 
-from typing import Any
 import logging as log
+from typing import Any
 
 from virttest.utils_params import Params
 
-from .netconfig import VMNetconfig
 from .interface import VMInterface
+from .netconfig import VMNetconfig
 from .node import VMNode
 
 logging = log.getLogger("avocado.job." + __name__)

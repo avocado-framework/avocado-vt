@@ -12,27 +12,32 @@ INTERFACE
 
 """
 
+import logging
 import os
 import random
-import logging
+
+# The QEMU backend moved out of guibot's public controllers.  Keep its legacy
+# branch intentionally unavailable until a local custom controller replaces it.
+QemuController = None
 
 # avocado imports
 from avocado.core import exceptions
 
 # custom imports
 try:
-    from guibot.guibot import GuiBot
     from guibot.config import GlobalConfig
     from guibot.controller import VNCDoToolController
+    from guibot.guibot import GuiBot
+
     # TODO: the Qemu controller is now a custom controller example in
     # newer guibot versions so reflect this change here
-    #from guibot.controller import QemuController
+    # from guibot.controller import QemuController
     BOT_AVAILABLE = True
 except ImportError:
     BOT_AVAILABLE = False
 
 
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -96,19 +101,23 @@ def initiate_vm_screen(vm, screen_type):
     :returns: a desktop backend and its name (screen tuple)
     :rtype: Controller object
     """
-    if screen_type == 'qemu':
+    if screen_type == "qemu":
         dc = QemuController(synchronize=False)
         dc.params["qemu"]["qemu_monitor"] = vm.monitors[0]
         dc.synchronize_backend()
         log.debug("Initiating qemu monitor screen for vm %s", vm.name)
-    elif screen_type == 'vncdotool':
+    elif screen_type == "vncdotool":
         dc = VNCDoToolController(synchronize=False)
         # starting from 5900, i.e. :0 == 5900
         dc.params["vncdotool"]["vnc_port"] = vm.vnc_port - 5900
         dc.params["vncdotool"]["vnc_delay"] = 0.02
         dc.synchronize_backend()
-        log.debug("Initiating vnc server screen for vm %s on port %s (%s)",
-                  vm.name, dc.params["vncdotool"]["vnc_port"], vm.vnc_port)
+        log.debug(
+            "Initiating vnc server screen for vm %s on port %s (%s)",
+            vm.name,
+            dc.params["vncdotool"]["vnc_port"],
+            vm.vnc_port,
+        )
     return dc
 
 
@@ -144,29 +153,31 @@ def run(test, params, env):
     image_root = get_image_root(params["suite_path"])
     set_logging(params.get("vu_logging_level", 20), test.logdir)
     set_shared_configuration(params.get("smooth_mouse_motion", "no") == "yes")
-    server_screen = initiate_vm_screen(server_vm, 'vncdotool')
-    client_screen = initiate_vm_screen(client_vm, 'vncdotool')
+    server_screen = initiate_vm_screen(server_vm, "vncdotool")
+    client_screen = initiate_vm_screen(client_vm, "vncdotool")
 
     # click on a button on the server if available
     bot = GuiBot(dc=server_screen)
     bot.add_path(image_root)
-    if bot.exists('centos-kickstart-finish'):
-        bot.click('centos-kickstart-finish')
+    if bot.exists("centos-kickstart-finish"):
+        bot.click("centos-kickstart-finish")
     else:
-        bot.type_text('Anyone there?')
+        bot.type_text("Anyone there?")
 
     # click on a button on the client if available
     if "client_clicked" in params["name"]:
         bot.dc_backend = client_screen
-        if bot.exists('win10-start-button'):
-            bot.click('win10-start-button')
+        if bot.exists("win10-start-button"):
+            bot.click("win10-start-button")
         else:
-            bot.type_text('Anyone here?')
+            bot.type_text("Anyone here?")
     elif "client_noop" in params["name"]:
         log.info("The virtual user will do nothing on the client screen")
     else:
-        raise exceptions.TestError("Invalid option for Windows client GUI setup "
-                                   "operation in test %s" % params["name"])
+        raise exceptions.TestError(
+            "Invalid option for Windows client GUI setup "
+            "operation in test %s" % params["name"]
+        )
 
     log.info("Running done.")
     log.info("\nFor more details check https://guibot.org")

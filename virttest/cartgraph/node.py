@@ -1,3 +1,4 @@
+# pylint: disable=method-hidden
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -27,21 +28,22 @@ INTERFACE
 
 from __future__ import annotations
 
+import logging as log
 import os
 import re
 from functools import cmp_to_key
-from typing import Generator
-from typing import Any
-import logging as log
+from typing import Any, Generator
 
-from aexpect.exceptions import ShellCmdError
 from aexpect import remote_door as door
-from avocado.core.test_id import TestID
+from aexpect.exceptions import ShellCmdError
 from avocado.core.nrunner.runnable import Runnable
+from avocado.core.test_id import TestID
+
 from virttest.utils_params import Params
 
-from . import TestSwarm, TestWorker, TestObject, NetObject
 from .. import params_parser as param
+from .object import ImageObject, NetObject, TestObject
+from .worker import TestSwarm, TestWorker
 
 logging = log.getLogger("avocado.job." + __name__)
 
@@ -426,9 +428,6 @@ class TestNode(Runnable):
             self.objects += [test_object]
             self.objects += test_object.components
             # TODO: dynamically added additional images will not be detected here
-            from . import ImageObject
-            from .. import params_parser as param
-
             vm_name = test_object.suffix
             parsed_images = [c.suffix for c in test_object.components]
             for image_name in self.params.object_params(vm_name).objects("images"):
