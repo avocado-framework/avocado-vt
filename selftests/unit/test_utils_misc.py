@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock as unittest_mock
 
 from avocado.utils import process
 
@@ -17,6 +18,66 @@ from virttest.unittest_utils import mock
 
 
 class TestUtilsMisc(unittest.TestCase):
+    def test_get_distro_from_session(self):
+        session = unittest_mock.Mock()
+        session.cmd_status_output.return_value = (0, "ID=fedora")
+
+        self.assertEqual(utils_misc.get_distro(session), "fedora")
+
+    def test_get_distro_returns_empty_string_on_session_error(self):
+        session = unittest_mock.Mock()
+        session.cmd_status_output.side_effect = RuntimeError("session error")
+
+        self.assertEqual(utils_misc.get_distro(session), "")
+
+    @unittest_mock.patch("aexpect.remote.copy_files_from")
+    @unittest_mock.patch("virttest.utils_package.package_install", return_value=True)
+    @unittest_mock.patch("virttest.utils_misc.get_distro", return_value="fedora")
+    def test_get_sosreport_returns_path_and_closes_session(
+        self, _get_distro, _package_install, copy_files_from
+    ):
+        session = unittest_mock.Mock()
+        session.cmd_status_output.return_value = (0, "sosreport complete")
+
+        result = utils_misc.get_sosreport(
+            path="/host/sosreport",
+            session=session,
+            remote_ip="192.0.2.1",
+            remote_pwd="password",
+        )
+
+        self.assertEqual(result, "/host/sosreport")
+        copy_files_from.assert_called_once()
+        session.close.assert_called_once_with()
+
+    @unittest_mock.patch("virttest.utils_package.package_install", return_value=True)
+    @unittest_mock.patch("virttest.utils_misc.get_distro", return_value="fedora")
+    def test_get_sosreport_returns_none_on_ignored_exception(
+        self, _get_distro, _package_install
+    ):
+        session = unittest_mock.Mock()
+        session.cmd_status_output.side_effect = RuntimeError("sosreport failed")
+
+        result = utils_misc.get_sosreport(path="/host/sosreport", session=session)
+
+        self.assertIsNone(result)
+        session.close.assert_called_once_with()
+
+    @unittest_mock.patch("virttest.utils_package.package_install", return_value=True)
+    @unittest_mock.patch("virttest.utils_misc.get_distro", return_value="fedora")
+    def test_get_sosreport_raises_and_closes_session(
+        self, _get_distro, _package_install
+    ):
+        session = unittest_mock.Mock()
+        session.cmd_status_output.side_effect = RuntimeError("sosreport failed")
+
+        with self.assertRaises(utils_misc.exceptions.TestError):
+            utils_misc.get_sosreport(
+                path="/host/sosreport", session=session, ignore_status=False
+            )
+
+        session.close.assert_called_once_with()
+
     def test_get_archive_tarball_name(self):
         tarball_name = utils_misc.get_archive_tarball_name("/tmp", "tmp-archive", "bz2")
         self.assertEqual(tarball_name, "tmp-archive.tar.bz2")

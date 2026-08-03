@@ -741,27 +741,23 @@ class BaseVM(object):
         :return: host path where guest sosrepost saved, default to logdir
                  None if vm is not linux or sosreport fails.
         """
-        log_path = None
         if not self.params["os_type"] == "linux":
             LOG.warning("sosreport not applicable for %s", self.params["os_type"])
             return None
-        try:
-            pkg = "sos"
-            if "ubuntu" in self.get_distro().lower():
-                pkg = "sosreport"
-            guest_ip = self.get_address(session=self.session)
-            guest_user = self.params["username"]
-            guest_pwd = self.params["password"]
-            log_path = utils_misc.get_sosreport(
-                session=self.session,
-                remote_ip=guest_ip,
-                remote_pwd=guest_pwd,
-                remote_user=guest_user,
-                sosreport_name=self.name,
-                sosreport_pkg=pkg,
-            )
-        finally:
-            return log_path
+        pkg = "sos"
+        if "ubuntu" in self.get_distro().lower():
+            pkg = "sosreport"
+        guest_ip = self.get_address(session=self.session)
+        guest_user = self.params["username"]
+        guest_pwd = self.params["password"]
+        return utils_misc.get_sosreport(
+            session=self.session,
+            remote_ip=guest_ip,
+            remote_pwd=guest_pwd,
+            remote_user=guest_user,
+            sosreport_name=self.name,
+            sosreport_pkg=pkg,
+        )
 
     def get_mac_address(self, nic_index=0):
         """
