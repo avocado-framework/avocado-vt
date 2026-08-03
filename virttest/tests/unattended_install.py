@@ -183,6 +183,8 @@ class UnattendedInstallConfig(object):
             "driver_in_floppy",
             "vga",
             "unattended_file_kernel_param_name",
+            "shim_target_efi_path",
+            "shim",
         ]
 
         for a in self.attributes:
@@ -266,6 +268,8 @@ class UnattendedInstallConfig(object):
             self.kernel = os.path.join(root_dir, self.kernel)
         if getattr(self, "initrd"):
             self.initrd = os.path.join(root_dir, self.initrd)
+        if getattr(self, "shim"):
+            self.shim = os.path.join(root_dir, self.shim)
 
         if self.medium == "nfs":
             self.nfs_mount = tempfile.mkdtemp(prefix="nfs_", dir=self.tmpdir)
@@ -984,6 +988,11 @@ class UnattendedInstallConfig(object):
         assert os.path.getsize(self.kernel) > 0
         i.copy(os.path.join(self.boot_path, os.path.basename(self.initrd)), self.initrd)
         assert os.path.getsize(self.initrd) > 0
+        i.copy(
+            os.path.join(self.shim_target_efi_path, os.path.basename(self.shim)),
+            self.shim,
+        )
+        assert os.path.getsize(self.shim) > 0
 
         if self.unattended_file.endswith(".preseed"):
             self.preseed_initrd()
@@ -1063,6 +1072,7 @@ class UnattendedInstallConfig(object):
 
             kernel_basename = os.path.basename(self.kernel)
             initrd_basename = os.path.basename(self.initrd)
+            shim_basename = os.path.basename(self.shim)
             sha1sum_kernel_cmd = "sha1sum %s" % kernel_basename
             sha1sum_kernel_output = process.run(
                 sha1sum_kernel_cmd, ignore_status=True, verbose=DEBUG
@@ -1081,11 +1091,23 @@ class UnattendedInstallConfig(object):
             except IndexError:
                 sha1sum_initrd = ""
 
+            sha1sum_shim_cmd = "sha1sum %s" % shim_basename
+            sha1sum_shim_output = process.run(
+                sha1sum_shim_cmd, ignore_status=True, verbose=DEBUG
+            ).stdout_text
+            try:
+                sha1sum_shim = sha1sum_shim_output.split()[0]
+            except IndexError:
+                sha1sum_shim = ""
+
             url_kernel = os.path.join(
                 self.url, self.boot_path, os.path.basename(self.kernel)
             )
             url_initrd = os.path.join(
                 self.url, self.boot_path, os.path.basename(self.initrd)
+            )
+            url_shim = os.path.join(
+                self.url, self.shim_target_efi_path, os.path.basename(self.shim)
             )
 
             if not sha1sum_kernel == self.params.get("sha1sum_vmlinuz", None):
@@ -1104,6 +1126,15 @@ class UnattendedInstallConfig(object):
                 download.get_file(
                     url_initrd,
                     os.path.join(self.image_path, os.path.basename(self.initrd)),
+                )
+
+            if not sha1sum_shim == self.params.get("sha1sum_shim", None):
+                if os.path.isfile(self.shim):
+                    os.remove(self.shim)
+                LOG.info("Downloading %s -> %s", url_shim, self.image_path)
+                download.get_file(
+                    url_shim,
+                    os.path.join(self.image_path, os.path.basename(self.shim)),
                 )
 
             if "repo=cdrom" in self.kernel_params:
@@ -1154,6 +1185,13 @@ class UnattendedInstallConfig(object):
                 self.image_path,
             )
             process.run(initrd_fetch_cmd, verbose=DEBUG)
+            shim_fetch_cmd = "cp %s/%s/%s %s" % (
+                self.nfs_mount,
+                self.shim_target_efi_path,
+                os.path.basename(self.shim),
+                self.image_path,
+            )
+            process.run(shim_fetch_cmd, verbose=DEBUG)
         finally:
             utils_disk.cleanup(self.nfs_mount)
 
