@@ -12,14 +12,13 @@ INTERFACE
 
 """
 
-import random
 import logging
+import random
 
 # avocado imports
 from avocado.core import exceptions
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################

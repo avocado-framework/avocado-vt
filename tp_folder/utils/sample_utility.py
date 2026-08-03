@@ -12,9 +12,10 @@ INTERFACE
 
 """
 
-import time
 import logging
-log = logging.getLogger('avocado.test.utils')
+import time
+
+log = logging.getLogger("avocado.test.utils")
 
 
 def sleep(n=10):

@@ -1,3 +1,4 @@
+# pylint: disable=method-hidden
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -31,12 +32,13 @@ INTERFACE
 
 """
 
-from typing import Callable
 import logging as log
+from typing import Callable
 
 from aexpect.client import RemoteSession
-from virttest.utils_params import Params
+
 from virttest.qemu_vm import VM
+from virttest.utils_params import Params
 
 logging = log.getLogger("avocado.job." + __name__)
 

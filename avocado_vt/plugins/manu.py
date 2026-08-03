@@ -25,17 +25,19 @@ INTERFACE
 
 """
 
-import os
 import argparse
+import os
 import traceback
 
-from avocado.core.settings import settings
-from avocado.core.output import LOG_UI, LOG_JOB as log
+from avocado.core.output import LOG_JOB as log
+from avocado.core.output import LOG_UI
 from avocado.core.plugin_interfaces import CLICmd
-from virttest.utils_params import Params
+from avocado.core.settings import settings
+
 from virttest import cmd_parser
-from virttest import params_parser as param
 from virttest import intertest_setup as intertest
+from virttest import params_parser as param
+from virttest.utils_params import Params
 
 
 class Manu(CLICmd):

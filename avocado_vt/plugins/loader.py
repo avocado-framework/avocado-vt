@@ -29,6 +29,7 @@ import logging
 
 from avocado.core.plugin_interfaces import Resolver
 from avocado.core.resolver import ReferenceResolution, ReferenceResolutionResult
+
 from virttest import cmd_parser
 from virttest import params_parser as param
 from virttest.cartgraph import TestGraph

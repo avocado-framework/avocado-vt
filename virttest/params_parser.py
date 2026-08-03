@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,differing-param-doc,docstring-first-line-empty,logging-fstring-interpolation,missing-param-doc,missing-raises-doc,missing-return-doc,no-self-use,redefined-outer-name,redundant-returns-doc,too-many-arguments,too-many-positional-arguments,unnecessary-dunder-call,unspecified-encoding,use-implicit-booleaness-not-comparison-to-string,wrong-import-order
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,14 +26,15 @@ INTERFACE
 
 """
 
-import os
-import copy
 import collections
+import copy
 import logging
+import os
+
+from avocado.core.settings import settings
 
 from virttest import cartesian_config
 from virttest.utils_params import Params
-from avocado.core.settings import settings
 
 log = logging.getLogger("avocado.job." + __name__)
 
@@ -51,7 +53,7 @@ class EmptyCartesianProduct(Exception):
             "Check for self-excluding variants in your current configuration:\n"
             + message
         )
-        super(EmptyCartesianProduct, self).__init__(message)
+        super().__init__(message)
 
 
 ###################################################################
@@ -145,9 +147,9 @@ class ParsedContent:
         Get parsed content representation used in reports of parsing steps.
 
         :returns: resulting report-compatible string
-        :raises: :py:class:`NotImlementedError` as this is an abstract method
+        :raises: :py:class:`NotImplementedError` as this is an abstract method
         """
-        raise NotImlementedError(
+        raise NotImplementedError(
             "Parsed content is an abstract class with no parsalbe form"
         )
 
@@ -156,9 +158,9 @@ class ParsedContent:
         Convert parameter content into parsable string.
 
         :returns: resulting parsable string
-        :raises: :py:class:`NotImlementedError` as this is an abstract method
+        :raises: :py:class:`NotImplementedError` as this is an abstract method
         """
-        raise NotImlementedError(
+        raise NotImplementedError(
             "Parsed content is an abstract class with no parsalbe form"
         )
 

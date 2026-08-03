@@ -1,3 +1,4 @@
+# pylint: disable=docstring-first-line-empty,import-outside-toplevel,logging-fstring-interpolation,missing-raises-doc,no-else-return,redefined-builtin,unused-import,unused-variable,use-implicit-booleaness-not-comparison-to-string,useless-object-inheritance
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -30,12 +31,13 @@ from __future__ import annotations
 import logging as log
 
 import aexpect
-from aexpect.exceptions import ShellTimeoutError
 from aexpect import remote
 from aexpect.client import RemoteSession
+from aexpect.exceptions import ShellTimeoutError
+
 from virttest.utils_params import Params
 
-from . import NetObject
+from .object import NetObject
 
 logging = log.getLogger("avocado.job." + __name__)
 
@@ -158,6 +160,8 @@ class TestWorker(TestEnvironment):
             logging.debug("Serial runs do not have any startable environment")
             return True
         elif isolation_type == "lxc":
+            # Optional dependency required only for LXC-isolated workers.
+            # pylint: disable-next=import-error
             import lxc
 
             cid = self.params["nets_host"]
@@ -177,7 +181,7 @@ class TestWorker(TestEnvironment):
         """
         Stop the environment for executing a test node.
 
-        :returns: whether the environment stopping succeded
+        :returns: whether the environment stopping succeeded
         :raises: :py:class:`ValueError` when environment ID could not be parsed
         """
         logging.info(f"Stopping worker {self.id} environment")
@@ -186,6 +190,8 @@ class TestWorker(TestEnvironment):
             logging.debug("Serial runs do not have any stoppable environment")
             return True
         elif isolation_type == "lxc":
+            # Optional dependency required only for LXC-isolated workers.
+            # pylint: disable-next=import-error
             import lxc
 
             cid = self.params["nets_host"]
@@ -216,7 +222,7 @@ class TestWorker(TestEnvironment):
             # check for corrupted sessions
             try:
                 logging.debug(
-                    "Remote session health check: " + session.cmd_output("date")
+                    "Remote session health check: %s", session.cmd_output("date")
                 )
             except ShellTimeoutError as error:
                 logging.warning(f"Bad remote session health for {address}!")

@@ -16,22 +16,23 @@ INTERFACE
 
 """
 
-import re
-import os
 import logging
+import os
+import re
+
 # TODO: migrate from logging to log usage in messages
-log = logging = logging.getLogger('avocado.test.utils')
+log = logging = logging.getLogger("avocado.test.utils")
 
-from PyQt4 import QtGui, QtCore
-
-from avocado.utils import process
 from avocado.core.settings import settings
-from virttest.states import setup as ss
+from avocado.utils import process
+from guibot.config import GlobalConfig
+from guibot.controller import VNCDoToolController
 
 # virtual user backend has to be available in order to use these tools at all
 from guibot.guibot import GuiBot
-from guibot.config import GlobalConfig
-from guibot.controller import VNCDoToolController
+from PyQt4 import QtCore, QtGui
+
+from virttest.states import setup as ss
 
 
 class GUITestGenerator(QtGui.QWidget):
@@ -58,36 +59,58 @@ class GUITestGenerator(QtGui.QWidget):
         self.image_root = os.path.join(vmnet.params["suite_path"], "data", "visual")
         if self.params.get("store_permanently", "no") == "yes":
             self.path = self.image_root
-            logging.info("Storing all captured screens and executed code permanently in %s",
-                         self.path)
+            logging.info(
+                "Storing all captured screens and executed code permanently in %s",
+                self.path,
+            )
         else:
-            logging.info("Storing all captured screens and executed code until rerun in %s",
-                         self.path)
+            logging.info(
+                "Storing all captured screens and executed code until rerun in %s",
+                self.path,
+            )
         self.paused = False
 
-        self.setWindowTitle('GUI Test Generator')
+        self.setWindowTitle("GUI Test Generator")
 
-        font_family = 'Helvetica'
+        font_family = "Helvetica"
         font_size = 10
 
         self.line_dump = QtGui.QLineEdit("000.png")
         self.line_dump.setFixedSize(100, 20)
-        self.line_dump.setInputMask('999.aaa')
+        self.line_dump.setInputMask("999.aaa")
 
         self.button_capture = QtGui.QPushButton("Capture")
         self.button_capture.setFixedSize(100, 20)
-        self.button_capture.setStyleSheet('QPushButton { font-family: ' + font_family + '; font-size: ' + str(font_size) + 't; }')
-        self.connect(self.button_capture, QtCore.SIGNAL('clicked()'), self.capture)
+        self.button_capture.setStyleSheet(
+            "QPushButton { font-family: "
+            + font_family
+            + "; font-size: "
+            + str(font_size)
+            + "t; }"
+        )
+        self.connect(self.button_capture, QtCore.SIGNAL("clicked()"), self.capture)
 
         self.button_pause = QtGui.QPushButton("Pause")
         self.button_pause.setFixedSize(100, 20)
-        self.button_pause.setStyleSheet('QPushButton { font-family: ' + font_family + '; font-size: ' + str(font_size) + 't; }')
-        self.connect(self.button_pause, QtCore.SIGNAL('clicked()'), self.pause)
+        self.button_pause.setStyleSheet(
+            "QPushButton { font-family: "
+            + font_family
+            + "; font-size: "
+            + str(font_size)
+            + "t; }"
+        )
+        self.connect(self.button_pause, QtCore.SIGNAL("clicked()"), self.pause)
 
         self.button_resume = QtGui.QPushButton("Resume")
         self.button_resume.setFixedSize(100, 20)
-        self.button_resume.setStyleSheet('QPushButton { font-family: ' + font_family + '; font-size: ' + str(font_size) + 't; }')
-        self.connect(self.button_resume, QtCore.SIGNAL('clicked()'), self.resume)
+        self.button_resume.setStyleSheet(
+            "QPushButton { font-family: "
+            + font_family
+            + "; font-size: "
+            + str(font_size)
+            + "t; }"
+        )
+        self.connect(self.button_resume, QtCore.SIGNAL("clicked()"), self.resume)
         self.button_resume.setEnabled(False)
 
         self.line_state = QtGui.QLineEdit("current_state")
@@ -95,13 +118,23 @@ class GUITestGenerator(QtGui.QWidget):
 
         self.button_state = QtGui.QPushButton("Store")
         self.button_state.setFixedSize(100, 20)
-        self.button_state.setStyleSheet('QPushButton { font-family: ' + font_family + '; font-size: ' + str(font_size) + 't; }')
-        self.connect(self.button_state, QtCore.SIGNAL('clicked()'), self.store)
+        self.button_state.setStyleSheet(
+            "QPushButton { font-family: "
+            + font_family
+            + "; font-size: "
+            + str(font_size)
+            + "t; }"
+        )
+        self.connect(self.button_state, QtCore.SIGNAL("clicked()"), self.store)
 
         self.list_view = QtGui.QListWidget()
         self.list_view.setFixedWidth(200)
         self.list_view.setFont(QtGui.QFont(font_family, font_size))
-        self.connect(self.list_view, QtCore.SIGNAL("itemDoubleClicked (QListWidgetItem *)"), self.retrieve)
+        self.connect(
+            self.list_view,
+            QtCore.SIGNAL("itemDoubleClicked (QListWidgetItem *)"),
+            self.retrieve,
+        )
         self.list_view.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
         # retrieve option in the context menu
         retrieve_action = QtGui.QAction("Retrieve", self)
@@ -119,22 +152,32 @@ class GUITestGenerator(QtGui.QWidget):
         if os.path.exists(code_file):
             with open(code_file) as f:
                 code = f.read()
-                paragraphs = code.replace('\n', '\u2029')
+                paragraphs = code.replace("\n", "\u2029")
         else:
-            paragraphs = str("gui.user.type_text(\"hello world\")\u2029"
-                             "linux = get_vo(\"linux\")\u2029"
-                             "linux.start_menu_option(\"firefox\")\u2029")
+            paragraphs = str(
+                'gui.user.type_text("hello world")\u2029'
+                'linux = get_vo("linux")\u2029'
+                'linux.start_menu_option("firefox")\u2029'
+            )
         self.text_edit.setPlainText(paragraphs)
         cursor = self.text_edit.textCursor()
         cursor.setPosition(0)
-        cursor.setPosition(0 if os.path.exists(code_file) else 33, QtGui.QTextCursor.KeepAnchor)
+        cursor.setPosition(
+            0 if os.path.exists(code_file) else 33, QtGui.QTextCursor.KeepAnchor
+        )
         self.text_edit.setTextCursor(cursor)
         self.text_edit.setAcceptDrops(True)
 
         self.button_run = QtGui.QPushButton("Run")
         self.button_run.setFixedSize(100, 20)
-        self.button_run.setStyleSheet('QPushButton { font-family: ' + font_family + '; font-size: ' + str(font_size) + 't; }')
-        self.connect(self.button_run, QtCore.SIGNAL('clicked()'), self.run)
+        self.button_run.setStyleSheet(
+            "QPushButton { font-family: "
+            + font_family
+            + "; font-size: "
+            + str(font_size)
+            + "t; }"
+        )
+        self.connect(self.button_run, QtCore.SIGNAL("clicked()"), self.run)
 
         self.combo_box = QtGui.QComboBox()
         self.combo_box.setFixedSize(100, 20)
@@ -180,7 +223,7 @@ class GUITestGenerator(QtGui.QWidget):
 
         self.setLayout(hbox5)
 
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("cleanlooks"))
 
     def disable(self):
         """Disable all buttons."""
@@ -216,7 +259,7 @@ class GUITestGenerator(QtGui.QWidget):
         if self.vm.params["capture_autoopen"] == "yes":
             process.run("%s %s" % (self.vm.params["capture_autoopen_editor"], filepath))
         filenum = re.match(".*(\d\d\d)\..*", filename).group(1)
-        filename = filename.replace(filenum, "%03d" % (int(filenum)+1))
+        filename = filename.replace(filenum, "%03d" % (int(filenum) + 1))
         self.line_dump.setText(filename)
 
     def pause(self):
@@ -237,7 +280,14 @@ class GUITestGenerator(QtGui.QWidget):
         self.disable()
 
         def store_done():
-            if len(self.list_view.findItems(self.vm.params["set_state"], QtCore.Qt.MatchExactly)) == 0:
+            if (
+                len(
+                    self.list_view.findItems(
+                        self.vm.params["set_state"], QtCore.Qt.MatchExactly
+                    )
+                )
+                == 0
+            ):
                 self.list_view.addItem(self.vm.params["set_state"])
             self.button_state.setText("Store")
             self.enable()
@@ -291,7 +341,9 @@ class GUITestGenerator(QtGui.QWidget):
 
     def switch(self):
         """Switch the current vm with another one from a list."""
-        logging.info("Switching the platform and screen to %s", self.combo_box.currentText())
+        logging.info(
+            "Switching the platform and screen to %s", self.combo_box.currentText()
+        )
         self.button_run.setText("Switching")
         self.disable()
 
@@ -304,15 +356,18 @@ class GUITestGenerator(QtGui.QWidget):
         self.worker.start()
 
     def closeEvent(self, event):
-        reply = QtGui.QMessageBox.question(self, "Save work",
-                                           "Do you want to save any changes you have made?",
-                                           QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
-                                           QtGui.QMessageBox.Yes)
+        reply = QtGui.QMessageBox.question(
+            self,
+            "Save work",
+            "Do you want to save any changes you have made?",
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QtGui.QMessageBox.Yes,
+        )
         if reply == QtGui.QMessageBox.Yes:
             control_file = os.path.join(self.path, "gui.control")
             with open(control_file, "w") as f:
                 paragraphs = str(self.text_edit.toPlainText())
-                code = paragraphs.replace('\u2029', '\n')
+                code = paragraphs.replace("\u2029", "\n")
                 f.write(code)
 
         QtGui.QWidget.closeEvent(self, event)
@@ -405,7 +460,7 @@ class RunThread(QtCore.QThread):
         control_file = os.path.join(self.gui.path, "gui.control")
         with open(control_file, "w") as f:
             paragraphs = str(self.gui.text_edit.textCursor().selectedText())
-            code = paragraphs.replace('\u2029', '\n')
+            code = paragraphs.replace("\u2029", "\n")
             logging.debug("Selected visual code:\n%s", code)
             f.write(code)
 
@@ -416,13 +471,14 @@ class RunThread(QtCore.QThread):
 
         def get_vo(voname, *args, **kwargs):
             if voname in other_vos.keys():
-                return other_vos[voname](gui.image_root, *args,
-                                         dc=gui.user.dc_backend, **kwargs)
+                return other_vos[voname](
+                    gui.image_root, *args, dc=gui.user.dc_backend, **kwargs
+                )
             else:
                 return gui.user
 
         with open(control_file) as control_handle:
-            code = compile(control_handle.read(), control_file, 'exec')
+            code = compile(control_handle.read(), control_file, "exec")
             try:
                 exec(code)
             except Exception as e:
@@ -461,14 +517,17 @@ class SwitchThread(QtCore.QThread):
         GlobalConfig.image_logging_destination = os.path.join(self.gui.path, "imglogs")
 
         # initialize a desktop control backend for the selected vm
-        dc = VNCDoToolControl(synchronize=False)
+        dc = VNCDoToolController(synchronize=False)
         # starting from 5900, i.e. :0 == 5900
         dc.params["vncdotool"]["vnc_port"] = self.gui.vm.vnc_port - 5900
         dc.params["vncdotool"]["vnc_delay"] = 0.02
         dc.synchronize_backend()
-        logging.debug("Initiating vnc server screen for vm %s on port %s (%s)",
-                      self.gui.vm.name, dc.params["vncdotool"]["vnc_port"],
-                      self.gui.vm.vnc_port)
+        logging.debug(
+            "Initiating vnc server screen for vm %s on port %s (%s)",
+            self.gui.vm.name,
+            dc.params["vncdotool"]["vnc_port"],
+            self.gui.vm.vnc_port,
+        )
         self.gui.user = VisualObject(self.gui.image_root, dc=dc)
         self.gui.user.add_path(self.gui.path)
 

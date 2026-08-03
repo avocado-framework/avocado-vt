@@ -1,3 +1,4 @@
+# pylint: disable=docstring-first-line-empty,missing-param-doc,missing-return-doc,redefined-builtin,unnecessary-pass
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -29,8 +30,8 @@ from typing import Any
 
 from virttest.utils_params import Params
 
-from .setup import StateBackend
 from ..vmnet import VMNetwork
+from .setup import StateBackend
 
 
 class VMNetBackend(StateBackend):

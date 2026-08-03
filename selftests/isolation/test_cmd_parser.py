@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import unittest
-import unittest_importer
 
 from avocado import Test
+
 import virttest.cmd_parser as cmd
 import virttest.params_parser as param
 
@@ -46,7 +46,9 @@ class CmdParserTest(Test):
         # restrict further
         self.config["params"] += ["vms=vm2", "only_vm2=Win7"]
         cmd.params_from_cmd(self.config)
-        self.assertEqual(sorted(self.config["available_vms"].keys()), ["vm1", "vm2", "vm3"])
+        self.assertEqual(
+            sorted(self.config["available_vms"].keys()), ["vm1", "vm2", "vm3"]
+        )
         self.assertEqual(sorted(self.config["vm_strs"].keys()), ["vm2"])
         self.assertIn("only Win7", self.config["vm_strs"]["vm2"])
 
@@ -74,20 +76,26 @@ class CmdParserTest(Test):
         # check restriction by cluster
         self.config["params"] += ["only_nets=cluster1"]
         cmd.params_from_cmd(self.config)
-        self.assertEqual(self.config["param_dict"]["nets"],
-                         "cluster1.net6 cluster1.net7 cluster1.net8 cluster1.net9")
+        self.assertEqual(
+            self.config["param_dict"]["nets"],
+            "cluster1.net6 cluster1.net7 cluster1.net8 cluster1.net9",
+        )
 
         # check more complex restrictions
         self.config["params"] += ["only_nets=cluster1..net6,net7"]
         cmd.params_from_cmd(self.config)
-        self.assertEqual(self.config["param_dict"]["nets"],
-                         "net7 cluster1.net6 cluster1.net7 cluster2.net7")
+        self.assertEqual(
+            self.config["param_dict"]["nets"],
+            "net7 cluster1.net6 cluster1.net7 cluster2.net7",
+        )
 
         # check no restrictions
         self.config["params"] += ["no_nets=cluster1..net6,localhost,net7,net9"]
         cmd.params_from_cmd(self.config)
-        self.assertEqual(self.config["param_dict"]["nets"],
-                         "cluster1.net8 cluster2.net6 cluster2.net8")
+        self.assertEqual(
+            self.config["param_dict"]["nets"],
+            "cluster1.net8 cluster2.net6 cluster2.net8",
+        )
 
     def test_selected_nets_invalid(self):
         # check that mixing of net restrictions and suffixes not allowed
@@ -149,5 +157,5 @@ class CmdParserTest(Test):
             cmd.params_from_cmd(self.config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

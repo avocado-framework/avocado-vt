@@ -27,29 +27,29 @@ INTERFACE
 
 from __future__ import annotations
 
+import asyncio
+import json
+import logging as log
 import os
 import re
 import time
-import json
-import logging as log
-
-import asyncio
 
 log.getLogger("asyncio").parent = log.getLogger("avocado.job")
 
+from avocado.core.dispatcher import SpawnerDispatcher
 from avocado.core.job import Job
-from avocado.core.nrunner.task import TASK_DEFAULT_CATEGORY, Task
 from avocado.core.messages import MessageHandler
+from avocado.core.nrunner.task import TASK_DEFAULT_CATEGORY, Task
 from avocado.core.plugin_interfaces import SuiteRunner as RunnerInterface
 from avocado.core.status.repo import StatusRepo
 from avocado.core.status.server import StatusServer
 from avocado.core.suite import TestSuite
-from avocado.core.teststatus import STATUSES_MAPPING
-from avocado.core.task.runtime import RuntimeTask, PreRuntimeTask, PostRuntimeTask
+from avocado.core.task.runtime import PostRuntimeTask, PreRuntimeTask, RuntimeTask
 from avocado.core.task.statemachine import TaskStateMachine, Worker
-from avocado.core.dispatcher import SpawnerDispatcher
+from avocado.core.teststatus import STATUSES_MAPPING
+
+from virttest.cartgraph import TestGraph, TestNode, TestWorker
 from virttest.utils_params import Params
-from virttest.cartgraph import TestGraph, TestWorker, TestNode
 
 logging = log.getLogger("avocado.job." + __name__)
 
@@ -332,7 +332,7 @@ class TestRunner(RunnerInterface):
             for node in test_suite.tests:
                 assert isinstance(
                     node, TestNode
-                ), f"Invalid test type fo test suite to run workers on for {node}"
+                ), f"Invalid test type for test suite to run workers on for {node}"
                 # apply default_only or user overwritten restriction
                 node.update_restrs(self.job.config["vm_strs"])
             graph.new_nodes(test_suite.tests)

@@ -1,6 +1,6 @@
-import unittest.mock as mock
-import re
 import asyncio
+import re
+import unittest.mock as mock
 
 from aexpect.exceptions import ShellCmdError
 from avocado.core import exceptions
@@ -21,13 +21,27 @@ class DummyTestRun(object):
         for checked_key in self.expected_test_dict.keys():
             if checked_key.startswith("_"):
                 continue
-            assert checked_key in self.current_test_dict.keys(), "%s missing in %s (params: %s)" % (checked_key, shortname, self.current_test_dict)
-            expected, current = self.expected_test_dict[checked_key], self.current_test_dict[checked_key]
-            assert re.match(expected, current) is not None, "Expected parameter %s=%s "\
-                                                            "but obtained %s=%s for %s (params: %s)" % (checked_key, expected,
-                                                                                                        checked_key, current,
-                                                                                                        self.expected_test_dict["shortname"],
-                                                                                                        self.current_test_dict)
+            assert (
+                checked_key in self.current_test_dict.keys()
+            ), "%s missing in %s (params: %s)" % (
+                checked_key,
+                shortname,
+                self.current_test_dict,
+            )
+            expected, current = (
+                self.expected_test_dict[checked_key],
+                self.current_test_dict[checked_key],
+            )
+            assert (
+                re.match(expected, current) is not None
+            ), "Expected parameter %s=%s " "but obtained %s=%s for %s (params: %s)" % (
+                checked_key,
+                expected,
+                checked_key,
+                current,
+                self.expected_test_dict["shortname"],
+                self.current_test_dict,
+            )
 
     def get_test_result(self):
         uid = self.current_test_dict["_uid"]
@@ -36,7 +50,10 @@ class DummyTestRun(object):
         status = self.expected_test_dict.get("_status", "PASS")
         time_elapsed = self.expected_test_dict.get("_time_elapsed", "1")
         self.add_test_result(uid, name, status, time_elapsed)
-        if status in ["ERROR", "FAIL"] and self.current_test_dict.get("abort_on_error", "no") == "yes":
+        if (
+            status in ["ERROR", "FAIL"]
+            and self.current_test_dict.get("abort_on_error", "no") == "yes"
+        ):
             raise exceptions.TestSkipError("God wanted this test to abort")
         return status not in ["ERROR", "FAIL"]
 
@@ -45,12 +62,14 @@ class DummyTestRun(object):
         # or else have to set name attribute separately since "name" is reserved by MagicMock
         # mocktestid = mock.MagicMock(uid=uid, name=name)
         # mocktestid.name = name
-        self.test_results.append({
-            "name": mocktestid,
-            "status": status,
-            "time_elapsed": time_elapsed,
-            "logdir": logdir,
-        })
+        self.test_results.append(
+            {
+                "name": mocktestid,
+                "status": status,
+                "time_elapsed": time_elapsed,
+                "logdir": logdir,
+            }
+        )
 
     @staticmethod
     async def mock_run_test_task(self, node):
@@ -60,8 +79,12 @@ class DummyTestRun(object):
         # provide ID-s and other node attributes as meta-parameters for assertion
         node.params["_long_prefix"] = node.long_prefix
         node.params["_uid"] = node.id_test.uid
-        assert node.started_worker is not None, f"{node} was not properly started by any worker"
-        assert "UNKNOWN" in [r["status"] for r in node.results], f"{node} does not have current UNKNOWN result"
+        assert (
+            node.started_worker is not None
+        ), f"{node} was not properly started by any worker"
+        assert "UNKNOWN" in [
+            r["status"] for r in node.results
+        ], f"{node} does not have current UNKNOWN result"
         # small enough not to slow down our tests too much for a test timeout of 300 but
         # large enough to surpass the minimal occupation waiting timeout for more realism
         await asyncio.sleep(0.1)
@@ -92,7 +115,9 @@ class DummyStateControl(object):
                     if not do_state:
                         continue
 
-                assert do_state in self.asserted_states[do], f"Unexpected state {do_state} to {do}"
+                assert (
+                    do_state in self.asserted_states[do]
+                ), f"Unexpected state {do_state} to {do}"
                 assert do_source != "", f"Empty {do} state location for {do_state}"
                 do_sources = do_source.split()
                 for do_source in do_sources:
@@ -100,7 +125,10 @@ class DummyStateControl(object):
                     if not do_source.endswith("shared"):
                         continue
                     if do == "check":
-                        if not self.asserted_states[do][do_state][do_source] and len(do_sources) == 1:
+                        if (
+                            not self.asserted_states[do][do_state][do_source]
+                            and len(do_sources) == 1
+                        ):
                             self.result = False
                     else:
                         self.asserted_states[do][do_state][do_source] += 1

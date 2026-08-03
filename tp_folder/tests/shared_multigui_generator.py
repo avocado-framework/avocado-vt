@@ -26,15 +26,14 @@ INTERFACE
 
 """
 
-import sys
-from PyQt4 import QtGui
 import logging
+import sys
 
 # custom imports
 from multi_gui_utils import GUITestGenerator
+from PyQt4 import QtGui
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -63,5 +62,5 @@ def run(test, params, env):
     log.info("GUI test generator's GUI initiated")
     # TODO: Once this is converted from pseudotest to an actual tool,
     # we will be free to do this
-    #sys.exit(app.exec_())
+    # sys.exit(app.exec_())
     app.exec_()

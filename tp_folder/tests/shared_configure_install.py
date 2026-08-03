@@ -20,15 +20,15 @@ INTERFACE
 
 """
 
-import re
 import logging
+import re
 
 # avocado imports
 from avocado.core import exceptions
+
 from virttest import error_context
 
-
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -46,11 +46,11 @@ def convert_to_key_steps(parameter_string):
     """
     keystrokes = []
     for char in parameter_string:
-        if char == '.':
+        if char == ".":
             keystrokes.append("key dot\n")
         else:
             keystrokes.append("key " + char + "\n")
-    return ''.join(keystrokes)
+    return "".join(keystrokes)
 
 
 def string_from_template(filename):
@@ -110,13 +110,19 @@ def configure_steps(params):
         log.debug(f"Replacing # IP_KEYS{i + 1}\n with {ip_keystrokes}")
         steps_string = steps_string.replace("# IP_KEYS%i\n" % (i + 1), ip_keystrokes)
         if ip_keystrokes not in steps_string:
-            log.warning(f"Could not insert ip_{nic} in the provided IP_KEYS{i + 1} field")
+            log.warning(
+                f"Could not insert ip_{nic} in the provided IP_KEYS{i + 1} field"
+            )
 
         mask_keystrokes = convert_to_key_steps(mask)
         log.debug(f"Replacing # NETMASK_KEYS{i + 1}\n with {mask_keystrokes}")
-        steps_string = steps_string.replace("# NETMASK_KEYS%i\n" % (i + 1), mask_keystrokes)
+        steps_string = steps_string.replace(
+            "# NETMASK_KEYS%i\n" % (i + 1), mask_keystrokes
+        )
         if mask_keystrokes not in steps_string:
-            log.warning(f"Could not insert netmask_{nic} in the provided NETMASK_KEYS{i + 1} field")
+            log.warning(
+                f"Could not insert netmask_{nic} in the provided NETMASK_KEYS{i + 1} field"
+            )
 
     current_keystrokes = convert_to_key_steps(params["main_vm"])
     steps_string = steps_string.replace("# NAME_KEYS\n", current_keystrokes)
@@ -138,7 +144,9 @@ def configure_unattended_kickstart(params):
     .. note:: This approach is currently used for RHEL-based vms.
     """
     error_context.context("Unattended kickstart file setup")
-    log.info(f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}")
+    log.info(
+        f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}"
+    )
     ks_string = string_from_template(params["unattended_file"])
     vm_params = params.object_params(params["main_vm"])
     vm_nics = vm_params.objects("nics")
@@ -151,13 +159,15 @@ def configure_unattended_kickstart(params):
         else:
             ip = nic_params["ip"]
             netmask = nic_params["netmask"]
-            network_line = ("%s --bootproto=static --ip=%s --netmask=%s --bindto=mac "
-                            "--activate --nodefroute" % (network_line, ip, netmask))
+            network_line = (
+                "%s --bootproto=static --ip=%s --netmask=%s --bindto=mac "
+                "--activate --nodefroute" % (network_line, ip, netmask)
+            )
         log.debug(f"Adding line '{network_line}' to the unattended file")
         first_network_line = "network --hostname #VMNAME#"
-        ks_string = re.sub(first_network_line,
-                           "%s\n%s" % (first_network_line, network_line),
-                           ks_string)
+        ks_string = re.sub(
+            first_network_line, "%s\n%s" % (first_network_line, network_line), ks_string
+        )
 
     ks_string = ks_string.replace("#VMNAME#", params["main_vm"])
     ks_string = ks_string.replace("#ROOTPW#", params["password"])
@@ -177,7 +187,9 @@ def configure_unattended_preseed(params):
     .. note:: This approach is currently used for Debian-based vms.
     """
     error_context.context("Unattended preseed file setup")
-    log.info(f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}")
+    log.info(
+        f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}"
+    )
     ps_string = string_from_template(params["unattended_file"])
     vm_params = params.object_params(params["main_vm"])
     vm_nics = vm_params.objects("nics")
@@ -186,8 +198,12 @@ def configure_unattended_preseed(params):
         network_line = "network --device eth%i" % i
         if nic != params["internet_nic"]:
             ps_string = ps_string.replace("#NETIP#", vm_params.object_params(nic)["ip"])
-            ps_string = ps_string.replace("#NETMASK#", vm_params.object_params(nic)["netmask"])
-            ps_string = ps_string.replace("#GATEWAY#", vm_params.object_params(nic)["ip_provider"])
+            ps_string = ps_string.replace(
+                "#NETMASK#", vm_params.object_params(nic)["netmask"]
+            )
+            ps_string = ps_string.replace(
+                "#GATEWAY#", vm_params.object_params(nic)["ip_provider"]
+            )
 
     ps_string = ps_string.replace("#VMNAME#", params["main_vm"])
     ps_string = ps_string.replace("#ROOTPW#", params["password"])
@@ -207,7 +223,9 @@ def configure_unattended_sif(params):
     .. note:: This approach is currently used for Windows XP vms.
     """
     error_context.context("Unattended sif file setup")
-    log.info(f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}")
+    log.info(
+        f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}"
+    )
     sif_string = string_from_template(params["unattended_file"])
     vm_params = params.object_params(params["main_vm"])
     vm_nics = vm_params.objects("nics")
@@ -218,33 +236,48 @@ def configure_unattended_sif(params):
         netmask = nic_params["netmask"]
         mac = nic_params["mac"]
 
-        sif_string = re.sub(r"\[NetAdapters\]\n", "[NetAdapters]\n"
-                            r"Adapter%02d = params.Adapter%02d\n" % (i, i),
-                            sif_string)
-        sif_string = re.sub(";nic names and macs here\n", ";nic names and macs here\n"
-                            "[params.Adapter%02d]\nConnectionName=\"%s\"\n"
-                            "netcardaddress = 0x%s\n" % (i, nic, mac.replace(":", "")),
-                            sif_string)
+        sif_string = re.sub(
+            r"\[NetAdapters\]\n",
+            "[NetAdapters]\n" r"Adapter%02d = params.Adapter%02d\n" % (i, i),
+            sif_string,
+        )
+        sif_string = re.sub(
+            ";nic names and macs here\n",
+            ";nic names and macs here\n"
+            '[params.Adapter%02d]\nConnectionName="%s"\n'
+            "netcardaddress = 0x%s\n" % (i, nic, mac.replace(":", "")),
+            sif_string,
+        )
         if re.search(r"\[params.MS_TCPIP\]", sif_string) is None:
-            sif_string = re.sub("MS_TCPIP = params.MS_TCPIP\n",
-                                "MS_TCPIP = params.MS_TCPIP\n[params.MS_TCPIP]\n"
-                                "AdapterSections = params.MS_TCPIP.Adapter%02d\n" % i,
-                                sif_string)
+            sif_string = re.sub(
+                "MS_TCPIP = params.MS_TCPIP\n",
+                "MS_TCPIP = params.MS_TCPIP\n[params.MS_TCPIP]\n"
+                "AdapterSections = params.MS_TCPIP.Adapter%02d\n" % i,
+                sif_string,
+            )
         else:
-            sif_string = re.sub("AdapterSections = ",
-                                "AdapterSections = params.MS_TCPIP.Adapter%02d," % i,
-                                sif_string)
+            sif_string = re.sub(
+                "AdapterSections = ",
+                "AdapterSections = params.MS_TCPIP.Adapter%02d," % i,
+                sif_string,
+            )
 
         if nic == params["internet_nic"]:
-            sif_string = re.sub(";nic ip configurations here\n", ";nic ip configurations here\n"
-                                "[params.MS_TCPIP.Adapter%02d]\nDHCP = Yes\n"
-                                "SpecificTo = Adapter%02d\n" % (i, i),
-                                sif_string)
+            sif_string = re.sub(
+                ";nic ip configurations here\n",
+                ";nic ip configurations here\n"
+                "[params.MS_TCPIP.Adapter%02d]\nDHCP = Yes\n"
+                "SpecificTo = Adapter%02d\n" % (i, i),
+                sif_string,
+            )
         else:
-            sif_string = re.sub(";nic ip configurations here\n", ";nic ip configurations here\n"
-                                "[params.MS_TCPIP.Adapter%02d]\nDHCP = No\nIPAddress = %s\n"
-                                "SpecificTo = Adapter%02d\nSubnetMask = %s\n" % (i, ip, i, netmask),
-                                sif_string)
+            sif_string = re.sub(
+                ";nic ip configurations here\n",
+                ";nic ip configurations here\n"
+                "[params.MS_TCPIP.Adapter%02d]\nDHCP = No\nIPAddress = %s\n"
+                "SpecificTo = Adapter%02d\nSubnetMask = %s\n" % (i, ip, i, netmask),
+                sif_string,
+            )
 
     sif_string = sif_string.replace("#VMNAME#", params["main_vm"])
     sif_string = sif_string.replace("#ROOTPW#", params["password"])
@@ -264,39 +297,48 @@ def configure_unattended_xml(params):
     .. note:: This approach is currently used for Windows 7 vms.
     """
     error_context.context("Unattended xml file setup")
-    log.info(f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}")
+    log.info(
+        f"Preparing unattended file {params['unattended_file']} for {params['main_vm']}"
+    )
     xml_string = string_from_template(params["unattended_file"])
     vm_params = params.object_params(params["main_vm"])
     vm_nics = vm_params.objects("nics")
 
     for i, nic in reversed(list(enumerate(vm_nics))):
         if nic == params["internet_nic"]:
-            log.info(f"Only static IP configuration is included in the unattended xml "
-                     f"file so the internet nic of {params['main_vm']} (DHCP) will be skipped")
+            log.info(
+                f"Only static IP configuration is included in the unattended xml "
+                f"file so the internet nic of {params['main_vm']} (DHCP) will be skipped"
+            )
         else:
             nic_params = vm_params.object_params(nic)
             ip = nic_params["ip"]
             netmask = nic_params["netmask"]
             # a bit artificial but we don't need more advanced functionality for now
-            netmask_bits = {"255.0.0.0": "8",
-                            "255.255.0.0": "16",
-                            "255.255.255.0": "24",
-                            "255.255.255.255": "32"}
+            netmask_bits = {
+                "255.0.0.0": "8",
+                "255.255.0.0": "16",
+                "255.255.255.0": "24",
+                "255.255.255.255": "32",
+            }
             netmask_bit = netmask_bits[netmask]
             mac = nic_params["mac"]
-            nic_str = ("                <Interface wcm:action=\"add\">\n"
-                       "                    <Identifier>%s</Identifier>\n"
-                       "                    <Ipv4Settings>\n"
-                       "                        <DhcpEnabled>false</DhcpEnabled>\n"
-                       "                        <Metric>10</Metric>\n"
-                       "                        <RouterDiscoveryEnabled>false</RouterDiscoveryEnabled>\n"
-                       "                    </Ipv4Settings>\n"
-                       "                    <UnicastIpAddresses>\n"
-                       "                        <IpAddress wcm:action=\"add\" wcm:keyValue=\"1\">%s/%s</IpAddress>\n"
-                       "                    </UnicastIpAddresses>\n"
-                       "                </Interface>\n" % (mac.replace(":", "-"), ip, netmask_bit))
+            nic_str = (
+                '                <Interface wcm:action="add">\n'
+                "                    <Identifier>%s</Identifier>\n"
+                "                    <Ipv4Settings>\n"
+                "                        <DhcpEnabled>false</DhcpEnabled>\n"
+                "                        <Metric>10</Metric>\n"
+                "                        <RouterDiscoveryEnabled>false</RouterDiscoveryEnabled>\n"
+                "                    </Ipv4Settings>\n"
+                "                    <UnicastIpAddresses>\n"
+                '                        <IpAddress wcm:action="add" wcm:keyValue="1">%s/%s</IpAddress>\n'
+                "                    </UnicastIpAddresses>\n"
+                "                </Interface>\n"
+                % (mac.replace(":", "-"), ip, netmask_bit)
+            )
             # this is for more flexible network configuration so should rather be used later on
-            #if nic_params.get("ip_provider", None) is not None:
+            # if nic_params.get("ip_provider", None) is not None:
             #    gateway_str = ("                    <Routes>\n"
             #                   "                        <Route wcm:action=\"add\">\n"
             #                   "                            <Identifier>1</Identifier>\n"
@@ -306,7 +348,9 @@ def configure_unattended_xml(params):
             #                   "                        </Route>\n"
             #                   "                    </Routes>\n" % nic_params["ip_provider"])
             #    nic_str = re.sub("</UnicastIpAddresses>\n", "</UnicastIpAddresses>\n%s" % gateway_str, nic_str)
-            xml_string = re.sub("<Interfaces>\n", "<Interfaces>\n%s" % nic_str, xml_string)
+            xml_string = re.sub(
+                "<Interfaces>\n", "<Interfaces>\n%s" % nic_str, xml_string
+            )
 
     xml_string = xml_string.replace("#VMNAME#", params["main_vm"])
     xml_string = xml_string.replace("#ROOTPW#", params["password"])
@@ -344,15 +388,23 @@ def run(test, params, env):
         elif params["unattended_file"].endswith(".xml"):
             configure_unattended_xml(params)
         else:
-            raise exceptions.TestError("Unsupported unattended file format for %s" % params["unattended_file"])
+            raise exceptions.TestError(
+                "Unsupported unattended file format for %s" % params["unattended_file"]
+            )
     elif params["configure_install"] == "shared_gui_install":
         log.warning("A GUI installation does not need any preconfiguration.")
     elif params["configure_install"] == "stepmaker":
-        log.warning("A stepmaker installation process cannot be preconfigured - you are supposed "
-                    "to use it only to produce step files where no preconfiguration is necessary.")
+        log.warning(
+            "A stepmaker installation process cannot be preconfigured - you are supposed "
+            "to use it only to produce step files where no preconfiguration is necessary."
+        )
     elif params["configure_install"] == "shared_multigui_generator":
-        log.warning("A GUI installation development process cannot be preconfigured - you are supposed "
-                    "to use it only to produce GUI tests where no preconfiguration is necessary.")
+        log.warning(
+            "A GUI installation development process cannot be preconfigured - you are supposed "
+            "to use it only to produce GUI tests where no preconfiguration is necessary."
+        )
     else:
-        raise exceptions.TestError("Unsupported installation method '%s' - must be one of "
-                                   "'steps', 'stepmaker', 'unattended_install'" % params["configure_install"])
+        raise exceptions.TestError(
+            "Unsupported installation method '%s' - must be one of "
+            "'steps', 'stepmaker', 'unattended_install'" % params["configure_install"]
+        )

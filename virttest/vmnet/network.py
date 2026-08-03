@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,docstring-first-line-empty,duplicate-code,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-raise,no-else-return,no-self-use,pointless-string-statement,raising-format-tuple,redefined-builtin,redefined-outer-name,too-many-arguments,too-many-branches,too-many-instance-attributes,too-many-lines,too-many-locals,too-many-nested-blocks,too-many-positional-arguments,too-many-public-methods,too-many-statements,unspecified-encoding,unused-argument,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,useless-object-inheritance
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -45,25 +46,25 @@ INTERFACE
 
 """
 
+import collections
+import logging as log
 import os
 import re
 import time
 from typing import Any
-import logging as log
 
-import collections
-
-from avocado.utils import process
-from avocado.core import exceptions
 from aexpect.client import RemoteSession
+from avocado.core import exceptions
+from avocado.utils import process
+
 from virttest import utils_net
+from virttest.qemu_vm import VM
 from virttest.utils_env import Env
 from virttest.utils_params import Params
-from virttest.qemu_vm import VM
 
 from .interface import VMInterface
-from .node import VMNode
 from .netconfig import VMNetconfig
+from .node import VMNode
 from .tunnel import VMTunnel
 
 logging = log.getLogger("avocado.job." + __name__)
@@ -266,29 +267,21 @@ class VMNetwork(object):
             self.interfaces[ikey] = new_interface
             self.interfaces[ikey].node = node
 
-            logging.debug(
-                "Generated interface {0}: {1}".format(ikey, self.interfaces[ikey])
-            )
+            logging.debug("Generated interface %s: %s", ikey, self.interfaces[ikey])
 
         for interface in node.interfaces.values():
-            logging.debug(
-                "Checking required netconfig for interface {0}".format(interface)
-            )
+            logging.debug("Checking required netconfig for interface %s", interface)
             for netconfig in self.netconfigs.values():
                 if netconfig.can_add_interface(interface):
                     logging.debug(
-                        "Adding interface {0} to previous {1}".format(
-                            interface, netconfig
-                        )
+                        "Adding interface %s to previous %s", interface, netconfig
                     )
                     netconfig.add_interface(interface)
                     break
             else:
                 netconfig = self.new_netconfig()
                 netconfig.from_interface(interface)
-                logging.debug(
-                    "Adding interface {0} to a new {1}".format(interface, netconfig)
-                )
+                logging.debug("Adding interface %s to a new %s", interface, netconfig)
                 netconfig.add_interface(interface)
                 self.netconfigs[netconfig.net_ip] = netconfig
 
@@ -303,7 +296,7 @@ class VMNetwork(object):
         """
         Reconfigure a network interface of a vm reattaching it to a different interface's network config.
 
-        :param client: vm whose interace will be rattached
+        :param client: vm whose interface will be rattached
         :param server: vm whose network will the interface be attached to
         :param client_nic: role of the nic of the client
         :param server_nic: role of the nic of the server
@@ -329,7 +322,7 @@ class VMNetwork(object):
         interface = self.interfaces["%s.%s" % (client.name, client_nic)]
         ref_interface = self.interfaces["%s.%s" % (server.name, server_nic)]
         proxy_interface = None
-        if proxy_nic != "" and proxy_nic != server_nic:
+        if proxy_nic not in ("", server_nic):
             proxy_interface = self.interfaces["%s.%s" % (server.name, proxy_nic)]
         netconfig = ref_interface.netconfig
         logging.debug("Reattaching %s to %s", interface, netconfig)
@@ -802,7 +795,7 @@ class VMNetwork(object):
 
         def _debug_bridge_ip(netdst: str) -> None:
             output = process.run("ip addr show %s" % netdst, shell=True)
-            logging.debug("ip addr output for %s:\n%s" % (netdst, output))
+            logging.debug("ip addr output for %s:\n%s", netdst, output)
 
         logging.info("Adding bridge %s", netdst)
         # TODO: no original avocado-vt method could in utils_net like the ones from
@@ -960,7 +953,7 @@ class VMNetwork(object):
         # NOTE: since such clients are created on the run and don't have nics for communication
         # with the host we need to disable some automatic postprocessing functionality
         self.params["kill_unresponsive_vms"] = "no"
-        return tuple([self.nodes[key].platform for key in new_clients])
+        return tuple(self.nodes[key].platform for key in new_clients)
 
     def _generate_clients_parameters(
         self, server_name: str, clients_num: int, nic: str
@@ -1265,8 +1258,8 @@ class VMNetwork(object):
             )
 
         logging.info("Building a VPN route %s", "-".join(vm.name for vm in vms))
-        for i in range(len(vpns)):
-            fvpn = "%sfwd" % vpns[i]
+        for i, vpn in enumerate(vpns):
+            fvpn = "%sfwd" % vpn
             if i == 0:
                 prev_net = (
                     vms[i + 1].params.object_params(vpns[i]).get("vpnconn_remote_net")

@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught,consider-using-f-string,docstring-first-line-empty,global-statement,import-outside-toplevel,logging-fstring-interpolation,missing-raises-doc,missing-return-doc,missing-yield-doc,no-else-continue,redefined-builtin,redefined-outer-name,too-many-branches,too-many-locals,too-many-statements,unused-argument,unused-import,unused-variable,use-implicit-booleaness-not-comparison-to-zero
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -42,23 +43,21 @@ INTERFACE
 
 """
 
-import sys
-import os
-import re
-from typing import Generator
-from typing import Any, Callable
-import logging as log
-
+import asyncio
 import contextlib
 import importlib
-import asyncio
+import logging as log
+import os
+import re
+import sys
 from collections import namedtuple
+from typing import Any, Callable, Generator
 
-from avocado.core import job
-from avocado.core import data_dir
-from avocado.core.suite import TestSuite
-from avocado.core.settings import settings
+from avocado.core import data_dir, job
 from avocado.core.output import LOG_UI
+from avocado.core.settings import settings
+from avocado.core.suite import TestSuite
+
 from avocado_vt.plugins.runner import TestRunner
 from virttest.utils_params import Params
 
@@ -311,7 +310,7 @@ def update(config: dict[str, Any], tag: str = "") -> None:
                     raise ValueError(
                         f"Could not identify a test node from {vm_name}'s to_state='{flag_state}', "
                         f"is it compatible with the default or specified remove set restriction?"
-                    )
+                    ) from error
 
             logging.info(
                 f"Flagging for updating by {worker.id} all {vm_name} states "
@@ -380,12 +379,12 @@ def update(config: dict[str, Any], tag: str = "") -> None:
                         raise ValueError(
                             f"Could not identify a test node from {vm_name}'s from_state='{from_state}', "
                             f"is it compatible with the default or specified remove set restriction?"
-                        )
+                        ) from error
 
         graph.new_objects([o for o in clean_graph.objects if o.key == "nets"])
         graph.new_nodes(clean_graph.nodes)
 
-    logging.info(f"Bridging worker subgraphs across workers")
+    logging.info("Bridging worker subgraphs across workers")
     for node1 in graph.nodes:
         for node2 in graph.nodes:
             if node1 == node2:
@@ -632,7 +631,7 @@ def check(config: dict[str, Any], tag: str = "") -> None:
 @with_cartesian_graph
 def pop(config: dict[str, Any], tag: str = "") -> None:
     """
-    Get to a state/snapshot disregarding the current changes loosing the it afterwards.
+    Get to a state/snapshot disregarding the current changes losing it afterwards.
 
     :param config: command line arguments and run configuration
     :param tag: extra name identifier for the test to be run

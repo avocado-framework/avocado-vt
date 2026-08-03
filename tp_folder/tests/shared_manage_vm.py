@@ -13,13 +13,14 @@ INTERFACE
 
 """
 
-import time
-import os
 import logging
+import os
+import time
 
 # avocado imports
 from aexpect import remote_door as door
 from avocado.core import exceptions
+
 from virttest import error_context
 from virttest.states import setup as ss
 
@@ -27,7 +28,7 @@ from virttest.states import setup as ss
 pass
 
 
-log = logging.getLogger('avocado.test.log')
+log = logging.getLogger("avocado.test.log")
 
 
 ###############################################################################
@@ -54,21 +55,31 @@ def run(test, params, env):
     elif params.get("vm_action", "run") == "run":
         for vm in vmnet.get_ordered_vms():
             if params.get("os_type", "linux") in ["windows"]:
-                raise exceptions.TestError(f"Cannot run control files on an {params['os_type']} vm")
+                raise exceptions.TestError(
+                    f"Cannot run control files on an {params['os_type']} vm"
+                )
             if vm.name == params.get("main_vm"):
                 session = vmnet.nodes[vm.name].get_session()
-                door.SRC_CONTROL_DIR = os.path.join(vm.params["original_test_data_path"], "..", "controls")
+                door.SRC_CONTROL_DIR = os.path.join(
+                    vm.params["original_test_data_path"], "..", "controls"
+                )
                 door.DUMP_CONTROL_DIR = test.logdir
                 logging.info("Running custom control file on %s", vm.name)
-                control_path = door.set_subcontrol_parameter_object(vm.params["control_file"], "virttest.utils_params.Params", vm.params)
+                control_path = door.set_subcontrol_parameter_object(
+                    vm.params["control_file"], "virttest.utils_params.Params", vm.params
+                )
                 door.run_subcontrol(session, control_path)
                 extra_timeout = int(params.get("extra_timeout", "0"))
-                logging.info("Parameters will be available for extra %s seconds", extra_timeout)
+                logging.info(
+                    "Parameters will be available for extra %s seconds", extra_timeout
+                )
                 time.sleep(extra_timeout)
                 break
     elif params.get("vm_action", "run") == "download":
         if params.get("os_type", "linux") in ["android"]:
-            raise NotImplementedError("No data exchange is currently possible for Android")
+            raise NotImplementedError(
+                "No data exchange is currently possible for Android"
+            )
         for vm in vmnet.get_ordered_vms():
             to_dir = os.path.join(test.logdir)
             for f in vm.params.objects("files"):
@@ -76,7 +87,9 @@ def run(test, params, env):
                 vm.copy_files_from(f, to_dir, timeout=30)
     elif params.get("vm_action", "run") == "upload":
         if params.get("os_type", "linux") in ["android"]:
-            raise NotImplementedError("No data exchange is currently possible for Android")
+            raise NotImplementedError(
+                "No data exchange is currently possible for Android"
+            )
         for vm in vmnet.get_ordered_vms():
             to_dir = vm.params["tmp_dir"]
             for f in vm.params.objects("files"):
@@ -99,7 +112,9 @@ def run(test, params, env):
         ss.pop_states(params, env)
     elif params.get("vm_action", "run") in ["get", "set"]:
         # these operations are performed automatically by the environment process
-        log.info(f"{params['vm_action'].title()}ting {params['main_vm']}'s (and its images') states")
+        log.info(
+            f"{params['vm_action'].title()}ting {params['main_vm']}'s (and its images') states"
+        )
     elif params.get("vm_action", "run") == "unset":
         log.info(f"Unsetting {params['main_vm']}'s (and its images') states")
         ss.unset_states(params, env)

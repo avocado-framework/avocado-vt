@@ -1,3 +1,4 @@
+# pylint: disable=consider-using-f-string,docstring-first-line-empty,duplicate-code,logging-fstring-interpolation,missing-param-doc,missing-raises-doc,missing-return-doc,no-else-return,redefined-builtin,too-many-locals,unnecessary-pass,unused-argument,unused-variable,use-implicit-booleaness-not-comparison-to-zero
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,12 +26,12 @@ INTERFACE
 
 """
 
+import json
+import logging as log
 import os
 import re
-import json
 import shutil
 from typing import Any
-import logging as log
 
 from virttest import env_process
 from virttest.qemu_storage import QemuImg
@@ -448,7 +449,7 @@ class QCOW2VTBackend(QCOW2Backend):
             if len(states) == 0:
                 states = image_states
             else:
-                states = states.intersect(image_states)
+                states = states.intersection(image_states)
         return states
 
     @classmethod
@@ -653,8 +654,7 @@ def convert_image(params: Params) -> None:
             logging.debug(f"{target_image} not in use, integrity asserted")
         else:
             if '"write" lock' in result.stderr_text:
-                logging.error(f"{target_image} is in use, refusing to convert")
-                raise
+                raise RuntimeError(f"{target_image} is in use, refusing to convert")
             logging.debug(f"{target_image} exists but cannot check integrity")
         logging.info(f"Overwriting existing {target_image}")
 

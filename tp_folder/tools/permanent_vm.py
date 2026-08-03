@@ -21,11 +21,12 @@ INTERFACE
 
 import os
 
-from avocado.core.output import LOG_UI, LOG_JOB as logging
+from avocado.core.output import LOG_JOB as logging
+from avocado.core.output import LOG_UI
+
 from virttest import params_parser as param
 from virttest.cartgraph import TestGraph
-from virttest.intertest_setup import with_cartesian_graph, update
-
+from virttest.intertest_setup import update, with_cartesian_graph
 
 #: list of all available manual steps or simply semi-automation tools
 __all__ = ["permubuntu"]
@@ -47,8 +48,11 @@ def permubuntu(config, tag=""):
     """
     l, r = config["graph"].l, config["graph"].r
     selected_vms = sorted(config["vm_strs"].keys())
-    LOG_UI.info("Starting permanent vm setup for %s (%s)",
-                ", ".join(selected_vms), os.path.basename(r.job.logdir))
+    LOG_UI.info(
+        "Starting permanent vm setup for %s (%s)",
+        ", ".join(selected_vms),
+        os.path.basename(r.job.logdir),
+    )
 
     # configure the update tool for remove test set independent behavior
     for vm_name in selected_vms:
@@ -62,7 +66,11 @@ def permubuntu(config, tag=""):
     graph = TestGraph()
     graph.new_workers(l.parse_workers(config["param_dict"]))
     for vm_name in selected_vms:
-        graph.new_objects(TestGraph.parse_composite_objects(vm_name, "vms", config["vm_strs"][vm_name]))
+        graph.new_objects(
+            TestGraph.parse_composite_objects(
+                vm_name, "vms", config["vm_strs"][vm_name]
+            )
+        )
 
     for test_worker in graph.workers.values():
         test_worker.net.update_restrs(config["vm_strs"])
@@ -74,9 +82,12 @@ def permubuntu(config, tag=""):
             # consider this as a special kind of state converting test which concerns
             # permanent objects (i.e. instead of transition from customize to on
             # root, it is a transition from supposedly "permanentized" vm to the root)
-            logging.info("Booting %s for the first permanent on state", test_object.suffix)
-            nodes = graph.parse_composite_nodes("all..internal..manage.start", test_worker.net,
-                                                tag, params=setup_dict)
+            logging.info(
+                "Booting %s for the first permanent on state", test_object.suffix
+            )
+            nodes = graph.parse_composite_nodes(
+                "all..internal..manage.start", test_worker.net, tag, params=setup_dict
+            )
             if len(nodes) == 0:
                 logging.warning(f"Skipped incompatible worker {test_worker.id}")
                 continue
