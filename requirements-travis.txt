@@ -3,5 +3,5 @@ Sphinx==1.3b1
 pylint==3.0.0
 aexpect>=1.6.4
 pyenchant==3.2.2
-black==24.3.0
+black==26.3.1
 isort==5.10.1
