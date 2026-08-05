@@ -1,0 +1,84 @@
+NAME = "Pre-test hook"
+URI = ""
+DOC = """
+Control for a pre-test customization hook*
+
+This control file makes use of shared test parameters (in the form of
+a remote object) to return statuses and inform the host test back. It
+requires the same backends as the ones for a general remote object
+sharing by the remote door.
+"""
+
+import os
+import sys
+from typing import Callable
+import logging as log
+logging = log.getLogger('avocado.test.pre')
+
+# avocado imports
+from avocado_vt.test import VirtTest
+from virttest import env_process
+from virttest.utils_params import Params
+from virttest.utils_env import Env
+from virttest.states import setup as ss
+from virttest.states import lvm, qcow2, lxc, btrfs, ramfile, pool, vmnet
+from virttest.states.vmnet import VMNetBackend
+from virttest.vmnet import VMNetwork
+
+# deployed utilities
+utility_path = os.path.join(params["suite_path"], "utils")
+sys.path.insert(1, utility_path)
+
+logging.info("%s control file.", NAME)
+
+
+# MAIN PART
+
+logging.info(f"Added utility path {utility_path}")
+log.getLogger("aexpect").level = log.DEBUG
+logging.info(f"Setting network class for state backend")
+VMNetBackend.network_class = VMNetwork
+
+logging.info(f"Adding env process stage hooks")
+def close_sessions(fn: Callable[[VirtTest, Params, Env], None]) -> Callable[[VirtTest, Params, Env], None]:
+    def wrapper(test: "VirtTest", params: "Params", env: "Env") -> None:
+        fn(test, params, env)
+        from virttest.states import pool
+        for session in pool.TransferOps._session_cache.values():
+            session.close()
+        # TODO: consider better localization for this (needed for GUI tests)
+        from vncdotool import api
+        api.shutdown()
+    return wrapper
+def on_state(fn: Callable[[Params, Env], None], do: str) -> Callable[[VirtTest, Params, Env], None]:
+    def wrapper(test: "VirtTest", params: "Params", env: "Env") -> None:
+        # all states are synced only via get
+        if do in ["set", "unset"]:
+            params["pool_scope"] = "own"
+        params["skip_types"] = "nets/vms/images nets"
+        fn(params, env)
+        del params["skip_types"]
+    return wrapper
+def off_state(fn: Callable[[Params, Env], None], do: str) -> Callable[[VirtTest, Params, Env], None]:
+    def wrapper(test: "VirtTest", params: "Params", env: "Env") -> None:
+        # all states are synced only via get
+        if do in ["set", "unset"]:
+            params["pool_scope"] = "own"
+        params["skip_types"] = "nets/vms"
+        fn(params, env)
+        del params["skip_types"]
+    return wrapper
+env_process.preprocess_vm_off_hook = off_state(ss.get_states, "get")
+env_process.preprocess_vm_on_hook = on_state(ss.get_states, "get")
+env_process.postprocess_vm_on_hook = on_state(ss.set_states, "set")
+env_process.postprocess_vm_off_hook = close_sessions(off_state(ss.set_states, "set"))
+logging.info(f"Adding default state backends")
+ss.BACKENDS = {"qcow2": qcow2.QCOW2Backend, "qcow2ext": qcow2.QCOW2ExtBackend,
+               "lvm": lvm.LVMBackend,
+               "lxc": lxc.LXCBackend, "btrfs": btrfs.BtrfsBackend,
+               "qcow2vt": qcow2.QCOW2VTBackend, "ramfile": ramfile.RamfileBackend,
+               "vmnet": vmnet.VMNetBackend}
+ramfile.RamfileBackend.image_state_backend = qcow2.QCOW2ExtBackend
+
+
+logging.info("%s control file finished.", NAME)
