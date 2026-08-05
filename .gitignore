@@ -2,6 +2,7 @@
 .pydevproject
 .settings
 .coverage
+.pylint-dependencies/
 .idea/*
 coverage.xml
 xunit.xml
