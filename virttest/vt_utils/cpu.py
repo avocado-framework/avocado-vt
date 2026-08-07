@@ -130,6 +130,108 @@ def get_cpu_family():
     return cpu_family
 
 
+def get_cpu_model():
+    """
+    Return the name of cpu model.
+
+    :return: the name of the cpu model in string
+    :rtype: string
+    :raises: An OSError will be raised if it's NOT available on the platform
+    """
+    cpu_model_re = r"(?m)^model\s+:\s+(\d+)$"
+    with open("/proc/cpuinfo") as fd:
+        cpu_info = fd.read()
+    cpu_model = re.search(cpu_model_re, cpu_info)
+    if not cpu_model:
+        raise OSError("The cpu model was NOT found!")
+    cpu_model = cpu_model.groups()[0]
+    return cpu_model
+
+
+def _amd_cpu_codenames():
+    """
+    Return AMD CPU codename mappings ordered from oldest to newest.
+
+    Each entry is (codename, family, [(model_min, model_max), ...], generation).
+    Codenames that share a generation (e.g. genoa and bergamo) are treated as
+    equivalent for minimum-generation checks.  Ranges sourced from
+    arch/x86/kernel/cpu/amd.c (upstream Linux kernel).
+    """
+    return [
+        ("milan", 25, [(0, 15)], 3),
+        ("genoa", 25, [(16, 31)], 4),
+        ("bergamo", 25, [(160, 175)], 4),
+        ("turin", 26, [(0, 47), (64, 79), (96, 127), (208, 215)], 5),
+        ("venice", 26, [(80, 95), (128, 175), (192, 207), (216, 239)], 6),
+    ]
+
+
+def _lookup_amd_cpu_codename(family, model):
+    """
+    Map AMD CPU family and model numbers to a codename.
+
+    :param family: CPU family number
+    :param model: CPU model number
+    :return: detected CPU codename
+    :raises OSError: if the family/model combination is unrecognised
+    """
+    for codename, fam, ranges, _generation in _amd_cpu_codenames():
+        if fam == family and any(lo <= model <= hi for lo, hi in ranges):
+            return codename
+    raise OSError(f"Unrecognised AMD CPU: family={family}, model={model}.")
+
+
+def get_cpu_codename(vendor=None):
+    """
+    Return the microarchitecture codename for the host CPU.
+
+    :param vendor: optional vendor_id override (defaults to get_cpu_vendor_id())
+    :type vendor: str or None
+    :return: detected CPU codename
+    :rtype: str
+    :raises OSError: if the vendor is unsupported or family/model is unrecognised
+    """
+    vendor = vendor or get_cpu_vendor_id()
+    if vendor == "AuthenticAMD":
+        return _lookup_amd_cpu_codename(int(get_cpu_family()), int(get_cpu_model()))
+    raise OSError(f"CPU codename detection is not supported for vendor '{vendor}'.")
+
+
+def verify_min_cpu_codename(min_codename, vendor=None):
+    """
+    Verify the host CPU codename meets a minimum generation requirement.
+
+    :param min_codename: minimum required codename (e.g. "milan")
+    :param vendor: optional vendor_id override (defaults to get_cpu_vendor_id())
+    :return: detected CPU codename when the requirement is met
+    :raises ValueError: if min_codename is not a recognised codename for the
+        vendor
+    :raises OSError: if the vendor is unsupported, family/model is
+        unrecognised, or the host CPU is older than min_codename
+    """
+    min_codename = min_codename.lower()
+    generations = {
+        codename: generation
+        for codename, _fam, _ranges, generation in _amd_cpu_codenames()
+    }
+    if min_codename not in generations:
+        raise ValueError(
+            f"Unknown CPU codename '{min_codename}'. "
+            f"Valid options: {', '.join(generations)}"
+        )
+
+    detected = get_cpu_codename(vendor=vendor)
+    detected_gen = generations[detected]
+    required_gen = generations[min_codename]
+    if detected_gen < required_gen:
+        raise OSError(
+            f"Detected CPU codename '{detected}' (generation {detected_gen}) "
+            f"is older than the required minimum '{min_codename}' "
+            f"(generation {required_gen})."
+        )
+    return detected
+
+
 def get_cpu_stepping():
     """
     Return the name of cpu stepping.
