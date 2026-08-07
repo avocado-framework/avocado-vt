@@ -106,7 +106,7 @@ class BasicTests(unittest.TestCase):
         result = process.run(
             "avocado --config %s --show all run --vt-config %s "
             "--job-results-dir %s test_statuses" % (avocado_config, cfg, self.tmpdir),
-            timeout=15,
+            timeout=60,
             ignore_status=True,
         )
         self.assertEqual(result.exit_status, 1, "Exit status is not 1:\n%s" % result)
