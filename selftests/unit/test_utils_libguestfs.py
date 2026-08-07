@@ -3,8 +3,9 @@ import logging
 import os
 import sys
 import unittest
+from unittest import mock
 
-from avocado.utils import path
+from avocado.utils import path, process
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,13 +32,17 @@ class LibguestfsTest(unittest.TestCase):
         for cmd in cmds:
             self.assertRaises(lgf.LibguestfsCmdError, lgf.lgf_cmd_check, cmd)
 
-    def test_lgf_cmd(self):
+    @mock.patch("virttest.utils_libguestfs.process.run")
+    def test_lgf_cmd(self, process_run):
         cmd = "libguestfs-test-tool"
-        try:
-            path.find_command(cmd)
-            self.assertEqual(lgf.lgf_command(cmd).exit_status, 0)
-        except path.CmdNotFoundError:
-            logging.warning("Command %s not installed, skipping unittest...", cmd)
+        process_run.return_value = process.CmdResult(command=cmd, exit_status=0)
+
+        result = lgf.lgf_command(cmd)
+
+        self.assertEqual(result.exit_status, 0)
+        process_run.assert_called_once_with(
+            cmd, ignore_status=True, verbose=False, timeout=60
+        )
 
 
 class SlotsCheckTest(unittest.TestCase):
