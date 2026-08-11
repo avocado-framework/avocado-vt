@@ -73,20 +73,21 @@ CORRECT_RESULT_MAPPING = {
 
 class TestParams(Test):
     def setUp(self):
-        self.params = utils_params.Params(BASE_DICT)
+        super().setUp()
+        self.vt_params = utils_params.Params(BASE_DICT)
 
     def testObjects(self):
-        self.assertEqual(self.params.objects("images"), ["image1", "stg"])
+        self.assertEqual(self.vt_params.objects("images"), ["image1", "stg"])
 
     def testObjectsParams(self):
         for key in list(CORRECT_RESULT_MAPPING.keys()):
             self.assertEqual(
-                self.params.object_params(key), CORRECT_RESULT_MAPPING[key]
+                self.vt_params.object_params(key), CORRECT_RESULT_MAPPING[key]
             )
 
     def testGetItemMissing(self):
         try:
-            self.params["bogus"]
+            self.vt_params["bogus"]
             raise ValueError(
                 "Did not get a ParamNotFound error when trying "
                 "to access a non-existing param"
@@ -96,64 +97,72 @@ class TestParams(Test):
             pass
 
     def testGetItem(self):
-        self.assertEqual(self.params["image_size"], "10G")
+        self.assertEqual(self.vt_params["image_size"], "10G")
 
     def testGetBoolean(self):
-        self.params["foo1"] = "yes"
-        self.params["foo2"] = "no"
-        self.params["foo3"] = "on"
-        self.params["foo4"] = "off"
-        self.params["foo5"] = "true"
-        self.params["foo6"] = "false"
-        self.assertEqual(True, self.params.get_boolean("foo1"))
-        self.assertEqual(False, self.params.get_boolean("foo2"))
-        self.assertEqual(True, self.params.get_boolean("foo3"))
-        self.assertEqual(False, self.params.get_boolean("foo4"))
-        self.assertEqual(True, self.params.get_boolean("foo5"))
-        self.assertEqual(False, self.params.get_boolean("foo6"))
-        self.assertEqual(False, self.params.get_boolean("notgiven"))
+        self.vt_params["foo1"] = "yes"
+        self.vt_params["foo2"] = "no"
+        self.vt_params["foo3"] = "on"
+        self.vt_params["foo4"] = "off"
+        self.vt_params["foo5"] = "true"
+        self.vt_params["foo6"] = "false"
+        self.assertEqual(True, self.vt_params.get_boolean("foo1"))
+        self.assertEqual(False, self.vt_params.get_boolean("foo2"))
+        self.assertEqual(True, self.vt_params.get_boolean("foo3"))
+        self.assertEqual(False, self.vt_params.get_boolean("foo4"))
+        self.assertEqual(True, self.vt_params.get_boolean("foo5"))
+        self.assertEqual(False, self.vt_params.get_boolean("foo6"))
+        self.assertEqual(False, self.vt_params.get_boolean("notgiven"))
 
     def testGetNumeric(self):
-        self.params["something"] = "7"
-        self.params["foobar"] = 11
-        self.params["barsome"] = 13.17
-        self.params["hex_val"] = "0xff"
-        self.params["oct_val"] = "0o755"
-        self.params["bin_val"] = "0b11111111"
-        self.assertEqual(7, self.params.get_numeric("something"))
-        self.assertEqual(7, self.params.get_numeric("something", target_type=int))
-        self.assertEqual(7.0, self.params.get_numeric("something", target_type=float))
-        self.assertEqual(11, self.params.get_numeric("foobar"))
-        self.assertEqual(11, self.params.get_numeric("foobar", target_type=int))
-        self.assertEqual(11.0, self.params.get_numeric("foobar", target_type=float))
-        self.assertEqual(13, self.params.get_numeric("barsome"))
-        self.assertEqual(13, self.params.get_numeric("barsome", target_type=int))
-        self.assertEqual(13.17, self.params.get_numeric("barsome", target_type=float))
-        self.assertEqual(17, self.params.get_numeric("joke", 17))
+        self.vt_params["something"] = "7"
+        self.vt_params["foobar"] = 11
+        self.vt_params["barsome"] = 13.17
+        self.vt_params["hex_val"] = "0xff"
+        self.vt_params["oct_val"] = "0o755"
+        self.vt_params["bin_val"] = "0b11111111"
+        self.assertEqual(7, self.vt_params.get_numeric("something"))
+        self.assertEqual(7, self.vt_params.get_numeric("something", target_type=int))
         self.assertEqual(
-            17.13, self.params.get_numeric("joke", 17.13, target_type=float)
+            7.0, self.vt_params.get_numeric("something", target_type=float)
+        )
+        self.assertEqual(11, self.vt_params.get_numeric("foobar"))
+        self.assertEqual(11, self.vt_params.get_numeric("foobar", target_type=int))
+        self.assertEqual(11.0, self.vt_params.get_numeric("foobar", target_type=float))
+        self.assertEqual(13, self.vt_params.get_numeric("barsome"))
+        self.assertEqual(13, self.vt_params.get_numeric("barsome", target_type=int))
+        self.assertEqual(
+            13.17, self.vt_params.get_numeric("barsome", target_type=float)
+        )
+        self.assertEqual(17, self.vt_params.get_numeric("joke", 17))
+        self.assertEqual(
+            17.13, self.vt_params.get_numeric("joke", 17.13, target_type=float)
         )
         # Test automatic base detection (0x/0o/0b prefixes)
-        self.assertEqual(255, self.params.get_numeric("hex_val"))
-        self.assertEqual(493, self.params.get_numeric("oct_val"))
-        self.assertEqual(255, self.params.get_numeric("bin_val"))
+        self.assertEqual(255, self.vt_params.get_numeric("hex_val"))
+        self.assertEqual(493, self.vt_params.get_numeric("oct_val"))
+        self.assertEqual(255, self.vt_params.get_numeric("bin_val"))
 
     def testGetList(self):
-        self.params["primes"] = "7 11 13 17"
-        self.params["dashed"] = "7-11-13"
-        self.assertEqual(["7", "11", "13", "17"], self.params.get_list("primes"))
+        self.vt_params["primes"] = "7 11 13 17"
+        self.vt_params["dashed"] = "7-11-13"
+        self.assertEqual(["7", "11", "13", "17"], self.vt_params.get_list("primes"))
         self.assertEqual(
-            [7, 11, 13, 17], self.params.get_list("primes", "1 2 3", " ", int)
+            [7, 11, 13, 17], self.vt_params.get_list("primes", "1 2 3", " ", int)
         )
-        self.assertEqual([1, 2, 3], self.params.get_list("missing", "1 2 3", " ", int))
-        self.assertEqual([7, 11, 13], self.params.get_list("dashed", "1 2 3", "-", int))
+        self.assertEqual(
+            [1, 2, 3], self.vt_params.get_list("missing", "1 2 3", " ", int)
+        )
+        self.assertEqual(
+            [7, 11, 13], self.vt_params.get_list("dashed", "1 2 3", "-", int)
+        )
 
     def testGetDict(self):
-        self.params["dummy"] = "name1=value1 name2=value2"
+        self.vt_params["dummy"] = "name1=value1 name2=value2"
         self.assertEqual(
-            {"name1": "value1", "name2": "value2"}, self.params.get_dict("dummy")
+            {"name1": "value1", "name2": "value2"}, self.vt_params.get_dict("dummy")
         )
-        result_dict = self.params.get_dict("dummy", need_order=True)
+        result_dict = self.vt_params.get_dict("dummy", need_order=True)
         right_dict, wrong_dict = OrderedDict(), OrderedDict()
         right_dict["name1"] = "value1"
         right_dict["name2"] = "value2"
@@ -163,14 +172,14 @@ class TestParams(Test):
         self.assertNotEqual(wrong_dict, result_dict)
 
     def dropDictInternals(self):
-        self.params["a"] = "7"
-        self.params["b"] = "11"
-        self.params["_b"] = "13"
-        pruned = self.params.drop_dict_internals()
+        self.vt_params["a"] = "7"
+        self.vt_params["b"] = "11"
+        self.vt_params["_b"] = "13"
+        pruned = self.vt_params.drop_dict_internals()
         self.assertIn("a", pruned.keys())
-        self.assertEqual(pruned["a"], self.params["a"])
+        self.assertEqual(pruned["a"], self.vt_params["a"])
         self.assertIn("b", pruned.keys())
-        self.assertEqual(pruned["b"], self.params["b"])
+        self.assertEqual(pruned["b"], self.vt_params["b"])
         self.assertNotIn("_b", pruned.keys())
 
 
