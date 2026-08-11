@@ -370,16 +370,17 @@ class TestVmNetSubclasses(Test):
     """
 
     mac_prefix = "01:02:03:04:05:"
-    db_filename = "/dev/shm/UnitTest_AddressPool"
-    db_item_count = 0
     counter = 0  # for printing dots
 
     def setUp(self):
         """
         Runs before every test
         """
+        super().setUp()
         logging.disable(logging.INFO)
         logging.disable(logging.WARNING)
+        self.db_filename = os.path.join(self.workdir, "UnitTest_AddressPool")
+        self.db_item_count = 0
         # MAC generator produces from incrementing byte list
         # at random starting point (class property).
         # make sure it starts counting at zero before every test
@@ -397,6 +398,69 @@ class TestVmNetSubclasses(Test):
                 nics = vm.get("nics")
                 if nics and len(nics.split()) > 0:
                     self.db_item_count += 1
+
+    def _populate_cartesian_db(self):
+        """Populate a fresh address pool from the Cartesian test data."""
+        try:
+            os.unlink(self.db_filename)
+        except OSError:
+            pass
+        self.zero_counter()
+        for fakevm in self.fakevm_generator():
+            test_params = fakevm.get_params()
+            virtnet = utils_net.DbNet(
+                test_params, fakevm.name, self.db_filename, fakevm.instance
+            )
+            self.assertTrue(hasattr(virtnet, "container_class"))
+            self.assertTrue(hasattr(virtnet, "mac_prefix"))
+            self.assertTrue(not hasattr(virtnet, "lock"))
+            self.assertTrue(not hasattr(virtnet, "db"))
+            vm_name_params = test_params.object_params(fakevm.name)
+            nic_name_list = vm_name_params.objects("nics")
+            for nic_name in nic_name_list:
+                nic_dict = {"nic_name": nic_name}
+                nic_params = test_params.object_params(nic_name)
+                proplist = list(virtnet.container_class().__all_slots__)
+                del proplist[proplist.index("nic_name")]
+                for propertea in proplist:
+                    nic_dict[propertea] = nic_params.get(propertea)
+                virtnet.append(nic_dict)
+            virtnet.update_db()
+            self.print_and_inc()
+
+    def _populate_mac_pool(self, include_last=False):
+        """Populate a fresh address pool with deterministic MAC addresses."""
+        try:
+            os.unlink(self.db_filename)
+        except OSError:
+            pass
+        self.zero_counter(25)
+        for lastbyte in xrange(0, 0xFF):
+            vm_name = "vm%d" % lastbyte
+            if lastbyte < 16:
+                mac = "%s0%x" % (self.mac_prefix, lastbyte)
+            else:
+                mac = "%s%x" % (self.mac_prefix, lastbyte)
+            params = utils_params.Params(
+                {"nics": "nic1", "vms": vm_name, "mac_nic1": mac}
+            )
+            virtnet = utils_net.VirtNet(params, vm_name, vm_name, self.db_filename)
+            virtnet.mac_prefix = self.mac_prefix
+            self.assertEqual(virtnet["nic1"].mac, mac)
+            self.assertEqual(virtnet.get_mac_address(0), mac)
+            self.assertEqual(
+                virtnet.get_mac_address(0).lower(), virtnet.get_mac_address(0)
+            )
+            self.assertEqual(virtnet.mac_list(), [mac])
+            self.print_and_inc()
+
+        if include_last:
+            params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm255"})
+            virtnet = utils_net.VirtNet(params, "vm255", "vm255", self.db_filename)
+            virtnet.mac_prefix = self.mac_prefix
+            self.assertEqual(
+                virtnet.generate_mac_address(0, 300), "%sff" % self.mac_prefix
+            )
 
     def fakevm_generator(self):
         for params in self.CartesianResult:
@@ -521,41 +585,13 @@ class TestVmNetSubclasses(Test):
         """
         Load Cartesian combinatorial result from params into database
         """
-        try:
-            os.unlink(self.db_filename)
-        except OSError:
-            pass
-        self.zero_counter()
-        for fakevm in self.fakevm_generator():
-            test_params = fakevm.get_params()
-            virtnet = utils_net.DbNet(
-                test_params, fakevm.name, self.db_filename, fakevm.instance
-            )
-            self.assertTrue(hasattr(virtnet, "container_class"))
-            self.assertTrue(hasattr(virtnet, "mac_prefix"))
-            self.assertTrue(not hasattr(virtnet, "lock"))
-            self.assertTrue(not hasattr(virtnet, "db"))
-            vm_name_params = test_params.object_params(fakevm.name)
-            nic_name_list = vm_name_params.objects("nics")
-            for nic_name in nic_name_list:
-                # nic name is only in params scope
-                nic_dict = {"nic_name": nic_name}
-                nic_params = test_params.object_params(nic_name)
-                # avoid processing unsupported properties
-                proplist = list(virtnet.container_class().__all_slots__)
-                # name was already set, remove from __slots__ list copy
-                del proplist[proplist.index("nic_name")]
-                for propertea in proplist:
-                    nic_dict[propertea] = nic_params.get(propertea)
-                virtnet.append(nic_dict)
-            virtnet.update_db()
-            # db shouldn't store empty items
-            self.print_and_inc()
+        self._populate_cartesian_db()
 
     def test_03_db(self):
         """
-        Load from database created in test_02_db, verify data against params
+        Populate a database and verify its data against the parameters.
         """
+        self._populate_cartesian_db()
         # Verify on-disk data matches dummy data just written
         self.zero_counter()
         db = shelve.open(self.db_filename)
@@ -578,43 +614,13 @@ class TestVmNetSubclasses(Test):
         """
         Populate database with max - 1 mac addresses
         """
-        try:
-            os.unlink(self.db_filename)
-        except OSError:
-            pass
-        self.zero_counter(25)
-        # setup() method already set LASTBYTE to '-1'
-        for lastbyte in xrange(0, 0xFF):
-            # test_07_VirtNet demands last byte in name and mac match
-            vm_name = "vm%d" % lastbyte
-            if lastbyte < 16:
-                mac = "%s0%x" % (self.mac_prefix, lastbyte)
-            else:
-                mac = "%s%x" % (self.mac_prefix, lastbyte)
-            params = utils_params.Params(
-                {
-                    "nics": "nic1",
-                    "vms": vm_name,
-                    "mac_nic1": mac,
-                }
-            )
-            virtnet = utils_net.VirtNet(params, vm_name, vm_name, self.db_filename)
-            virtnet.mac_prefix = self.mac_prefix
-            self.assertEqual(virtnet["nic1"].mac, mac)
-            self.assertEqual(virtnet.get_mac_address(0), mac)
-            # Confirm only lower-case macs are stored
-            self.assertEqual(
-                virtnet.get_mac_address(0).lower(), virtnet.get_mac_address(0)
-            )
-            self.assertEqual(virtnet.mac_list(), [mac])
-            self.print_and_inc()
+        self._populate_mac_pool()
 
     def test_05_VirtNet(self):
         """
-        Load max - 1 entries from db, overriding params.
-
-        DEPENDS ON test_04_VirtNet running first
+        Populate and load max - 1 entries from db, overriding params.
         """
+        self._populate_mac_pool()
         self.zero_counter(25)
         # second loop forces db load from disk
         # also confirming params merge with db data
@@ -632,10 +638,9 @@ class TestVmNetSubclasses(Test):
 
     def test_06_VirtNet(self):
         """
-        Generate last possibly mac and verify value.
-
-        DEPENDS ON test_05_VirtNet running first
+        Populate the pool, generate the last possible MAC, and verify it.
         """
+        self._populate_mac_pool()
         self.zero_counter(25)
         # test two nics, second mac generation should fail (pool exhausted)
         params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm255"})
@@ -653,6 +658,7 @@ class TestVmNetSubclasses(Test):
         """
         Release mac from beginning, middle, and end, re-generate + verify value
         """
+        self._populate_mac_pool(include_last=True)
         self.zero_counter(1)
         beginning_params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm0"})
         middle_params = utils_params.Params({"nics": "nic1 nic2", "vms": "vm127"})
