@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
+import gc
 import logging
 import os
 import sys
 import unittest
 
-from avocado import Test
-from avocado.utils import process
+from aexpect.exceptions import ShellProcessTerminatedError, ShellStatusError
+from avocado import Test, skipUnless
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,21 +15,28 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
 
-def process_is_alive(name_pattern):
-    """
-    'pgrep name' misses all python processes and also long process names.
-    'pgrep -f name' gets all shell commands with name in args.
-    So look only for command whose initial pathname ends with name.
-    Name itself is an egrep pattern, so it can use | etc for variations.
-    """
-    return (
-        process.system(
-            "pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
-            ignore_status=True,
-            shell=True,
-        )
-        == 0
-    )
+def virsh_session_is_alive(session_id):
+    """Return whether one particular aexpect-backed virsh session is alive."""
+    from virttest import virsh
+
+    try:
+        session = virsh.VirshSession(a_id=session_id, check_libvirtd=False)
+        return session.is_alive()
+    except (
+        ShellStatusError,
+        ShellProcessTerminatedError,
+    ):  # The session no longer exists or cannot be attached.
+        return False
+
+
+def virsh_is_available():
+    """Check whether the test environment provides a real virsh executable."""
+    from virttest import virsh
+
+    return virsh.Virsh()["virsh_exec"] != "/bin/true"
+
+
+VIRSH_AVAILABLE = virsh_is_available()
 
 
 class bogusVirshFailureException(unittest.TestCase.failureException):
@@ -226,21 +234,9 @@ class ConstructorsTest(ModuleLoad):
 class ModuleLoadCheckVirsh(Test):
     from virttest import virsh
 
-    def run(self, result=None):
-        test_virsh = self.virsh.Virsh()
-        if test_virsh["virsh_exec"] == "/bin/true":
-            if result is None:
-                result = self.defaultTestResult()
-            result.startTest(self)
-            try:
-                result.addSkip(self, "no virsh executable was found")
-            finally:
-                result.stopTest(self)
-            return result
-        else:
-            return super(ModuleLoadCheckVirsh, self).run(result)
 
-
+@skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
+@unittest.skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
 class SessionManagerTest(ModuleLoadCheckVirsh):
     def test_del_VirshPersistent(self):
         """
@@ -250,10 +246,11 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         well in `del vp_instance`.
         """
         vp = self.virsh.VirshPersistent()
-        virsh_exec = vp.virsh_exec
-        self.assertTrue(process_is_alive(virsh_exec))
+        session_id = vp.session_id
+        self.assertTrue(virsh_session_is_alive(session_id))
         del vp
-        self.assertFalse(process_is_alive(virsh_exec))
+        gc.collect()
+        self.assertFalse(virsh_session_is_alive(session_id))
 
     def test_VirshSession(self):
         """
@@ -264,17 +261,19 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         virsh_exec = self.virsh.Virsh()["virsh_exec"]
         # Build a VirshSession object.
         session_1 = self.virsh.VirshSession(virsh_exec, auto_close=True)
-        self.assertTrue(process_is_alive(virsh_exec))
+        session_id = session_1.get_id()
+        self.assertTrue(session_1.is_alive())
         del session_1
-        self.assertFalse(process_is_alive(virsh_exec))
+        gc.collect()
+        self.assertFalse(virsh_session_is_alive(session_id))
 
     def test_VirshPersistent(self):
         """
         Unittest for session manager of VirshPersistent.
         """
-        virsh_exec = self.virsh.Virsh()["virsh_exec"]
         vp_1 = self.virsh.VirshPersistent()
-        self.assertTrue(process_is_alive(virsh_exec))
+        session_id = vp_1.session_id
+        self.assertTrue(virsh_session_is_alive(session_id))
         # Init the vp_2 with same params of vp_1.
         vp_2 = self.virsh.VirshPersistent(**vp_1)
         # Make sure vp_1 and vp_2 are refer to the same session.
@@ -282,12 +281,15 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
 
         del vp_1
         # Make sure the session is not closed when vp_2 still refer to it.
-        self.assertTrue(process_is_alive(virsh_exec))
+        self.assertTrue(virsh_session_is_alive(session_id))
         del vp_2
+        gc.collect()
         # Session was closed since no other VirshPersistent refer to it.
-        self.assertFalse(process_is_alive(virsh_exec))
+        self.assertFalse(virsh_session_is_alive(session_id))
 
 
+@skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
+@unittest.skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
 class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
     def setUp(self):
         # subclasses override self.virsh
@@ -333,6 +335,8 @@ class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
         self.assertTrue(len(grp_cmd_set), len(commands_set) + len(groups_set))
 
 
+@skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
+@unittest.skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
 class VirshHelpCommandTest(ModuleLoadCheckVirsh):
     def test_cache_command(self):
         l1 = self.virsh.help_command(cache=True)
@@ -350,13 +354,15 @@ class VirshClassHasHelpCommandTest(VirshHasHelpCommandTest):
         self.virsh = self.virsh.Virsh(debug=False)
 
 
+@skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
+@unittest.skipUnless(VIRSH_AVAILABLE, "no virsh executable was found")
 class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
     def setUp(self):
         logging.disable(logging.INFO)
         super(VirshPersistentClassHasHelpCommandTest, self).setUp()
         self.VirshPersistent = self.virsh.VirshPersistent
         self.virsh = self.VirshPersistent(debug=False)
-        self.assertTrue(process_is_alive(self.virsh.virsh_exec))
+        self.assertTrue(virsh_session_is_alive(self.virsh.session_id))
 
     def test_recycle_session(self):
         # virsh can be used as a dict of it's properties
@@ -364,9 +370,14 @@ class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
         self.assertEqual(self.virsh.session_id, another.session_id)
 
     def tearDown(self):
-        self.assertTrue(process_is_alive(self.virsh.virsh_exec))
-        self.virsh.close_session()
-        self.assertFalse(process_is_alive(self.virsh.virsh_exec))
+        try:
+            if hasattr(self.virsh, "session_id"):
+                session_id = self.virsh.session_id
+                self.assertTrue(virsh_session_is_alive(session_id))
+                self.virsh.close_session()
+                self.assertFalse(virsh_session_is_alive(session_id))
+        finally:
+            super(VirshPersistentClassHasHelpCommandTest, self).tearDown()
 
 
 if __name__ == "__main__":
