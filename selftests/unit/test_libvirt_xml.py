@@ -23,7 +23,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 
 from test_virsh import FakeVirshFactory
 
-from virttest import data_dir, utils_misc, xml_utils
+from virttest import utils_misc, xml_utils
 from virttest.libvirt_xml import (
     accessors,
     base,
@@ -210,13 +210,11 @@ class LibvirtXMLTestBase(Test):
         return process.CmdResult("virsh nodedev-dumpxml pci_0000_00_00_0", xml, "", 0)
 
     def setUp(self):
+        super().setUp()
         self.dummy_virsh = FakeVirshFactory()
         # make a tmp_dir to store information.
-        LibvirtXMLTestBase.__doms_dir__ = os.path.join(
-            data_dir.get_tmp_dir(), "domains"
-        )
-        if not os.path.isdir(LibvirtXMLTestBase.__doms_dir__):
-            os.makedirs(LibvirtXMLTestBase.__doms_dir__)
+        LibvirtXMLTestBase.__doms_dir__ = os.path.join(self.workdir, "domains")
+        os.makedirs(LibvirtXMLTestBase.__doms_dir__)
 
         # Normally not kosher to call super_set, but required here for testing
         self.dummy_virsh.__super_set__("capabilities", self._capabilities)
@@ -227,8 +225,10 @@ class LibvirtXMLTestBase(Test):
 
     def tearDown(self):
         librarian.DEVICE_TYPES = list(ORIGINAL_DEVICE_TYPES)
-        if os.path.isdir(self.__doms_dir__):
-            shutil.rmtree(self.__doms_dir__)
+        if os.path.isdir(LibvirtXMLTestBase.__doms_dir__):
+            shutil.rmtree(LibvirtXMLTestBase.__doms_dir__)
+        LibvirtXMLTestBase.__doms_dir__ = None
+        super().tearDown()
 
 
 # AccessorsTest.test_XMLElementNest is namespace sensitive
