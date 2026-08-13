@@ -4010,30 +4010,41 @@ def update_mac_ip_address(vm, timeout=240):
         LOG.warning("Error occur when update VM address cache: %s", str(e))
 
 
+_NIC_ALIAS_MAP = {
+    "nic": "Win32_NetworkAdapter",
+    "nicconfig": "Win32_NetworkAdapterConfiguration",
+}
+
+
 def get_windows_nic_attribute(
     session, key, value, target, timeout=240, global_switch="nic"
 ):
     """
-    Get the windows nic attribute using wmic. All the support key you can
-    using wmic to have a check.
+    Get a Windows NIC attribute using PowerShell Get-CimInstance.
 
     :param session: session to the virtual machine
-    :param key: the key supported by wmic
-    :param value: the value of the key
-    :param target: which nic attribute you want to get.
+    :param key: WMI property name to filter on
+    :param value: the value to match
+    :param target: which NIC property to retrieve
 
     """
-    cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
+    cls = _NIC_ALIAS_MAP.get(global_switch, global_switch)
+    escaped_value = str(value).replace("'", "''")
+    cmd = (
+        'powershell -command "Get-CimInstance %s'
+        " -Filter '%s=''%s'''"
+        ' | Select-Object -ExpandProperty %s"'
+        % (cls, key, escaped_value, target)
+    )
     status, out = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
-        err_msg = "Execute guest shell command('%s') " "failed with error: '%s'" % (
-            cmd,
-            out,
+        err_msg = (
+            "Execute guest shell command('%s') failed with error: '%s'"
+            % (cmd, out)
         )
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
-    # First line is header, return second line
-    return lines[1]
+    return lines[0]
 
 
 def set_win_guest_nic_status(session, connection_id, status, timeout=240):
