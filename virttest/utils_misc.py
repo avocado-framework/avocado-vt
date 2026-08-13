@@ -2379,7 +2379,10 @@ def get_free_mem(session, os_type):
     if os_type != "windows":
         free = "%s kB" % get_mem_info(session, "MemFree")
     else:
-        output = session.cmd_output("wmic OS get FreePhysicalMemory")
+        output = session.cmd_output(
+            'powershell -command "Get-CimInstance Win32_OperatingSystem'
+            ' | Select-Object -ExpandProperty FreePhysicalMemory"'
+        )
         free = "%sK" % re.findall(r"\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
