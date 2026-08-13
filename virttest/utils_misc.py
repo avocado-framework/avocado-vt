@@ -2352,8 +2352,11 @@ def get_free_disk(session, mount):
     :return string: freespace M-bytes
     """
     if re.match(r"[a-zA-Z]:", mount):
-        cmd = "wmic logicaldisk where \"DeviceID='%s'\" " % mount
-        cmd += "get FreeSpace"
+        cmd = (
+            'powershell -command "Get-CimInstance Win32_LogicalDisk'
+            " -Filter 'DeviceID=''%s'''"
+            ' | Select-Object -ExpandProperty FreeSpace"' % mount
+        )
         output = session.cmd_output(cmd)
         free = "%sK" % re.findall(r"\d+", output)[0]
     else:
