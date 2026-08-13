@@ -4074,7 +4074,7 @@ def restart_windows_guest_network(session, connection_id, timeout=240, mode="net
 
     :param session: session to virtual machine
     :param connection_id: windows nic connectionid,it means connection name,
-                          you Can get connection id string via wmic
+                          you can get connection id string via PowerShell
     """
     if mode == "netsh":
         disable_windows_guest_network(session, connection_id, timeout=timeout)
@@ -4092,7 +4092,7 @@ def restart_windows_guest_network_by_key(
     using devcon mode must download devcon.exe and put it under c:\
 
     :param session: session to virtual machine
-    :param key: the key supported by wmic nic
+    :param key: the WMI property name to filter on
     :param value: the value of the key
     :param timeout: timeout
     :param mode: command mode netsh or devcon
