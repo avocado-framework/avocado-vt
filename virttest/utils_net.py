@@ -3842,16 +3842,30 @@ def windows_mac_ip_maps(session):
         return None
 
     maps = {}
-    cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
+    cmd = (
+        'powershell -command "Get-CimInstance'
+        " Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True'"
+        ' | Format-List IPAddress, MACAddress"'
+    )
     out = session.cmd_output(cmd)
-    regex = r".*\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}\s*"
-    lines = [l.strip() for l in out.splitlines() if l.strip()]
-    lines = [l for l in lines if re.match(regex, l)]
-    for line in lines:
-        line = re.sub(r"[\{\},\"]", "", line)
-        addr_info = list(map(str, re.split(r"\s+", line)))
-        mac = addr_info.pop().lower().replace("-", ":")
-        addrs = filter(None, map(str2ipaddr, addr_info))
+
+    for para in re.split(r"(?:\r?\n){2,}", out.strip()):
+        props = {}
+        for line in para.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(" : ", 1)
+            if len(parts) == 2:
+                props[parts[0].strip()] = parts[1].strip()
+        if "MACAddress" not in props or "IPAddress" not in props:
+            continue
+
+        mac = props["MACAddress"].lower().replace("-", ":")
+        ip_str = re.sub(r"[{}]", "", props["IPAddress"])
+        addr_strs = [s.strip() for s in ip_str.split(",") if s.strip()]
+
+        addrs = filter(None, map(str2ipaddr, addr_strs))
         ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
         ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
         if ipv4_addr:
