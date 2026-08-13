@@ -1681,9 +1681,14 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
             session.cmd(cmd, timeout=360)
         elif os_type == "windows":
             info_cmd = "ipconfig /all"
+            escaped_mac = mac.replace("'", "''")
             cmd = (
-                "wmic nicconfig where MACAddress='%s' call "
-                "enablestatic '%s','%s'" % (mac, ip_addr, netmask)
+                "powershell -command \""
+                "Get-CimInstance Win32_NetworkAdapterConfiguration"
+                " -Filter 'MACAddress=''%s'''"
+                " | Invoke-CimMethod -MethodName EnableStatic"
+                " -Arguments @{IPAddress=@('%s');"
+                " SubnetMask=@('%s')}\"" % (escaped_mac, ip_addr, netmask)
             )
             session.cmd(cmd, timeout=360)
         else:
