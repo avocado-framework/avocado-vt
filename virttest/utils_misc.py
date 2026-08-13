@@ -2482,11 +2482,16 @@ def get_win_disk_vol(session, condition="VolumeName='WIN_UTILS'"):
     Getting logicaldisk drive letter in windows guest.
 
     :param session: session Object.
-    :param condition: supported condition via cmd "wmic logicaldisk list".
+    :param condition: WQL filter condition for Win32_LogicalDisk.
 
     :return: volume ID.
     """
-    cmd = "wmic logicaldisk where (%s) get DeviceID" % condition
+    escaped_cond = condition.replace("'", "''")
+    cmd = (
+        'powershell -command "Get-CimInstance Win32_LogicalDisk'
+        " -Filter '%s'"
+        ' | Select-Object -ExpandProperty DeviceID"' % escaped_cond
+    )
     output = session.cmd(cmd, timeout=120)
     device = re.search(r"(\w):", output, re.M)
     if not device:
