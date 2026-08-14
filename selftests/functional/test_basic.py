@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import unittest
 
+from avocado import Test
 from avocado.utils import process, script
 
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
@@ -70,7 +71,7 @@ verify_host_dmesg = no
 """
 
 
-class BasicTests(unittest.TestCase):
+class BasicTests(Test):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="avocado_" + __name__)
         self.rm_files = []

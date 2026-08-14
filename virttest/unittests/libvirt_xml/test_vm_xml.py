@@ -1,5 +1,7 @@
 import unittest
 
+from avocado import Test
+
 from virttest.libvirt_xml import vm_xml, xcepts
 
 XML = """
@@ -17,7 +19,7 @@ def get_vmxml():
     return vmxml
 
 
-class TestVMXMLDelSeclabel(unittest.TestCase):
+class TestVMXMLDelSeclabel(Test):
     def test_del_seclabel_default(self):
         vmxml = get_vmxml()
         self.assertEqual(2, len(vmxml.get_seclabel()))

@@ -6,6 +6,7 @@ try:
 except ImportError:
     import mock
 
+from avocado import Test
 from avocado.core import exceptions
 
 from virttest import utils_test
@@ -18,7 +19,7 @@ LOG = logging.getLogger("avocado." + __name__)
 
 @mock.patch("virttest.utils_package.package_install")
 @mock.patch.object(utils_test, "check_kernel_cmdline", check_kernel_cmdline_mock)
-class TestUpdateBootOptionZipl(unittest.TestCase):
+class TestUpdateBootOptionZipl(Test):
     vm = mock.MagicMock()
     session = mock.MagicMock()
 

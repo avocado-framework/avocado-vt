@@ -8,6 +8,8 @@ if sys.version_info[:2] == (2, 6):
 else:
     import unittest
 
+from avocado import Test, skipIf
+
 from virttest import cartesian_config
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,7 +17,7 @@ RHELDIR = os.path.join(BASEDIR, "shared", "cfg", "guest-os", "Linux", "RHEL")
 UNATTENDEDDIR = os.path.join(BASEDIR, "shared", "unattended")
 
 
-class CartesianCfgLint(unittest.TestCase):
+class CartesianCfgLint(Test):
     @staticmethod
     def get_cfg_as_dict(path, drop_only=True, drop_conditional_assigment=True):
         """
@@ -48,6 +50,7 @@ class CartesianCfgLint(unittest.TestCase):
         assert len_dicts == 1
         return dicts[0]
 
+    @skipIf(not os.path.isdir(RHELDIR), "Could not find RHEL configuration dir")
     @unittest.skipIf(
         not os.path.isdir(RHELDIR), "Could not find RHEL configuration dir"
     )
@@ -104,6 +107,9 @@ class CartesianCfgLint(unittest.TestCase):
                             "isos/linux/RHEL-%s.%s-%s-DVD.iso" % (major, minor, arch),
                         )
 
+    @skipIf(
+        not os.path.isdir(UNATTENDEDDIR), "Could not find unattended configuration dir"
+    )
     @unittest.skipIf(
         not os.path.isdir(UNATTENDEDDIR), "Could not find unattended configuration dir"
     )

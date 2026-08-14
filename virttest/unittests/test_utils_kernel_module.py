@@ -5,6 +5,8 @@ try:
 except ImportError:
     import mock
 
+from avocado import Test
+
 from virttest import utils_kernel_module
 
 # Test values
@@ -23,7 +25,7 @@ getstatusoutput_ok = mock.Mock(return_value=(0, ""))
     utils_kernel_module, "open", mock.mock_open(read_data=some_module_val + "\n")
 )
 @mock.patch.object(utils_kernel_module.process, "getstatusoutput", getstatusoutput_ok)
-class TestUnloadModule(unittest.TestCase):
+class TestUnloadModule(Test):
     """
     Tests the reload_module method
     """
@@ -55,7 +57,7 @@ class TestUnloadModule(unittest.TestCase):
     utils_kernel_module, "open", mock.mock_open(read_data=some_module_val + "\n")
 )
 @mock.patch.object(utils_kernel_module.process, "getstatusoutput", getstatusoutput_ok)
-class TestReloadModule(unittest.TestCase):
+class TestReloadModule(Test):
     """
     Tests the reload_module method
     """
@@ -137,7 +139,7 @@ class TestReloadModule(unittest.TestCase):
 @mock.patch.object(
     utils_kernel_module, "open", mock.mock_open(read_data=some_module_val + "\n")
 )
-class TestInit(unittest.TestCase):
+class TestInit(Test):
     """
     Tests if module status is backed up correctly
     """
@@ -163,7 +165,7 @@ class TestInit(unittest.TestCase):
     utils_kernel_module, "open", mock.mock_open(read_data=some_module_val + "\n")
 )
 @mock.patch.object(utils_kernel_module.process, "getstatusoutput", getstatusoutput_ok)
-class TestRestore(unittest.TestCase):
+class TestRestore(Test):
     """
     Tests the restore method
     """
@@ -226,7 +228,7 @@ class TestRestore(unittest.TestCase):
 @mock.patch.object(
     utils_kernel_module.KernelModuleHandler, "reload_module", return_value=None
 )
-class TestReload(unittest.TestCase):
+class TestReload(Test):
     """
     Tests the module global reload method
     """

@@ -1,12 +1,14 @@
 import logging
 import unittest
 
+from avocado import Test
+
 from virttest import utils_misc
 
 LOG = logging.getLogger("avocado." + __name__)
 
 
-class TestDmesgFilter(unittest.TestCase):
+class TestDmesgFilter(Test):
     def test__remove_dmesg_matches(self):
         messages = "msg_1\nmsg_2\nmsg_3\nmsg_4"
         expected_dmesg = "'^msg_1$', '^msg_4$'"

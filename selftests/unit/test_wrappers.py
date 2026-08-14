@@ -1,12 +1,13 @@
+import importlib
 import os
 import random
 import sys
-import unittest
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
 from string import ascii_lowercase as ascii_lc
-from time import sleep
+
+from avocado import Test
 
 from virttest import _wrappers
 
@@ -50,35 +51,27 @@ class baseImportTests(ABC):
     _subdir_inner_val = 1
     _indir_inner_val = 0
 
-    @classmethod
-    def setUpClass(cls):
-        create_module(cls._tmp_in_module_name, cls._indir_inner_val)
-        create_module(
-            cls._tmp_sub_module_name, cls._subdir_inner_val, cls._tmp_sub_module_dir
+    def setUp(self):
+        super().setUp()
+        self._tmp_root = self.workdir
+        self._tmp_sub_module_dir = os.path.join(
+            self._tmp_root, self._tmp_sub_module_dir
         )
-        os.makedirs(cls._aux_sub_mod_dir, exist_ok=True)
-        # Wait a bit so the import mechanism cache can be refreshed
-        sleep(2)
+        self._aux_sub_mod_dir = os.path.join(self._tmp_root, self._aux_sub_mod_dir)
+        create_module(self._tmp_in_module_name, self._indir_inner_val, self._tmp_root)
+        create_module(
+            self._tmp_sub_module_name,
+            self._subdir_inner_val,
+            self._tmp_sub_module_dir,
+        )
+        os.makedirs(self._aux_sub_mod_dir, exist_ok=True)
+        importlib.invalidate_caches()
 
-    @classmethod
-    def tearDownClass(cls):
-        def rm_subdir(subdir):
-            # Remove inner __pycache__
-            sub_pycache_dir = os.path.join(subdir, "__pycache__")
-            if os.path.exists(sub_pycache_dir):
-                for pycache_file in os.listdir(sub_pycache_dir):
-                    os.remove(os.path.join(sub_pycache_dir, pycache_file))
-                os.rmdir(sub_pycache_dir)
-            # Remove sub-module files
-            for tmp_sub_mod in os.listdir(subdir):
-                os.remove(os.path.join(subdir, tmp_sub_mod))
-            # Finally delete created directory
-            os.rmdir(subdir)
-
-        rm_subdir(cls._tmp_sub_module_dir)
-        rm_subdir(cls._aux_sub_mod_dir)
-        # And the file created in the exec dir
-        os.remove(f"{cls._tmp_in_module_name}.py")
+    def tearDown(self):
+        sys.modules.pop(self._tmp_in_module_name, None)
+        sys.modules.pop(self._tmp_sub_module_name, None)
+        sys.modules.pop("name", None)
+        super().tearDown()
 
     def _compare_mods(self, one, other):
         self.assertEqual(one.__name__, other.__name__)
@@ -107,11 +100,13 @@ class baseImportTests(ABC):
     def test_import_from_dir(self):
         """Imports a module that's in the same directory"""
         pre_sys_path = deepcopy(sys.path)
-        self._check_import(self._tmp_in_module_name, self._indir_inner_val)
+        self._check_import(
+            self._tmp_in_module_name, self._indir_inner_val, self._tmp_root
+        )
         self.assertEqual(pre_sys_path, sys.path)
 
 
-class ImportModuleTest(baseImportTests, unittest.TestCase):
+class ImportModuleTest(baseImportTests, Test):
     def _check_import(self, name, value, path=""):
         """Wraps the import checking workflow used in some tests"""
         module = _wrappers.import_module(name, path)
@@ -179,7 +174,7 @@ class ImportModuleTest(baseImportTests, unittest.TestCase):
             check(res.result(), mod_data)
 
 
-class LoadSourceTest(baseImportTests, unittest.TestCase):
+class LoadSourceTest(baseImportTests, Test):
     def _check_import(self, name, value, path=""):
         path = os.path.join(path, f"{name}.py")
         module = _wrappers.load_source(name, path)
@@ -187,7 +182,9 @@ class LoadSourceTest(baseImportTests, unittest.TestCase):
 
     def test_mismatching_names(self):
         # test that importing a module mismatching the file name works good
-        module = _wrappers.load_source("name", f"{self._tmp_in_module_name}.py")
+        module = _wrappers.load_source(
+            "name", os.path.join(self._tmp_root, f"{self._tmp_in_module_name}.py")
+        )
         check_imported_module(self, "name", module, self._indir_inner_val)
 
     def test_no_existing_file(self):

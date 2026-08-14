@@ -16,6 +16,8 @@ try:
 except ImportError:
     import mock
 
+from avocado import Test
+
 import virttest
 from virttest.utils_zchannels import ChannelPaths, SubchannelPaths
 
@@ -33,7 +35,7 @@ OUT_OK = [
 ]
 
 
-class TestSubchannelPaths(unittest.TestCase):
+class TestSubchannelPaths(Test):
     def test_get_info(self):
         virttest.utils_zchannels.cmd_status_output = mock.Mock(
             return_value=(0, "\n".join(OUT_OK))
@@ -76,7 +78,7 @@ class TestSubchannelPaths(unittest.TestCase):
         self.assertEqual("0.0.26ab", device[1])
 
 
-class TestChannelPaths(unittest.TestCase):
+class TestChannelPaths(Test):
     def test__split(self):
         chpids = "12345678"
         ids = ChannelPaths._split(chpids)

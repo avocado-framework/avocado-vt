@@ -14,10 +14,14 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
+
 from virttest.unittest_utils import mock
 from virttest.versionable_class import Manager, VersionableClass, factory
 
-man = Manager(__name__)
+# manager replaces this module in sys.modules with a ModuleWrapper so delay that
+# until after avocado's loader has inspected and instantiated the test class
+man = None
 
 # pylint: disable=E1003
 
@@ -266,13 +270,20 @@ class AA(Sys_Container, BB, System_Container):
         return super(man[cls, AA], cls).__new__(cls, *args, **kargs)
 
 
-class TestVersionableClass(unittest.TestCase):
+class TestVersionableClass(Test):
     def setUp(self):
+        global man
+        super().setUp()
+        man = Manager(__name__)
         self.god = mock.mock_god(ut=self)
         self.version = 1
 
     def tearDown(self):
-        self.god.unstub_all()
+        try:
+            self.god.unstub_all()
+        finally:
+            sys.modules[__name__] = man.wrapper.wrapped
+            super().tearDown()
 
     def test_simple_versioning(self):
         self.god.stub_function(VM, "func1")
