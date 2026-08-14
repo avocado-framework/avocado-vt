@@ -554,9 +554,20 @@ class HugePageConfig(object):
         obj = kernel_interface.SysFS(pgfile, session=self.session)
         obj.sys_fs_value = pagenum
         if obj.sys_fs_value < int(pagenum):
+            if self.session:
+                meminfo = self.session.cmd_output(
+                    "grep -E 'MemTotal|MemFree|HugePages_|Hugepagesize' /proc/meminfo"
+                )
+                buddyinfo = self.session.cmd_output("cat /proc/buddyinfo")
+            else:
+                meminfo = process.getoutput(
+                    "grep -E 'MemTotal|MemFree|HugePages_|Hugepagesize' /proc/meminfo"
+                )
+                buddyinfo = process.getoutput("cat /proc/buddyinfo")
             error_msg = (
                 "Only allocated %d pages %skiB huge pages, "
-                "but required %s" % (obj.sys_fs_value, pagesize, pagenum)
+                "but required %s\nmeminfo:\n%s\nbuddyinfo:\n%s"
+                % (obj.sys_fs_value, pagesize, pagenum, meminfo, buddyinfo)
             )
             if not ignore_error:
                 raise exceptions.TestSetupFail(error_msg)
