@@ -22,7 +22,6 @@ import aexpect
 import six
 from aexpect import remote
 from avocado.core import exceptions
-from avocado.utils import distro
 from avocado.utils import path as utils_path
 from avocado.utils import process, stacktrace
 from six.moves import xrange
@@ -1736,14 +1735,16 @@ def get_dhcp_client(session):
     :param session:  serial session or remote session
     :return: tuple of dhcp command and its release argument, raises TestError if none found
     """
+    # Probe both clients inside the guest (the command below runs in the
+    # `session`) and return the first one that is actually installed.
+    # Selecting a single client from the *host* distro was wrong: the client
+    # has to exist in the guest. Guests that ship no standalone client
+    # (RHEL>=10, where NetworkManager owns DHCP) are handled by the nmcli
+    # fallback in restart_guest_network().
     dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-    if distro.detect().name == "rhel" and int(distro.detect().version) >= 10:
-        dhcp_clients = [dhcp_clients[1]]
-    else:
-        dhcp_clients = [dhcp_clients[0]]
     for cmd, release_flag in dhcp_clients:
         status, _ = utils_misc.cmd_status_output(
-            "which %s" % cmd, shell=True, ignore_status=True, session=session
+            "command -v %s" % cmd, shell=True, ignore_status=True, session=session
         )
         if status == 0:
             if cmd == "dhcpcd":
@@ -1766,7 +1767,22 @@ def restart_guest_network(
     :param timeout: timeout value for command.
     """
     if os_type == "linux":
-        dhcp_cmd, release_flag = get_dhcp_client(session)
+        try:
+            dhcp_cmd, release_flag = get_dhcp_client(session)
+        except exceptions.TestError:
+            # Guests without a standalone dhcp client (RHEL>=10) rely on
+            # NetworkManager for DHCP. Bounce the device via nmcli instead,
+            # which re-runs DHCP for both IPv4 and IPv6 of its connection.
+            if mac_addr:
+                nic_ifname = get_linux_ifname(session, mac_addr)
+                restart_cmd = (
+                    "nmcli device disconnect %s; nmcli device connect %s"
+                    % (nic_ifname, nic_ifname)
+                )
+            else:
+                restart_cmd = "nmcli networking off; nmcli networking on"
+            session.cmd_output_safe(restart_cmd, timeout=timeout)
+            return
 
         if mac_addr:
             nic_ifname = get_linux_ifname(session, mac_addr)
