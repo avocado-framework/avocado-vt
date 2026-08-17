@@ -1058,7 +1058,7 @@ class VMXML(VMXMLBase):
                         nodexml_list = []
                         for node in range(no_numa_cell):
                             if vmxml.cpu.numa_cell:
-                                nodexml = vmcpu_xml.numa_cell[node]
+                                nodexml = vmcpu_xml.numa_cell[node].fetch_attrs()
                             else:
                                 nodexml = {}
                             if vcpus_num > 1:
