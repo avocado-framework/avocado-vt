@@ -1729,6 +1729,47 @@ def _deactivate_ipv4ll_dhcpcd(session):
         raise exceptions.TestError("Couldn't deactivate IPv4 local link setting.")
 
 
+def _get_rhel_major_version(session=None):
+    """
+    Return the RHEL major version for the target host.
+
+    :param session: guest/remote session, or None for local host
+    :return: major version int, or None if not RHEL/unknown
+    """
+    if session is None:
+        if distro.detect().name == "rhel":
+            return int(distro.detect().version_parts()[0])
+        return None
+
+    status, output = utils_misc.cmd_status_output(
+        "rpm -E '%{rhel}' 2>/dev/null", shell=True,
+        ignore_status=True, session=session)
+    if status == 0 and output.strip().isdigit():
+        return int(output.strip())
+    return None
+
+
+def _get_dhcp_client_packages(session=None):
+    """
+    Return DHCP-related packages required on the target host.
+
+    RHEL 10+ uses dhcpcd; older RHEL releases use dhcp-client (dhclient).
+    """
+    rhel_ver = _get_rhel_major_version(session)
+    if rhel_ver is not None and rhel_ver >= 10:
+        return ["tmux", "dhcpcd"]
+    return ["tmux", "dhcp-client"]
+
+
+def _format_dhcp_acquire_cmd(dhcp_cmd, iface):
+    """
+    Build a one-shot DHCP acquire command for the given interface.
+    """
+    if dhcp_cmd == "dhcpcd":
+        return "dhcpcd -n %s" % iface
+    return "%s %s" % (dhcp_cmd, iface)
+
+
 def get_dhcp_client(session):
     """
     Return the available dhcp client command and its release argument.
@@ -1737,11 +1778,14 @@ def get_dhcp_client(session):
     :return: tuple of dhcp command and its release argument, raises TestError if none found
     """
     dhcp_clients = [("dhclient", "-r"), ("dhcpcd", "-k")]
-    if distro.detect().name == "rhel" and int(distro.detect().version) >= 10:
-        dhcp_clients = [dhcp_clients[1]]
+    rhel_ver = _get_rhel_major_version(session)
+    if rhel_ver is not None and rhel_ver >= 10:
+        clients_order = [dhcp_clients[1]]
+    elif rhel_ver is not None:
+        clients_order = [dhcp_clients[0]]
     else:
-        dhcp_clients = [dhcp_clients[0]]
-    for cmd, release_flag in dhcp_clients:
+        clients_order = dhcp_clients
+    for cmd, release_flag in clients_order:
         status, _ = utils_misc.cmd_status_output(
             "which %s" % cmd, shell=True, ignore_status=True, session=session
         )
@@ -4687,7 +4731,7 @@ def create_ovs_bridge(
                 "No network interfaces in UP state found for bridge creation"
             )
         iface_name = up_ifaces[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(_get_dhcp_client_packages(session), session):
         raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output(
@@ -4699,15 +4743,14 @@ def create_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
-    # <TODO> Find a more stable dhcpcd cmd to get ip on RHEL10.
-    dhcp_cmd, release_flag = "dhclient", "-r"
+    dhcp_cmd, release_flag = get_dhcp_client(session)
 
     cmd = (
         f"ovs-vsctl add-br {ovs_bridge_name};"
         f"ovs-vsctl add-port {ovs_bridge_name} {iface_name};"
         f"{dhcp_cmd} {release_flag};"
         "sleep 5;"
-        f"{dhcp_cmd} {ovs_bridge_name}"
+        f"{_format_dhcp_acquire_cmd(dhcp_cmd, ovs_bridge_name)}"
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4744,7 +4787,7 @@ def delete_ovs_bridge(
                 "No network interfaces in UP state found for bridge deletion"
             )
         iface_name = up_ifaces[0]
-    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+    if not utils_package.package_install(_get_dhcp_client_packages(session), session):
         raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output(
@@ -4756,13 +4799,13 @@ def delete_ovs_bridge(
             "sure the openvswitch or openvswitch2 pkg "
             "is installed."
         )
-    dhcp_cmd, release_flag = "dhclient", "-r"
+    dhcp_cmd, release_flag = get_dhcp_client(session)
     cmd = (
         f"ovs-vsctl del-port {ovs_bridge_name} {iface_name};"
         f"ovs-vsctl del-br {ovs_bridge_name};"
         f"{dhcp_cmd} {release_flag};"
         "sleep 5;"
-        f"{dhcp_cmd} {iface_name}"
+        f"{_format_dhcp_acquire_cmd(dhcp_cmd, iface_name)}"
     )
     tmux_cmd = 'tmux -c "{}"'.format(cmd)
     return utils_misc.cmd_status_output(
@@ -4853,7 +4896,8 @@ def create_linux_bridge_tmux(
     """
     # Create bridge
     br_path = "/sys/class/net/%s" % linux_bridge_name
-    if not utils_package.package_install(["tmux", "dhcp-client", "net-tools"], session):
+    if not utils_package.package_install(
+            _get_dhcp_client_packages(session) + ["net-tools"], session):
         raise exceptions.TestError("Failed to install the required packages.")
     if session:
         bridge_exists = session.cmd_status("ip link show %s" % linux_bridge_name) == 0
@@ -4877,7 +4921,7 @@ def create_linux_bridge_tmux(
             f"ifconfig {iface_name} 0; "
             f"pkill {dhcp_cmd}; "
             "sleep 6; "
-            f"{dhcp_cmd} {linux_bridge_name};"
+            f"{_format_dhcp_acquire_cmd(dhcp_cmd, linux_bridge_name)};"
         )
         if remove_addr_on_dev:
             shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
