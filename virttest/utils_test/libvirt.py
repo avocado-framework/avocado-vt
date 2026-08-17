@@ -251,6 +251,26 @@ def create_macvtap_vmxml(iface, params):
     return macvtap
 
 
+def create_network_vmxml(params):
+    """
+    Method to create network interface xml for VM
+
+    :param params: Test dict params
+
+    :return: mac address and network interface xml in list
+    """
+    iface_type = params.get("network_iface_type", "network")
+    iface_model = params.get("network_iface_model", "virtio")
+    iface_source = params.get("network_iface_source", "network_default")
+    iface_source = {iface_source.split("_")[0]: iface_source.split("_")[1]}
+    mac_address = utils_net.generate_mac_address_simple()
+    new_iface = interface.Interface(iface_type)
+    new_iface.mac_address = mac_address
+    new_iface.source = iface_source
+    new_iface.model = iface_model
+    return [mac_address, new_iface.xml]
+
+
 def get_machine_types(arch, virt_type, virsh_instance=base.virsh, ignore_status=True):
     """
     Method to get all supported machine types
