@@ -1,9 +1,9 @@
 #!/bin/bash
 set -eux
 
-readonly test_suite="${TEST_SUITE:-/root/avocado-i2n-libs/tp_folder}"
+readonly test_suite="${TEST_SUITE:-/root/avocado-vt-libs/tp_folder}"
 readonly test_results="${TEST_RESULTS:-/root/avocado/job-results}"
-readonly i2n_config="${I2N_CONFIG:-/etc/avocado/conf.d/vt.conf}"
+readonly vt_config="${VT_CONFIG:-/etc/avocado/conf.d/vt.conf}"
 
 # local environment preparation
 echo
@@ -33,9 +33,9 @@ EOF
 mkdir -p /etc/avocado/conf.d
 # TODO: use VT's approach to register the plugin config
 if [ ! -f /etc/avocado/conf.d/vt.conf ]; then
-    ln -s ~/avocado-i2n-libs/avocado_i2n/conf.d/vt.conf "${i2n_config}"
+    ln -s ~/avocado-vt-libs/avocado_vt/conf.d/vt.conf "${vt_config}"
 fi
-sed -i "s#suite_path = .*#suite_path = ${test_suite}#" "${i2n_config}"
+sed -i "s#suite_path = .*#suite_path = ${test_suite}#" "${vt_config}"
 rm ${HOME}/avocado_overwrite_* -fr
 rm -fr /mnt/local/images/swarm/*
 rm -fr /mnt/local/images/shared/vm1-* /mnt/local/images/shared/vm2-*
@@ -47,16 +47,16 @@ dnf install -y python3-coverage python3-lxc
 echo
 echo "Perform minimal effect steps (run minimal noop/list/run tools)"
 # fully avocado-integrated plugin entry points
-coverage run --append --source=avocado_i2n $(which avocado) list --auto "only=tutorial1"
-coverage run --append --source=avocado_i2n $(which avocado) run --auto "only=tutorial1 dry_run=yes"
+coverage run --append --source=virttest $(which avocado) list --auto "only=tutorial1"
+coverage run --append --source=virttest $(which avocado) run --auto "only=tutorial1 dry_run=yes"
 # minimal manual steps
-coverage run --append --source=avocado_i2n $(which avocado) manu setup=noop
-coverage run --append --source=avocado_i2n $(which avocado) manu setup=list
+coverage run --append --source=virttest $(which avocado) manu setup=noop
+coverage run --append --source=virttest $(which avocado) manu setup=list
 
 # full integration run
 echo
 echo "Perform a full sample test suite run"
-avocado_cmd="coverage run --append --source=avocado_i2n $(which avocado) manu"
+avocado_cmd="coverage run --append --source=virttest $(which avocado) manu"
 test_slots="net1,net2,net3,net4,net5"
 $avocado_cmd setup=run nets=$test_slots only=leaves only_vm1=
 
