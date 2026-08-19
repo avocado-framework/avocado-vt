@@ -1,4 +1,6 @@
 [MASTER]
+# Prefer adjacent source checkouts, with CI-installed dependencies as fallback.
+init-hook=import sys; from pathlib import Path; root = Path.cwd(); sys.path[:0] = [str(path) for path in (root, root.parent / "avocado", root.parent / "aexpect", root.parent / "guibot", root / ".pylint-dependencies") if path.is_dir()]
 
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may

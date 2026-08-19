@@ -170,3 +170,36 @@ options:
 * Send an e-mail to `the avocado mailing list <https://www.redhat.com/mailman/listinfo/avocado-devel>`__.
 * Open an issue on `the avocado-vt github area <https://github.com/avocado-framework/avocado-vt/issues/new>`__.
 * We also hang out on `IRC (irc.oftc.net, #avocado) <irc://irc.oftc.net/#avocado>`__.
+
+Running tests in parallel
+=========================
+
+Avocado itself has supported running tests in parallel for a long time, but due
+to the nature of VT tests, proper parallelism requires at least an LXC container
+level isolation. Assuming you have created two LXC containers c101 and c102 and
+have performed the `vt-bootstrap` step in each, you can run in parallel like
+
+    $ avocado run --spawner lxc --max-parallel-tasks 2 --vt-type qemu "only boot" "only reboot" --status-server-disable-auto --config lxc-slots.conf
+
+Here the `--status-server-disable-auto` option can also be added in a config which
+needs::
+
+    # lxc-slots.conf
+    [spawner.lxc]
+    slots = ['c101', 'c102']
+
+if e.g. there are at least five LXC containers available. A command line such as the
+above produces the output::
+
+    JOB ID     : 07d217fbe04c17f3c045517a580f024249aeeec7
+    JOB LOG    : /mnt/local/results/job-2026-08-17T22.28-07d217f/job.log
+    (1/2) io-github-autotest-qemu.boot: STARTED
+    (2/2) io-github-autotest-qemu.reboot: STARTED
+    (1/2) io-github-autotest-qemu.boot: PASS (131.72 s)
+    (2/2) io-github-autotest-qemu.reboot: PASS (326.27 s)
+    RESULTS    : PASS 2 | ERROR 0 | FAIL 0 | SKIP 0 | WARN 0 | INTERRUPT 0 | CANCEL 0
+    JOB HTML   : /mnt/local/results/job-2026-08-17T22.28-07d217f/results.html
+    JOB TIME   : 331.12 s
+
+The LXC containers can be easily created via the `contrib/create_lxc_container.sh``
+bash script that can be found within the code base or inspiration thereof.

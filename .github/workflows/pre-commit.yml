@@ -15,4 +15,8 @@ jobs:
       with:
         submodules: recursive
     - uses: actions/setup-python@v7
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --target .pylint-dependencies .
     - uses: pre-commit/action@v3.0.1
