@@ -392,6 +392,25 @@ class VM(virt_vm.BaseVM):
             LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
 
+    def _get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
+        try:
+            return super()._get_address(index, ip_version, session, timeout)
+        except virt_vm.VMIPAddressMissingError:
+            mac = self.get_mac_address(index).lower()
+            if ip_version == "ipv4":
+                ipaddr = utils_net.obtain_guest_ip_from_domifaddr(self.name, mac)
+                if ipaddr:
+                    self.address_cache[mac] = ipaddr
+                    return ipaddr
+                else:
+                    raise virt_vm.VMIPAddressMissingError(
+                        "IP address not found for MAC: %s", mac
+                    )
+            else:
+                raise virt_vm.VMIPAddressMissingError(
+                    "No IP address found for IP version: %s", ip_version
+                )
+
     def clone(
         self,
         name=None,
