@@ -1,6 +1,10 @@
 import unittest
 from unittest import mock
 
+from avocado.plugins.runners.avocado_instrumented import (
+    AvocadoInstrumentedTestRunner,
+)
+
 from avocado_vt.plugins import vt_runner
 
 
@@ -29,6 +33,17 @@ class VTTestRunnerConfigurationTest(unittest.TestCase):
             ]
         )
         self.assertIn("vt.common.tmp_dir", vt_runner.VTTestRunner.CONFIGURATION_USED)
+
+    def test_reuses_hardened_instrumented_runner_monitor(self):
+        self.assertTrue(vt_runner.PROCESS_MONITOR_AVAILABLE)
+        self.assertIs(
+            vt_runner.VTTestRunner._monitor,
+            AvocadoInstrumentedTestRunner._monitor,
+        )
+        self.assertIs(
+            vt_runner.VTTestRunner._cleanup_process.__func__,
+            AvocadoInstrumentedTestRunner._cleanup_process.__func__,
+        )
 
 
 if __name__ == "__main__":
