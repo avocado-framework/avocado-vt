@@ -30,6 +30,29 @@ class VTTestRunnerConfigurationTest(unittest.TestCase):
         )
         self.assertIn("vt.common.tmp_dir", vt_runner.VTTestRunner.CONFIGURATION_USED)
 
+    @unittest.skipUnless(
+        vt_runner.PROCESS_MONITOR_AVAILABLE, "shared process monitor is unavailable"
+    )
+    def test_reuses_hardened_instrumented_runner_monitor(self):
+        from avocado.plugins.runners.avocado_instrumented import (
+            AvocadoInstrumentedTestRunner,
+        )
+
+        self.assertIs(
+            vt_runner.VTTestRunner._monitor,
+            AvocadoInstrumentedTestRunner._monitor,
+        )
+        self.assertIs(
+            vt_runner.VTTestRunner._cleanup_process.__func__,
+            AvocadoInstrumentedTestRunner._cleanup_process.__func__,
+        )
+
+    @unittest.skipIf(
+        vt_runner.PROCESS_MONITOR_AVAILABLE, "shared process monitor is available"
+    )
+    def test_uses_base_runner_without_shared_monitor(self):
+        self.assertEqual(vt_runner.VTTestRunner.__bases__, (vt_runner.BaseRunner,))
+
 
 if __name__ == "__main__":
     unittest.main()
