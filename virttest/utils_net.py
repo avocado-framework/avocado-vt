@@ -1681,9 +1681,14 @@ def set_guest_ip_addr(session, mac, ip_addr, netmask="255.255.255.0", os_type="l
             session.cmd(cmd, timeout=360)
         elif os_type == "windows":
             info_cmd = "ipconfig /all"
+            escaped_mac = mac.replace("'", "''")
             cmd = (
-                "wmic nicconfig where MACAddress='%s' call "
-                "enablestatic '%s','%s'" % (mac, ip_addr, netmask)
+                "powershell -command \""
+                "Get-CimInstance Win32_NetworkAdapterConfiguration"
+                " -Filter 'MACAddress=''%s'''"
+                " | Invoke-CimMethod -MethodName EnableStatic"
+                " -Arguments @{IPAddress=@('%s');"
+                " SubnetMask=@('%s')}\"" % (escaped_mac, ip_addr, netmask)
             )
             session.cmd(cmd, timeout=360)
         else:
@@ -3847,16 +3852,30 @@ def windows_mac_ip_maps(session):
         return None
 
     maps = {}
-    cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
+    cmd = (
+        'powershell -command "Get-CimInstance'
+        " Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True'"
+        ' | Format-List IPAddress, MACAddress"'
+    )
     out = session.cmd_output(cmd)
-    regex = r".*\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}\s*"
-    lines = [l.strip() for l in out.splitlines() if l.strip()]
-    lines = [l for l in lines if re.match(regex, l)]
-    for line in lines:
-        line = re.sub(r"[\{\},\"]", "", line)
-        addr_info = list(map(str, re.split(r"\s+", line)))
-        mac = addr_info.pop().lower().replace("-", ":")
-        addrs = filter(None, map(str2ipaddr, addr_info))
+
+    for para in re.split(r"(?:\r?\n){2,}", out.strip()):
+        props = {}
+        for line in para.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(" : ", 1)
+            if len(parts) == 2:
+                props[parts[0].strip()] = parts[1].strip()
+        if "MACAddress" not in props or "IPAddress" not in props:
+            continue
+
+        mac = props["MACAddress"].lower().replace("-", ":")
+        ip_str = re.sub(r"[{}]", "", props["IPAddress"])
+        addr_strs = [s.strip() for s in ip_str.split(",") if s.strip()]
+
+        addrs = filter(None, map(str2ipaddr, addr_strs))
         ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
         ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
         if ipv4_addr:
@@ -4001,30 +4020,41 @@ def update_mac_ip_address(vm, timeout=240):
         LOG.warning("Error occur when update VM address cache: %s", str(e))
 
 
+_NIC_ALIAS_MAP = {
+    "nic": "Win32_NetworkAdapter",
+    "nicconfig": "Win32_NetworkAdapterConfiguration",
+}
+
+
 def get_windows_nic_attribute(
     session, key, value, target, timeout=240, global_switch="nic"
 ):
     """
-    Get the windows nic attribute using wmic. All the support key you can
-    using wmic to have a check.
+    Get a Windows NIC attribute using PowerShell Get-CimInstance.
 
     :param session: session to the virtual machine
-    :param key: the key supported by wmic
-    :param value: the value of the key
-    :param target: which nic attribute you want to get.
+    :param key: WMI property name to filter on
+    :param value: the value to match
+    :param target: which NIC property to retrieve
 
     """
-    cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
+    cls = _NIC_ALIAS_MAP.get(global_switch, global_switch)
+    escaped_value = str(value).replace("'", "''")
+    cmd = (
+        'powershell -command "Get-CimInstance %s'
+        " -Filter '%s=''%s'''"
+        ' | Select-Object -ExpandProperty %s"'
+        % (cls, key, escaped_value, target)
+    )
     status, out = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
-        err_msg = "Execute guest shell command('%s') " "failed with error: '%s'" % (
-            cmd,
-            out,
+        err_msg = (
+            "Execute guest shell command('%s') failed with error: '%s'"
+            % (cmd, out)
         )
         raise exceptions.TestError(err_msg)
     lines = [l.strip() for l in out.splitlines() if l.strip()]
-    # First line is header, return second line
-    return lines[1]
+    return lines[0]
 
 
 def set_win_guest_nic_status(session, connection_id, status, timeout=240):
@@ -4054,7 +4084,7 @@ def restart_windows_guest_network(session, connection_id, timeout=240, mode="net
 
     :param session: session to virtual machine
     :param connection_id: windows nic connectionid,it means connection name,
-                          you Can get connection id string via wmic
+                          you can get connection id string via PowerShell
     """
     if mode == "netsh":
         disable_windows_guest_network(session, connection_id, timeout=timeout)
@@ -4072,7 +4102,7 @@ def restart_windows_guest_network_by_key(
     using devcon mode must download devcon.exe and put it under c:\
 
     :param session: session to virtual machine
-    :param key: the key supported by wmic nic
+    :param key: the WMI property name to filter on
     :param value: the value of the key
     :param timeout: timeout
     :param mode: command mode netsh or devcon
