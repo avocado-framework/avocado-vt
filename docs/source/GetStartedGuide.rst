@@ -166,6 +166,35 @@ Now let's run a virt test::
 If you have trouble executing the steps provided in this guide, you have a few
 options:
 
+Running tests in parallel
+=========================
+
+Avocado itself has supported running tests in parallel for a long time, but due
+to the nature of VT tests, this is not common practice.  Still, some tests can
+run in parallel with a few extra options set.
+
+This takes into consideration tp-qemu tests.  A command line such as the
+following demonstrates that::
+
+    $ avocado run --max-parallel-tasks=2 --vt-extra-params 'master_images_clone=vm1' --vt-extra-params='remove_image_image1=yes' --vt-extra-params='backup_image_before_testing=no' --vt-extra-params='display=nographic' -- boot boot
+    JOB ID     : <id>
+    JOB LOG    : /home/<user>/avocado/job-results/job-2026-08-04T22.13-a336310/job.log
+     (2/2) io-github-autotest-qemu.boot: STARTED
+     (1/2) io-github-autotest-qemu.boot: STARTED
+     (2/2) io-github-autotest-qemu.boot: PASS (32.79 s)
+     (1/2) io-github-autotest-qemu.boot: PASS (32.82 s)
+    RESULTS    : PASS 2 | ERROR 0 | FAIL 0 | SKIP 0 | WARN 0 | INTERRUPT 0 | CANCEL 0
+    JOB TIME   : 36.15 s
+
+Notice how the job run time and each test's individual time are very close.
+
+This assumes a guest image has already been prepared (either a JeOS
+image downloaded as part of the ``vt-bootstrap`` execution) or an
+unattended install test has been run.
+
+Please use this "parallelization support" with a grain of salt, given
+that it's highly test dependent.
+
 * For in-depth information, or to ask questions, please consult the `deepwiki <https://deepwiki.com/avocado-framework/avocado-vt>`__.
 * Send an e-mail to `the avocado mailing list <https://www.redhat.com/mailman/listinfo/avocado-devel>`__.
 * Open an issue on `the avocado-vt github area <https://github.com/avocado-framework/avocado-vt/issues/new>`__.
