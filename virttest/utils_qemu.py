@@ -8,7 +8,7 @@ import re
 from avocado.utils import process
 
 QEMU_VERSION_RE = re.compile(
-    r"QEMU (?:PC )?emulator version\s" r"([0-9]+\.[0-9]+\.[0-9]+)" r"(?:\s\((.*?)\))?"
+    r"QEMU (?:PC )?emulator version\s" r"([0-9]+\.[0-9]+\.[0-9]+)" r"(?:\s*\((.*?)\))?"
 )
 DEVICE_CATEGORY_RE = re.compile(r"([A-Z]\S+) devices:")
 

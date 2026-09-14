@@ -89,9 +89,11 @@ class CheckQEMUVersion(Setuper):
         version_line = version_output.split("\n")[0]
         matches = re.match(env_process.QEMU_VERSION_RE, version_line)
         if matches:
-            return "%s (%s)" % matches.groups()
-        else:
-            return "Unknown"
+            ver, extra = matches.groups()
+            if extra:
+                return "%s (%s)" % (ver, extra)
+            return ver
+        return "Unknown"
 
     def setup(self):
         # Get the KVM userspace version
