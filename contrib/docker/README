@@ -1,0 +1,32 @@
+Avocado-vt inside the container
+
+That a simple way to use avocado-vt in the system when you are worried
+about breaking the system or you wish to test a new version of the
+framework.
+
+How to use avocado-vt inside the container:
+First, you need clone the dockerfile Fedora.dockerfile
+The Fedora-32 uses podman as a default container engine instead of docker
+
+Build an image:
+
+# podman build --build-arg AVOCADO_VERSION=80.0 -t avocado-vt -f Fedora.dockerfile .
+
+To change avocado_version or Fedora distro use next args:
+            --build-arg AVOCADO_VERSION=80.0
+
+To run tests need to add a list of volumes from the system and the list
+will be depends-on which test you want to run:
+
+To run the tests need to add a list of volumes from the system.
+The list will be depends-on which test you want to run, maybe you need to
+provide some specific utils:
+
+Example:
+#podman run --name avocado --network host --rm --privileged -v "/usr/share/qemu/:/usr/share/qemu/" \
+      -v "/usr/sbin/dmidecode:/usr/sbin/dmidecode" -v "/usr/sbin/brctl:/usr/sbin/brctl" \
+      -v "/usr/bin/qemu-img:/usr/bin/qemu-img" -v "/usr/bin/qemu-io:/usr/bin/qemu-io" \
+      -v "/root/avocado:/root/avocado" -v "/var/lib/avocado:/var/lib/avocado" \
+      -v "/var/log:/var/log" -v "/usr/share/ipxe.efi:/usr/share/ipxe.efi" \
+      -v "/usr/bin/qemu-kvm:/usr/bin/qemu-kvm" -v "/usr/bin/qemu-system-x86_64:/usr/bin/qemu-system-x86_64" \
+      -i -t localhost/avocado-vt avocado $avocado_command
