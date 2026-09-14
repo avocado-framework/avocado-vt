@@ -2,6 +2,7 @@ import ast
 import configparser
 import logging
 import os.path
+import sys
 
 from avocado.utils import distro
 from six import StringIO
@@ -89,9 +90,14 @@ class SectionlessConfig(object):
         self.parser = configparser.ConfigParser()
         # Prevent of converting option names to lower case
         self.parser.optionxform = str
-        self.backup_content = open(path, "r").read()
-        read_fp = StringIO("[root]\n" + self.backup_content)
-        self.parser.read_file(read_fp)
+        self.backup_content = open(path, 'r').read()
+        read_fp = StringIO('[root]\n' + self.backup_content)
+        #readfp function has been deprecated since python3.2 
+        #and removed in python3.12
+        if sys.version_info >= (3, 12):
+            self.parser.read_file(read_fp)
+        else:
+            self.parser.readfp(read_fp)
 
     def __sync_file(self):
         out_file = open(self.path, "w")
