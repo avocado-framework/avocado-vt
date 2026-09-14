@@ -1438,6 +1438,9 @@ class VM(virt_vm.BaseVM):
         def add_initrd(filename):
             return " -initrd '%s'" % filename
 
+        def add_shim(filename):
+            return " -shim '%s'" % filename
+
         def add_rtc(devices):
             # Pay attention that rtc-td-hack is for early version
             # if "rtc " in help:
@@ -2932,6 +2935,11 @@ class VM(virt_vm.BaseVM):
         if initrd:
             initrd = utils_misc.get_path(data_dir.get_data_dir(), initrd)
             devices.insert(StrDev("initrd", cmdline=add_initrd(initrd)))
+
+        shim = params.get("shim")
+        if shim:
+            shim = utils_misc.get_path(data_dir.get_data_dir(), shim)
+            devices.insert(StrDev("shim", cmdline=add_shim(shim)))
 
         for host_port, guest_port in redirs:
             cmd = add_tcp_redir(devices, host_port, guest_port)
