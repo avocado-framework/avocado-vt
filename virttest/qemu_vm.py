@@ -3066,7 +3066,9 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev("extra", cmdline=extra_params))
 
         bios_path = params.get("bios_path")
-        if bios_path:
+        # IGVM embeds firmware via -object igvm-cfg and machine igvm-cfg=;
+        # do not also pass -bios (would duplicate / conflict with OVMF).
+        if bios_path and not params.get_boolean("enable_igvm"):
             devices.insert(StrDev("bios", cmdline="-bios %s" % bios_path))
 
         # Add TPM devices
