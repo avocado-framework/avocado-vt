@@ -2116,6 +2116,17 @@ class VM(virt_vm.BaseVM):
         """
         error_context.context("creating '%s'" % self.name)
         self.destroy(free_mac_addresses=False)
+        # Undefine any persistent definition with our name so that the
+        # virt-install --import below does not fail with
+        # "Disk ... is already in use by other guests ['<name>']"
+        # on its default --check path_in_use=on.
+        try:
+            if virsh.domain_exists(self.name, uri=self.connect_uri):
+                virsh.undefine(self.name, options="--nvram",
+                               uri=self.connect_uri, ignore_status=True)
+        except Exception as _e:
+            LOG.debug("Pre-create undefine of %s skipped: %s",
+                      self.name, _e)
         if name is not None:
             self.name = name
         if params is not None:
