@@ -11,12 +11,12 @@ LOG = logging.getLogger("avocado." + __name__)
 
 def remove_bootconfig_items_from_vmos(osxml):
     """
-    Remove efi firmware attribute and loader/nvram elements
+    Remove efi firmware attribute and loader/nvram/varstore elements
 
     :param osxml: VMOSXML object
     :return: VMOSXML, the updated object
     """
-    # Remove efi firmware attribute and loader/nvram elements
+    # Remove efi firmware attribute and loader/nvram/varstore elements
     # if they exist which may affect newly added same elements
     os_attrs = osxml.fetch_attrs()
     LOG.debug("<os> configuration:%s", os_attrs)
@@ -24,6 +24,8 @@ def remove_bootconfig_items_from_vmos(osxml):
         osxml.del_os_firmware()
     if os_attrs.get("nvram"):
         osxml.del_nvram()
+    if os_attrs.get("varstore_attrs"):
+        osxml.del_varstore_attrs()
     if os_attrs.get("loader"):
         osxml.del_loader()
     if os_attrs.get("firmware"):
