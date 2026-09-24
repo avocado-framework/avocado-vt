@@ -203,7 +203,7 @@
 					<Order>17</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c wmic datafile where "filename='finish' and extension='bat'" call copy "c:\\finish.bat" &amp;&amp; c:\finish.bat PROCESS_CHECK</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c PowerShell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | ForEach-Object {Get-ChildItem -Path $_.Root -Filter 'finish.bat' -Recurse -ErrorAction SilentlyContinue} | Select-Object -First 1 | Copy-Item -Destination 'C:\finish.bat'" &amp;&amp; c:\finish.bat PROCESS_CHECK</CommandLine>
 					<Order>18</Order>
 				</SynchronousCommand>
 			</FirstLogonCommands>
