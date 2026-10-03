@@ -4578,6 +4578,28 @@ def _parse_kernel_version(kernel_version):
     return {"major": 0, "minor": 0, "stable": 0, "patch_level": 0}
 
 
+def get_distro_version(session=None):
+    """
+    Get distribution version of the Host/Guest/Remote Host
+
+    :param session: ShellSession object of VM or remote host
+    :return: distribution name of type str
+    """
+    if not session:
+        return distro.detect().version
+    else:
+        distro_version = ""
+        cmd = "cat /etc/os-release | grep '^VERSION_ID='"
+        try:
+            status, output = session.cmd_status_output(cmd, timeout=300)
+            if status:
+                LOG.debug("Unable to get the distro version: %s" % output)
+            else:
+                distro_version = output.split("=")[1].strip()
+        finally:
+            return distro_version
+
+
 def get_sosreport(
     path=None,
     session=None,

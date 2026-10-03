@@ -721,6 +721,13 @@ class BaseVM(object):
         return utils_misc.get_distro(session=self.session)
 
     @session_handler
+    def get_distro_version(self, connect_uri=None):
+        """
+        Get distribution version of the vm instance.
+        """
+        return utils_misc.get_distro_version(session=self.session)
+
+    @session_handler
     def uptime(self, connect_uri=None):
         """
         Get uptime of the vm instance.
