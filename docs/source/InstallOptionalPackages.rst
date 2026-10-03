@@ -160,8 +160,8 @@ and you can add the repos on your system putting the following on /etc/apt/sourc
 
 ::
 
-    $ deb http://ppa.launchpad.net/lmr/autotest/ubuntu raring main
-    $ deb-src http://ppa.launchpad.net/lmr/autotest/ubuntu raring main
+    deb http://ppa.launchpad.net/lmr/autotest/ubuntu raring main
+    deb-src http://ppa.launchpad.net/lmr/autotest/ubuntu raring main
 
 Then update your software list:
 
