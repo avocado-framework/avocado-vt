@@ -1022,6 +1022,7 @@ class AvocadoGuest(object):
         testlist=[],
         timeout=3600,
         testrepo="https://github.com/avocado-framework-tests/avocado-misc-tests.git",
+        testbranch="master",
         installtype="pip",
         avocado_vt=False,
         reinstall=False,
@@ -1037,6 +1038,7 @@ class AvocadoGuest(object):
         :param testlist: testlist as list of tuples like (testcase, muxfile)
         :param timeout: test timeout
         :param testrepo: test repository default is avocado-misc-tests
+        :param testbranch: test repo branch, default is master
         :param installtype: how to install avocado, supported types
                             pip, package, git
         :param reinstall: flag to reinstall in case of avocado present inside guest
@@ -1050,6 +1052,7 @@ class AvocadoGuest(object):
         self.testlist = testlist
         self.timeout = timeout
         self.test_repo = testrepo
+        self.test_branch = testbranch
         self.installtype = installtype
         self.avocado_vt = avocado_vt
         self.reinstall = reinstall
@@ -1126,11 +1129,16 @@ class AvocadoGuest(object):
             LOG.error("Unable to find python.")
             return False
         self.pip_bin = find_bin(self.session, ["pip3", "pip2", "pip"])
-        if self.pip_bin:
-            cmd = "%s install --upgrade pip;" % (self.pip_bin)
-            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                LOG.error("Unable to upgrade pip.")
-                return False
+        # Ideally --break-system-packages parameter should work with pip
+        # in case of venv, but fails. So, not going through this in cases
+        # where installtype is not pip.
+        if self.installtype == "pip":
+            self.pip_bin = find_bin(self.session, ["pip3", "pip2", "pip"])
+            if self.pip_bin:
+                cmd = "%s install --upgrade pip;" % (self.pip_bin)
+                if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                    LOG.error("Unable to upgrade pip.")
+                    return False
         if not utils_misc.make_dirs(self.test_path, session=self.session):
             LOG.error("Failed to create test path in guest")
             return False
@@ -1254,7 +1262,7 @@ class AvocadoGuest(object):
             if status != 0:
                 raise exceptions.TestError("Downloading test failed: %s" % output)
         else:
-            if not self.git_install(self.test_repo, install=False):
+            if not self.git_install(self.test_repo, branch=self.test_branch, install=False):
                 raise exceptions.TestError("Downloading test failed")
 
         LOG.debug("Running Test")
