@@ -2950,6 +2950,9 @@ def get_image_info(image_file):
                 elif line.find("lazy refcounts") != -1:
                     lazy_refcounts = line.split(":")[-1].strip()
                     image_info_dict["lcounts"] = lazy_refcounts
+                elif line.find("corrupt") != -1:
+                    corrupt = line.split(":")[-1].strip()
+                    image_info_dict["corrupt"] = corrupt
                 elif line.find("extended l2") != -1:
                     extended_l2 = line.split(":")[-1].strip()
                     image_info_dict["extended l2"] = extended_l2
