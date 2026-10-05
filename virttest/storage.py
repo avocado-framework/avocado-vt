@@ -1210,7 +1210,8 @@ class QemuImg(object):
         if not params.get("image_name_%s_%s" % (image_name, vm_name)):
             m_image_name = params.get("image_name", "image")
             vm_image_name = params.get(
-                "image_name_%s" % vm_name, "%s_%s" % (m_image_name, vm_name)
+                "image_name_%s" % vm_name,
+                "%s_%s" % (m_image_name, f"{vm_name}-pid-{os.getpid()}"),
             )
             if params.get("clone_master", "yes") == "yes":
                 image_params = params.object_params(image_name)

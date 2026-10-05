@@ -3984,7 +3984,8 @@ class VM(virt_vm.BaseVM):
 
             for key, value in list(self.logs.items()):
                 outfile = os.path.join(
-                    utils_logfile.get_log_file_dir(), "%s-%s.log" % (key, name)
+                    utils_logfile.get_log_file_dir(),
+                    "%s-%s-pid-%s.log" % (key, name, self.get_pid()),
                 )
                 self.logsessions[key] = aexpect.Tail(
                     "nc -U %s" % value,
