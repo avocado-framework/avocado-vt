@@ -43,7 +43,7 @@ rm -fr /mnt/local/images/swarm/*
 rm -fr /mnt/local/images/shared/vm1-* /mnt/local/images/shared/vm2-*
 
 # minimal other dependencies for the integration run
-dnf install -y python3-coverage python3-lxc
+dnf install -y python3-lxc
 
 # most standard integration run
 echo
@@ -82,13 +82,13 @@ avocado run --vt-multi-vm --vt-states --suite-runner traverser \
 # minimal environment steps
 echo
 echo -e "\033[35mPerform minimal effect steps (run minimal noop/list/run tools)\033[0m"
-coverage run --append --source=virttest $(which avocado) env setup=noop
-coverage run --append --source=virttest $(which avocado) env setup=list
+avocado env setup=noop
+avocado env setup=list
 
 # full integration run
 echo
 echo -e "\033[35mPerform a full multi-vm test suite run via autotest interface\033[0m"
-avocado_cmd="coverage run --append --source=virttest $(which avocado) env"
+avocado_cmd="avocado env"
 test_slots="net1,net2,net3,net4,net5"
 $avocado_cmd setup=run nets=$test_slots only=leaves only_vm1=
 
