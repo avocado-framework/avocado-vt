@@ -864,14 +864,17 @@ def copy_nfs_image(params, root_dir, basename=False):
         dst = get_image_filename(params, base_dir, basename=basename)
         if (
             not os.path.isfile(dst)
-            or utils_misc.get_image_info(dst)["lcounts"].lower() == "true"
+            or utils_misc.get_image_info(dst).get("corrupt", "false").lower() == "true"
         ):
             source = get_image_filename(params, root_dir)
             LOG.debug("Checking for image available in image data " "path - %s", source)
             # check for image availability in images data directory
             if (
                 os.path.isfile(source)
-                and not utils_misc.get_image_info(source)["lcounts"].lower() == "true"
+                and not utils_misc.get_image_info(source)
+                .get("corrupt", "false")
+                .lower()
+                == "true"
             ):
                 LOG.debug("Copying guest image from %s to %s", source, dst)
                 shutil.copy(source, dst)
