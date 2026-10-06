@@ -71,6 +71,8 @@ class Disk(base.TypedDeviceBase):
             libvirt_xml.devices.Disk.Reservations instance.
         drivermetadata:
             libvirt_xml.devices.Disk.DriverMetadata instance.
+        driver_statistics:
+            libvirt_xml.devices.Disk.DiskDriverStatisticsXML instance.
     """
 
     __slots__ = (
@@ -106,6 +108,7 @@ class Disk(base.TypedDeviceBase):
         "driver_iothreads",
         "sharebacking",
         "throttlefilters",
+        "driver_statistics",
     )
 
     def __init__(self, type_name="file", virsh_instance=base.base.virsh):
@@ -150,6 +153,14 @@ class Disk(base.TypedDeviceBase):
             parent_xpath="/driver",
             tag_name="metadata_cache",
             subclass=self.MetadataCache,
+            subclass_dargs={"virsh_instance": virsh_instance},
+        )
+        accessors.XMLElementNest(
+            "driver_statistics",
+            self,
+            parent_xpath="/driver",
+            tag_name="statistics",
+            subclass=self.DiskDriverStatisticsXML,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
         accessors.XMLElementDict("target", self, parent_xpath="/", tag_name="target")
@@ -1214,3 +1225,111 @@ class Disk(base.TypedDeviceBase):
             if tag != "throttlefilter":
                 return None
             return dict(attr_dict)
+
+    class DiskDriverStatisticsXML(base.base.LibvirtXMLBase):
+        """
+        statistics tag XML class
+
+        Elements:
+            latency_histogram
+        """
+
+        __slots__ = ("latency_histogram",)
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementList(
+                "latency_histogram",
+                self,
+                forbidden=[],
+                parent_xpath="/",
+                marshal_from=self.marshal_from_latency_histogram,
+                marshal_to=self.marshal_to_latency_histogram,
+                has_subclass=True,
+            )
+            super(Disk.DiskDriverStatisticsXML, self).__init__(
+                virsh_instance=virsh_instance
+            )
+            self.xml = "<statistics/>"
+
+        @staticmethod
+        def marshal_from_latency_histogram(item, index, libvirtxml):
+            """
+            Convert an xml object to latency-histogram tag and xml element.
+            """
+            if isinstance(item, Disk.DiskDriverStatisticsXML.LatencyHistogramXML):
+                return "latency-histogram", item
+            elif isinstance(item, dict):
+                latency_histogram = Disk.DiskDriverStatisticsXML.LatencyHistogramXML()
+                latency_histogram.setup_attrs(**item)
+                return "latency-histogram", latency_histogram
+            else:
+                raise xcepts.LibvirtXMLError(
+                    "Expected a list of latency-histogram instances, not a %s"
+                    % str(item)
+                )
+
+        @staticmethod
+        def marshal_to_latency_histogram(tag, new_treefile, index, libvirtxml):
+            """
+            Convert a latency-histogram tag xml element to an object of LatencyHistogramXML.
+            """
+            if tag != "latency-histogram":
+                return None  # Don't convert this item
+            newone = Disk.DiskDriverStatisticsXML.LatencyHistogramXML(
+                virsh_instance=libvirtxml.virsh
+            )
+            newone.xmltreefile = new_treefile
+            return newone
+
+        class LatencyHistogramXML(base.base.LibvirtXMLBase):
+            """
+            Class of disk driver latency-histogram tag
+            """
+
+            __slots__ = ("type", "bin")
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLAttribute(
+                    property_name="type",
+                    libvirtxml=self,
+                    forbidden=[],
+                    parent_xpath="/",
+                    tag_name="latency-histogram",
+                    attribute="type",
+                )
+                accessors.XMLElementList(
+                    "bin",
+                    self,
+                    parent_xpath="/",
+                    marshal_from=self.marshal_from_bin,
+                    marshal_to=self.marshal_to_bin,
+                )
+                super(Disk.DiskDriverStatisticsXML.LatencyHistogramXML, self).__init__(
+                    virsh_instance=virsh_instance
+                )
+                self.xml = "<latency-histogram/>"
+
+            @staticmethod
+            def marshal_from_bin(item, index, libvirtxml):
+                """
+                Convert a dict to bin tag and attributes
+                """
+                del index
+                del libvirtxml
+                if not isinstance(item, dict):
+                    raise xcepts.LibvirtXMLError(
+                        "Expected a dictionary of bin "
+                        "attributes, not a %s" % str(item)
+                    )
+                return ("bin", dict(item))
+
+            @staticmethod
+            def marshal_to_bin(tag, attr_dict, index, libvirtxml):
+                """
+                Convert a bin tag and attributes to a dict
+                """
+                del index
+                del libvirtxml
+                if tag != "bin":
+                    return None
+                return dict(attr_dict)
