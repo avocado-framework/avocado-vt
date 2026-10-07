@@ -33,7 +33,7 @@ import os
 
 from avocado.core.settings import settings
 
-from virttest.cartconf import Parser
+from virttest.cartconf import IS_VARIANTER, Parser
 from virttest.cartesian_config import print_dicts
 from virttest.utils_params import Params
 
@@ -248,9 +248,65 @@ class Reparsable:
     The class produces both parser and parameters (parser dicts) on demand.
     """
 
+    #: cache for CartConf parsers of already parsed steps
+    #: nested structure: _parse_cache[step1_key] = {'parser': parser_after_step1, 'children': {step2_key: ...}}
+    _parse_cache = {}
+
     def __init__(self) -> None:
         """Initialize the parsable structure."""
         self.steps = []
+
+    @classmethod
+    def _get_cached_parser_depth(cls, steps: list[ParsedContent]) -> tuple[Parser, int]:
+        """
+        Get a cached parser for a maximum number of already parsed initial steps.
+
+        :param steps: complete list of parsing steps
+        :returns: a tuple of (cached_parser, depth) where depth is the number of steps
+                  the cached parser has already processed, or (None, 0) if no cache exists
+        """
+        if not IS_VARIANTER:
+            return None, 0
+
+        cache_ref = cls._parse_cache
+        cached_parser, depth = None, 0
+
+        for step in steps:
+            key = step.parsable_form()
+            if key in cache_ref:
+                entry = cache_ref[key]
+                if entry["parser"] is not None:
+                    cached_parser = entry["parser"]
+                    depth += 1
+                cache_ref = entry["children"]
+            else:
+                # no further cache found
+                break
+
+        return cached_parser, depth
+
+    @classmethod
+    def _cache_parser(cls, steps: list[ParsedContent], parser: Parser) -> None:
+        """
+        Cache a parser for the given sequence of steps.
+
+        :param steps: the sequence of parsing steps up to this parser
+        :param parser: the parser to cache
+        """
+        if not IS_VARIANTER:
+            return
+
+        cache_ref = cls._parse_cache
+        for i, step in enumerate(steps):
+            key = step.parsable_form()
+            if key not in cache_ref:
+                if i < len(steps) - 1:
+                    raise RuntimeError(
+                        f"Cache should already exist for step {i} "
+                        f"when caching parser for steps: {[s.reportable_form() for s in steps]}"
+                    )
+                cache_ref[key] = {"parser": copy.copy(parser), "children": {}}
+            cache_ref = cache_ref[key]["children"]
 
     def __repr__(self) -> str:
         """Provide a representation of the parsable Cartesian configuration."""
@@ -350,23 +406,40 @@ class Reparsable:
         :returns: resulting parser
         :raises: :py:class:`EmptyCartesianProduct` if no combination of the restrictions exists
         """
-        parser = Parser()
-        hostname = os.environ.get("PREFIX", os.environ.get("HOSTNAME", "avocado"))
-        parser.parse_string("hostname = %s\n" % hostname)
-        suite_path = settings.as_dict().get("vt.common.suite_path")
-        parser.parse_string("suite_path = %s\n" % suite_path)
-        parser.parse_string(
-            "test_pre_hook = %s\n"
-            % os.path.join(suite_path, "controls", "pre_test.control")
-        )
+        # try to retrieve a cached parser from previous steps
+        parser, cache_depth = self._get_cached_parser_depth(self.steps)
 
-        for step in self.steps:
+        # start with most-steps cached parser if any or create new one
+        if parser is not None:
+            parser = copy.copy(parser)
+        else:
+            # TODO: at present these values may fall out of sync with the cache
+            # if changed mid-test-job but this is rare and we need a better mechanism
+            # for providing defaults or dropping them entirely
+            parser = Parser()
+            # parse the base settings only once (if starting fresh)
+            parser.parse_string(
+                "hostname = %s\n"
+                % os.environ.get("PREFIX", os.environ.get("HOSTNAME", "avocado"))
+            )
+            suite_path = settings.as_dict().get("vt.common.suite_path")
+            parser.parse_string("suite_path = %s\n" % suite_path)
+            parser.parse_string(
+                "test_pre_hook = %s\n"
+                % os.path.join(suite_path, "controls", "pre_test.control")
+            )
+
+        # parse remaining steps
+        for i, step in enumerate(self.steps[cache_depth:], start=cache_depth):
             if isinstance(step, ParsedFile):
                 parser.parse_file(step.filename)
-            if isinstance(step, ParsedStr):
+            elif isinstance(step, ParsedStr):
                 parser.parse_string(step.content)
-            if isinstance(step, ParsedDict):
+            elif isinstance(step, ParsedDict):
                 parser.parse_string(step.parsable_form())
+
+            # cache a parser copy after each step when supported
+            self._cache_parser(self.steps[: i + 1], parser)
 
         # log any required information and detect empty Cartesian product
         if show_restriction:
