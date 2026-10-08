@@ -1256,7 +1256,7 @@ class DevContainer(object):
             images = params.objects("images")
 
             firmware_path = params.get(firmware_name + "_path")
-            if firmware_path and images:
+            if firmware_path:
                 if not os.path.exists(firmware_path):
                     raise exceptions.TestError(
                         "The firmware path is not exist."
@@ -1272,13 +1272,17 @@ class DevContainer(object):
                     "format"
                 ]
 
-                first_image = images[0]
-                img_params = params.object_params(first_image)
-                img_params["backing_chain"] = "no"
-                img_obj = qemu_storage.QemuImg(
-                    img_params, current_data_dir, first_image
-                )
-                img_info = json.loads(img_obj.info(True, "json"))
+                # A vm without any image, e.g. one that only drives the UEFI
+                # shell, has nothing to derive the vars file name from.
+                img_obj = None
+                if images:
+                    first_image = images[0]
+                    img_params = params.object_params(first_image)
+                    img_params["backing_chain"] = "no"
+                    img_obj = qemu_storage.QemuImg(
+                        img_params, current_data_dir, first_image
+                    )
+                    img_info = json.loads(img_obj.info(True, "json"))
 
                 # For OVMF with SEV-ES support and OVMF with TDX support,
                 # the vm can be booted without vars file.
@@ -1293,8 +1297,17 @@ class DevContainer(object):
                         pflash_vars_src_path
                     )["format"]
 
+                    if img_obj is None:
+                        pflash_vars_name = (
+                            f"{self.vmname}_"
+                            f"{params['guest_name']}_"
+                            f"VARS.{pflash_vars_format}"
+                        )
+                        pflash_vars_path = os.path.join(
+                            current_data_dir, pflash_vars_name
+                        )
                     # To ignore the influence from backends
-                    if img_obj.is_remote_image():
+                    elif img_obj.is_remote_image():
                         pflash_vars_name = (
                             f"{self.vmname}_"
                             f"{params['guest_name']}_"
