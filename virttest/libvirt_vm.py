@@ -2116,6 +2116,38 @@ class VM(virt_vm.BaseVM):
         """
         error_context.context("creating '%s'" % self.name)
         self.destroy(free_mac_addresses=False)
+        # A persistent domain with our name -- left by a previous test
+        # (env_cleanup=no) or pre-installed during CI bootstrap -- makes the
+        # "virt-install --import" below fail under its default
+        # "--check path_in_use=on":
+        #     Disk ... is already in use by other guests ['<name>']
+        # destroy() only kills the qemu process, it does not drop the
+        # persistent definition, so the disk/name stays locked. Undefine it
+        # here. Detect nvram from the domain XML so this also works on
+        # UEFI-only arches (e.g. aarch64), where "virsh undefine" fails
+        # without --nvram. Only the definition is removed; the qcow2 image is
+        # left intact for --import to reuse.
+        if virsh.domain_exists(self.name, uri=self.connect_uri):
+            undefine_opts = "--managed-save"
+            try:
+                domxml = virsh.dumpxml(
+                    self.name, extra="--inactive", uri=self.connect_uri
+                ).stdout_text
+            except process.CmdError as detail:
+                domxml = ""
+                LOG.debug(
+                    "Could not dump XML of %s before undefine: %s",
+                    self.name,
+                    detail,
+                )
+            if "<nvram" in domxml:
+                undefine_opts += " --nvram"
+            virsh.undefine(
+                self.name,
+                options=undefine_opts,
+                uri=self.connect_uri,
+                ignore_status=True,
+            )
         if name is not None:
             self.name = name
         if params is not None:
