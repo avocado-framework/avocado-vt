@@ -944,11 +944,17 @@ class VM(virt_vm.BaseVM):
                 # newer libvirt (--network=mynet,model=virtio,mac=00:11)
                 if nettype != "user":
                     br_name = utils_net.find_bridge_manager(netdst)
-                    if br_name is None:
+                    if br_name is not None:
+                        result += "=%s" % netdst
+                        if "OpenVSwitch" in br_name.__class__.__name__:
+                            result += ",virtualport_type=openvswitch"
+                    elif nettype == "bridge":
                         raise exceptions.TestError(f"Bridge '{netdst}' does not exist")
-                    result += "=%s" % netdst
-                    if "OpenVSwitch" in br_name.__class__.__name__:
-                        result += ",virtualport_type=openvswitch"
+                    else:
+                        # For named networks that don't have a backing bridge
+                        # specified, assume it's a libvirt network and pass
+                        # it through
+                        result += "=%s" % netdst
                 if nettype and nic_model:  # only supported along with nettype
                     result += ",model=%s" % nic_model
                 if nettype and mac:
