@@ -929,19 +929,15 @@ class VM(virt_vm.BaseVM):
             nic_model = nic_params.get("nic_model")
             nic_queues = nic_params.get("queues")
             nic_driver = nic_params.get("net_driver")
-            if nettype:
+
+            def make_network_str():
+                if not nettype:
+                    if mac:
+                        return " --mac=%s" % mac
+                    return ""
+
                 result = " --network=%s" % nettype
-            else:
-                result = ""
-            if has_option(help_text, "bridge"):
-                # older libvirt (--network=NATdev --bridge=bridgename
-                # --mac=mac)
-                if nettype != "user":
-                    result += ":%s" % netdst
-                if mac:  # possible to specify --mac w/o --network
-                    result += " --mac=%s" % mac
-            else:
-                # newer libvirt (--network=mynet,model=virtio,mac=00:11)
+
                 if nettype != "user":
                     br_name = utils_net.find_bridge_manager(netdst)
                     if br_name is None:
@@ -949,22 +945,20 @@ class VM(virt_vm.BaseVM):
                     result += "=%s" % netdst
                     if "OpenVSwitch" in br_name.__class__.__name__:
                         result += ",virtualport_type=openvswitch"
-                if nettype and nic_model:  # only supported along with nettype
+                if nic_model:
                     result += ",model=%s" % nic_model
-                if nettype and mac:
+                if mac:
                     result += ",mac=%s" % mac
-                if (
-                    nettype
-                    and nic_queues
-                    and has_sub_option("network", "driver[._]queues")
-                ):
+                if nic_queues and has_sub_option("network", "driver[._]queues"):
                     result += ",driver_queues=%s" % nic_queues
                     if nic_driver and has_sub_option("network", "driver[._]name"):
                         result += ",driver_name=%s" % nic_driver
-                elif mac:  # possible to specify --mac w/o --network
-                    result += " --mac=%s" % mac
-            LOG.debug("vm.make_create_command.add_nic returning: %s", result)
-            return result
+
+                return result
+
+            ret = make_network_str()
+            LOG.debug("vm.make_create_command.add_nic returning: %s", ret)
+            return ret
 
         def add_memballoon(help_text, memballoon_model):
             """
