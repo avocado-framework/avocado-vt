@@ -936,13 +936,13 @@ class VM(virt_vm.BaseVM):
                         return " --mac=%s" % mac
                     return ""
 
-                result = " --network=%s" % nettype
+                result = " --network=type=%s" % nettype
 
                 if nettype != "user":
                     br_name = utils_net.find_bridge_manager(netdst)
                     if br_name is None:
                         raise exceptions.TestError(f"Bridge '{netdst}' does not exist")
-                    result += "=%s" % netdst
+                    result += ",source=%s" % netdst
                     if "OpenVSwitch" in br_name.__class__.__name__:
                         result += ",virtualport_type=openvswitch"
                 if nic_model:
