@@ -1547,12 +1547,20 @@ def get_net_if_addrs_win(session, mac_addr):
     :param mac_addr:  guest nic mac address
     :return: List ip addresses of network interface.
     """
-    ip_address = get_windows_nic_attribute(
-        session, "macaddress", mac_addr, "IPAddress", global_switch="nicconfig"
+    escaped_mac = str(mac_addr).replace("'", "''")
+    cmd = (
+        "powershell -command \"Get-CimInstance Win32_NetworkAdapterConfiguration"
+        " -Filter 'macaddress=''%s'''"
+        ' | Select-Object -ExpandProperty IPAddress"' % escaped_mac
     )
+    status, out = session.cmd_status_output(cmd, timeout=240)
+    if status != 0:
+        raise exceptions.TestError(
+            "Get IPAddress for MAC %s failed: %s" % (mac_addr, out)
+        )
     return {
-        "ipv4": re.findall(r'"(\d+\.\d+\.\d+\.\d+)"', ip_address),
-        "ipv6": re.findall(r'"(\w+:[^\s,"]+)"', ip_address),
+        "ipv4": re.findall(r"(\d+\.\d+\.\d+\.\d+)", out),
+        "ipv6": re.findall(r"(\w+:[^\s,\"]+)", out),
     }
 
 
