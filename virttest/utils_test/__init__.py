@@ -409,13 +409,15 @@ def start_windows_service(session, service, timeout=120):
 
 def get_windows_file_abs_path(session, filename, extension="exe", tmout=240):
     """
-    return file abs path "drive+path" by "wmic datafile"
+    return file abs path "drive+path" via PowerShell Get-CimInstance
     """
-    cmd_tmp = "wmic datafile where \"Filename='%s' and "
-    cmd_tmp += "extension='%s'\" get drive^,path"
-    cmd = cmd_tmp % (filename, extension)
+    cmd = (
+        'powershell -command "Get-CimInstance CIM_DataFile'
+        " -Filter 'Filename=''%s'' and Extension=''%s'''"
+        ' | Select-Object -ExpandProperty Name"' % (filename, extension)
+    )
     info = session.cmd_output(cmd, timeout=tmout).strip()
-    drive_path = re.search(r"(\w):\s+(\S+)", info, re.M)
+    drive_path = re.search(r"(\w):(\\.+)", info, re.M)
     if not drive_path:
         raise exceptions.TestError(
             "Not found file %s.%s in your guest" % (filename, extension)
