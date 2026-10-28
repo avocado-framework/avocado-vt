@@ -2750,7 +2750,7 @@ class VM(virt_vm.BaseVM):
             """Check if serial console indicates system is going down."""
             reboot_patterns = [
                 # Linux reboot patterns
-                r".*[Rr]ebooting.*",
+                r".*[Rr]eboot.*",
                 r".*[Rr]estarting system.*",
                 r".*[Mm]achine restart.*",
                 r".*Linux version.*",
