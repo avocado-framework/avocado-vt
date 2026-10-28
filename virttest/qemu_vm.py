@@ -1903,6 +1903,14 @@ class VM(virt_vm.BaseVM):
         if params.get("defconfig", "yes") == "no":
             devices.insert(StrDev("nodefconfig", cmdline=" -nodefconfig"))
 
+        # Set kvm-pit lost_tick_policy via QGlobal
+        kvm_pit_lost_tick_policy = params.get("kvm_pit_lost_tick_policy")
+        if kvm_pit_lost_tick_policy:
+            dev = qdevices.QGlobal(
+                "kvm-pit", "lost_tick_policy", kvm_pit_lost_tick_policy
+            )
+            devices.insert(dev)
+
         # Add device intel-iommu, it must be added before any virtio devices
         if params.get("intel_iommu") == "yes" and devices.has_device("intel-iommu"):
             iommu_params = {
@@ -1921,6 +1929,28 @@ class VM(virt_vm.BaseVM):
             set_cmdline_format_by_cfg(
                 dev, self._get_cmdline_format_cfg(), "intel_iommu"
             )
+            devices.insert(dev)
+
+        # Add device amd-iommu, it must be added before any virtio devices
+        if params.get("amd_iommu") == "yes" and devices.has_device("amd-iommu"):
+            iommu_pci_id = params.get("iommu_pci_id")
+            if iommu_pci_id and devices.has_device("AMDVI-PCI"):
+                companion_bus = params.get("iommu_pci_bus", "pci.0")
+                companion = QDevice(
+                    "AMDVI-PCI",
+                    {"id": iommu_pci_id},
+                    parent_bus={"aobject": companion_bus},
+                )
+                devices.insert(companion)
+            iommu_params = {
+                "dma-remap": params.get("iommu_dma_remap"),
+                "intremap": params.get("iommu_intremap"),
+                "xtsup": params.get("iommu_xtsup"),
+                "dma-translation": params.get("iommu_dma_translation"),
+                "pci-id": iommu_pci_id,
+            }
+            dev = QDevice("amd-iommu", iommu_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "amd_iommu")
             devices.insert(dev)
 
         # Add device virtio-iommu, it must be added before any virtio devices
