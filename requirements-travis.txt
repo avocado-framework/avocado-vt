@@ -1,6 +1,6 @@
 Sphinx==1.3b1
 # (static and style checks)
-pylint==3.0.0
+pylint==4.0.9
 aexpect>=1.6.4
 pyenchant==3.2.2
 black==26.10.1
