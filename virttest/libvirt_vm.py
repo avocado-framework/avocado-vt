@@ -392,6 +392,61 @@ class VM(virt_vm.BaseVM):
             LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
 
+    def _get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
+        """
+        Get the IP address of a VM's network interface, with a fallback to
+        ``virsh domifaddr --full --source arp`` for pseries guests where the address
+        cache is empty or ARP verification fails during early boot.
+
+        :param index: NIC index or name.
+        :param ip_version: "ipv4" or "ipv6".
+        :param session: ShellSession for remote host commands.
+        :param timeout: Forwarded to virsh and verification calls.
+        :raise VMIPAddressMissingError: cache empty AND domifaddr found nothing,
+                                        OR ip_version is "ipv6".
+        :raise VMAddressVerificationError: address found but ownership check fails.
+        :raise VMMACAddressMissingError: no MAC defined for this NIC.
+        :raise VMAddressVerificationError: Address verification error
+        """
+        try:
+            return super()._get_address(index, ip_version, session, timeout)
+        except (
+            virt_vm.VMIPAddressMissingError,
+            virt_vm.VMAddressVerificationError,
+        ) as err:
+            mac = self.get_mac_address(index).lower()
+
+            # ARP is IPv4-only. For IPv6 raise immediately so wait_for_get_address retries
+            if ip_version != "ipv4":
+                raise virt_vm.VMIPAddressMissingError(mac, ip_version) from err
+
+            LOG.debug("Cache miss for MAC %s, trying virsh domifaddr fallback", mac)
+            result = virsh.domifaddr(
+                self.name,
+                "--full --source arp",
+                uri=self.connect_uri,
+                ignore_status=True,
+                timeout=timeout,
+            )
+            LOG.debug("domifaddr output: %s", result.stdout_text)
+            ipaddr = None
+            for line in result.stdout_text.splitlines():
+                if mac in line.lower():
+                    for part in line.split():
+                        if "/" in part:
+                            addr = part.split("/", 1)[0]
+                            if "." in addr:
+                                ipaddr = addr
+                                break
+                    if ipaddr:
+                        break
+
+            if not ipaddr:
+                raise virt_vm.VMIPAddressMissingError(mac, ip_version) from err
+
+            self.address_cache[mac] = ipaddr
+            return ipaddr
+
     def clone(
         self,
         name=None,
