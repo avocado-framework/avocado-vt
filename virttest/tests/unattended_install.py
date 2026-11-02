@@ -772,11 +772,23 @@ class UnattendedInstallConfig(object):
 
     def setup_unattended_http_server(self):
         """
-        Setup a builtin http server for serving the kickstart/preseed file
+        Serve kickstart, preseed or autoinstall cloud-config over HTTP.
 
-        Does nothing if unattended file is not a kickstart/preseed file
+        Does nothing if unattended file is not a kickstart/preseed/autoinstall file.
         """
-        if self.unattended_file.endswith(".ks") or self.unattended_file.endswith(
+        autoinstall = self.unattended_file.endswith((".yaml", ".yml"))
+        if autoinstall:
+            with open(self.unattended_file) as unattended_file:
+                if unattended_file.readline().rstrip("\r\n") != "#cloud-config":
+                    raise ValueError(
+                        "Autoinstall user-data must start with #cloud-config"
+                    )
+            shutil.copyfile(
+                self.unattended_file, os.path.join(self.tmpdir, "user-data")
+            )
+            with open(os.path.join(self.tmpdir, "meta-data"), "w") as metadata:
+                metadata.write("instance-id: avocado-vt\n")
+        elif self.unattended_file.endswith(".ks") or self.unattended_file.endswith(
             ".preseed"
         ):
             # Red Hat kickstart install or Ubuntu preseed install
@@ -784,23 +796,29 @@ class UnattendedInstallConfig(object):
 
             answer_path = os.path.join(self.tmpdir, dest_fname)
             self.answer_kickstart(answer_path)
-
-            if self.unattended_server_port is None:
-                self.unattended_server_port = utils_misc.find_free_port(
-                    8000, 8099, self.url_auto_content_ip
-                )
-
-            start_unattended_server_thread(self.unattended_server_port, self.tmpdir)
         else:
             return
 
-        # Point installation to this kickstart url
-        unattended_file_url = "http://%s:%s/%s" % (
+        if self.unattended_server_port is None:
+            self.unattended_server_port = utils_misc.find_free_port(
+                8000, 8099, self.url_auto_content_ip
+            )
+
+        start_unattended_server_thread(self.unattended_server_port, self.tmpdir)
+        unattended_url = "http://%s:%s/" % (
             self.url_auto_content_ip,
             self.unattended_server_port,
-            dest_fname,
         )
-        kernel_params = self.set_unattended_param_in_kernel(unattended_file_url)
+        if autoinstall:
+            kernel_params = re.sub(r"(?<!\S)ds=\S+", "", self.kernel_params)
+            kernel_params = utils_misc.add_ker_cmd(kernel_params, "autoinstall")
+            kernel_params = utils_misc.add_ker_cmd(
+                kernel_params, "ds=nocloud-net;s=%s" % unattended_url
+            )
+        else:
+            kernel_params = self.set_unattended_param_in_kernel(
+                unattended_url + dest_fname
+            )
 
         # reflect change on params
         self.kernel_params = kernel_params
@@ -1198,7 +1216,8 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unexpected installation method %s" % self.medium)
 
         if self.unattended_file and not preseeded:
-            if self.floppy or self.cdrom_unattended:
+            autoinstall = self.unattended_file.endswith((".yaml", ".yml"))
+            if (self.floppy or self.cdrom_unattended) and not autoinstall:
                 self.setup_boot_disk()
                 if self.params.get("store_boot_disk") == "yes":
                     LOG.info(

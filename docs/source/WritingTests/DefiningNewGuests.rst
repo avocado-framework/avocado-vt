@@ -63,6 +63,48 @@ Other useful params to set (not an exhaustive list):
     # File transfer port
     file_transfer_port = 22
 
+Ubuntu Autoinstall
+==================
+
+Ubuntu live-server installers use Subiquity autoinstall instead of preseed.
+Set ``unattended_file`` to a ``.yaml`` or ``.yml`` cloud-config file with a
+``#cloud-config`` header and a top-level ``autoinstall:`` mapping. The provided
+``unattended/Ubuntu-autoinstall.yaml`` example creates the ``ubuntu`` user with
+the test password ``12345678``, enables SSH password login, and powers off when
+installation finishes.
+
+The ``Ubuntu.24.04-server.x86_64`` guest supplies an example CD-ROM installation
+configuration. Override ``cdrom_cd1`` to use the Ubuntu live-server ISO available
+on the host. For another release, use the same installation settings with its
+own image and kernel paths:
+
+.. code-block:: cfg
+
+    unattended_install.cdrom:
+        cdroms = cd1
+        cdrom_cd1 = isos/linux/ubuntu-24.04.2-live-server-amd64.iso
+        kernel = images/ubuntu-server-24-04-64/vmlinuz
+        initrd = images/ubuntu-server-24-04-64/initrd
+        boot_path = casper
+        unattended_file = unattended/Ubuntu-autoinstall.yaml
+        wait_no_ack = yes
+        username = ubuntu
+        password = 12345678
+
+The installer kernel and initrd are copied from ``casper`` without remastering.
+Avocado VT serves the answer file as NoCloud ``user-data``, creates ``meta-data``,
+and adds ``autoinstall ds=nocloud-net;s=http://HOST:PORT/`` to the kernel command
+line. The guest must be able to reach that HTTP server; use ``url_auto_ip`` to
+override the automatically selected host address when needed.
+
+For autoinstall files, HTTP delivery is used even when an answer disk is
+configured. ``cdroms = cd1`` attaches only the installation ISO. Existing
+``.preseed`` and ``.ks`` files retain their previous delivery mechanisms.
+
+See the `Ubuntu autoinstall quick start
+<https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html>`_
+for the NoCloud configuration format.
+
 Windows Based Custom Guest
 ==========================
 
