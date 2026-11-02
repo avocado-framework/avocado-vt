@@ -909,7 +909,7 @@ class IntertestSetupTest(Test):
             {
                 "shortname": "^original.unattended_install.*vm3",
                 "vms": "^vm3$",
-                "cdrom_cd1": r".*ubuntu-14.04.*\.iso$",
+                "cdrom_cd1": r".*ubuntu-24.04.*\.iso$",
                 "set_state_images": "^install$",
             },
             {

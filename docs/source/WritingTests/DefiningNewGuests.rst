@@ -82,6 +82,8 @@ own image and kernel paths:
 
     unattended_install.cdrom:
         cdroms = cd1
+        unattended_delivery_method = integrated
+        cdrom_unattended = images/ubuntu-server-24-04-64/autoinstall.iso
         cdrom_cd1 = isos/linux/ubuntu-24.04.2-live-server-amd64.iso
         kernel = images/ubuntu-server-24-04-64/vmlinuz
         initrd = images/ubuntu-server-24-04-64/initrd
@@ -92,18 +94,29 @@ own image and kernel paths:
         password = 12345678
 
 The installer kernel and initrd are copied from ``casper`` without remastering.
-Avocado VT serves the answer file as NoCloud ``user-data``, creates ``meta-data``,
-and adds ``autoinstall ds=nocloud-net;s=http://HOST:PORT/`` to the kernel command
-line. The guest must be able to reach that HTTP server; use ``url_auto_ip`` to
-override the automatically selected host address when needed.
+With ``in_cdrom_ks`` (``unattended_delivery_method = integrated``), Avocado VT
+uses ``xorriso`` to add ``autoinstall.yaml`` to the root of the installation ISO,
+preserving its boot records. The generated ISO replaces ``cdrom_cd1`` for the
+installation, and ``autoinstall`` is added to the kernel command line. This
+requires Ubuntu 24.04 or newer for the top-level ``autoinstall:`` mapping. It is
+the default installation path for the multi-VM suite's Ubuntu 24.04 guest.
 
-For autoinstall files, HTTP delivery is used even when an answer disk is
-configured. ``cdroms = cd1`` attaches only the installation ISO. Existing
-``.preseed`` and ``.ks`` files retain their previous delivery mechanisms.
+With ``extra_cdrom_ks`` (``unattended_delivery_method = cdrom``), Avocado VT
+creates a NoCloud seed ISO labelled ``CIDATA`` containing ``user-data`` and
+``meta-data``. The seed ISO is attached alongside the Ubuntu installation ISO,
+using ``cdroms = cd1 unattended``. Both CD-ROM delivery methods require no
+guest-to-host network connection to read the autoinstall configuration.
 
-See the `Ubuntu autoinstall quick start
-<https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html>`_
-for the NoCloud configuration format.
+HTTP delivery remains available through ``http_ks``
+(``unattended_delivery_method = url``). Use ``cdroms = cd1`` for this mode.
+Avocado VT then adds ``autoinstall ds=nocloud-net;s=http://HOST:PORT/`` to the
+kernel command line. The guest must be able to reach that HTTP server; use
+``url_auto_ip`` to override the automatically selected host address when needed.
+Existing ``.preseed`` and ``.ks`` files retain their previous delivery mechanisms.
+
+See `Providing autoinstall configuration
+<https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/providing-autoinstall.html>`_
+for the configuration formats and delivery methods.
 
 Windows Based Custom Guest
 ==========================
