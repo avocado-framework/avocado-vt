@@ -254,7 +254,7 @@ class CartesianObjectTest(Test):
         self.assertEqual(test_object.params["vms_vm3"], "vm3")
         self.assertEqual(test_object.params["os_variant_vm1"], "centos")
         self.assertEqual(test_object.params["os_variant_vm2"], "win10")
-        self.assertEqual(test_object.params["os_variant_vm3"], "ubuntu")
+        self.assertEqual(test_object.params["os_variant_vm3"], "ubuntu24.04")
         self.assertEqual(
             test_object.params["cdrom_cd_rip"], "/mnt/local/isos/avocado_rip.iso"
         )
@@ -307,7 +307,7 @@ class CartesianObjectTest(Test):
         self.assertEqual(test_object.params["vms_vm3"], "vm3")
         self.assertEqual(test_object.params["os_variant_vm1"], "centos")
         self.assertEqual(test_object.params["os_variant_vm2"], "win10")
-        self.assertEqual(test_object.params["os_variant_vm3"], "ubuntu")
+        self.assertEqual(test_object.params["os_variant_vm3"], "ubuntu24.04")
         self.assertEqual(
             test_object.params["cdrom_cd_rip"], "/mnt/local/isos/avocado_rip.iso"
         )
@@ -450,7 +450,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_fedora.*qcow.*Fedora.*vm2\.qemu_kvm_windows_7.*qcow.*Win7.*.vm3.qemu_kvm_ubuntu.*qcow.*Ubuntu.*",
             "fedora",
             "win7",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[1],
@@ -464,7 +464,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_fedora.*qcow.*Fedora.*vm2\.qemu_kvm_windows_10.*qcow.*Win10.*.vm3.qemu_kvm_ubuntu.*qcow.*Ubuntu.*",
             "fedora",
             "win10",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[3],
@@ -478,7 +478,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_centos.*qcow.*CentOS.*vm2\.qemu_kvm_windows_7.*.qcow.*Win7.*vm3.qemu_kvm_ubuntu.*qcow.*Ubuntu.*",
             "centos",
             "win7",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[5],
@@ -492,7 +492,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_centos.*qcow.*CentOS.*vm2\.qemu_kvm_windows_10.*qcow.*Win10.*.vm3.qemu_kvm_ubuntu.*qcow.*Ubuntu.*",
             "centos",
             "win10",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[7],
@@ -531,7 +531,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_centos.*CentOS.*vm2\.qemu_kvm_windows_7.*Win7.*.vm3.qemu_kvm_ubuntu.*Ubuntu.*",
             "centos",
             "win7",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[1],
@@ -545,7 +545,7 @@ class CartesianObjectTest(Test):
             r"vm1\.qemu_kvm_centos.*CentOS.*vm2\.qemu_kvm_windows_10.*Win10.*.vm3.qemu_kvm_ubuntu.*Ubuntu.*",
             "centos",
             "win10",
-            "ubuntu",
+            "ubuntu24.04",
         )
         assertVariant(
             nets[3],
