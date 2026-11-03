@@ -1076,7 +1076,10 @@ class WindowsVMCheck(VMCheck):
         """
         Get windows cpu status.
         """
-        cmd = "wmic cpu get status"
+        cmd = (
+            'powershell -command "Get-CimInstance Win32_Processor'
+            ' | Select-Object -ExpandProperty Status"'
+        )
         output = self.session.cmd_output(cmd)
         if not output:
             LOG.error("Fail to get cpu status")

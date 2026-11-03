@@ -355,7 +355,11 @@ class Netperf(object):
     def is_target_running(self, target):
         list_cmd = "ps -C %s" % target
         if self.client == "nc":
-            list_cmd = "wmic process where name='%s' list" % target
+            list_cmd = (
+                'powershell -command "Get-CimInstance Win32_Process'
+                " -Filter 'Name=''%s'''" % target
+                + ' | Format-List Name"'
+            )
         try:
             output = self.session.cmd_output_safe(list_cmd, timeout=120)
             check_reg = re.compile(r"%s" % target, re.I | re.M)
