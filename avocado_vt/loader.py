@@ -57,7 +57,9 @@ def guest_listing(config, guest_name_parser=None):
         image_name = storage.get_image_filename(params, base_dir)
         machine_type = get_opt(config, "vt.common.machine_type")
         name = params["name"].replace(".%s" % machine_type, "")
-        if os.path.isfile(image_name):
+        # a pseudo guest OS with no images (e.g. one that only drives the
+        # UEFI shell) has nothing to report missing
+        if image_name is None or os.path.isfile(image_name):
             out = name
         else:
             missing = "(missing %s)" % os.path.basename(image_name)
