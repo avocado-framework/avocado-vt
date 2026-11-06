@@ -174,6 +174,10 @@ python
 function ECHO { for TTY in `cat /proc/consoles | awk '{print $NF}'`; do source "/sys/dev/char/$TTY/uevent" && echo "$*" > /dev/$DEVNAME; done }
 ECHO "OS install is completed"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
+# Updates s390x system bootloader parameters
+if [ "$(arch)" == "s390x" ]; then
+    zipl
+fi
 dhclient
 chkconfig sshd on
 iptables -F
