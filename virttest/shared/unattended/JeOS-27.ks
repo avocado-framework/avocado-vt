@@ -176,7 +176,7 @@ ECHO "OS install is completed"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
 # Updates s390x system bootloader parameters
 if [ "$(arch)" == "s390x" ]; then
-    zipl
+    zipl || echo "WARNING: zipl failed. Tests that execute guest reboot may fail."
 fi
 dhclient
 chkconfig sshd on
