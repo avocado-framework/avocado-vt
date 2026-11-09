@@ -20,8 +20,10 @@ INTERFACE
 
 """
 
+import ipaddress
 import logging
 import re
+import subprocess
 
 # avocado imports
 from avocado.core import exceptions
@@ -213,6 +215,48 @@ def configure_unattended_preseed(params):
 
 
 @error_context.context_aware
+def configure_unattended_autoinstall(params):
+    """
+    Configure an Ubuntu autoinstall file for a vm's identity and network.
+
+    :param params: configuration to use
+    :type params: {str, str}
+    """
+    error_context.context("Unattended autoinstall file setup")
+    autoinstall_string = string_from_template(params["unattended_file"])
+    vm_params = params.object_params(params["main_vm"])
+    network_lines = []
+    for nic in vm_params.objects("nics"):
+        nic_params = vm_params.object_params(nic)
+        network_line = "      %s:\n        match:\n          macaddress: '%s'\n" % (
+            nic,
+            nic_params["mac"],
+        )
+        if nic == params["internet_nic"]:
+            network_line += "        dhcp4: true\n"
+        else:
+            address = ipaddress.ip_interface(
+                "%s/%s" % (nic_params["ip"], nic_params["netmask"])
+            )
+            network_line += "        addresses: [%s]\n" % address
+        network_lines.append(network_line)
+
+    password_hash = subprocess.run(
+        ["openssl", "passwd", "-6", "-stdin"],
+        input=params["password"] + "\n",
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+    autoinstall_string = autoinstall_string.replace(
+        "#NETWORK#\n", "".join(network_lines)
+    )
+    autoinstall_string = autoinstall_string.replace("#VMNAME#", params["main_vm"])
+    autoinstall_string = autoinstall_string.replace("#ROOTPW#", password_hash)
+    file_from_string(params["unattended_file"], autoinstall_string)
+
+
+@error_context.context_aware
 def configure_unattended_sif(params):
     """
     Configure the installation of a vm using a sif file.
@@ -383,6 +427,8 @@ def run(test, params, env):
             configure_unattended_kickstart(params)
         elif params["unattended_file"].endswith(".preseed"):
             configure_unattended_preseed(params)
+        elif params["unattended_file"].endswith((".yaml", ".yml")):
+            configure_unattended_autoinstall(params)
         elif params["unattended_file"].endswith(".sif"):
             configure_unattended_sif(params)
         elif params["unattended_file"].endswith(".xml"):

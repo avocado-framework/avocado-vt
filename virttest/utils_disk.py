@@ -11,6 +11,7 @@ import os
 import platform
 import random
 import re
+import shlex
 import shutil
 import stat
 import string
@@ -1471,10 +1472,11 @@ class CdromDisk(Disk):
     Represents a CDROM disk that we can master according to our needs.
     """
 
-    def __init__(self, path, tmpdir):
+    def __init__(self, path, tmpdir, extra_params=""):
         self.mount = tempfile.mkdtemp(prefix="cdrom_virttest_", dir=tmpdir)
         self.tmpdir = tmpdir
         self.path = path
+        self.extra_params = extra_params
         clean_old_image(path)
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
@@ -1528,7 +1530,7 @@ class CdromDisk(Disk):
         g_cmd = (
             "mkisofs -o %s -max-iso9660-filenames "
             "-relaxed-filenames -D --input-charset iso8859-1 "
-            "%s" % (self.path, self.mount)
+            "%s %s" % (self.path, self.extra_params, self.mount)
         )
         process.run(g_cmd, verbose=DEBUG)
 
@@ -1538,6 +1540,33 @@ class CdromDisk(Disk):
         )
         cleanup(self.mount)
         LOG.debug("unattended install CD image %s successfully created", self.path)
+
+
+class CdromRemasterDisk(CdromDisk):
+    """Add files to an existing installation ISO, preserving its boot records."""
+
+    def __init__(self, path, tmpdir, source_cdrom):
+        if os.path.realpath(path) == os.path.realpath(source_cdrom):
+            raise ValueError("The remastered ISO must differ from the source ISO")
+        super().__init__(path, tmpdir)
+        self.source_cdrom = source_cdrom
+
+    @error_context.context_aware
+    def close(self):
+        error_context.context("Remastering install CD image %s" % self.path)
+        cmd = "xorriso -indev %s -outdev %s" % (
+            shlex.quote(self.source_cdrom),
+            shlex.quote(self.path),
+        )
+        # Mapping the staging directory itself would replace the ISO root metadata.
+        for filename in os.listdir(self.mount):
+            cmd += " -map %s %s" % (
+                shlex.quote(os.path.join(self.mount, filename)),
+                shlex.quote("/" + filename),
+            )
+        cmd += " -boot_image any replay -end"
+        process.run(cmd, verbose=DEBUG)
+        Disk.close(self)
 
 
 class CdromInstallDisk(Disk):
