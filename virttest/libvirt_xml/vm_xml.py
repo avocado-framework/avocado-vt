@@ -3932,12 +3932,14 @@ class VMFeaturesXML(base.LibvirtXMLBase):
             property_name="acpi",
             libvirtxml=self,
             parent_xpath="/",
-            tag_name="acpi")
+            tag_name="acpi",
+        )
         accessors.XMLElementBool(
             property_name="apic",
             libvirtxml=self,
             parent_xpath="/",
-            tag_name="apic")
+            tag_name="apic",
+        )
         accessors.XMLAttribute(
             property_name="kvm_dirty_ring_state",
             libvirtxml=self,
