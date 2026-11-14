@@ -6,7 +6,7 @@ Accommodate libvirt pci controller utility functions.
 
 import logging
 
-from virttest.libvirt_xml import vm_xml
+from virttest.libvirt_xml import vm_xml, xcepts
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
@@ -126,3 +126,16 @@ def reset_pci_num(vm_name, num=15):
 
     # synchronize XML
     vmxml.sync()
+
+
+def get_pcie_root_index(vm_xml):
+    vm_controllers = vm_xml.devices.by_device_tag("controller")
+    for index in range(len(vm_controllers)):
+        try:
+            if vm_controllers[index].model == "pcie-root":
+                return index
+        except xcepts.LibvirtXMLNotFoundError:
+            continue
+    LOG.warning("The pcie-root controller is not found")
+
+    return -1
