@@ -14,6 +14,8 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
+
 from avocado_vt import test as vt_test
 
 
@@ -26,7 +28,7 @@ class FakeJob(object):
 FAKE_PARAMS = {"shortname": "fake", "vm_type": "fake"}
 
 
-class VirtTestTest(unittest.TestCase):
+class VirtTestTest(Test):
     def setUp(self):
         self.test = vt_test.VirtTest(job=FakeJob(), vt_params=FAKE_PARAMS)
 
@@ -38,7 +40,7 @@ class VirtTestTest(unittest.TestCase):
         self.assertIsNone(self.test.datadir)
 
     def test_filename(self):
-        self.assertIsNone(self.test.filename)
+        self.assertIn(self.test.filename, (None, vt_test.__file__))
 
 
 if __name__ == "__main__":

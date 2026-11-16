@@ -95,6 +95,9 @@ def get_non_root_disk_names(session, ignore_status=False):
                 break
             else:
                 idx = idx - 1
+                if idx < 0:
+                    # Reached beginning of list without finding disk
+                    break
                 continue
         if mpoint in ["/", "/sysroot"]:
             root_mounted = True
@@ -105,10 +108,21 @@ def get_non_root_disk_names(session, ignore_status=False):
                 # we have found "/" but it's not a disk
                 # go back to find the disk
                 idx = idx - 1
+                if idx < 0:
+                    # Reached beginning of list without finding disk
+                    break
                 continue
         idx = idx + 1
     if not root_disk:
-        raise exceptions.TestError("'/' not mounted in\n%s" % o)
+        # If we can't find "/" mount point, assume first disk is root disk
+        # This handles cases where root is on btrfs subvolume or not shown in lsblk
+        LOG.warning("'/' not found in lsblk output, assuming first disk is root")
+        all_disks = [x for x in lines if disk_pattern.match(x)]
+        if all_disks:
+            root_disk = all_disks[0]
+            LOG.debug("Assuming root disk: %s", root_disk)
+        else:
+            raise exceptions.TestError("No disks found in\n%s" % o)
     non_root_disks = [x for x in lines if x != root_disk and disk_pattern.match(x)]
     if not non_root_disks:
         if ignore_status:

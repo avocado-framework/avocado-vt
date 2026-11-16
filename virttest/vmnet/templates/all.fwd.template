@@ -1,0 +1,18 @@
+; <<>> DiG 9.5.0b2 <<>> +bufsize=1200 +norec NS . @a.root-servers.net
+;; global options:  printcmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 34420
+;; flags: qr aa; QUERY: 1, ANSWER: 13, AUTHORITY: 0, ADDITIONAL: 20
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;.				IN	NS
+
+;; ANSWER SECTION:
+*        A        192.168.0.1
+
+;; Query time: 147 msec
+;; SERVER: 198.41.0.4#53(198.41.0.4)
+;; WHEN: Mon Feb 18 13:29:18 2008
+;; MSG SIZE  rcvd: 615

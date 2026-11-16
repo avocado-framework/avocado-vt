@@ -18,6 +18,8 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test, skipIf
+
 from virttest import utils_config
 
 # Test conf file content
@@ -41,7 +43,7 @@ f = test
 """
 
 
-class SectionlessConfigTest(unittest.TestCase):
+class SectionlessConfigTest(Test):
     def test_accessers(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name
@@ -192,6 +194,7 @@ class SectionlessConfigTest(unittest.TestCase):
         finally:
             os.remove(config_path)
 
+    @skipIf(PYTHON_26, "Unreliable in python 2.6")
     @unittest.skipIf(PYTHON_26, "Unreliable in python 2.6")
     def test_restore(self):
         config_file = tempfile.NamedTemporaryFile()
@@ -240,6 +243,7 @@ class SectionlessConfigTest(unittest.TestCase):
                 final_file.close()
             os.remove(config_path)
 
+    @skipIf(PYTHON_26, "Unreliable in python 2.6")
     @unittest.skipIf(PYTHON_26, "Unreliable in python 2.6")
     def test_sync_file(self):
         config_file = tempfile.NamedTemporaryFile()
@@ -270,7 +274,7 @@ class SectionlessConfigTest(unittest.TestCase):
             os.remove(config_path)
 
 
-class LibvirtConfigCommonTest(unittest.TestCase):
+class LibvirtConfigCommonTest(Test):
     class UnimplementedConfig(utils_config.LibvirtConfigCommon):
         pass
 
@@ -366,7 +370,7 @@ class LibvirtConfigCommonTest(unittest.TestCase):
             os.remove("/tmp/config_unittest.conf")
 
 
-class LibvirtConfigTest(unittest.TestCase):
+class LibvirtConfigTest(Test):
     def test_accessers(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name

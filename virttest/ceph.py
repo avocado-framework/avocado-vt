@@ -219,13 +219,12 @@ def rbd_image_info(
     for rbd_image_line in rbd_image_info_str.splitlines():
         if ":" not in rbd_image_line:
             if "size" in rbd_image_line:
-                size_str = re.findall("size\s+(\d+\s+\w+)\s+", rbd_image_line)[0]
+                size_str = re.findall(r"size\s+(\d+\s+\w+)\s+", rbd_image_line)[0]
                 size = utils_numeric.normalize_data_size(size_str, "M")
                 rbd_image_info["size"] = size
             if "order" in rbd_image_line:
-                rbd_image_info["order"] = int(
-                    re.findall("order\s+(\d+)", rbd_image_line)
-                )
+                rbd_str = re.findall(r"order\s+(\d+)", rbd_image_line)[0]
+                rbd_image_info["order"] = int(rbd_str)
         else:
             tmp_str = rbd_image_line.strip().split(":")
             rbd_image_info[tmp_str[0]] = tmp_str[1]

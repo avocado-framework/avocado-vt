@@ -480,10 +480,10 @@ def get_time(session, time_command, time_filter_re, time_format):
                 msg += "'%s', output: %s" % (time_command, output)
                 raise exceptions.TestError(msg)
             if re.search("PM|AM", guest_time):
-                hour = re.findall("\d+ (\d+):", guest_time)[0]
+                hour = re.findall(r"\d+ (\d+):", guest_time)[0]
                 fix = 12 if re.search("PM", guest_time) else 0
                 hour = str(int(hour) % 12 + fix)
-                guest_time = re.sub("\s\d+:", " %s:" % hour, guest_time)[:-3]
+                guest_time = re.sub(r"\s\d+:", " %s:" % hour, guest_time)[:-3]
             else:
                 guest_time = guest_time[:-3]
             guest_time = time.mktime(time.strptime(guest_time, time_format))
@@ -873,7 +873,7 @@ def run_virtio_serial_file_transfer(
                         else:
                             LOG.warning(err)
                 else:
-                    md5_re = "md5_sum = (\w{32})"
+                    md5_re = r"md5_sum = (\w{32})"
                     try:
                         md5_guest = re.findall(md5_re, g_output)[0]
                     except Exception:
@@ -893,7 +893,7 @@ def run_virtio_serial_file_transfer(
                             else:
                                 LOG.warning(err)
                     else:
-                        md5_re = "md5_sum = (\w{32})"
+                        md5_re = r"md5_sum = (\w{32})"
                         try:
                             md5_host = re.findall(md5_re, output)[0]
                         except Exception:
@@ -1504,10 +1504,10 @@ def run_autotest(
     def get_last_guest_results_index():
         res_index = 0
         for subpath in os.listdir(outputdir):
-            if re.search("guest_autotest_results\d+", subpath):
+            if re.search(r"guest_autotest_results\d+", subpath):
                 res_index = max(
                     res_index,
-                    int(re.search("guest_autotest_results(\d+)", subpath).group(1)),
+                    int(re.search(r"guest_autotest_results(\d+)", subpath).group(1)),
                 )
         return res_index
 
@@ -2063,7 +2063,7 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
             if len(re.findall(column_mark, eachLine)) != 0 and not head_flag:
                 column = 0
                 _, row, eachLine = re.split(row_head, eachLine)
-                for i in re.split("\s+", eachLine):
+                for i in re.split(r"\s+", eachLine):
                     if i:
                         result_dict[i] = {}
                         column_list[column] = i
@@ -2080,7 +2080,7 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
                     row_list.append(row)
                     for i in result_dict:
                         result_dict[i][row] = []
-                for i in re.split("\s+", eachLine):
+                for i in re.split(r"\s+", eachLine):
                     if i:
                         result_dict[column_list[column]][row].append(i)
                         column += 1

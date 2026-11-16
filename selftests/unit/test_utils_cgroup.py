@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 
+from avocado import Test
 from avocado.core import exceptions
 
 # simple magic for using scripts within a source tree
@@ -134,7 +135,7 @@ mount_cases = [
 ]
 
 
-class CgroupTest(unittest.TestCase):
+class CgroupTest(Test):
     def test_get_cgroup_mountpoint(self):
         for case in mount_cases:
             # Let's work around the fact that NamedTemporaryFile

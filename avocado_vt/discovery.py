@@ -46,7 +46,14 @@ class DiscoveryMixIn:
         :type params: dict
         :return: dict with test name and vt parameters
         """
-        test_name = params.get("_short_name_map_file")["subtests.cfg"]
+        short_name_map_file = params.get("_short_name_map_file") or {}
+        name_map_file = params.get("_name_map_file") or {}
+        test_name = (
+            short_name_map_file.get("subtests.cfg")
+            or params.get("shortname")
+            or name_map_file.get("subtests.cfg")
+            or params.get("name")
+        )
         if get_opt(self.config, "vt.config") and get_opt(
             self.config, "vt.short_names_when_config"
         ):

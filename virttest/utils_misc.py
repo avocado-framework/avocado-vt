@@ -86,6 +86,7 @@ from virttest import (
     kernel_interface,
     logging_manager,
     utils_disk,
+    utils_linux_modules,
     utils_logfile,
     utils_selinux,
 )
@@ -198,8 +199,7 @@ def cmd_status_output(
     except Exception as info:
         status = 1
         stdout = to_text(info)
-    finally:
-        return status, stdout
+    return status, stdout
 
 
 def write_keyval(path, dictionary, type_tag=None, tap_report=None):
@@ -671,7 +671,7 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
     :return: interface name associated with the pci id
     """
     if not nic_regex:
-        nic_regex = "\w+(?=: flags)|\w+(?=\s*Link)"
+        nic_regex = r"\w+(?=: flags)|\w+(?=\s*Link)"
     cmd = "ifconfig -a"
     status, output = cmd_status_output(cmd, shell=True, session=session)
     if status != 0:
@@ -1174,8 +1174,8 @@ def strip_console_codes(output, custom_codes=None):
     return_str = ""
     index = 0
     output = "\x1b[m%s" % output
-    console_codes = "%[G@8]|\[[@A-HJ-MPXa-hl-nqrsu\`]"
-    console_codes += "|\[[\d;]+[HJKgqnrm]|#8|\([B0UK]|\)|\[\d+S"
+    console_codes = r"%[G@8]|\[[@A-HJ-MPXa-hl-nqrsu\`]"
+    console_codes += r"|\[[\d;]+[HJKgqnrm]|#8|\([B0UK]|\)|\[\d+S"
     if custom_codes is not None and custom_codes not in console_codes:
         console_codes += "|%s" % custom_codes
     while index < len(output):
@@ -1536,7 +1536,7 @@ class NumaInfo(object):
         else:
             all_nodes = all_nodes_path
         numa_sys = kernel_interface.SysFS(
-            all_nodes, session=self.session, regex="\d+%s"
+            all_nodes, session=self.session, regex=r"\d+%s"
         )
         return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
@@ -1552,7 +1552,7 @@ class NumaInfo(object):
         else:
             online_nodes = online_nodes_path
         numa_sys = kernel_interface.SysFS(
-            online_nodes, session=self.session, regex="\d+%s"
+            online_nodes, session=self.session, regex=r"\d+%s"
         )
         return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
@@ -1581,7 +1581,7 @@ class NumaInfo(object):
                 LOG.error("Can not get distance information for" " node %s" % node_id)
                 return []
             numa_sys = kernel_interface.SysFS(
-                distance_path, session=self.session, regex="\d+%s"
+                distance_path, session=self.session, regex=r"\d+%s"
             )
             node_distance = str(numa_sys.sys_fs_value)
 
@@ -1631,7 +1631,7 @@ class NumaInfo(object):
         for node in self.get_online_nodes():
             numa_sys = kernel_interface.SysFS(cpulist_file % node, session=self.session)
             node_cpus = ""
-            convert_list = re.findall("(\d+-\d+|\d+)", str(numa_sys.sys_fs_value))
+            convert_list = re.findall(r"(\d+-\d+|\d+)", str(numa_sys.sys_fs_value))
             for cstr in convert_list:
                 start = min(int(cstr.split("-")[0]), int(cstr.split("-")[-1]))
                 end = max(int(cstr.split("-")[0]), int(cstr.split("-")[-1]))
@@ -1648,7 +1648,7 @@ class NumaInfo(object):
         online_nodes_mem = get_path(self.numa_sys_path, "has_normal_memory")
         if check_isfile(online_nodes_mem, session=self.session):
             numa_sys = kernel_interface.SysFS(
-                online_nodes_mem, session=self.session, regex="\d+%s"
+                online_nodes_mem, session=self.session, regex=r"\d+%s"
             )
             nodes_info = str(numa_sys.sys_fs_value)
         else:
@@ -1666,7 +1666,7 @@ class NumaInfo(object):
         online_nodes_cpu = get_path(self.numa_sys_path, "has_cpu")
         if check_isfile(online_nodes_cpu, session=self.session):
             numa_sys = kernel_interface.SysFS(
-                online_nodes_cpu, session=self.session, regex="\d+%s"
+                online_nodes_cpu, session=self.session, regex=r"\d+%s"
             )
             nodes_info = str(numa_sys.sys_fs_value)
         else:
@@ -1732,7 +1732,7 @@ class NumaNode(object):
             cpulist_path = "/sys/devices/system/node/node%s/cpulist" % i
             try:
                 numa_sys = kernel_interface.SysFS(
-                    cpulist_path, session=self.session, regex="\d+%s"
+                    cpulist_path, session=self.session, regex=r"\d+%s"
                 )
                 cpus = str(numa_sys.sys_fs_value)
             except Exception as info:
@@ -1748,7 +1748,7 @@ class NumaNode(object):
                 # separated by blank. There number of '-' in the list depends
                 # on the physical architecture of the hardware.
                 try:
-                    convert_list = re.findall("\d+-\d+", cpus)
+                    convert_list = re.findall(r"\d+-\d+", cpus)
                     for cstr in convert_list:
                         _ = " "
                         start = min(int(cstr.split("-")[0]), int(cstr.split("-")[1]))
@@ -1786,7 +1786,7 @@ class NumaNode(object):
             try:
                 key_path = eval(key + "_path")
                 numa_sys = kernel_interface.SysFS(
-                    key_path, session=self.session, regex="-?\d+%s"
+                    key_path, session=self.session, regex=r"-?\d+%s"
                 )
                 key_val = str(numa_sys.sys_fs_value).rstrip("\n")
                 cpu_topo[key] = key_val
@@ -2378,7 +2378,7 @@ def get_free_mem(session, os_type):
         free = "%s kB" % get_mem_info(session, "MemFree")
     else:
         output = session.cmd_output("wmic OS get FreePhysicalMemory")
-        free = "%sK" % re.findall("\d+", output)[0]
+        free = "%sK" % re.findall(r"\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
 
@@ -2396,7 +2396,7 @@ def get_cache_mem(session, os_type):
         cmd_get_cache = 'powershell -command "get-ciminstance -classname'
         cmd_get_cache += ' win32_perfrawdata_perfos_memory |select CacheBytes"'
         output = session.cmd_output(cmd_get_cache)
-        cache = re.findall("\d+", output)[0]
+        cache = re.findall(r"\d+", output)[0]
     else:
         cache = get_mem_info(session, "Cached") + get_mem_info(session, "Buffers")
         cache = "%s kB" % cache
@@ -2853,7 +2853,7 @@ def get_image_snapshot(image_file):
         snap_info = process.run(cmd, ignore_status=False).stdout_text.strip()
         snap_list = []
         if snap_info:
-            pattern = "(\d+) +[0-9a-zA-Z]+ +.*"
+            pattern = r"(\d+) +[0-9a-zA-Z]+ +.*"
             for line in snap_info.splitlines():
                 snap_list.extend(re.findall(r"%s" % pattern, line))
         return snap_list
@@ -2951,6 +2951,9 @@ def get_image_info(image_file):
                 elif line.find("lazy refcounts") != -1:
                     lazy_refcounts = line.split(":")[-1].strip()
                     image_info_dict["lcounts"] = lazy_refcounts
+                elif line.find("corrupt") != -1:
+                    corrupt = line.split(":")[-1].strip()
+                    image_info_dict["corrupt"] = corrupt
                 elif line.find("extended l2") != -1:
                     extended_l2 = line.split(":")[-1].strip()
                     image_info_dict["extended l2"] = extended_l2
@@ -3104,7 +3107,7 @@ class KSMController(object):
             "ps -C ksmtuned -o pid=", ignore_status=True
         ).stdout_text
         if process_id:
-            return int(re.findall("\d+", process_id)[0])
+            return int(re.findall(r"\d+", process_id)[0])
         return 0
 
     def start_ksmtuned(self):
@@ -3159,7 +3162,7 @@ class KSMController(object):
         else:
             output = process.run("ksmctl info").stdout_text
             try:
-                running = re.findall("\d+", output)[0]
+                running = re.findall(r"\d+", output)[0]
             except IndexError:
                 raise KSMError
         if running != "0":
@@ -3224,7 +3227,7 @@ class KSMController(object):
         else:
             output = process.run("ksmctl info").stdout_text
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
-            ksminfos = re.findall("\d+", output)
+            ksminfos = re.findall(r"\d+", output)
             if len(ksminfos) != 3:
                 raise KSMError
             try:
@@ -3542,7 +3545,7 @@ def get_pci_vendor_device(pci_id, session=None):
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
-            vd = re.match("\w\w\w\w:\w\w\w\w", string)
+            vd = re.match(r"\w\w\w\w:\w\w\w\w", string)
             if vd is not None:
                 pci_vd.append(vd.group(0))
                 break
@@ -4460,17 +4463,18 @@ def get_distro(session=None):
     """
     if not session:
         return distro.detect().name
+    distro_name = ""
+    cmd = "cat /etc/os-release | grep '^ID='"
+    try:
+        status, output = session.cmd_status_output(cmd, timeout=300)
+    except Exception as info:
+        LOG.debug("Unable to get the distro name: %s", info)
+        return distro_name
+    if status:
+        LOG.debug("Unable to get the distro name: %s" % output)
     else:
-        distro_name = ""
-        cmd = "cat /etc/os-release | grep '^ID='"
-        try:
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            if status:
-                LOG.debug("Unable to get the distro name: %s" % output)
-            else:
-                distro_name = output.split("=")[1].strip()
-        finally:
-            return distro_name
+        distro_name = output.split("=")[1].strip()
+    return distro_name
 
 
 def get_guest_distro_info(vm, serial=False):
@@ -4662,12 +4666,13 @@ def get_sosreport(
     except Exception as info:
         if ignore_status:
             LOG.error(info)
+            return None
         else:
             raise exceptions.TestError(info)
     finally:
         if session:
             session.close()
-        return host_path
+    return host_path
 
 
 def asterisk_passwd(passwd):
@@ -4705,3 +4710,103 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
+
+
+def verify_secure_host(secure_guest_type, module_name, param_name, expected_values):
+    """
+    Verify if specific cvm feature is enabled on the host
+
+    :param secure_guest_type: Type of secure guest (e.g., 'sev', 'snp', 'tdx')
+    :param module_name: Name of the kernel module (e.g., 'kvm_amd', 'kvm_intel')
+    :param param_name: Name of the module parameter to check (e.g., 'sev', 'tdx')
+    :param expected_values: List of acceptable parameter values (e.g., ['Y', '1'])
+    """
+    LOG.info(f"Verifying cvm {secure_guest_type} capability enablement on host")
+
+    param_value = utils_linux_modules.get_module_parameter(module_name, param_name)
+
+    if param_value is None:
+        raise exceptions.TestCancel(
+            f"Host support for {secure_guest_type} capability: "
+            f"module parameter {module_name}/{param_name} not found."
+        )
+
+    if param_value not in expected_values:
+        raise exceptions.TestCancel(
+            f"Host support for {secure_guest_type} capability check failed: "
+            f"{module_name}/{param_name}={param_value}, expected one of {expected_values}"
+        )
+
+
+def verify_secure_guest(
+    session, vm, secure_guest_type, guest_check_cmd, expected_policy=None
+):
+    """
+    Verify if specific cvm feature is enabled inside the VM
+
+    :param session: session object to vm
+    :param vm: virtual machine object
+    :param secure_guest_type: Type of secure guest (e.g., 'sev', 'snp', 'tdx')
+    :param guest_check_cmd: Command to run in guest to verify CVM capability
+    :param expected_policy: Expected policy value (can be hex string or int), optional for AMD CVM
+    """
+    amd_cvm_secureguest = ["sev", "snp"]
+    if secure_guest_type in amd_cvm_secureguest:
+        try:
+            cvm_guest_info = vm.monitor.query_sev()
+            if not cvm_guest_info:
+                raise exceptions.TestFail("QMP query-sev returned empty response.")
+            LOG.info(f"QMP cvm info: {cvm_guest_info}")
+        except Exception as e:
+            raise exceptions.TestFail(f"QMP query-sev failed: {str(e)}")
+
+        if expected_policy is not None:
+            if isinstance(expected_policy, str):
+                try:
+                    policy_value = int(expected_policy, 0)
+                except ValueError:
+                    raise exceptions.TestError(
+                        f"Invalid expected_policy value: {expected_policy!r}. "
+                        "Expected a decimal or hex integer string."
+                    )
+            else:
+                policy_value = expected_policy
+
+            if secure_guest_type == "snp":
+                if "snp-policy" not in cvm_guest_info:
+                    raise exceptions.TestFail(
+                        "QMP snp-policy not found in query-sev response."
+                    )
+                actual_policy = cvm_guest_info["snp-policy"]
+            else:
+                if "policy" not in cvm_guest_info:
+                    raise exceptions.TestFail(
+                        "QMP policy not found in query-sev response."
+                    )
+                actual_policy = cvm_guest_info["policy"]
+
+            if actual_policy != policy_value:
+                raise exceptions.TestFail(
+                    f"QMP cvm policy mismatch: expected {policy_value}, "
+                    f"got {actual_policy}"
+                )
+
+        guest_state = cvm_guest_info.get("state")
+        if guest_state != "running":
+            raise exceptions.TestFail(
+                f"CVM state is {guest_state or 'missing'}, expected 'running'"
+            )
+
+    LOG.info(f"Verifying cvm {secure_guest_type} capability enablement in guest")
+    try:
+        return_code, output = session.cmd_status_output(guest_check_cmd, timeout=240)
+        if return_code != 0:
+            raise exceptions.TestFail(
+                f"Guest cvm {secure_guest_type} capability check failed with "
+                f"return code {return_code}: {output}"
+            )
+        LOG.info(f"Guest cvm {secure_guest_type} capability check output: {output}")
+    except Exception as e:
+        raise exceptions.TestFail(
+            f"Guest cvm {secure_guest_type} capability verify fail: {str(e)}"
+        )

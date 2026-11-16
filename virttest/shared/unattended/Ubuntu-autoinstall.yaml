@@ -1,0 +1,18 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  identity:
+    hostname: autotest-ubuntu-guest
+    username: ubuntu
+    # Test password: 12345678
+    password: '$6$avocadovt$sCE1yAvWr9WiyNZYtcycoESWeOi9HuSQfLVvDxD6EmClxqvtMNJ3DJfc4zNasYb5HT8jtxP9O0rTnwry.fSyu/'
+  ssh:
+    install-server: true
+    allow-pw: true
+  storage:
+    layout:
+      name: direct
+  shutdown: poweroff

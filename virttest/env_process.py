@@ -12,11 +12,12 @@ import threading
 import time
 
 import six
+from aexpect import ops_linux as ops
 from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import archive
 from avocado.utils import cpu as cpu_utils
-from avocado.utils import crypto
+from avocado.utils import crypto, path
 from avocado.utils import process as a_process
 from six.moves import xrange
 
@@ -45,7 +46,11 @@ from virttest import (
 from virttest._wrappers import lazy_import
 from virttest.test_setup.aexpect import KillTailThreads
 from virttest.test_setup.core import SetupManager
-from virttest.test_setup.gcov import ResetQemuGCov
+from virttest.test_setup.gcov import (
+    ResetGCov,
+    collect_gcovr_coverage,
+    collect_lcov_coverage,
+)
 from virttest.test_setup.kernel import KSMSetup, ReloadKVMModules
 from virttest.test_setup.libvirt_setup import LibvirtdDebugLogConfig
 from virttest.test_setup.memory import HugePagesSetup, TransparentHugePagesSetup
@@ -331,7 +336,7 @@ def preprocess_vm(test, params, env, name):
             if disable_pci_msi == "yes":
                 if "pci=" in kernel_extra_params_add:
                     kernel_extra_params_add = re.sub(
-                        "pci=.*?\s+", "pci=nomsi ", kernel_extra_params_add
+                        r"pci=.*?\s+", "pci=nomsi ", kernel_extra_params_add
                     )
                 else:
                     kernel_extra_params_add += " pci=nomsi"
@@ -655,7 +660,7 @@ def postprocess_vm(test, params, env, name):
 
         if kernel_extra_params_add or kernel_extra_params_remove:
             # VM might be brought down after test
-            if vm and not vm.is_alive():
+            if not vm.is_alive():
                 if params.get("vm_type") == "libvirt":
                     vm.start()
                 elif params.get("vm_type") == "qemu":
@@ -667,6 +672,61 @@ def postprocess_vm(test, params, env, name):
                     serial_login=serial_login,
                 )
 
+    if params.get("vm_extra_dump_paths") is not None:
+        # even if there is previously existing session we cannot guarantee its state
+        # is viable, e.g. it may be in python .env or SMTP sub-session, etc.
+        if not vm.is_alive():
+            LOG.warning("VM is not alive so we cannot download extra dump paths")
+        else:
+            session = vm.wait_for_login(timeout=vm.LOGIN_WAIT_TIMEOUT)
+            vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps", vm.name)
+            if not os.path.exists(vm_extra_dumps):
+                os.makedirs(vm_extra_dumps)
+            for i, dump_path in enumerate(
+                params.get_list("vm_extra_dump_paths", delimiter=";")
+            ):
+                errors = []
+                if params.get_boolean(f"verify_vm_extra_dump_{i}"):
+                    if vm.params["os_type"] == "windows":
+                        LOG.warning(
+                            "Extra dump file validation is not supported on Windows"
+                        )
+                    else:
+                        LOG.info(f"Checking for expected messages in {dump_path}")
+                        for message in params.get_list(
+                            f"expected_vm_extra_dump_{i}", delimiter=";"
+                        ):
+                            if not ops.grep(
+                                session, message, dump_path, check=True, flags="-aP"
+                            ):
+                                errors.append(
+                                    f"Missing expected message '{message}' "
+                                    f"in {vm.name} extra dump {dump_path}"
+                                )
+                        for message in params.get_list(
+                            f"unexpected_vm_extra_dump_{i}", delimiter=";"
+                        ):
+                            if ops.grep(
+                                session, message, dump_path, check=True, flags="-aP"
+                            ):
+                                errors.append(
+                                    f"Redundant unexpected message '{message}' "
+                                    f"in {vm.name} extra dump {dump_path}"
+                                )
+                try:
+                    vm.copy_files_from(dump_path, vm_extra_dumps)
+                except:
+                    LOG.error(
+                        "Could not copy the extra dump '%s' from the vm '%s'",
+                        dump_path,
+                        vm.name,
+                    )
+                if errors:
+                    raise exceptions.TestFail(
+                        f"Errors during validation of log messages dumped "
+                        f"from {vm.name}:\n" + "\n".join(errors)
+                    )
+
     # Close all SSH sessions that might be active to this VM
     for s in vm.remote_sessions[:]:
         try:
@@ -676,20 +736,6 @@ def postprocess_vm(test, params, env, name):
             pass
 
     utils_logfile.close_log_file()
-
-    if params.get("vm_extra_dump_paths") is not None:
-        vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps")
-        if not os.path.exists(vm_extra_dumps):
-            os.makedirs(vm_extra_dumps)
-        for dump_path in params.get("vm_extra_dump_paths").split(";"):
-            try:
-                vm.copy_files_from(dump_path, vm_extra_dumps)
-            except:
-                LOG.error(
-                    "Could not copy the extra dump '%s' from the vm '%s'",
-                    dump_path,
-                    vm.name,
-                )
 
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
@@ -1002,7 +1048,7 @@ def preprocess(test, params, env):
     # and last running during pre/postprocess. That way vms will be actually
     # off to ensure data is written to disk.
     _setup_manager.register(ProcessVMOff)
-    _setup_manager.register(ResetQemuGCov)
+    _setup_manager.register(ResetGCov)
     _setup_manager.register(VerifyHostDMesg)
     _setup_manager.register(SwitchSMTOff)
     _setup_manager.register(CheckRunningAsRoot)
@@ -1319,34 +1365,33 @@ def postprocess(test, params, env):
             sosreport_path = vm.sosreport()
             LOG.info("Sosreport for guest: %s", sosreport_path)
 
-    # Collect code coverage report for qemu if enabled
-    if params.get("gcov_qemu", "no") == "yes":
-        qemu_builddir = os.path.join(test.bindir, "build", "qemu")
-        if os.path.isdir(qemu_builddir) and utils_package.package_install("gcovr"):
-            gcov_qemu_dir = utils_misc.get_path(test.debugdir, "gcov_qemu")
-            os.makedirs(gcov_qemu_dir)
-            os.chdir(qemu_builddir)
-            collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
-            online_count = (
-                cpu_utils.online_count()
-                if hasattr(cpu_utils, "online_count")
-                else cpu_utils.online_cpus_count()
-            )
-            collect_cmd = "gcovr -j %s -o %s -s %s ." % (
-                online_count,
-                os.path.join(gcov_qemu_dir, "gcov.html"),
-                collect_cmd_opts,
-            )
-            a_process.system(collect_cmd, shell=True)
-            if params.get("gcov_qemu_compress", "no") == "yes":
-                os.chdir(test.debugdir)
-                archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
-                shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
+    # Collect code coverage report for qemu/libvirt if enabled
+    if (
+        params.get("gcov_qemu", "no") == "yes"
+        or params.get("gcov_libvirt", "no") == "yes"
+    ):
+        test_name_mode = params.get("gcov_test_name_mode", "name")
+        if test_name_mode == "id":
+            test_name = params.get("id", "unknown_test")
+        elif test_name_mode == "id_extract":
+            test_id = params.get("id", "")
+            if test_id:
+                match = re.search(r"io-github-autotest-[^.]+\.(.*)", test_id)
+                if match:
+                    test_name = match.group(1) if match else test_id
+            else:
+                test_name = "unknown_test"
         else:
-            LOG.warning(
-                "Check either qemu build directory availablilty"
-                " or install gcovr package for qemu coverage report"
-            )
+            test_name = params.get("name", "unknown_test")
+        if hasattr(test_name, "uid"):
+            test_name = str(test_name.uid)
+
+    if params.get("gcov_qemu", "no") == "yes":
+        _collect_component_coverage(params, test, "qemu", test_name)
+
+    if params.get("gcov_libvirt", "no") == "yes":
+        _collect_component_coverage(params, test, "libvirt", test_name)
+
     # Postprocess all VMs and images
     try:
         process(
@@ -1370,7 +1415,7 @@ def postprocess(test, params, env):
         _screendump_thread = None
 
     # Encode an HTML 5 compatible video from the screenshots produced
-    dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
+    dir_rex = r"(screendump\S*_[0-9]+_iter%s)" % test.iteration
     for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
         screendump_dir = os.path.join(test.debugdir, screendump_dir)
         if params.get("encode_video_files", "yes") == "yes" and glob.glob(
@@ -1561,6 +1606,75 @@ def postprocess_on_error(test, params, env):
     :param env: The environment (a dict-like object).
     """
     params.update(params.object_params("on_error"))
+
+
+def _collect_component_coverage(params, test, component, test_name):
+    """
+    Collect code coverage report for a component (qemu or libvirt).
+
+    :param params: Test parameters
+    :param test: Test object
+    :param component: Component name ("qemu" or "libvirt")
+    :param test_name: Test name for coverage file naming
+    """
+    # Get component-specific builddir
+    if component == "qemu":
+        default_builddir = os.path.join(test.bindir, "build", "qemu")
+    else:  # libvirt
+        default_builddir = "/var/tmp/libvirt"
+
+    builddir = params.get(f"gcov_{component}_builddir", default_builddir)
+    gcov_format = params.get(f"gcov_{component}_format", "html")
+
+    # Setup output directory
+    # Navigate up to test-results/ and create gcov_{component}/ there
+    test_results_dir = os.path.dirname(test.debugdir)
+    gcov_dir = os.path.join(test_results_dir, f"gcov_{component}")
+    os.makedirs(gcov_dir, exist_ok=True)
+
+    if gcov_format == "lcov":
+        try:
+            path.find_command("lcov")
+        except path.CmdNotFoundError:
+            LOG.warning(
+                "lcov package not installed, cannot collect %s coverage",
+                component.upper(),
+            )
+        else:
+            lcov_extra_opts = params.get(
+                f"gcov_{component}_lcov_opts",
+                "--rc lcov_function_coverage=0 --no-external --ignore-errors gcov",
+            )
+            collect_lcov_coverage(
+                builddir,
+                gcov_dir,
+                test_name,
+                component,
+                extra_opts=lcov_extra_opts,
+            )
+
+            if params.get(f"gcov_{component}_compress", "no") == "yes":
+                os.chdir(test_results_dir)
+                archive.compress(f"lcov_{component}.tar.gz", gcov_dir)
+                shutil.copy2(f"lcov_{component}.tar.gz", test.debugdir)
+                shutil.rmtree(gcov_dir, ignore_errors=True)
+    else:
+        if utils_package.package_install("gcovr"):
+            collect_cmd_opts = params.get(
+                f"gcov_{component}_collect_cmd_opts", "--html"
+            )
+            collect_gcovr_coverage(builddir, gcov_dir, component, collect_cmd_opts)
+
+            if params.get(f"gcov_{component}_compress", "no") == "yes":
+                os.chdir(test_results_dir)
+                archive.compress(f"gcov_{component}.tar.gz", gcov_dir)
+                shutil.copy2(f"gcov_{component}.tar.gz", test.debugdir)
+                shutil.rmtree(gcov_dir, ignore_errors=True)
+        else:
+            LOG.warning(
+                "gcovr package not installed, cannot collect %s coverage",
+                component.upper(),
+            )
 
 
 def _get_screendump_format(params):

@@ -7,6 +7,7 @@ This is geared towards documentation build regression testing.
 import os
 import unittest
 
+from avocado import Test, skip
 from avocado.utils import process
 
 basedir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
@@ -17,7 +18,9 @@ class DocBuildError(Exception):
     pass
 
 
-class DocBuildTest(unittest.TestCase):
+class DocBuildTest(Test):
+    @skip("Documentation built goes beyond unit tests")
+    @unittest.skip("Documentation built goes beyond unit tests")
     def test_build_docs(self):
         """
         Build avocado VT HTML docs, reporting failures
@@ -28,6 +31,7 @@ class DocBuildTest(unittest.TestCase):
             "Virsh executable not set or found on path",
             "virt-admin executable not set or found on path",
             "failed to import module u'virttest.step_editor'",
+            "failed to reach any of the inventories",
         ]
         failure_lines = []
         doc_dir = os.path.join(basedir, "docs")

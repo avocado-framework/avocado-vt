@@ -8,14 +8,24 @@ if sys.version_info[:2] == (2, 6):
 else:
     import unittest
 
-from virttest import cartesian_config
+from avocado import Test, skipIf
+
+from virttest.cartconf import Parser
 
 BASEDIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RHELDIR = os.path.join(BASEDIR, "shared", "cfg", "guest-os", "Linux", "RHEL")
 UNATTENDEDDIR = os.path.join(BASEDIR, "shared", "unattended")
 
 
-class CartesianCfgLint(unittest.TestCase):
+class CartesianCfgLint(Test):
+    """
+    Test minimal required standards for our Cartesian configuration files.
+
+    These files are parsed and the Cartesian configuration functionality is
+    provided by an avocado plugin but the standards are local to RHEL isos,
+    password treatment, and other VT scope requirements.
+    """
+
     @staticmethod
     def get_cfg_as_dict(path, drop_only=True, drop_conditional_assigment=True):
         """
@@ -34,20 +44,21 @@ class CartesianCfgLint(unittest.TestCase):
         """
         lines = open(path).readlines()
         if drop_only:
-            lines = [l for l in lines if not re.match("^\s*only\s+", l)]
+            lines = [l for l in lines if not re.match(r"^\s*only\s+", l)]
         if drop_conditional_assigment:
             lines = [
-                l for l in lines if not re.match("^\s*[a-zA-Z0-9_]+([\s,])?.*\:$", l)
+                l for l in lines if not re.match(r"^\s*[a-zA-Z0-9_]+([\s,])?.*\:$", l)
             ]
         lines.insert(0, "variants:")
         content = "\n".join(lines)
-        parser = cartesian_config.Parser()
+        parser = Parser()
         parser.parse_string(content)
         dicts = [d for d in parser.get_dicts()]
         len_dicts = len(dicts)
         assert len_dicts == 1
         return dicts[0]
 
+    @skipIf(not os.path.isdir(RHELDIR), "Could not find RHEL configuration dir")
     @unittest.skipIf(
         not os.path.isdir(RHELDIR), "Could not find RHEL configuration dir"
     )
@@ -104,6 +115,9 @@ class CartesianCfgLint(unittest.TestCase):
                             "isos/linux/RHEL-%s.%s-%s-DVD.iso" % (major, minor, arch),
                         )
 
+    @skipIf(
+        not os.path.isdir(UNATTENDEDDIR), "Could not find unattended configuration dir"
+    )
     @unittest.skipIf(
         not os.path.isdir(UNATTENDEDDIR), "Could not find unattended configuration dir"
     )

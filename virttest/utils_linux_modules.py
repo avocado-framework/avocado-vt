@@ -3,6 +3,7 @@ Linux kernel modules APIs
 """
 
 import logging
+import os
 
 from avocado.utils import linux_modules
 
@@ -111,3 +112,30 @@ def kconfig_is_not_set(config_name, session=None):
     return (
         check_kernel_config(config_name, session) is linux_modules.ModuleConfig.NOT_SET
     )
+
+
+def get_module_parameter(module_name, param_name, session=None):
+    """
+    Get the value of a specific kernel module parameter
+
+    :param module_name: Name of the kernel module (e.g., 'kvm_amd', 'kvm_intel')
+    :param param_name: Name of the parameter to check (e.g., 'sev', 'tdx')
+    :param session: Guest session, command is run on host if None
+    :return: Parameter value as string, or None if not found
+    :rtype: str or None
+    """
+    param_path = f"/sys/module/{module_name}/parameters/{param_name}"
+
+    try:
+        if session is None:
+            if os.path.exists(param_path):
+                with open(param_path, "r") as f:
+                    return f.read().strip()
+        else:
+            status, output = session.cmd_status_output(f"cat {param_path}")
+            if status == 0:
+                return output.strip()
+    except (IOError, OSError) as e:
+        LOG.debug("Failed to read module parameter %s: %s", param_path, e)
+
+    return None

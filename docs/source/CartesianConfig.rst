@@ -4,6 +4,15 @@
 Cartesian Configuration
 =======================
 
+.. todo:: Usage and documentation is now being migrated to the `cartconf`
+    project.
+
+Avocado-VT uses ``cartconf`` as its own specialized avocado varianter
+when it can be imported as available dependency. Otherwise, it logs an
+installation suggestion and falls back to its local ``cartesian_config``
+module. The former is written in rust while the latter is its legacy
+python implementation.
+
 Cartesian Configuration is a highly specialized way of providing lists
 of key/value pairs within combination's of various categories. The
 format simplifies and condenses highly complex multidimensional arrays

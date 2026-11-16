@@ -211,7 +211,7 @@ class CheckVirtioWinVersion(Setuper):
                         "Checking required virtio-win version: %s" % virtio_win_range
                     )
                     match = re.search(
-                        "virtio-win-(?:prewhql-)?(\d+\.\d+(?:\.\d+)?-\d+)",
+                        r"virtio-win-(?:prewhql-)?(\d+\.\d+(?:\.\d+)?-\d+)",
                         cdrom_virtio_path,
                     )
                     if match.group(1) is None:

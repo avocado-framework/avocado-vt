@@ -11,6 +11,7 @@ import os
 import platform
 import random
 import re
+import shlex
 import shutil
 import stat
 import string
@@ -257,7 +258,7 @@ def get_windows_disks_index(session, image_size, timeout=60):
         disk_size = str(int(image_size[:-1]) * 1024) + " MB"
     else:
         disk_size = image_size[:-1] + " GB"
-    regex_str = "Disk (\d+).*?%s.*?%s" % (disk_size, disk_size)
+    regex_str = r"Disk (\d+).*?%s.*?%s" % (disk_size, disk_size)
     for disk in disks.splitlines():
         if disk.startswith("  Disk"):
             o = re.findall(regex_str, disk, re.I | re.M)
@@ -540,7 +541,7 @@ def clean_partition_linux(session, did, timeout=360):
     list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
     output = session.cmd_output(list_disk_cmd)
     output = output.splitlines()
-    regex_str = did + "\w*(\d+)"
+    regex_str = did + r"\w*(\d+)"
     rm_cmd = 'parted -s "/dev/%s" rm %s'
     for line in output:
         partition = re.findall(regex_str, line, re.I | re.M)
@@ -694,7 +695,7 @@ def get_scsi_info(device_source):
     """
     cmd = "lsscsi | grep %s | awk '{print $1}'" % device_source
     cmd_result = process.run(cmd, shell=True)
-    scsi_info = re.findall("\d+", str(cmd_result.stdout.strip()))
+    scsi_info = re.findall(r"\d+", str(cmd_result.stdout.strip()))
     if len(scsi_info) != 4:
         raise exceptions.TestError("Got wrong scsi info: %s" % scsi_info)
     return ":".join(scsi_info)
@@ -924,7 +925,7 @@ def set_drive_letter(session, did, partition_no=1, target_letter=None):
     detail_cmd = _wrap_windows_cmd(detail_cmd)
     details = session.cmd_output(detail_cmd % did)
     for line in details.splitlines():
-        pattern = "\s+Volume\s+\d+"
+        pattern = r"\s+Volume\s+\d+"
         if re.search(pattern, line, re.I | re.M):
             drive_letter = line.split()[2]
             break
@@ -1471,10 +1472,11 @@ class CdromDisk(Disk):
     Represents a CDROM disk that we can master according to our needs.
     """
 
-    def __init__(self, path, tmpdir):
+    def __init__(self, path, tmpdir, extra_params=""):
         self.mount = tempfile.mkdtemp(prefix="cdrom_virttest_", dir=tmpdir)
         self.tmpdir = tmpdir
         self.path = path
+        self.extra_params = extra_params
         clean_old_image(path)
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
@@ -1528,7 +1530,7 @@ class CdromDisk(Disk):
         g_cmd = (
             "mkisofs -o %s -max-iso9660-filenames "
             "-relaxed-filenames -D --input-charset iso8859-1 "
-            "%s" % (self.path, self.mount)
+            "%s %s" % (self.path, self.extra_params, self.mount)
         )
         process.run(g_cmd, verbose=DEBUG)
 
@@ -1538,6 +1540,33 @@ class CdromDisk(Disk):
         )
         cleanup(self.mount)
         LOG.debug("unattended install CD image %s successfully created", self.path)
+
+
+class CdromRemasterDisk(CdromDisk):
+    """Add files to an existing installation ISO, preserving its boot records."""
+
+    def __init__(self, path, tmpdir, source_cdrom):
+        if os.path.realpath(path) == os.path.realpath(source_cdrom):
+            raise ValueError("The remastered ISO must differ from the source ISO")
+        super().__init__(path, tmpdir)
+        self.source_cdrom = source_cdrom
+
+    @error_context.context_aware
+    def close(self):
+        error_context.context("Remastering install CD image %s" % self.path)
+        cmd = "xorriso -indev %s -outdev %s" % (
+            shlex.quote(self.source_cdrom),
+            shlex.quote(self.path),
+        )
+        # Mapping the staging directory itself would replace the ISO root metadata.
+        for filename in os.listdir(self.mount):
+            cmd += " -map %s %s" % (
+                shlex.quote(os.path.join(self.mount, filename)),
+                shlex.quote("/" + filename),
+            )
+        cmd += " -boot_image any replay -end"
+        process.run(cmd, verbose=DEBUG)
+        Disk.close(self)
 
 
 class CdromInstallDisk(Disk):

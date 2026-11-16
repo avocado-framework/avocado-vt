@@ -1,5 +1,7 @@
 import unittest
 
+from avocado import Test
+
 from virttest.libvirt_xml.devices import interface
 
 XML = """
@@ -34,7 +36,7 @@ iface_attrs = {
 }
 
 
-class TestcontrollerXML(unittest.TestCase):
+class TestcontrollerXML(Test):
     def test_setup_iface_default(self):
         iface = interface.Interface()
         iface.setup_attrs(**iface_attrs)

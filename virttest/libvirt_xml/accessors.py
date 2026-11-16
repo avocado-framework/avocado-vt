@@ -2,6 +2,7 @@
 Specializations of base.AccessorBase for particular XML manipulation types
 """
 
+import inspect
 import logging
 from xml.etree.ElementTree import tostring
 
@@ -800,6 +801,19 @@ class XMLElementList(AccessorGeneratorBase):
 
         __slots__ = add_to_slots("parent_xpath", "marshal_to", "has_subclass")
 
+        def _marshal_to_accepts_text(self):
+            signature = inspect.signature(self.marshal_to)
+            positional = 0
+            for parameter in signature.parameters.values():
+                if parameter.kind == parameter.VAR_POSITIONAL:
+                    return True
+                if parameter.kind in (
+                    parameter.POSITIONAL_ONLY,
+                    parameter.POSITIONAL_OR_KEYWORD,
+                ):
+                    positional += 1
+            return positional >= 5
+
         def __call__(self):
             # Parent structure cannot be pre-determined as in other classes
             parent = self.xmltreefile().find(self.parent_xpath)
@@ -829,9 +843,15 @@ class XMLElementList(AccessorGeneratorBase):
                         child.tag, new_xmltreefile, index, self.libvirtxml
                     )
                 else:
-                    item = self.marshal_to(
-                        child.tag, dict(list(child.items())), index, self.libvirtxml
-                    )
+                    args = [
+                        child.tag,
+                        dict(list(child.items())),
+                        index,
+                        self.libvirtxml,
+                    ]
+                    if self._marshal_to_accepts_text():
+                        args.append(child.text)
+                    item = self.marshal_to(*args)
                 if item is not None:
                     result.append(item)
                 # Always use absolute index (even if item was None)
@@ -893,9 +913,11 @@ class XMLElementList(AccessorGeneratorBase):
                     self.xmltreefile().write()
                     continue
 
-                xml_utils.ElementTree.SubElement(
+                element = xml_utils.ElementTree.SubElement(
                     parent, element_tuple[0], element_tuple[1]
                 )
+                if len(element_tuple) > 2:
+                    element.text = element_tuple[2]
                 index += 1
             self.xmltreefile().write()
 
@@ -905,6 +927,19 @@ class XMLElementList(AccessorGeneratorBase):
         """
 
         __slots__ = add_to_slots("parent_xpath", "marshal_to", "has_subclass")
+
+        def _marshal_to_accepts_text(self):
+            signature = inspect.signature(self.marshal_to)
+            positional = 0
+            for parameter in signature.parameters.values():
+                if parameter.kind == parameter.VAR_POSITIONAL:
+                    return True
+                if parameter.kind in (
+                    parameter.POSITIONAL_ONLY,
+                    parameter.POSITIONAL_OR_KEYWORD,
+                ):
+                    positional += 1
+            return positional >= 5
 
         def __call__(self):
             parent = self.xmltreefile().find(self.parent_xpath)
@@ -926,9 +961,15 @@ class XMLElementList(AccessorGeneratorBase):
                         child.tag, new_xmltreefile, index, self.libvirtxml
                     )
                 else:
-                    item = self.marshal_to(
-                        child.tag, dict(list(child.items())), index, self.libvirtxml
-                    )
+                    args = [
+                        child.tag,
+                        dict(list(child.items())),
+                        index,
+                        self.libvirtxml,
+                    ]
+                    if self._marshal_to_accepts_text():
+                        args.append(child.text)
+                    item = self.marshal_to(*args)
                 # Always use absolute index (even if item was None)
                 index += 1
                 # Account for case where child elements are mixed in

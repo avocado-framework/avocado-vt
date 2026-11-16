@@ -58,7 +58,7 @@ def get_switchid(interface):
     :param interface: interface name
     :return: switch id
     """
-    cmd = "ip -d link show %s | sed -n 's/.* switchid \([^ ]*\).*/\\1/p'" % interface
+    cmd = r"ip -d link show %s | sed -n 's/.* switchid \([^ ]*\).*/\1/p'" % interface
     return process.run(cmd, shell=True).stdout_text.strip()
 
 

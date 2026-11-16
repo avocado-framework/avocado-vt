@@ -26,6 +26,7 @@ class Hostdev(base.TypedDeviceBase):
         "rom",
         "address",
         "driver",
+        "acpi",
     )
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
@@ -83,6 +84,7 @@ class Hostdev(base.TypedDeviceBase):
             subclass=self.Driver,
             subclass_dargs={"virsh_instance": virsh_instance},
         )
+        accessors.XMLElementDict("acpi", self, parent_xpath="/", tag_name="acpi")
         super(self.__class__, self).__init__(
             device_tag="hostdev", type_name=type_name, virsh_instance=virsh_instance
         )

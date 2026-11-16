@@ -161,7 +161,7 @@ class OpenVSwitchControl(object):
         if isinstance(version, int):
             return version
         try:
-            a = re.findall("^(\d+)\.?(\d+)\.?(\d+)\-?", version)[0]
+            a = re.findall(r"^(\d+)\.?(\d+)\.?(\d+)\-?", version)[0]
             int_ver = "".join(a)
         except Exception:
             raise ValueError("Wrong version format '%s'" % version)
@@ -177,7 +177,7 @@ class OpenVSwitchControl(object):
         version = None
         try:
             result = process.run("%s --version" % path.find_command("ovs-vswitchd"))
-            pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
+            pattern = r"ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
             version = re.search(pattern, result.stdout_text).group(1)
         except process.CmdError:
             LOG.debug("OpenVSwitch is not available in system.")

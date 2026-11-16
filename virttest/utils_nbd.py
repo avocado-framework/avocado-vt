@@ -44,6 +44,7 @@ class NbdExport(object):
         deleteExisted=True,
         private_key_encrypt_passphrase=None,
         secret_uuid=None,
+        shared_num=None,
     ):
         """Create a new NbdExport instance
 
@@ -70,6 +71,7 @@ class NbdExport(object):
             self.private_key_encrypt_passphrase = private_key_encrypt_passphrase
             self.secret_uuid = secret_uuid
         self.deleteExisted = deleteExisted
+        self.shared_num = shared_num
 
     def _create_img(self):
         """Create a image file with specified format"""
@@ -226,6 +228,8 @@ class NbdExport(object):
             )
             if self.export_name:
                 qemu_nbd_cmd += "-x %s " % self.export_name
+            if self.shared_num:
+                qemu_nbd_cmd += "--shared=%s" % self.shared_num
             qemu_nbd_cmd += "&"
             process.run(
                 qemu_nbd_cmd,

@@ -77,6 +77,10 @@ class VTResolver(VTResolverUtils, Resolver):
         It discovers the tests from cartesian config based on the specification
         from the user.
         """
+        if self.config.get("run.vt_multi_vm") or self.config.get("list.vt_multi_vm"):
+            # The multi-vm-suite Cartesian loader/resolver owns references in this
+            # opt-in mode. Returning NOTFOUND lets resolution continue to it.
+            return ReferenceResolution(reference, ReferenceResolutionResult.NOTFOUND)
         return self._get_reference_resolution(reference)
 
 

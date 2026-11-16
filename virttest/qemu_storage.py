@@ -1603,7 +1603,7 @@ class QemuImg(storage.QemuImg):
         """
         image_info = self.info()
         if image_info:
-            image_format = re.findall("file format: (\w+)", image_info)[0]
+            image_format = re.findall(r"file format: (\w+)", image_info)[0]
         else:
             image_format = None
         return image_format

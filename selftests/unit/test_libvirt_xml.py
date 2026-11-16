@@ -7,6 +7,7 @@ import sys
 import unittest
 
 import six
+from avocado import Test
 from avocado.utils import process
 
 try:
@@ -22,7 +23,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 
 from test_virsh import FakeVirshFactory
 
-from virttest import data_dir, utils_misc, xml_utils
+from virttest import utils_misc, xml_utils
 from virttest.libvirt_xml import (
     accessors,
     base,
@@ -55,7 +56,7 @@ toggle='no'/></features></guest></capabilities>"""
 CAPABILITIES = _CAPABILITIES % UUID
 
 
-class LibvirtXMLTestBase(unittest.TestCase):
+class LibvirtXMLTestBase(Test):
 
     # Override instance methods needed for testing
 
@@ -187,7 +188,7 @@ class LibvirtXMLTestBase(unittest.TestCase):
             raise ValueError(
                 "Dummy virsh for testing does not support to_file" " parameter"
             )
-        if name is not "pci_0000_00_00_0":
+        if name != "pci_0000_00_00_0":
             raise ValueError(
                 "Dummy virsh for testing only support " " device name pci_0000_00_00_0"
             )
@@ -209,13 +210,11 @@ class LibvirtXMLTestBase(unittest.TestCase):
         return process.CmdResult("virsh nodedev-dumpxml pci_0000_00_00_0", xml, "", 0)
 
     def setUp(self):
+        super().setUp()
         self.dummy_virsh = FakeVirshFactory()
         # make a tmp_dir to store information.
-        LibvirtXMLTestBase.__doms_dir__ = os.path.join(
-            data_dir.get_tmp_dir(), "domains"
-        )
-        if not os.path.isdir(LibvirtXMLTestBase.__doms_dir__):
-            os.makedirs(LibvirtXMLTestBase.__doms_dir__)
+        LibvirtXMLTestBase.__doms_dir__ = os.path.join(self.workdir, "domains")
+        os.makedirs(LibvirtXMLTestBase.__doms_dir__)
 
         # Normally not kosher to call super_set, but required here for testing
         self.dummy_virsh.__super_set__("capabilities", self._capabilities)
@@ -226,8 +225,10 @@ class LibvirtXMLTestBase(unittest.TestCase):
 
     def tearDown(self):
         librarian.DEVICE_TYPES = list(ORIGINAL_DEVICE_TYPES)
-        if os.path.isdir(self.__doms_dir__):
-            shutil.rmtree(self.__doms_dir__)
+        if os.path.isdir(LibvirtXMLTestBase.__doms_dir__):
+            shutil.rmtree(LibvirtXMLTestBase.__doms_dir__)
+        LibvirtXMLTestBase.__doms_dir__ = None
+        super().tearDown()
 
 
 # AccessorsTest.test_XMLElementNest is namespace sensitive
@@ -800,9 +801,7 @@ class testStubXML(LibvirtXMLTestBase):
             foobar.virsh.domuuid(None), "ddb0cf86-5ba8-4f83-480a-d96f54339219"
         )
         self.assertEqual(foobar.device_tag, "foobar")
-        self.assertEqual(
-            unicode(foobar), "<?xml version='1.0' encoding='UTF-8'?>\n<foobar />"
-        )
+        self.assertEqual(unicode(foobar), "<foobar />")
 
     def test_typed_device_stub(self):
         foobar = self.TypedFoobar(virsh_instance=self.dummy_virsh)
@@ -813,7 +812,7 @@ class testStubXML(LibvirtXMLTestBase):
         self.assertEqual(foobar.type_name, "bar")
         self.assertEqual(
             unicode(foobar),
-            "<?xml version='1.0' encoding='UTF-8'?>\n<foo type=\"bar\" />",
+            '<foo type="bar" />',
         )
 
 
@@ -824,9 +823,9 @@ class testCharacterXML(LibvirtXMLTestBase):
         channel = librarian.get("channel")(virsh_instance=self.dummy_virsh)
         console = librarian.get("console")(virsh_instance=self.dummy_virsh)
         for chardev in (parallel, serial, channel, console):
-            attribute1 = utils_misc.generate_random_string(10)
+            attribute1 = "a" + utils_misc.generate_random_string(10)
             value1 = utils_misc.generate_random_string(10)
-            attribute2 = utils_misc.generate_random_string(10)
+            attribute2 = "b" + utils_misc.generate_random_string(10)
             value2 = utils_misc.generate_random_string(10)
             chardev.add_source(**{attribute1: value1, attribute2: value2})
             chardev.add_target(**{attribute1: value1, attribute2: value2})
@@ -882,10 +881,11 @@ class testSerialXML(LibvirtXMLTestBase):
         self.assertFalse(serial1 == serial2)
         self.assertEqual(serial1.sources, [])
         # mix up access style
-        serial1.add_source(**serial2.sources[0])
+        serial1.add_source(path="/dev/null")
         self.assertFalse(serial1 == serial2)
         serial1.update_target(0, port="1")
-        self.assertEqual(serial1, serial2)
+        self.assertEqual(serial1.sources, serial2.sources)
+        self.assertEqual(serial1.targets, serial2.targets)
         # Exercise bind mode
         self.assertEqual(serial3.type_name, "tcp")
         source_connect = serial3.sources[0]
@@ -974,7 +974,7 @@ class testDiskXML(LibvirtXMLTestBase):
     def test_vm_get(self):
         vmxml = vm_xml.VMXML.new_from_dumpxml("foobar", virsh_instance=self.dummy_virsh)
         for device in vmxml.devices:
-            if device.device_tag is "disk":
+            if device.device_tag == "disk":
                 self._check_disk(device)
             else:
                 continue

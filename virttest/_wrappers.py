@@ -22,6 +22,7 @@ _LOADERS = (
     (SourcelessFileLoader, BYTECODE_SUFFIXES),
     (ExtensionFileLoader, EXTENSION_SUFFIXES),
 )
+_MISSING = object()
 
 
 def _load_from_spec(spec):
@@ -31,9 +32,20 @@ def _load_from_spec(spec):
     :type spec: ModSpec
     :returns : Imported module instance
     """
+    if spec is None or spec.loader is None:
+        raise ImportError("Could not load module from spec")
+
+    previous = sys.modules.get(spec.name, _MISSING)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        if previous is _MISSING:
+            sys.modules.pop(spec.name, None)
+        else:
+            sys.modules[spec.name] = previous
+        raise
     return module
 
 
@@ -50,10 +62,7 @@ def import_module(name, path=None):
     :returns: The imported module
     """
     if path is None:
-        if name in sys.builtin_module_names:
-            spec = importlib.machinery.BuiltinImporter.find_spec(name, path)
-            return _load_from_spec(spec)
-        path = sys.path
+        return importlib.import_module(name)
     elif isinstance(path, str):
         path = [path]
 

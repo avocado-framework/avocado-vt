@@ -15,7 +15,9 @@ import re
 import shutil
 import string
 import tempfile
+import threading
 import time
+from functools import partial
 
 import aexpect
 from aexpect import remote
@@ -32,12 +34,14 @@ from virttest import (
     test_setup,
     utils_logfile,
     utils_misc,
+    utils_net,
     utils_package,
     utils_selinux,
     virsh,
     virt_vm,
     xml_utils,
 )
+from virttest.utils_test import libvirt
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.
@@ -925,37 +929,37 @@ class VM(virt_vm.BaseVM):
             nic_model = nic_params.get("nic_model")
             nic_queues = nic_params.get("queues")
             nic_driver = nic_params.get("net_driver")
-            if nettype:
-                result = " --network=%s" % nettype
-            else:
-                result = ""
-            if has_option(help_text, "bridge"):
-                # older libvirt (--network=NATdev --bridge=bridgename
-                # --mac=mac)
+
+            def make_network_str():
+                if not nettype:
+                    if mac:
+                        return " --mac=%s" % mac
+                    return ""
+
+                result = " --network=type=%s" % nettype
+
                 if nettype != "user":
-                    result += ":%s" % netdst
-                if mac:  # possible to specify --mac w/o --network
-                    result += " --mac=%s" % mac
-            else:
-                # newer libvirt (--network=mynet,model=virtio,mac=00:11)
-                if nettype != "user":
-                    result += "=%s" % netdst
-                if nettype and nic_model:  # only supported along with nettype
+                    result += ",source=%s" % netdst
+                if nettype == "bridge":
+                    br_name = utils_net.find_bridge_manager(netdst)
+                    if br_name is None:
+                        raise exceptions.TestError(f"Bridge '{netdst}' does not exist")
+                    if "OpenVSwitch" in br_name.__class__.__name__:
+                        result += ",virtualport_type=openvswitch"
+                if nic_model:
                     result += ",model=%s" % nic_model
-                if nettype and mac:
+                if mac:
                     result += ",mac=%s" % mac
-                if (
-                    nettype
-                    and nic_queues
-                    and has_sub_option("network", "driver[._]queues")
-                ):
+                if nic_queues and has_sub_option("network", "driver[._]queues"):
                     result += ",driver_queues=%s" % nic_queues
                     if nic_driver and has_sub_option("network", "driver[._]name"):
                         result += ",driver_name=%s" % nic_driver
-                elif mac:  # possible to specify --mac w/o --network
-                    result += " --mac=%s" % mac
-            LOG.debug("vm.make_create_command.add_nic returning: %s", result)
-            return result
+
+                return result
+
+            ret = make_network_str()
+            LOG.debug("vm.make_create_command.add_nic returning: %s", ret)
+            return ret
 
         def add_memballoon(help_text, memballoon_model):
             """
@@ -2669,7 +2673,7 @@ class VM(virt_vm.BaseVM):
                     )
                     try:
                         key_info = kernel_interface.SysFS(
-                            key_path, session=session, regex="\d+%s"
+                            key_path, session=session, regex=r"\d+%s"
                         )
                         key_value = str(key_info.sys_fs_value).rstrip("\n")
                     except IOError:
@@ -2720,41 +2724,128 @@ class VM(virt_vm.BaseVM):
 
     @error_context.context_aware
     def reboot(
-        self, session=None, method="shell", nic_index=0, timeout=240, serial=False
+        self,
+        session=None,
+        method="shell",
+        nic_index=0,
+        timeout=virt_vm.BaseVM.REBOOT_TIMEOUT,
+        serial=False,
     ):
         """
         Reboot the VM and wait for it to come back up by trying to log in until
         timeout expires.
 
         :param session: A shell session object or None.
-        :param method: Reboot method.  Can be "shell" (send a shell reboot
-                command).
+        :param method: Reboot method. Can be "shell" (send a shell reboot
+                command) or "libvirt_reset" (use virsh reset).
         :param nic_index: Index of NIC to access in the VM, when logging in
                 after rebooting.
         :param timeout: Time to wait for login to succeed (after rebooting).
-        :param serial: Just use to unify api in virt_vm module.
+        :param serial: Whether to use serial console for login.
         :return: A new shell session object.
+        :raises VMRebootError: If reboot fails or guest doesn't respond.
         """
+
+        def _check_serial_console_down(console, timeout):
+            """Check if serial console indicates system is going down."""
+            reboot_patterns = [
+                # Linux reboot patterns
+                r".*[Rr]ebooting.*",
+                r".*[Rr]estarting system.*",
+                r".*[Mm]achine restart.*",
+                r".*Linux version.*",
+                # Windows reboot patterns
+                r".*Microsoft Windows \[Version.*",
+                r".*Microsoft Corporation\. All rights reserved\.*",
+            ]
+            try:
+                if console.read_until_any_line_matches(
+                    reboot_patterns, timeout=timeout
+                ):
+                    LOG.debug("Reboot pattern detected in serial console")
+                    return True
+                LOG.debug(f"No reboot patterns detected within timeout {timeout} sec")
+                return False
+            except Exception as e:
+                LOG.debug(f"Unexpected error during serial console reboot check: {e}")
+                return False
+
+        def _execute_shell_reboot(session):
+            """Execute reboot command via shell session."""
+            reboot_cmd = self.params.get("reboot_command")
+            session.cmd(reboot_cmd, ignore_all_errors=True)
+
+        def _check_system_event_reboot(timeout):
+            """Check if system is reboot via libvirt events."""
+            try:
+                result = virsh.event(
+                    domain=self.name, event="reboot", event_timeout=timeout
+                )
+                libvirt.check_exit_status(result)
+                LOG.debug("Detected libvirt reboot event")
+                return True
+            except Exception as e:
+                LOG.debug(f"Libvirt reboot event check failed: {e}")
+                return False
+
+        def _execute_libvirt_reset():
+            """Execute libvirt reset via virsh."""
+            reset_thread = threading.Thread(
+                target=virsh.reset, args=(self.name,), name=f"reset-{self.name}"
+            )
+            reset_thread.daemon = True
+            reset_thread.start()
+
         error_context.base_context("rebooting '%s'" % self.name, LOG.info)
         error_context.context("before reboot")
-        session = session or self.login(timeout=timeout)
         error_context.context()
 
+        serial_console = None
         if method == "shell":
-            session.sendline(self.params.get("reboot_command"))
+            if not session:
+                if not serial:
+                    session = self.wait_for_login(nic_index=nic_index, timeout=timeout)
+                else:
+                    session = self.wait_for_serial_login(timeout=timeout)
+
+            if isinstance(session, remote.RemoteSession):
+                serial_console = self.wait_for_serial_login(
+                    timeout=timeout,
+                    recreate_serial_console=True,
+                    status_check=False,
+                )
+
+            _reboot = partial(_execute_shell_reboot, session)
+            _check_go_down = partial(
+                _check_serial_console_down,
+                serial_console if serial_console else session,
+                30,
+            )
+        elif method == "libvirt_reset":
+            _reboot = partial(_execute_libvirt_reset)
+            _check_go_down = partial(_check_system_event_reboot, 30)
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
 
         error_context.context("waiting for guest to go down", LOG.info)
-        if not utils_misc.wait_for(
-            lambda: not session.is_responsive(timeout=30), 120, 0, 1
-        ):
-            raise virt_vm.VMRebootError("Guest refuses to go down")
-        session.close()
+        try:
+            _reboot()
+            if not utils_misc.wait_for(_check_go_down, timeout=timeout):
+                raise virt_vm.VMRebootError("Guest refuses to go down")
+        finally:
+            if session:
+                session.close()
+            if serial_console:
+                serial_console.close()
+            self.cleanup_serial_console()
 
         error_context.context("logging in after reboot", LOG.info)
         if serial:
-            return self.wait_for_serial_login(timeout=timeout)
+            return self.wait_for_serial_login(
+                timeout=timeout,
+                recreate_serial_console=True,
+                status_check=False,
+            )
         return self.wait_for_login(nic_index, timeout=timeout)
 
     def screendump(self, filename, debug=False):

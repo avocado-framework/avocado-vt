@@ -17,6 +17,17 @@ class EventBus(object):
         """Create the error event bus with queue.Queue."""
         self.error_events = queue.Queue()
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # do not pickle the Queue as it is not needed in the child
+        del state["error_events"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # reconstruct a fresh queue if needed
+        self.error_events = queue.Queue()
+
     def put(self, event, block=True, timeout=None):
         """Put an event into the event bus."""
         self.error_events.put(event, block, timeout)

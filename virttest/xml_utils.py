@@ -74,6 +74,17 @@ class TempXMLFile(io.FileIO):
         os.close(fd)
         super(TempXMLFile, self).__init__(path, mode)
 
+    def write(self, data):
+        if isinstance(data, str):
+            data = data.encode()
+        return super(TempXMLFile, self).write(data)
+
+    def read(self, *args):
+        data = super(TempXMLFile, self).read(*args)
+        if isinstance(data, bytes):
+            return data.decode()
+        return data
+
     def _info(self):
         """
         Inform user that file was not auto-deleted due to exceptional exit.
@@ -335,8 +346,12 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         ElementTree.ElementTree.write(self, filename, encoding)
 
     def read(self, xml):
-        self.__del__()
-        self.__init__(xml)
+        try:
+            ElementTree.ElementTree.__init__(self, element=None, file=xml)
+        except expat.ExpatError:
+            raise IOError("Error parsing XML: '%s'" % xml)
+        self.write()
+        self.flush()
 
     def find(self, path):
         if path == "/":
@@ -361,6 +376,8 @@ class Sub(object):
         :param text: string to substitute
         """
 
+        if isinstance(text, bytes):
+            text = text.decode()
         return string.Template(text).safe_substitute(**self._mapping)
 
 

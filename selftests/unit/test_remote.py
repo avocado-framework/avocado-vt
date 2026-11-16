@@ -2,6 +2,7 @@
 
 import os
 import sys
+import tempfile
 import unittest
 
 # simple magic for using scripts within a source tree
@@ -9,17 +10,22 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, "virttest")):
     sys.path.append(basedir)
 
+from avocado import Test
+
 from virttest import data_dir, remote
 
 
-class RemoteFileTest(unittest.TestCase):
-    tmp_dir = data_dir.get_tmp_dir()
-    test_file_path = os.path.join(tmp_dir, "remote_file")
+class RemoteFileTest(Test):
     default_data = ["RemoteFile Test.\n", "Pattern Line."]
 
-    def __del__(self):
-        if os.path.exists(self.test_file_path):
-            os.remove(self.test_file_path)
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory(
+            prefix="remote-file-", dir=data_dir.get_tmp_dir()
+        )
+        self.test_file_path = os.path.join(self.tmp_dir.name, "remote_file")
+
+    def tearDown(self):
+        self.tmp_dir.cleanup()
 
     def _new_remote_file(self):
         if os.path.exists(self.test_file_path):
@@ -73,7 +79,7 @@ class RemoteFileTest(unittest.TestCase):
         _pattern_list = [r"^Pattern"]
         remote_file.remove(_pattern_list)
         test_data = self._read_test_file()
-        except_data = ["RemoteFile Test."]
+        except_data = ["RemoteFile Test.\n"]
         for index in range(len(except_data)):
             self.assertEqual(except_data[index], test_data[index])
         del remote_file

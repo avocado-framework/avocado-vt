@@ -1,0 +1,33 @@
+NAME = __file__
+DOC = """
+Control for manual control running tool
+
+This is a sample control file to be used by the control file running tool.
+"""
+
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(module)-16.16s '
+                    'L%(lineno)-.4d %(levelname)-5.5s| %(message)s')
+
+# custom imports
+pass
+
+# deployed utilities
+sys.path.append("/tmp/utils")
+import sample_utility
+
+logging.info("%s control file.", NAME)
+
+
+# CONSTANTS
+
+SLEEP_TIME = 3
+
+
+# MAIN PART
+
+logging.info("Sleeping for %s seconds from the control file", SLEEP_TIME)
+sample_utility.sleep(SLEEP_TIME)
+
+logging.info("%s control file finished.", NAME)

@@ -1,0 +1,66 @@
+NAME = __file__
+EXTRA_SLEEP = 0
+ROOT_DIR = ""
+DETECT_DIRS = []
+SIMPLE_PARAMS = {}
+DOC = """
+Control for Tutorial pt. 3 -- *Multi-VM example*
+
+This is a sample control file to demonstrate deploying control files
+and running them on a virtual machine (here the linux server).
+"""
+
+import subprocess
+import os
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(module)-16.16s '
+                    'L%(lineno)-.4d %(levelname)-5.5s| %(message)s')
+
+# custom imports
+pass
+
+# deployed utilities
+sys.path.append("/tmp/utils")
+import sample_utility
+
+logging.info("%s control file.", NAME)
+
+
+# CONSTANTS
+
+SLEEP_TIME = 3
+
+
+# HELPERS
+
+def read_pipe(cmd):
+    pipe = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
+    if not pipe:
+        raise IOError("failed to open pipe '%s'" % cmd)
+    output = pipe.read().decode()
+    return output
+
+
+# MAIN PART
+
+logging.info("Sleeping for %s seconds from the control file", SLEEP_TIME+EXTRA_SLEEP)
+sample_utility.sleep(SLEEP_TIME)
+sample_utility.sleep(EXTRA_SLEEP)
+
+logging.info("List current directory and some files in it")
+present_entries = os.listdir(ROOT_DIR)
+wanted_entries = DETECT_DIRS
+for entry in wanted_entries:
+    if entry not in present_entries:
+        raise AssertionError("Wanted entry '%s' not detected in %s" % (entry, present_entries))
+
+params = SIMPLE_PARAMS
+own_name = params.get("server", "vm2")
+other_name = params.get("client", "vm1")
+logging.info("Identified own name '%s' and peer name '%s'", own_name, other_name)
+hostname = read_pipe("hostname").rstrip()
+assert hostname == own_name, "%s != %s" % (hostname, own_name)
+assert hostname != other_name, "%s == %s" % (hostname, other_name)
+
+logging.info("%s control file finished.", NAME)

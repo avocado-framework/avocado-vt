@@ -36,7 +36,7 @@ def nfs_exported(session=None):
         return {}
 
     nfs_exported_dict = {}
-    for fs_info in re.findall("[/\w+]+.*?\(.*?\)", exportfs, re.S):
+    for fs_info in re.findall(r"[/\w+]+.*?\(.*?\)", exportfs, re.S):
         fs_info = fs_info.strip().split()
         if len(fs_info) == 2:
             nfs_src = fs_info[0]

@@ -1172,7 +1172,7 @@ class PciAssignable(object):
         if nic_name_re:
             self.nic_name_re = nic_name_re
         else:
-            self.nic_name_re = "\w+(?=: flags)|eth[0-9](?=\s*Link)"
+            self.nic_name_re = r"\w+(?=: flags)|eth[0-9](?=\s*Link)"
         if device_driver:
             if device_driver == "pci-assign":
                 self.device_driver = "pci-stub"
@@ -1380,7 +1380,7 @@ class PciAssignable(object):
             pf_info["occupied"] = False
             d_link = os.path.join("/sys/bus/pci/devices", full_id)
             txt = process.run("ls %s" % d_link).stdout_text
-            re_vfn = "(virtfn\d+)"
+            re_vfn = r"(virtfn\d+)"
             paths = re.findall(re_vfn, txt)
             for path in paths:
                 f_path = os.path.join(d_link, path)
@@ -1573,7 +1573,7 @@ class PciAssignable(object):
         """
         # The VF count should be multiplied with the total no.of PF's
         # present, rather than fixed number of network interfaces.
-        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(
+        expected_count = int((re.findall(r"(\d+)", self.driver_option)[0])) * len(
             self.get_pf_ids()
         )
         return self.get_vfs_count() == expected_count
@@ -1583,7 +1583,7 @@ class PciAssignable(object):
         Get the Controller Type for SR-IOV Mellanox Adapter PFs
         """
         try:
-            cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
+            cmd = r"lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
             return (
                 process.run(cmd, shell=True)
                 .stdout_text.split("\n")[-1]
@@ -1726,7 +1726,7 @@ class PciAssignable(object):
         if ARCH != "ppc64le":
             kvm_re_probe = True
             dmesg = process.run("dmesg", verbose=False).stdout_text
-            ecap = re.findall("ecap\s+(.\w+)", dmesg)
+            ecap = re.findall(r"ecap\s+(.\w+)", dmesg)
             if not ecap:
                 LOG.error("Fail to check host interrupt remapping support")
             else:
@@ -2021,7 +2021,7 @@ class LibvirtPolkitConfig(object):
             # environment and "network" for the modular daemons environment,
             # it should set to "connect_driver:QEMU|network".
             for idx in range(len(self.attr)):
-                conn_driver = re.findall("connect_driver:(.+)\|(.+)", self.attr[idx])
+                conn_driver = re.findall(r"connect_driver:(.+)\|(.+)", self.attr[idx])
                 if conn_driver:
                     if utils_split_daemons.is_modular_daemon():
                         self.attr[idx] = "connect_driver:" + conn_driver[0][1]

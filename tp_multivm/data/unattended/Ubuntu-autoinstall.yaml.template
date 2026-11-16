@@ -1,0 +1,26 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  identity:
+    hostname: '#VMNAME#'
+    username: ubuntu
+    password: '#ROOTPW#'
+  ssh:
+    install-server: true
+    allow-pw: true
+  network:
+    version: 2
+    ethernets:
+#NETWORK#
+  storage:
+    layout:
+      name: direct
+  user-data:
+    disable_root: false
+  late-commands:
+    - curtin in-target --target=/target -- usermod --password '#ROOTPW#' root
+    - echo 'PermitRootLogin yes' > /target/etc/ssh/sshd_config.d/00-multivm.conf
+  shutdown: poweroff

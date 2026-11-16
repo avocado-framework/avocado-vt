@@ -1089,7 +1089,7 @@ class Bridge(object):
         """
         Get bridge list.
         """
-        sysfs_path = "/sys/class/net"
+        sysfs_path = SYSFS_NET_PATH
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
@@ -1114,6 +1114,22 @@ class Bridge(object):
             # Get ports
             brif_path = os.path.join(br_iface_path, "brif")
             result[br_iface]["iface"] = os.listdir(brif_path)
+        if result:
+            return result
+        try:
+            output = process.run("brctl show", ignore_status=True).stdout_text
+        except Exception:
+            return result
+        current_bridge = None
+        for line in output.splitlines()[1:]:
+            if not line.strip():
+                continue
+            fields = line.split()
+            if len(fields) >= 3:
+                current_bridge = fields[0]
+                result[current_bridge] = {"stp": fields[2], "iface": fields[3:]}
+            elif current_bridge is not None:
+                result[current_bridge]["iface"].extend(fields)
         return result
 
     def list_br(self):
@@ -1243,11 +1259,14 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names, queue_size=None):
     """
     clean_ovs_env(selinux_mode="permissive", page_size=hp_num, clean_ovs=True)
 
-    # Install openvswitch
-    for pkg in ["openvswitch2.15", "openvswitch2.11", "openvswitch"]:
-        if process.system("yum info %s" % pkg, ignore_status=True) == 0:
-            utils_package.package_install(pkg)
-            break
+    # Check if openvswitch is installed by checking for ovs-vsctl command
+    try:
+        utils_path.find_command("ovs-vsctl")
+    except utils_path.CmdNotFoundError:
+        raise exceptions.TestError(
+            "openvswitch is not installed. "
+            "Please install openvswitch before running this test."
+        )
 
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
@@ -3079,7 +3098,11 @@ class ParamsNet(VMNet):
                 else:
                     nic_dict[propertea] = nic_params.get(propertea, existing_value)
 
-                if propertea == "netdst" and "shell:" in nic_dict[propertea]:
+                if (
+                    propertea == "netdst"
+                    and nic_dict[propertea]
+                    and "shell:" in nic_dict[propertea]
+                ):
                     nic_dict[propertea] = process.getoutput(
                         nic_dict[propertea].split(":", 1)[1]
                     )
@@ -3281,7 +3304,13 @@ class DbNet(VMNet):
             raise DbNoLockError
 
 
-ADDRESS_POOL_FILENAME = os.path.join(data_dir.get_tmp_dir(), "address_pool")
+def get_address_pool_filename():
+    """Return the address pool in the current VT temporary directory."""
+    return os.path.join(data_dir.get_tmp_dir(), "address_pool")
+
+
+# Retain the historical module attributes for callers that import them.
+ADDRESS_POOL_FILENAME = get_address_pool_filename()
 ADDRESS_POOL_LOCK_FILENAME = ADDRESS_POOL_FILENAME + ".lock"
 
 
@@ -3289,10 +3318,12 @@ def clean_tmp_files():
     """
     Remove the base address pool filename.
     """
-    if os.path.isfile(ADDRESS_POOL_LOCK_FILENAME):
-        os.unlink(ADDRESS_POOL_LOCK_FILENAME)
-    if os.path.isfile(ADDRESS_POOL_FILENAME):
-        os.unlink(ADDRESS_POOL_FILENAME)
+    address_pool_filename = get_address_pool_filename()
+    address_pool_lock_filename = address_pool_filename + ".lock"
+    if os.path.isfile(address_pool_lock_filename):
+        os.unlink(address_pool_lock_filename)
+    if os.path.isfile(address_pool_filename):
+        os.unlink(address_pool_filename)
 
 
 class VirtNet(DbNet, ParamsNet):
@@ -3304,7 +3335,7 @@ class VirtNet(DbNet, ParamsNet):
     # assuming there is existing properties/data on the instance
     # and take steps to preserve or update it as appropriate.
 
-    def __init__(self, params, vm_name, db_key, db_filename=ADDRESS_POOL_FILENAME):
+    def __init__(self, params, vm_name, db_key, db_filename=None):
         """
         Load networking info. from db, then from params, then update db.
 
@@ -3313,6 +3344,8 @@ class VirtNet(DbNet, ParamsNet):
         :param db_key: database key uniquely identifying VM instance
         :param db_filename: database file to cache previously parsed params
         """
+        if db_filename is None:
+            db_filename = get_address_pool_filename()
         # Params always overrides database content
         DbNet.__init__(self, params, vm_name, db_filename, db_key)
         ParamsNet.__init__(self, params, vm_name)

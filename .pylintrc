@@ -1,4 +1,7 @@
 [MASTER]
+# Prefer adjacent source checkouts in the standard development workspace.
+init-hook=import sys; from pathlib import Path; root = Path.cwd(); sys.path[:0] = [str(path) for path in (root, root.parent / "avocado", root.parent / "aexpect", root.parent / "guibot") if path.is_dir()]
+
 # Exclude files or directories from linting
 ignore=avocado-libs,cache_populate.py,example.py,github_issues.py,label_issues.py,pulls_applied.py,stale_pulls.py,unassigned_issues.py
 

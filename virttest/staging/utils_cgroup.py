@@ -653,7 +653,7 @@ def get_cgroup_mountpoint(controller, mount_file="/proc/mounts"):
     :return: controller's mountpoint
     :raise: TestError when controller doesn't exist in mount table
     """
-    f_cgcon = open(mount_file, "rU")
+    f_cgcon = open(mount_file, "r")
     cgconf_txt = f_cgcon.read()
     f_cgcon.close()
     mntpt = re.findall(r"\s(\S*cgroup/\S*%s(?=[,\ ])\S*)" % controller, cgconf_txt)

@@ -261,7 +261,7 @@ def read_from_vmstat(key, session=None):
     if session:
         func = session.cmd_output
     vmstat_info = func("cat /proc/vmstat")
-    return int(re.findall("%s\s+(\d+)" % key, vmstat_info)[0])
+    return int(re.findall(r"%s\s+(\d+)" % key, vmstat_info)[0])
 
 
 def read_from_smaps(pid, key, session=None):
@@ -282,7 +282,7 @@ def read_from_smaps(pid, key, session=None):
     smaps_info = func("grep %s /proc/%s/smaps" % (key, pid))
 
     memory_size = 0
-    for each_number in re.findall("%s:\s+(\d+)" % key, smaps_info):
+    for each_number in re.findall(r"%s:\s+(\d+)" % key, smaps_info):
         memory_size += int(each_number)
 
     return memory_size
@@ -360,24 +360,24 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
         func = session.cmd_output
     buddy_info_content = func("cat /proc/buddyinfo")
 
-    re_buddyinfo = "Node\s+"
+    re_buddyinfo = r"Node\s+"
     if nodes == "all":
-        re_buddyinfo += "(\d+)"
+        re_buddyinfo += r"(\d+)"
     else:
         re_buddyinfo += "(%s)" % "|".join(nodes.split())
 
     if not re.findall(re_buddyinfo, buddy_info_content):
         LOG.warning("Can not find Nodes %s" % nodes)
         return None
-    re_buddyinfo += ".*?zone\s+"
+    re_buddyinfo += r".*?zone\s+"
     if zones == "all":
-        re_buddyinfo += "(\w+)"
+        re_buddyinfo += r"(\w+)"
     else:
         re_buddyinfo += "(%s)" % "|".join(zones.split())
     if not re.findall(re_buddyinfo, buddy_info_content):
         LOG.warning("Can not find zones %s" % zones)
         return None
-    re_buddyinfo += "\s+([\s\d]+)"
+    re_buddyinfo += r"\s+([\s\d]+)"
 
     buddy_list = re.findall(re_buddyinfo, buddy_info_content)
 

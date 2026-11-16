@@ -170,3 +170,13 @@ options:
 * Send an e-mail to `the avocado mailing list <https://www.redhat.com/mailman/listinfo/avocado-devel>`__.
 * Open an issue on `the avocado-vt github area <https://github.com/avocado-framework/avocado-vt/issues/new>`__.
 * We also hang out on `IRC (irc.oftc.net, #avocado) <irc://irc.oftc.net/#avocado>`__.
+
+Further steps
+=============
+
+You can now build upon the first step depending on different needs:
+
+* If you want to run in parallel simply check `the parallel jobs guide <https://avocado-vt.readthedocs.io/en/latest/ParallelJobs.html>`__.
+* If you need multi-VM tests, reusable VM states, or dependency graph
+  traversal, see :doc:`MultiVMTesting`.
+* There are various other guides on the side bar for more specialized topics.

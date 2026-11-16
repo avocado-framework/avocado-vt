@@ -1,5 +1,7 @@
 import unittest
 
+from avocado import Test
+
 from virttest.libvirt_xml.devices import controller
 
 XM_PCI = """
@@ -30,7 +32,7 @@ pci_controller_attrs = {
 }
 
 
-class TestcontrollerXML(unittest.TestCase):
+class TestcontrollerXML(Test):
     def test_setup_controller_pci(self):
         pci_ctrlr = controller.Controller()
         pci_ctrlr.setup_attrs(**pci_controller_attrs)

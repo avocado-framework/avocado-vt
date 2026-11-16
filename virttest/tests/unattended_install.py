@@ -707,6 +707,17 @@ class UnattendedInstallConfig(object):
         doc.writexml(fp)
         fp.close()
 
+    def answer_autoinstall(self, answer_path, include_metadata=True):
+        """Copy autoinstall configuration, optionally adding NoCloud metadata."""
+        with open(self.unattended_file) as unattended_file:
+            if unattended_file.readline().rstrip("\r\n") != "#cloud-config":
+                raise ValueError("Autoinstall user-data must start with #cloud-config")
+        shutil.copyfile(self.unattended_file, answer_path)
+        if include_metadata:
+            metadata_path = os.path.join(os.path.dirname(answer_path), "meta-data")
+            with open(metadata_path, "w") as metadata:
+                metadata.write("instance-id: avocado-vt\n")
+
     def preseed_initrd(self):
         """
         Puts a preseed file inside a gz compressed initrd file.
@@ -772,11 +783,14 @@ class UnattendedInstallConfig(object):
 
     def setup_unattended_http_server(self):
         """
-        Setup a builtin http server for serving the kickstart/preseed file
+        Serve kickstart, preseed or autoinstall cloud-config over HTTP.
 
-        Does nothing if unattended file is not a kickstart/preseed file
+        Does nothing if unattended file is not a kickstart/preseed/autoinstall file.
         """
-        if self.unattended_file.endswith(".ks") or self.unattended_file.endswith(
+        autoinstall = self.unattended_file.endswith((".yaml", ".yml"))
+        if autoinstall:
+            self.answer_autoinstall(os.path.join(self.tmpdir, "user-data"))
+        elif self.unattended_file.endswith(".ks") or self.unattended_file.endswith(
             ".preseed"
         ):
             # Red Hat kickstart install or Ubuntu preseed install
@@ -784,23 +798,29 @@ class UnattendedInstallConfig(object):
 
             answer_path = os.path.join(self.tmpdir, dest_fname)
             self.answer_kickstart(answer_path)
-
-            if self.unattended_server_port is None:
-                self.unattended_server_port = utils_misc.find_free_port(
-                    8000, 8099, self.url_auto_content_ip
-                )
-
-            start_unattended_server_thread(self.unattended_server_port, self.tmpdir)
         else:
             return
 
-        # Point installation to this kickstart url
-        unattended_file_url = "http://%s:%s/%s" % (
+        if self.unattended_server_port is None:
+            self.unattended_server_port = utils_misc.find_free_port(
+                8000, 8099, self.url_auto_content_ip
+            )
+
+        start_unattended_server_thread(self.unattended_server_port, self.tmpdir)
+        unattended_url = "http://%s:%s/" % (
             self.url_auto_content_ip,
             self.unattended_server_port,
-            dest_fname,
         )
-        kernel_params = self.set_unattended_param_in_kernel(unattended_file_url)
+        if autoinstall:
+            kernel_params = re.sub(r"(?<!\S)ds=\S+", "", self.kernel_params)
+            kernel_params = utils_misc.add_ker_cmd(kernel_params, "autoinstall")
+            kernel_params = utils_misc.add_ker_cmd(
+                kernel_params, "ds=nocloud-net;s=%s" % unattended_url
+            )
+        else:
+            kernel_params = self.set_unattended_param_in_kernel(
+                unattended_url + dest_fname
+            )
 
         # reflect change on params
         self.kernel_params = kernel_params
@@ -902,6 +922,31 @@ class UnattendedInstallConfig(object):
             answer_path = boot_disk.get_answer_file_path(dest_fname)
             self.answer_kickstart(answer_path)
 
+        elif self.unattended_file.endswith((".yaml", ".yml")):
+            delivery_method = self.params.get("unattended_delivery_method")
+            if (
+                delivery_method not in ("cdrom", "integrated")
+                or not self.cdrom_unattended
+            ):
+                raise ValueError(
+                    "Autoinstall CD-ROM delivery requires cdrom_unattended"
+                )
+            if delivery_method == "integrated":
+                boot_disk = utils_disk.CdromRemasterDisk(
+                    self.cdrom_unattended, self.tmpdir, self.cdrom_cd1
+                )
+                self.answer_autoinstall(
+                    boot_disk.get_answer_file_path("autoinstall.yaml"),
+                    include_metadata=False,
+                )
+            else:
+                boot_disk = utils_disk.CdromDisk(
+                    self.cdrom_unattended, self.tmpdir, extra_params="-V CIDATA -J -r"
+                )
+                self.answer_autoinstall(boot_disk.get_answer_file_path("user-data"))
+            kernel_params = re.sub(r"(?<!\S)ds=\S+", "", self.kernel_params)
+            self.kernel_params = utils_misc.add_ker_cmd(kernel_params, "autoinstall")
+
         elif self.unattended_file.endswith(".xml"):
             if "autoyast" in self.kernel_params:
                 # SUSE autoyast install
@@ -959,6 +1004,13 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unknown answer file type: %s" % self.unattended_file)
 
         boot_disk.close()
+        if self.unattended_file.endswith((".yaml", ".yml")) and (
+            self.params.get("unattended_delivery_method") == "integrated"
+        ):
+            self.cdrom_cd1 = self.cdrom_unattended
+            # Checksums of the original ISO do not apply to the remastered ISO.
+            self.params["skip_hash_cd1"] = "yes"
+            utils_disk.cleanup(self.cdrom_cd1_mount)
 
     @error_context.context_aware
     def setup_cdrom(self):
@@ -1183,9 +1235,11 @@ class UnattendedInstallConfig(object):
                 self.syslog_server_ip, self.syslog_server_port, self.syslog_server_tcp
             )
 
+        preseeded = False
         if self.medium in ["cdrom", "kernel_initrd"]:
             if self.kernel and self.initrd:
                 self.setup_cdrom()
+                preseeded = self.unattended_file.endswith(".preseed")
         elif self.medium == "url":
             self.setup_url()
         elif self.medium == "nfs":
@@ -1195,8 +1249,15 @@ class UnattendedInstallConfig(object):
         else:
             raise ValueError("Unexpected installation method %s" % self.medium)
 
-        if self.unattended_file:
-            if self.floppy or self.cdrom_unattended:
+        if self.unattended_file and not preseeded:
+            autoinstall = self.unattended_file.endswith((".yaml", ".yml"))
+            use_boot_disk = bool(self.floppy or self.cdrom_unattended)
+            if autoinstall:
+                use_boot_disk = self.params.get("unattended_delivery_method") in (
+                    "cdrom",
+                    "integrated",
+                )
+            if use_boot_disk:
                 self.setup_boot_disk()
                 if self.params.get("store_boot_disk") == "yes":
                     LOG.info(

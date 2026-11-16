@@ -4,10 +4,33 @@ import time
 import traceback
 
 from avocado.core import exceptions, teststatus
+from avocado.core.settings import settings
 from avocado.core.test_id import TestID
 from avocado.utils import astring
 
 from avocado_vt import test
+
+
+def _configure_runner_settings(config):
+    """Apply serialized runnable configuration in this runner process."""
+    # TODO: Move VT consumers to the serialized runnable config instead of
+    # mirroring runner values into process-global settings.
+    registered = settings.as_dict()
+    for namespace in VTTestRunner.CONFIGURATION_USED:
+        value = config.get(namespace)
+        if value is None:
+            continue
+        if namespace not in registered:
+            section, key = namespace.rsplit(".", 1)
+            settings.register_option(
+                section=section,
+                key=key,
+                key_type=type(value),
+                default=value,
+                help_msg="Configuration forwarded to the standalone runner",
+            )
+        settings.update_option(namespace, value)
+
 
 # Compatibility with avocado 92.0 LTS version, this can be removed when
 # the 92.0 support will be dropped.
@@ -133,6 +156,7 @@ class VTTestRunner(BaseRunner):
         "core.show",
         "job.output.loglevel",
         "job.run.store_logging_stream",
+        "vt.common.tmp_dir",
     ]
 
     DEFAULT_TIMEOUT = 86400
@@ -141,6 +165,7 @@ class VTTestRunner(BaseRunner):
         if runnable:
             self.runnable = runnable
 
+        _configure_runner_settings(self.runnable.config)
         yield messages.StartedMessage.get()
         if (
             self.runnable.config.get(
@@ -154,9 +179,13 @@ class VTTestRunner(BaseRunner):
             )
         else:
             try:
-                queue = multiprocessing.SimpleQueue()
+                if "fork" in multiprocessing.get_all_start_methods():
+                    context = multiprocessing.get_context("fork")
+                else:
+                    context = multiprocessing
+                queue = context.SimpleQueue()
                 vt_test = VirtTest(queue, self.runnable)
-                process = multiprocessing.Process(target=vt_test.runTest)
+                process = context.Process(target=vt_test.runTest)
                 process.start()
                 while True:
                     time.sleep(RUNNER_RUN_CHECK_INTERVAL)

@@ -22,7 +22,10 @@ from avocado.core.plugin_interfaces import Settings
 
 
 class VTSettings(Settings):
-    def adjust_settings_paths(self, paths):
+    """Class for the settings plugin."""
+
+    def adjust_settings_paths(self, paths: str) -> None:
+        """Adjust all config paths."""
         base = importlib.resources.files("avocado_vt").joinpath("conf.d")
         for path in base.iterdir():
             if path.is_file() and path.name.endswith(".conf"):

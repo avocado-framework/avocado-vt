@@ -1,0 +1,36 @@
+NAME = "Pre-test hook"
+URI = ""
+DOC = """
+Control for a pre-test customization hook
+
+This control file prepares multi-VM tests with optional object state handling.
+"""
+
+import logging
+import os
+import sys
+
+from virttest.states.hooks import configure_env_process_hooks
+
+log = logging.getLogger("avocado.test.pre")
+
+logging.getLogger("aexpect").setLevel(logging.DEBUG)
+
+utility_path = os.path.join(params["suite_path"], "utils")
+log.info("Adding utility path %s", utility_path)
+if utility_path not in sys.path:
+    sys.path.insert(1, utility_path)
+
+use_states = params.get("use_states", "no") == "yes"
+log.info(
+    "Installing %s environment hooks",
+    "stateful" if use_states else "state-free",
+)
+configure_env_process_hooks(use_states)
+if not use_states:
+    log.info("Configuring stateless VM startup for %s", params.get("vms"))
+    # direct VT preprocessing must start every selected VM due to no explicit
+    # (image, vm, or net) state retrieval
+    params["start_vm"] = "yes"
+    for vm_name in params.get("vms", "").split():
+        params[f"start_vm_{vm_name}"] = "yes"

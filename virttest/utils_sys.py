@@ -5,6 +5,7 @@ Virtualization test utility functions.
 """
 
 import logging
+import platform
 import re
 
 from avocado.utils import process
@@ -14,6 +15,8 @@ from virttest.utils_misc import cmd_status_output
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger("avocado." + __name__)
+
+ARCH = platform.machine()
 
 
 # TODO: check function in avocado.utils after the next LTS
@@ -211,3 +214,28 @@ def display_remote_log(params, test):
 
     except Exception as e:
         test.log.debug(f"Failed to get log: {str(e)} \n")
+
+
+def get_location_code(pci_id):
+    """
+    Retrieves the location code for a PCI device by reading from sysfs.
+
+    :param pci_id : The PCI device address in the format 'xxxx:xx:xx.x'.
+                    Example Pci address = '0020:02:00:0'
+    :return: location code if available, or an error message.
+             Example location code = 'U898B.NT0.WDS0DT1-P0-C4-T0'
+    """
+    if ARCH != "ppc64le":
+        return "Location code not supported for architecture: %s" % ARCH
+    try:
+        loc_code_path = "/sys/bus/pci/devices/%s/of_node/ibm,loc-code" % pci_id
+        with open(loc_code_path, "r") as f:
+            loc_code = f.read().strip()
+        loc_code = "".join(c for c in loc_code if 0x20 <= ord(c) <= 0x7E)
+        LOG.debug("The location code of the pci device is %s", loc_code)
+    except FileNotFoundError:
+        return "Location code file not found for device %s." % pci_id
+    except (IOError, OSError, PermissionError) as e:
+        return "Failed to read location code for device %s: %s" % (pci_id, e)
+    else:
+        return loc_code

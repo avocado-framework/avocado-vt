@@ -591,7 +591,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         index = -1
         for line in list_lines:
             # Init for a partition
-            if re.search("\[\d\]\s+=", line):
+            if re.search(r"\[\d\]\s+=", line):
                 index = line.split("]")[0].split("[")[-1]
                 part_details = {}
                 partitions[index] = part_details

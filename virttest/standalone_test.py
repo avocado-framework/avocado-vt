@@ -2,7 +2,8 @@ import os
 
 from avocado.utils import path as utils_path
 
-from . import cartesian_config, data_dir
+from . import data_dir
+from .cartconf import IS_VARIANTER, Parser
 from .compat import get_opt
 
 GUEST_NAME_LIST = None
@@ -95,7 +96,18 @@ def get_cartesian_parser_details(cartesian_parser):
     details = ""
     details += "Tests produced by config file %s\n\n" % cartesian_parser.filename
 
+    details += "CartConf version: "
+    if IS_VARIANTER:
+        details += "external varianter (dependency)"
+    else:
+        details += "native VT module (blob)"
+    details += "\n\n"
+
     details += "The full test list was modified by the following:\n\n"
+
+    if IS_VARIANTER:
+        details += cartesian_parser.node.dump(0, recurse=True)
+        return details
 
     if cartesian_parser.only_filters:
         details += "Filters applied:\n"
@@ -128,7 +140,7 @@ def get_guest_name_parser(
     machine="vt.common.machine_type",
     guest_os="vt.guest_os",
 ):
-    cartesian_parser = cartesian_config.Parser()
+    cartesian_parser = Parser()
     machines_cfg_path = data_dir.get_backend_cfg_path(
         get_opt(options, "vt.type"), "machines.cfg"
     )

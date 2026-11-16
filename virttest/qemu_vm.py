@@ -673,7 +673,7 @@ class VM(virt_vm.BaseVM):
 
         def add_smp(devices):
             smp_str = " -smp %d" % self.cpuinfo.smp
-            smp_pattern = "smp .*\[,maxcpus=.*\].*"
+            smp_pattern = r"smp .*\[,maxcpus=.*\].*"
             if devices.has_option(smp_pattern):
                 smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
             if self.cpuinfo.cores != 0:
@@ -1016,7 +1016,7 @@ class VM(virt_vm.BaseVM):
                 set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "nics")
             else:
                 dev = qdevices.QCustomDevice("pcidevice", parent_bus=pci_bus)
-            help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
+            help_cmd = r"%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
             pcidevice_help = process.run(
                 help_cmd, shell=True, verbose=False
             ).stdout_text
@@ -1513,12 +1513,12 @@ class VM(virt_vm.BaseVM):
             cmd = " -boot"
             options = []
             for p in list(opts.keys()):
-                pattern = "boot .*?(\[,?%s=(.*?)\]|\s+)" % p
+                pattern = r"boot .*?(\[,?%s=(.*?)\]|\s+)" % p
                 if devices.has_option(pattern):
                     option = opts[p]
                     if option is not None:
                         options.append("%s=%s" % (p, option))
-            if devices.has_option("boot \[a\|c\|d\|n\]"):
+            if devices.has_option(r"boot \[a\|c\|d\|n\]"):
                 cmd += " %s" % opts["once"]
             elif options:
                 cmd += " %s" % ",".join(options)
@@ -1903,6 +1903,14 @@ class VM(virt_vm.BaseVM):
         if params.get("defconfig", "yes") == "no":
             devices.insert(StrDev("nodefconfig", cmdline=" -nodefconfig"))
 
+        # Set kvm-pit lost_tick_policy via QGlobal
+        kvm_pit_lost_tick_policy = params.get("kvm_pit_lost_tick_policy")
+        if kvm_pit_lost_tick_policy:
+            dev = qdevices.QGlobal(
+                "kvm-pit", "lost_tick_policy", kvm_pit_lost_tick_policy
+            )
+            devices.insert(dev)
+
         # Add device intel-iommu, it must be added before any virtio devices
         if params.get("intel_iommu") == "yes" and devices.has_device("intel-iommu"):
             iommu_params = {
@@ -1921,6 +1929,33 @@ class VM(virt_vm.BaseVM):
             set_cmdline_format_by_cfg(
                 dev, self._get_cmdline_format_cfg(), "intel_iommu"
             )
+            devices.insert(dev)
+
+        # Add device amd-iommu, it must be added before any virtio devices
+        if params.get("amd_iommu") == "yes" and devices.has_device("amd-iommu"):
+            iommu_pci_id = params.get("iommu_pci_id")
+            if devices.has_device("AMDVI-PCI"):
+                # Always create and track the AMDVI-PCI companion so the device
+                # framework assigns its PCI slot. Otherwise QEMU creates an
+                # implicit, untracked companion that can collide with other
+                # devices on the same slot.
+                if not iommu_pci_id:
+                    iommu_pci_id = "amd_iommu_pci0"
+                companion = QDevice(
+                    "AMDVI-PCI",
+                    {"id": iommu_pci_id},
+                    parent_bus={"aobject": "pci.0"},
+                )
+                devices.insert(companion)
+            iommu_params = {
+                "dma-remap": params.get("iommu_dma_remap"),
+                "intremap": params.get("iommu_intremap"),
+                "xtsup": params.get("iommu_xtsup"),
+                "dma-translation": params.get("iommu_dma_translation"),
+                "pci-id": iommu_pci_id,
+            }
+            dev = QDevice("amd-iommu", iommu_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "amd_iommu")
             devices.insert(dev)
 
         # Add device virtio-iommu, it must be added before any virtio devices
@@ -2599,7 +2634,7 @@ class VM(virt_vm.BaseVM):
                 index = None
             image_bootindex = None
             image_boot = image_params.get("image_boot")
-            if not re.search("boot=on\|off", devices.get_help_text(), re.MULTILINE):
+            if not re.search(r"boot=on\|off", devices.get_help_text(), re.MULTILINE):
                 if image_boot in ["yes", "on", True]:
                     image_bootindex = str(self.last_boot_index)
                     self.last_boot_index += 1
@@ -2873,7 +2908,7 @@ class VM(virt_vm.BaseVM):
                 index = None
             image_bootindex = None
             image_boot = image_params.get("image_boot")
-            if not re.search("boot=on\|off", devices.get_help_text(), re.MULTILINE):
+            if not re.search(r"boot=on\|off", devices.get_help_text(), re.MULTILINE):
                 if image_boot in ["yes", "on", True]:
                     image_bootindex = str(self.last_boot_index)
                     self.last_boot_index += 1
@@ -3083,9 +3118,12 @@ class VM(virt_vm.BaseVM):
         # to define and start.
         for hostdev in params.objects("vm_hostdevs"):
             hostdev_params = params.object_params(hostdev)
-            dev = devices.hostdev_define_by_params(hostdev, hostdev_params)
-            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(), "hostdev")
-            devices.insert(dev)
+            devs = devices.hostdev_define_by_params(hostdev, hostdev_params)
+            for dev in devs:
+                set_cmdline_format_by_cfg(
+                    dev, self._get_cmdline_format_cfg(), "hostdev"
+                )
+                devices.insert(dev)
 
         disable_kvm_option = ""
         if devices.has_option("no-kvm"):
@@ -3336,7 +3374,7 @@ class VM(virt_vm.BaseVM):
             auto_close=False,
             output_func=utils_logfile.log_line,
             output_params=(log_name,),
-            prompt=self.params.get("shell_prompt", "[\#\$]"),
+            prompt=self.params.get("shell_prompt", r"[\#\$]"),
             status_test_command=self.params.get("status_test_command", "echo $?"),
         )
 
@@ -3433,7 +3471,7 @@ class VM(virt_vm.BaseVM):
             if not vga_type:
                 continue
 
-            help_cmd = "%s -device %s,\? 2>&1" % (self.qemu_binary, vga_type)
+            help_cmd = r"%s -device %s,\? 2>&1" % (self.qemu_binary, vga_type)
             help_info = process.run(help_cmd, shell=True, verbose=False).stdout_Text
             for pro in re.findall(r"%s.(\w+)=" % vga_type, help_info):
                 key = [vga_type.lower(), pro]
@@ -3816,7 +3854,7 @@ class VM(virt_vm.BaseVM):
                     # check whether ip version supported by nc
                     if (
                         process.system(
-                            "nc -h | grep -E '\-4 | \-6'",
+                            r"nc -h | grep -E '\-4 | \-6'",
                             shell=True,
                             ignore_status=True,
                         )
@@ -4301,7 +4339,7 @@ class VM(virt_vm.BaseVM):
 
         netdev_peer_re = self.params.get("netdev_peer_re")
         if not netdev_peer_re:
-            default_netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
+            default_netdev_peer_re = r"\s{2,}(.*?): .*?\\\s(.*?):"
             LOG.warning(
                 "Missing config netdev_peer_re for VM %s, " "using default %s",
                 self.name,
@@ -4390,7 +4428,9 @@ class VM(virt_vm.BaseVM):
         else:
             vcpus_info = self.monitor.info("cpus", debug=debug).splitlines()
             vcpu_pids = [
-                int(vcpu_info.split("thread_id=")[1]) for vcpu_info in vcpus_info
+                int(re.search(r"thread_id=\s*(\d+)", vcpu_info).group(1))
+                for vcpu_info in vcpus_info
+                if vcpu_info is not None
             ]
 
         return vcpu_pids
@@ -5712,7 +5752,7 @@ class VM(virt_vm.BaseVM):
             if not utils_misc.wait_for(
                 # no monitor.migrate-status method
                 lambda: re.search(
-                    "(status.*completed)", str(self.monitor.info("migrate")), re.M
+                    "([Ss]tatus.*completed)", str(self.monitor.info("migrate")), re.M
                 ),
                 self.MIGRATE_TIMEOUT,
                 2,

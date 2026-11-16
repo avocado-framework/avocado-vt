@@ -278,7 +278,7 @@ class TcpdumpSniffer(Sniffer):
 
         # DHCPv6 (RFC 3315)
         if re.search("dhcp6 reply", line, re.I):
-            regex = "IA_ADDR (.*) pltime.*client-ID.*?([0-9a-fA-F]{12})\)"
+            regex = r"IA_ADDR (.*) pltime.*client-ID.*?([0-9a-fA-F]{12})\)"
             matches = re.search(regex, line, re.I)
             if matches:
                 info = matches.groups()

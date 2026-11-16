@@ -3,8 +3,10 @@ import logging
 import os
 import sys
 import unittest
+from unittest import mock
 
-from avocado.utils import path
+from avocado import Test
+from avocado.utils import path, process
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +16,7 @@ if os.path.isdir(os.path.join(basedir, "virttest")):
 from virttest import utils_libguestfs as lgf
 
 
-class LibguestfsTest(unittest.TestCase):
+class LibguestfsTest(Test):
     def test_lgf_cmd_check(self):
         cmds = ["virt-ls", "virt-cat"]
         for cmd in cmds:
@@ -31,16 +33,20 @@ class LibguestfsTest(unittest.TestCase):
         for cmd in cmds:
             self.assertRaises(lgf.LibguestfsCmdError, lgf.lgf_cmd_check, cmd)
 
-    def test_lgf_cmd(self):
+    @mock.patch("virttest.utils_libguestfs.process.run")
+    def test_lgf_cmd(self, process_run):
         cmd = "libguestfs-test-tool"
-        try:
-            path.find_command(cmd)
-            self.assertEqual(lgf.lgf_command(cmd).exit_status, 0)
-        except path.CmdNotFoundError:
-            logging.warning("Command %s not installed, skipping unittest...", cmd)
+        process_run.return_value = process.CmdResult(command=cmd, exit_status=0)
+
+        result = lgf.lgf_command(cmd)
+
+        self.assertEqual(result.exit_status, 0)
+        process_run.assert_called_once_with(
+            cmd, ignore_status=True, verbose=False, timeout=60
+        )
 
 
-class SlotsCheckTest(unittest.TestCase):
+class SlotsCheckTest(Test):
     def test_LibguestfsBase_default_slots(self):
         """Default slots' value check"""
         lfb = lgf.LibguestfsBase()
@@ -63,16 +69,22 @@ class SlotsCheckTest(unittest.TestCase):
     def test_Guestfish_slots(self):
         """Test Guestfish slots"""
         try:
+            env_clean = (
+                "unset GUESTFISH_PS1;unset GUESTFISH_OUTPUT;"
+                "unset GUESTFISH_RESTORE;unset GUESTFISH_INIT; "
+            )
             gf = lgf.Guestfish()
-            self.assertEqual(gf.lgf_exec, "guestfish")
+            self.assertEqual(gf.lgf_exec, env_clean + "guestfish")
             gf = lgf.Guestfish(disk_img="test.img", ro_mode=True, inspector=True)
-            self.assertEqual(gf.lgf_exec, "guestfish -a 'test.img' --ro -i")
+            self.assertEqual(gf.lgf_exec, env_clean + "guestfish -a 'test.img' --ro -i")
             gf = lgf.Guestfish(
                 libvirt_domain="test",
                 inspector=True,
                 uri="qemu+ssh://root@EXAMPLE/system",
             )
-            gf_cmd = "guestfish -c 'qemu+ssh://root@EXAMPLE/system' -d 'test' -i"
+            gf_cmd = (
+                env_clean + "guestfish -c 'qemu+ssh://root@EXAMPLE/system' -d 'test' -i"
+            )
             self.assertEqual(gf.lgf_exec, gf_cmd)
         except lgf.LibguestfsCmdError:
             logging.warning("Command guestfish not present, skipping " "unittest...")

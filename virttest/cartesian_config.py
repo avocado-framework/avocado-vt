@@ -549,7 +549,7 @@ class Node(object):
                 child.dump(indent + 3, recurse)
 
 
-match_substitute = re.compile("\$\{(.+?)\}")
+match_substitute = re.compile(r"\$\{(.+?)\}")
 
 
 def _drop_suffixes(d):

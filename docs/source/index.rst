@@ -24,6 +24,7 @@ Contents:
 
    HowTestsAreRun
    CartesianConfig
+   MultiVMTesting
    BuildingTestApplications
    Networking
    PerformanceTesting

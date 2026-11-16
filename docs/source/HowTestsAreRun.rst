@@ -16,6 +16,10 @@ When running tests Avocado-VT will:
 4) Based on what happened during the test, perform cleanup actions, such as
    killing vms, and remove unused disk images.
 
-The list of parameters is obtained by parsing a set of configuration files
-The command line options usually modify even further the parser file, so
-we can introduce new data in the config set.
+The test parameters are obtained by parsing configuration files. Command-line
+options can then override existing parameters or add new ones.
+
+Avocado-VT also provides an optional execution model that expands tests over
+multiple VM and network objects, preserves their states, and schedules test
+dependencies as a graph. See :doc:`MultiVMTesting` for its concepts,
+command-line options, and environment tools.

@@ -68,6 +68,7 @@ class Env(IterableUserDict):
         empty = {"version": version}
         self._filename = filename
         self._sniffer = None
+        self._vmnet = None
         self.save_lock = threading.RLock()
         if filename:
             try:
@@ -113,6 +114,14 @@ class Env(IterableUserDict):
         """
         return [v for k, v in self.data.items() if k and k.startswith("vm__")]
 
+    def register_vmnet(self, vmnet):
+        """Attach the runtime VM network independently of object state backends."""
+        self._vmnet = vmnet
+
+    def get_vmnet(self):
+        """Return the runtime VM network, if one has been prepared."""
+        return self._vmnet
+
     def clean_objects(self):
         """
         Destroy all objects registered in this Env object.
@@ -124,6 +133,7 @@ class Env(IterableUserDict):
                     self.data[key].destroy(gracefully=False)
             except Exception:
                 pass
+        self._vmnet = None
         self.data = {}
 
     def destroy(self):

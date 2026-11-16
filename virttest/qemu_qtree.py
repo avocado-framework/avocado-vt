@@ -22,7 +22,7 @@ OFFSET_PER_LEVEL = 2
 _RE_BLANKS = re.compile(r"^([ ]*)")
 _RE_CLASS = re.compile(
     r"^class ([^,]*), addr (\w\w:\w\w.\w+), pci id "
-    "(\w{4}:\w{4}) \(sub (\w{4}:\w{4})\)"
+    r"(\w{4}:\w{4}) \(sub (\w{4}:\w{4})\)"
 )
 
 
@@ -465,8 +465,8 @@ class QtreeDisksContainer(object):
         # host, channel, id, lun, vendor
         _scsis = re.findall(
             r"Host:\s+(\w+)\s+Channel:\s+(\d+)\s+Id:\s+(\d+)"
-            "\s+Lun:\s+(\d+)\n\s+Vendor:\s+([a-zA-Z0-9_-]+)"
-            "\s+Model:.*\n.*Type:\s+([a-zA-Z0-9_-]+)",
+            r"\s+Lun:\s+(\d+)\n\s+Vendor:\s+([a-zA-Z0-9_-]+)"
+            r"\s+Model:.*\n.*Type:\s+([a-zA-Z0-9_-]+)",
             info,
         )
         disks = set()
@@ -479,8 +479,8 @@ class QtreeDisksContainer(object):
                 # New output from qtree will include hex number. Should
                 # remove it in this function.
                 for item in props:
-                    if re.match("\d+\s+\(.*?\)", props[item]):
-                        props[item] = re.findall("\d+", props[item])[0]
+                    if re.match(r"\d+\s+\(.*?\)", props[item]):
+                        props[item] = re.findall(r"\d+", props[item])[0]
 
                 disks.add(
                     "%d-%d-%d"
