@@ -50,7 +50,7 @@ class IOWrapper(object):
         source when timeout is None and nonblocking for timeout is not None.
         Implementation example StdIWrapper.
 
-        :params max_len: Max len of read data.
+        :param max_len: Max len of read data.
         :type max_len: int
         :param timeout: Timeout of reading operation.
         :type timeout: float
@@ -80,7 +80,7 @@ class IOWrapper(object):
         """
         Wait for data for time == timeout.
 
-        :params max_len: Max len of read data.
+        :param max_len: Max len of read data.
         :type max_len: int
         :param timeout: Timeout of reading operation.
         :type timeout: float
@@ -199,9 +199,9 @@ class Messenger(object):
 
     def __init__(self, stdin, stdout):
         """
-        :params stdin: Object for read data from communication interface.
+        :param stdin: Object for read data from communication interface.
         :type stdin: IOWrapper
-        :params stdout: Object for write data to communication interface.
+        :param stdout: Object for write data to communication interface.
         :type stdout: IOWrapper
         """
         self.stdin = stdin

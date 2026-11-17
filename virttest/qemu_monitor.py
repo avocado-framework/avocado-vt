@@ -3562,9 +3562,9 @@ class QMPMonitor(Monitor):
         """
         Run "set-numa-node" command and return the response
 
-        :params option_type: the type to be set, such as 'dist', 'node', 'cpu',
+        :param option_type: the type to be set, such as 'dist', 'node', 'cpu',
                              'hmat-lb' and 'hmat-cache'
-        :params kwargs: keyword arguments for the specified type
+        :param kwargs: keyword arguments for the specified type
         """
         cmd = "set-numa-node"
         self.verify_supported_cmd(cmd)
@@ -3644,7 +3644,7 @@ class QMPMonitor(Monitor):
         :param writethrough: True makes caches flushed after every write to the
                              export before completion is signalled.
                              (default: false)
-        :params kwargs: keyword arguments for the specified export_type
+        :param kwargs: keyword arguments for the specified export_type
                         (please refer to BlockExportOptions)
         """
         cmd = "block-export-add"

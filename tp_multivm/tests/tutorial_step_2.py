@@ -69,7 +69,7 @@ def extract_tarball(params, vm):
 
     :param params: extended dictionary of parameters
     :type params: {str, str}
-    :params vm: used guest VM
+    :param vm: used guest VM
     :type vm: :py:class:`virttest.qemu_vm.VM`
     """
     log.info("Enter tutorial test variant one: extract and run a file.")
@@ -99,7 +99,7 @@ def run_extracted_script(params, vm):
 
     :param params: extended dictionary of parameters
     :type params: {str, str}
-    :params vm: used guest VM
+    :param vm: used guest VM
     :type vm: :py:class:`virttest.qemu_vm.VM`
     """
     scriptdir = params["script"]
@@ -132,7 +132,7 @@ def check_files(params, vm):
 
     :param params: extended dictionary of parameters
     :type params: {str, str}
-    :params vm: used guest VM
+    :param vm: used guest VM
     :type vm: :py:class:`virttest.qemu_vm.VM`
     """
     log.info("Enter tutorial test variant two: check files.")

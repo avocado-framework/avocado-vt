@@ -169,7 +169,7 @@ class Tpm(base.UntypedDeviceBase):
                 """
                 Add a active_pcr_banks element to xml
 
-                :params name: active_pcr_banks name
+                :param name: active_pcr_banks name
                 """
                 if self.has_pcrbank(name):
                     LOG.debug("PCR bank %s already exist, so remove it", name)
@@ -181,7 +181,7 @@ class Tpm(base.UntypedDeviceBase):
                 """
                 Remove a active_pcr_banks element from xml
 
-                :params name: active_pcr_banks name
+                :param name: active_pcr_banks name
                 """
                 root = self.__dict_get__("xml").getroot()
                 remove_pcrbank = root.find(name)

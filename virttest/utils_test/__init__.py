@@ -330,8 +330,8 @@ def get_available_kernel_paths(session, pattern):
     """
     Get the full kernel paths given an identifying pattern
 
-    :params session: the vm session
-    :params pattern: regex pattern to identify specific kernel
+    :param session: the vm session
+    :param pattern: regex pattern to identify specific kernel
     :returns: list of kernel paths
     :raises exceptions.TestError: raised if no matching kernels could be found
     """
@@ -564,7 +564,7 @@ def get_memory_info(lvms):
     Get memory information from host and guests in format:
     Host: memfree = XXXM; Guests memsh = {XXX,XXX,...}
 
-    :params lvms: List of VM objects
+    :param lvms: List of VM objects
     :return: String with memory info report
     """
     if not isinstance(lvms, list):

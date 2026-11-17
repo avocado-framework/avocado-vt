@@ -242,8 +242,8 @@ class Cgroup(object):
         """
         Delete desired cgroup.
 
-        :params cgroup: desired cgroup
-        :params force: If true, sub cgroup can be deleted with parent cgroup
+        :param cgroup: desired cgroup
+        :param force: If true, sub cgroup can be deleted with parent cgroup
         """
         try:
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)

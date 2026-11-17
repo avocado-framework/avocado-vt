@@ -33,13 +33,13 @@ class Libvirtd(object):
         """
         Initialize an service object for libvirtd.
 
-        :params service_name: Service name such as virtqemud or libvirtd.
+        :param service_name: Service name such as virtqemud or libvirtd.
             If service_name is None or 'libvirt' and all_daemons is True,
             all sub daemons will be operated when modular daemon environment is
             enabled. Otherwise, if service_name is a single string, only the
             given daemon/service will be operated.
-        :params session: An session to guest or remote host.
-        :params all_daemons: Whether to operate all daemons when modular daemons
+        :param session: An session to guest or remote host.
+        :param all_daemons: Whether to operate all daemons when modular daemons
             are enabled. It only works if service_name is None or 'libvirtd'.
         """
         self.session = session

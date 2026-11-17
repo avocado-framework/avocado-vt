@@ -944,9 +944,9 @@ class VMXML(VMXMLBase):
         """
         Add/set pm suspend Support
 
-        :params vm_name: Name of defined vm
-        :params mem: Enable suspend to memory
-        :params disk: Enable suspend to disk
+        :param vm_name: Name of defined vm
+        :param mem: Enable suspend to memory
+        :param disk: Enable suspend to disk
         """
         # Build a instance of class VMPMXML.
         pm = VMPMXML()
@@ -4023,7 +4023,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         """
         Add a feature element to xml
 
-        :params name: Feature name
+        :param name: Feature name
         """
         if self.has_feature(name):
             LOG.debug("Feature %s already exist, so remove it", name)
@@ -4038,7 +4038,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         """
         Remove a feature element from xml
 
-        :params name: Feature name
+        :param name: Feature name
         """
         root = self.__dict_get__("xml").getroot()
         remove_feature = root.find(name)

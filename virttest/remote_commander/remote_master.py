@@ -37,12 +37,12 @@ class CmdMaster(object):
 
     def __init__(self, commander, name, *args, **kargs):
         """
-        :params commander: Commander from which was command started.
-        :params name: Name parsed to string representation
+        :param commander: Commander from which was command started.
+        :param name: Name parsed to string representation
         :type name: [str, str, str]
-        :params args: list to arguments to cmd.
+        :param args: list to arguments to cmd.
         :type args: []
-        :params kargs: {}
+        :param kargs: {}
         """
         self._basecmd = remote_interface.BaseCmd(name, *args, **kargs)
         self.commander = commander
