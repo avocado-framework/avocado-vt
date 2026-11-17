@@ -137,5 +137,4 @@ def get_pcie_root_index(vm_xml):
         except xcepts.LibvirtXMLNotFoundError:
             continue
     LOG.warning("The pcie-root controller is not found")
-
     return -1
