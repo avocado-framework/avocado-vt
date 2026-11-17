@@ -36,14 +36,14 @@ def rbd_image_create(
 ):
     """
     Create a rbd image.
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_namespace_name: The name of rbd namespace
-    :params rbd_image_name: The name of rbd image
-    :params rbd_image_size: The size of rbd image
-    :params force_create: Force create the image or not
-    :params ceph_conf: The path to the ceph configuration file
-    :params keyfile: The path to the ceph keyring configuration file
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_namespace_name: The name of rbd namespace
+    :param rbd_image_name: The name of rbd image
+    :param rbd_image_size: The size of rbd image
+    :param force_create: Force create the image or not
+    :param ceph_conf: The path to the ceph configuration file
+    :param keyfile: The path to the ceph keyring configuration file
     """
     create_image = True
     try:
@@ -112,12 +112,12 @@ def rbd_image_rm(
 ):
     """
     Remove a rbd image
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_namespace_name: The namespace of rbd image
-    :params rbd_image_name: The name of rbd image
-    :params ceph_conf: The path to the ceph configuration file
-    :params keyfile: The path to the ceph keyring configuration file
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_namespace_name: The namespace of rbd image
+    :param rbd_image_name: The name of rbd image
+    :param ceph_conf: The path to the ceph configuration file
+    :param keyfile: The path to the ceph keyring configuration file
     """
     if rbd_image_exist(
         ceph_monitor,
@@ -156,12 +156,12 @@ def rbd_image_exist(
 ):
     """
     Check if rbd image is exist
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_namespace_name: The name of rbd namespace
-    :params rbd_image_name: The name of rbd image
-    :params ceph_conf: The path to the ceph configuration file
-    :params keyfile: The path to the ceph keyring configuration file
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_namespace_name: The name of rbd namespace
+    :param rbd_image_name: The name of rbd image
+    :param ceph_conf: The path to the ceph configuration file
+    :param keyfile: The path to the ceph keyring configuration file
     """
     cmd = "rbd {opts} ls {pool}{namespace} {keyring}"
     c_opt = "-c %s" % ceph_conf if ceph_conf else ""
@@ -191,12 +191,12 @@ def rbd_image_info(
 ):
     """
     Get information of a rbd image
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_namespace_name: The name of rbd namespace
-    :params rbd_image_name: The name of rbd image
-    :params ceph_conf: The path to the ceph configuration file
-    :params keyfile: The path to the ceph keyring configuration file
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_namespace_name: The name of rbd namespace
+    :param rbd_image_name: The name of rbd image
+    :param ceph_conf: The path to the ceph configuration file
+    :param keyfile: The path to the ceph keyring configuration file
     """
     cmd = "rbd {opts} info {pool}/{namespace}{image} {keyring}"
     c_opt = "-c %s" % ceph_conf if ceph_conf else ""
@@ -235,9 +235,9 @@ def rbd_image_info(
 def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Maps the specified image to a block device via rbd kernel module
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_image_name: The name of rbd image
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_image_name: The name of rbd image
     """
     cmd = "rbd map %s --pool %s -m %s" % (rbd_image_name, rbd_pool_name, ceph_monitor)
     output = process.run(cmd, verbose=True).stdout_text
@@ -252,8 +252,8 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
 def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     """
     Unmaps the block device that was mapped via the rbd kernel module
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_image_name: The name of rbd image
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_image_name: The name of rbd image
     """
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
     output = process.run(cmd, verbose=True).stdout_text
@@ -268,11 +268,11 @@ def get_image_filename(
     """
     Configuration has already been configured in the conf file
     Return the rbd image file name
-    :params ceph_monitor: The specified monitor to connect to
-    :params rbd_pool_name: The name of rbd pool
-    :params rbd_namespace_name: The name of rbd namespace
-    :params rbd_image_name: The name of rbd image
-    :params ceph_conf: The path to the ceph configuration file
+    :param ceph_monitor: The specified monitor to connect to
+    :param rbd_pool_name: The name of rbd pool
+    :param rbd_namespace_name: The name of rbd namespace
+    :param rbd_image_name: The name of rbd image
+    :param ceph_conf: The path to the ceph configuration file
     """
     uri = "rbd:{pool}/{namespace}{image}{opts}"
     conf_opt = ":conf=%s" % ceph_conf if ceph_conf else ""
@@ -289,7 +289,7 @@ def get_image_filename(
 def create_config_file(ceph_monitor):
     """
     Create an ceph config file when the config file is not exist
-    :params ceph_monitor: The specified monitor to connect to
+    :param ceph_monitor: The specified monitor to connect to
     """
     ceph_dir = "/etc/ceph"
     ceph_cfg = os.path.join(ceph_dir, "ceph.conf")
@@ -306,8 +306,8 @@ def create_keyring_file(client_name, client_key):
     """
     Create a ceph keyring file
 
-    :params client_name: the client name to access the ceph server
-    :params client_key: the client key to access the ceph server
+    :param client_name: the client name to access the ceph server
+    :param client_key: the client key to access the ceph server
     :return: the keyring file path
     """
     ceph_dir = "/etc/ceph"

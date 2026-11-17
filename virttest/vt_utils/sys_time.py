@@ -41,7 +41,7 @@ def set_timezone(timezone):
     """
     Set system timezone.
 
-    :params timezone: timezone
+    :param timezone: timezone
     :type timezone: string
     :raises: The process.CmdError will be raised if the command is failed
              on the platform.

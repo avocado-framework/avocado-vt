@@ -1632,8 +1632,8 @@ class GuestFSModiDisk(object):
 
     def __init__(self, disk, backend="direct"):
         """
-        :params disk: target disk image.
-        :params backend: let libguestfs creates/connects to backend daemon
+        :param disk: target disk image.
+        :param backend: let libguestfs creates/connects to backend daemon
                          by starting qemu directly, or using libvirt to manage
                          an appliance, running User-Mode Linux, or connecting
                          to an already running daemon.

@@ -52,9 +52,9 @@ class QemuIO(object):
     def get_cmd_line(self, ignore_option=[], essential_option=[], forbid_option=[]):
         """
         Generate the command line for qemu-io from the parameters
-        :params ignore_option: list for the options should not in command
-        :params essential_option: list for the essential options
-        :params forbid_option: list for the option should not in command
+        :param ignore_option: list for the options should not in command
+        :param essential_option: list for the essential options
+        :param forbid_option: list for the option should not in command
         :return: qemu-io command line
         """
         essential_flag = False

@@ -401,7 +401,7 @@ def is_modular_daemon(session=None):
     """
     Check whether modular daemon is enabled
 
-    :params session: An session to guest or remote host
+    :param session: An session to guest or remote host
     :return: True if modular daemon is enabled
     """
     if session:

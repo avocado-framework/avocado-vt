@@ -22,8 +22,8 @@ def check_nodedev(dev_name, dev_parent=None):
     """
     Check node device relevant values
 
-    :params dev_name: name of the device
-    :params dev_parent: parent name of the device, None is default
+    :param dev_name: name of the device
+    :param dev_parent: parent name of the device, None is default
     :return: True if nodedev is normal.
     """
     host = dev_name.split("_")[1]
@@ -101,8 +101,8 @@ def find_hbas(hba_type="hba", status="online"):
     """
     Find online hba/vhba cards.
 
-    :params hba_type: "vhba" or "hba"
-    :params status: "online" or "offline"
+    :param hba_type: "vhba" or "hba"
+    :param status: "online" or "offline"
     :return: A list contains the online/offline vhba/hba list
     """
     # TODO: add status=offline/online judgement, we don't test offline vhba now

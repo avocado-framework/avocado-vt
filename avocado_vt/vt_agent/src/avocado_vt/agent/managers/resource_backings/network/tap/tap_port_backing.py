@@ -39,9 +39,9 @@ class TapPortBacking(NicPortBacking):
         """
         Create a tap device and put this device in to network_connection.
 
-        :params network_connection: the TapNetworkConnection object.
+        :param network_connection: the TapNetworkConnection object.
         :type network_connection: class TapNetworkConnection.
-        :params arguments: the device's params
+        :param arguments: the device's params
         :type arguments: dict.
 
         :return: the resource info.

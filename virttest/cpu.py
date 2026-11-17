@@ -1240,7 +1240,7 @@ def get_model_features(model_name):
     One CPU model is a set of features.
     This function is to get features of one specific model.
 
-    :params model_name: CPU model name, valid name is given in cpu_map.xml
+    :param model_name: CPU model name, valid name is given in cpu_map.xml
     :return: feature list, like ['apic', 'ss']
 
     """

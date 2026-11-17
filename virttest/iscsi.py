@@ -85,7 +85,7 @@ def iscsi_login(target_name, portal):
     Login to a target with the target name
 
     :param target_name: Name of the target
-    :params portal: Hostname/Ip for iscsi server
+    :param portal: Hostname/Ip for iscsi server
     """
     cmd = "iscsiadm --mode node --login --targetname %s" % target_name
     cmd += " --portal %s" % portal
@@ -111,7 +111,7 @@ def iscsi_node_del(target_name=None):
     Delete target node record, if the target name is not set then delete
     all target node records.
 
-    :params target_name: Name of the target.
+    :param target_name: Name of the target.
     """
     node_list = iscsi_get_nodes()
     cmd = ""
@@ -139,7 +139,7 @@ def iscsi_logout(target_name=None):
     Logout from a target. If the target name is not set then logout all
     targets.
 
-    :params target_name: Name of the target.
+    :param target_name: Name of the target.
     """
     if target_name:
         cmd = "iscsiadm --mode node --logout -T %s" % target_name

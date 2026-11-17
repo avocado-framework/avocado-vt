@@ -1650,8 +1650,8 @@ class PciAssignable(object):
         """
         For ppc64le we have to echo no of VFs to be enabled
 
-        :params pci_pf: Pci id to be virtualized with VFs
-        :params vf_no: Number of Vfs to be virtualized
+        :param pci_pf: Pci id to be virtualized with VFs
+        :param vf_no: Number of Vfs to be virtualized
         :return: True on success, False on failure
         """
         cmd = "echo %s > /sys/bus/pci/devices/%s/sriov_numvfs" % (vf_no, pci_pf)

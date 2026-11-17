@@ -820,8 +820,8 @@ def remote_agent(in_stream_cls, out_stream_cls):
     When something happened it raise exception which could be caught by cmd
     master.
 
-    :params in_stream_cls: Class encapsulated input stream.
-    :params out_stream_cls: Class encapsulated output stream.
+    :param in_stream_cls: Class encapsulated input stream.
+    :param out_stream_cls: Class encapsulated output stream.
     """
     try:
         sys.stdout.flush()

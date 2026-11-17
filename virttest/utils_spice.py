@@ -46,8 +46,8 @@ def kill_app(vm_name, app_name, params, env):
     """
     Kill selected app on selected VM
 
-    :params vm_name - VM name in parameters
-    :params app_name - name of application
+    :param vm_name - VM name in parameters
+    :param app_name - name of application
     """
     vm = env.get_vm(params[vm_name])
 

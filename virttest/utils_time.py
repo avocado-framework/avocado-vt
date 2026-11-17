@@ -75,7 +75,7 @@ def verify_timezone_win(session):
     """
     Verify windows guest's timezone
 
-    :params session: VM session
+    :param session: VM session
     :return tuple(verify_status, get_timezone_name)
     """
 
@@ -198,8 +198,8 @@ def update_clksrc(vm, clksrc=None):
     """
     Update linux guest's clocksource and re-boot guest
 
-    :params vm: Virtual machine for vm
-    :params clksrc: Expected clocksource
+    :param vm: Virtual machine for vm
+    :param clksrc: Expected clocksource
     """
     params = vm.get_params()
     if "fedora" in params["os_variant"] and clksrc and clksrc != "kvm-clock":

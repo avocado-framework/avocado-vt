@@ -96,7 +96,7 @@ class CgroupTest(object):
         """
         Get specific cgroup controller's root path
 
-        :params controller: The cgroup controller, used for cgroup v1. For
+        :param controller: The cgroup controller, used for cgroup v1. For
                             cgroup v2 this param will be ignored since all
                             controllers are in the same dir
         :return: The path to the cgroup controller
