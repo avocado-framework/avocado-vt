@@ -1,3 +1,4 @@
+import inspect
 import multiprocessing
 import os
 import time
@@ -44,12 +45,23 @@ try:
     from avocado.core.runners.utils import messages
 
     LTS = True
+    PROCESS_MONITOR_AVAILABLE = False
+    ProcessMonitorRunner = BaseRunner
 except ImportError:
     from avocado.core.nrunner.app import BaseRunnerApp
     from avocado.core.nrunner.runner import RUNNER_RUN_CHECK_INTERVAL, BaseRunner
     from avocado.core.utils import messages
+    from avocado.plugins.runners.avocado_instrumented import (
+        AvocadoInstrumentedTestRunner,
+    )
 
     LTS = False
+    PROCESS_MONITOR_AVAILABLE = tuple(
+        inspect.signature(AvocadoInstrumentedTestRunner._monitor).parameters
+    ) == ("process", "queue")
+    ProcessMonitorRunner = (
+        AvocadoInstrumentedTestRunner if PROCESS_MONITOR_AVAILABLE else BaseRunner
+    )
 
 
 class VirtTest(test.VirtTest):
@@ -135,7 +147,7 @@ class VirtTest(test.VirtTest):
                 self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
-class VTTestRunner(BaseRunner):
+class VTTestRunner(ProcessMonitorRunner):
     """
     Runner for Avocado-VT (aka VirtTest) tests
 
@@ -178,6 +190,8 @@ class VTTestRunner(BaseRunner):
                 "cancel", fail_reason="parallel run is not" " allowed for vt tests"
             )
         else:
+            queue = None
+            process = None
             try:
                 if "fork" in multiprocessing.get_all_start_methods():
                     context = multiprocessing.get_context("fork")
@@ -187,18 +201,26 @@ class VTTestRunner(BaseRunner):
                 vt_test = VirtTest(queue, self.runnable)
                 process = context.Process(target=vt_test.runTest)
                 process.start()
-                while True:
-                    time.sleep(RUNNER_RUN_CHECK_INTERVAL)
-                    if queue.empty():
-                        yield messages.RunningMessage.get()
-                    else:
-                        message = queue.get()
-                        yield message
-                        if message.get("status") == "finished":
-                            break
+                if PROCESS_MONITOR_AVAILABLE:
+                    self._close_parent_queue_writer(queue)
+                    yield from self._monitor(process, queue)
+                else:
+                    while True:
+                        time.sleep(RUNNER_RUN_CHECK_INTERVAL)
+                        if queue.empty():
+                            yield messages.RunningMessage.get()
+                        else:
+                            message = queue.get()
+                            yield message
+                            if message.get("status") == "finished":
+                                break
             except Exception:
                 yield messages.StderrMessage.get(traceback.format_exc())
                 yield messages.FinishedMessage.get("error")
+            finally:
+                if PROCESS_MONITOR_AVAILABLE:
+                    self._cleanup_process(process)
+                    self._close_queue(queue)
 
 
 class RunnerApp(BaseRunnerApp):
