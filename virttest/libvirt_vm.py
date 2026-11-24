@@ -392,6 +392,68 @@ class VM(virt_vm.BaseVM):
             LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
 
+    def _get_address(self, index=0, ip_version="ipv4", session=None, timeout=60.0):
+        """
+        Return the IP address of a NIC or guest (in host space).
+
+        Overrides :meth:`virt_vm.BaseVM._get_address`: when the ip-sniffer
+        has not filled ``address_cache`` yet (notably on pseries/ppc64le),
+        look the NIC's MAC up in the host ARP table, store the IP in the
+        cache and let the base implementation verify and return it.
+
+        :param index: Name or index of the NIC whose address is requested.
+        :param ip_version: ``'ipv4'`` or ``'ipv6'``.
+        :param session: ShellSession object of remote host.
+        :param timeout: Timeout forwarded to the ARP lookup and to the base
+                        implementation.
+        :return: IP address string.
+        :raise VMMACAddressMissingError: If no MAC address is defined for
+                the requested NIC.
+        :raise VMIPAddressMissingError: If neither the cache nor the ARP
+                table has an IP for the NIC's MAC address, or if reading
+                or verifying the ARP table through ``session`` timed out.
+        :raise VMAddressVerificationError: If the MAC-IP address mapping
+                cannot be verified.
+        """
+        try:
+            return super(VM, self)._get_address(index, ip_version, session, timeout)
+        except virt_vm.VMIPAddressMissingError as missing:
+            # "missing" is deleted when this block ends, keep a reference.
+            missing_error = missing
+            if ip_version != "ipv4":
+                raise
+            mac = self.get_mac_address(index).lower()
+            # Same as utils_net.verify_ip_address_ownership(): use safe mode
+            # when reading the ARP table through a remote session.
+            arp_args = {"safe": True} if session else {}
+            try:
+                ipaddr = utils_net.parse_arp(
+                    session=session, timeout=timeout, **arp_args
+                ).get(mac)
+            except aexpect.ShellTimeoutError as err:
+                # Keep it retryable: wait_for_get_address() only retries on
+                # the VM address exceptions.
+                LOG.debug("Timed out reading the ARP table: %s", err)
+                raise missing
+            if not ipaddr:
+                raise
+            LOG.debug("Found IP %s for MAC %s in the ARP table", ipaddr, mac)
+            self.address_cache[mac] = ipaddr
+
+        try:
+            return super(VM, self)._get_address(index, ip_version, session, timeout)
+        except virt_vm.VMAddressVerificationError:
+            # Do not leave an unverified address in the cache, otherwise every
+            # retry would fail verification without consulting ARP again.
+            self.address_cache.drop(mac)
+            raise
+        except aexpect.ShellTimeoutError as err:
+            # Same as above for the verification read: drop only the entry
+            # added by this attempt and keep the failure retryable.
+            LOG.debug("Timed out verifying the ARP entry: %s", err)
+            self.address_cache.drop(mac)
+            raise missing_error
+
     def clone(
         self,
         name=None,
