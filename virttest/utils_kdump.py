@@ -1019,6 +1019,11 @@ class KdumpManager:  # pylint: disable=too-many-instance-attributes
     Provides a convenient interface for common kdump operations including
     setup, crash triggering, and vmcore verification.
 
+    The "dump_type" parameter selects what is being tested:
+    - "kdump" (default): fadump is removed from the guest if it is enabled, so
+      the vmcore really comes from kdump.
+    - "fadump": fadump is enabled and must be registered (ppc64le only).
+
     Example usage:
         kdump_mgr = KdumpManager(vm, params, test)
         kdump_mgr.setup()
@@ -1045,6 +1050,11 @@ class KdumpManager:  # pylint: disable=too-many-instance-attributes
         self.install_missing_packages = (
             params.get("install_missing_packages", "yes") == "yes"
         )
+        self.dump_type = params.get("dump_type", "kdump")
+        if self.dump_type not in ("kdump", "fadump"):
+            raise ValueError(
+                f"Unsupported dump_type '{self.dump_type}', use kdump or fadump"
+            )
         self.upstream_kernel = params.get("guest_upstream_kernel", "no") == "yes"
         self.upstream_kernel_vmlinux = params.get("upstream_kernel_vmlinux")
         self.distro_info = None
@@ -1063,6 +1073,10 @@ class KdumpManager:  # pylint: disable=too-many-instance-attributes
 
     def setup(self, install_packages=True, configure=True):
         """Setup kdump: detect distro, install packages, configure, enable service.
+
+        For dump_type "kdump", fadump is checked after kdump is configured and
+        removed only if it is enabled. For dump_type "fadump", fadump is
+        enabled after kdump is configured.
 
         :param install_packages: Whether to install kdump packages (default: True)
         :type install_packages: bool
@@ -1092,20 +1106,38 @@ class KdumpManager:  # pylint: disable=too-many-instance-attributes
                 crashkernel_value=self.crashkernel_value,
                 test=self.test,
             )
+            # kdump must be configured first: the kdump service needs
+            # crashkernel= before fadump can be (un)registered.
+            fadump_rebooted = configure_fadump(
+                self.vm,
+                distro_info,
+                enable=self.dump_type == "fadump",
+                test=self.test,
+            )
+            reboot_required = reboot_required or fadump_rebooted
 
         return reboot_required
 
     def check_service(self):
         """Check if kdump service is running and properly configured.
 
+        The crashkernel value is compared only when setup_kdump is enabled,
+        because otherwise the guest's own crashkernel= is left untouched.
+        For dump_type "fadump", also check that fadump is enabled and registered.
+
         :raises: TestError if kdump service is not running
+        :raises: TestFail if fadump is expected but not enabled/registered
         """
+        distro_info = self._get_distro_info()
+        setup_kdump = self.params.get("setup_kdump", "yes") == "yes"
         check_kdump_service(
             self.vm,
-            self._get_distro_info(),
-            crashkernel_value=self.crashkernel_value,
+            distro_info,
+            crashkernel_value=self.crashkernel_value if setup_kdump else None,
             test=self.test,
         )
+        if self.dump_type == "fadump":
+            check_fadump(self.vm, distro_info, test=self.test)
 
     def get_vmcores_before_crash(self):
         """Get and store list of vmcores before triggering crash.
