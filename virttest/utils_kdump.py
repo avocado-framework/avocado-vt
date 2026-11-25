@@ -42,6 +42,7 @@ def get_distro_info(session):
              - grub_cmdline_key: GRUB cmdline key for kernel parameters
              - vmlinux_path_template: Path template for vmlinux debug symbols
              - vmcore_name_pattern: Filename pattern for find (e.g. vmcore, dump.*)
+             - fadump_sysfs_dir: Sysfs directory exposing fadump state (ppc64le)
              - kdump_packages: List of required kdump packages
              - crash_debug_packages: List of crash utility debug packages
              - crash_debug_package_templates: Package name templates with {kernel}
@@ -65,6 +66,7 @@ def get_distro_info(session):
         "grub_cmdline_key": None,
         "vmlinux_path_template": None,
         "vmcore_name_pattern": "vmcore",
+        "fadump_sysfs_dir": "/sys/kernel/fadump",
         "kdump_packages": [],
         "crash_debug_packages": [],
         "crash_debug_package_templates": [],
@@ -461,6 +463,25 @@ def _enable_kdump_service(session, distro_info, vm, test):
     return True
 
 
+def _get_cmdline_arg(cmdline, name):
+    """Return the value of the last name= token in a kernel cmdline.
+
+    The kernel honours the last occurrence when multiple tokens are present.
+
+    :param cmdline: raw string from /proc/cmdline
+    :type cmdline: str
+    :param name: parameter name without the trailing "="
+    :type name: str
+    :return: parameter value, or empty string if not present
+    :rtype: str
+    """
+    value = ""
+    for arg in cmdline.split():
+        if arg.startswith(f"{name}="):
+            value = arg.split("=", 1)[1]
+    return value
+
+
 def _get_active_crashkernel(cmdline):
     """Return the value of the last crashkernel= token in a kernel cmdline.
 
@@ -472,11 +493,7 @@ def _get_active_crashkernel(cmdline):
     :return: crashkernel value, or empty string if not present
     :rtype: str
     """
-    value = ""
-    for arg in cmdline.split():
-        if arg.startswith("crashkernel="):
-            value = arg.split("=", 1)[1]
-    return value
+    return _get_cmdline_arg(cmdline, "crashkernel")
 
 
 def configure_kdump(vm, distro_info, crashkernel_value="1024M", test=None):
@@ -733,6 +750,267 @@ def check_guest_status(vm):
         LOG.debug("Domain is not running")
         return 1
     return 0
+
+
+def _read_fadump_sysfs(session, distro_info, name):
+    """Read a value from the fadump sysfs directory.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :param name: Attribute name, e.g. "enabled" or "registered"
+    :type name: str
+    :return: Stripped attribute value, or None if it cannot be read
+    :rtype: str or None
+    """
+    sysfs_dir = distro_info["fadump_sysfs_dir"]
+    status, output = session.cmd_status_output(f"cat {sysfs_dir}/{name}")
+    return None if status else output.strip()
+
+
+def is_fadump_supported(session, distro_info):
+    """Check whether the guest kernel and firmware expose fadump.
+
+    fadump is a Power (ppc64le) feature. The sysfs interface exists only when
+    the kernel is built with fadump and the firmware supports it, even if
+    fadump is not turned on.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :return: True if the fadump sysfs "enabled" attribute exists
+    :rtype: bool
+    """
+    sysfs_dir = distro_info["fadump_sysfs_dir"]
+    return session.cmd_status(f"test -e {sysfs_dir}/enabled") == 0
+
+
+def is_fadump_param_enabled(session):
+    """Check whether fadump=on (or fadump=nocma) is on the kernel cmdline.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :return: True if fadump is requested on the running kernel cmdline
+    :rtype: bool
+    """
+    cmdline = session.cmd("cat /proc/cmdline").strip()
+    return _get_cmdline_arg(cmdline, "fadump") in ("on", "nocma")
+
+
+def is_fadump_enabled(session, distro_info):
+    """Check whether the kernel reports fadump as enabled.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :return: True if the fadump sysfs "enabled" attribute reads 1
+    :rtype: bool
+    """
+    return _read_fadump_sysfs(session, distro_info, "enabled") == "1"
+
+
+def is_fadump_registered(session, distro_info):
+    """Check whether fadump is registered with the firmware.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :return: True if the fadump sysfs "registered" attribute reads 1
+    :rtype: bool
+    """
+    return _read_fadump_sysfs(session, distro_info, "registered") == "1"
+
+
+def set_fadump_registration(session, distro_info, register=True, timeout=60):
+    """Register or unregister fadump through sysfs and wait for the result.
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :param register: True to register, False to unregister (default: True)
+    :type register: bool
+    :param timeout: Seconds to wait for the state to change (default: 60)
+    :type timeout: int
+    :return: True if the requested state was reached, False on timeout
+    :rtype: bool
+    """
+    target = "1" if register else "0"
+    sysfs_dir = distro_info["fadump_sysfs_dir"]
+    session.cmd_status_output(f"echo {target} > {sysfs_dir}/registered")
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if _read_fadump_sysfs(session, distro_info, "registered") == target:
+            return True
+        time.sleep(2)
+    return False
+
+
+def _set_fadump_param(session, distro_info, enable, vm, test):
+    """Add fadump=on or remove any fadump= value using the distro's native
+    mechanism.
+
+    - RedHat family: grubby (BLS entries)
+    - Debian family: /etc/default/grub plus grub update
+    - SLES: KDUMP_FADUMP in /etc/sysconfig/kdump, keeping the existing
+      true/false or yes/no style, then mkdumprd and update-bootloader
+
+    :param session: Active guest session
+    :type session: aexpect.ShellSession
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :param enable: True to add fadump=on, False to remove it
+    :type enable: bool
+    :param vm: VM object
+    :type vm: virttest.qemu_vm.VM
+    :param test: Test object for fail reporting (optional)
+    :type test: avocado.core.test.Test
+    :return: True on success, False on failure
+    :rtype: bool
+    """
+    if distro_info["name"] == "sles":
+        pairs = (("no", "yes"), ("false", "true"))
+        if not enable:
+            pairs = tuple((new, old) for old, new in pairs)
+        sed_expr = "; ".join(
+            f's/^(KDUMP_FADUMP=")({old})"/\\1{new}"/' for old, new in pairs
+        )
+        commands = [
+            f"sed -i -E '{sed_expr}' /etc/sysconfig/kdump",
+            "mkdumprd -f",
+            "update-bootloader --refresh",
+        ]
+    elif distro_info["family"] == "redhat":
+        args = '--args="fadump=on"' if enable else '--remove-args="fadump"'
+        commands = [f"grubby --update-kernel=ALL {args}"]
+    elif distro_info["family"] == "debian":
+        # update-grub merges GRUB_CMDLINE_LINUX and GRUB_CMDLINE_LINUX_DEFAULT,
+        # so fadump must be removed from both, wherever it sits in the value.
+        key = distro_info["grub_cmdline_key"]
+        add_expr = f' /^{key}=/ s/"$/ fadump=on"/;' if enable else ""
+        commands = [
+            "sed -i.bak -E '/^GRUB_CMDLINE_LINUX(_DEFAULT)?=/ { "
+            's/[[:space:]]+fadump=[^"[:space:]]+//g; '
+            's/"fadump=[^"[:space:]]+[[:space:]]*/"/g;'
+            f"{add_expr} }}' {distro_info['default_grub_file']}",
+            distro_info["grub_update_cmd"],
+        ]
+    else:
+        commands = []
+
+    for command in commands:
+        status, output = session.cmd_status_output(command, timeout=600)
+        if status:
+            session.close()
+            if test:
+                test.fail(
+                    f"Failed to {'enable' if enable else 'disable'} fadump "
+                    f"in {vm.name} ('{command}'): {output}"
+                )
+            return False
+    return True
+
+
+def configure_fadump(vm, distro_info, enable=True, test=None):
+    """Enable or disable fadump in the guest.
+
+    Changes the fadump kernel parameter, reboots, verifies the parameter took
+    effect and then restarts the kdump service so that fadump is registered.
+    Call configure_kdump() first so crashkernel= and the kdump service are set.
+
+    :param vm: VM object
+    :type vm: virttest.qemu_vm.VM
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :param enable: True to enable fadump, False to disable it (default: True)
+    :type enable: bool
+    :param test: Test object for fail/cancel reporting (optional)
+    :type test: avocado.core.test.Test
+    :return: True if a reboot was performed, False otherwise
+    :rtype: bool
+    :raises: TestCancel if enabling and the guest does not support fadump
+    :raises: TestFail if fadump cannot be configured
+    """
+    session = vm.wait_for_login(timeout=240)
+    if enable and not is_fadump_supported(session, distro_info):
+        session.close()
+        if test:
+            test.cancel(f"fadump is not supported in {vm.name}")
+        return False
+
+    if is_fadump_param_enabled(session) == enable:
+        session.close()
+        LOG.info(
+            "fadump already %s in %s", "enabled" if enable else "disabled", vm.name
+        )
+        return False
+
+    if not _set_fadump_param(session, distro_info, enable, vm, test):
+        return False
+    session.close()
+
+    LOG.info("Rebooting %s after fadump configuration change", vm.name)
+    vm.reboot(session=None, timeout=240)
+    session = vm.wait_for_login(timeout=240)
+    if is_fadump_param_enabled(session) != enable:
+        new_cmdline = session.cmd("cat /proc/cmdline").strip()
+        session.close()
+        if test:
+            test.fail(
+                f"fadump parameter did not take effect in {vm.name} "
+                f"after reboot: {new_cmdline}"
+            )
+        return True
+
+    if not _enable_kdump_service(session, distro_info, vm, test):
+        return True
+    session.close()
+    return True
+
+
+def check_fadump(vm, distro_info, test=None):
+    """Check that fadump is enabled and registered in the guest.
+
+    Verifies, in order: the sysfs interface exists, fadump=on is on the
+    cmdline, the fadump sysfs "enabled" attribute is 1 and fadump is
+    registered. If it is not registered yet, one registration attempt is made.
+
+    :param vm: VM object
+    :type vm: virttest.qemu_vm.VM
+    :param distro_info: Distro metadata dict from get_distro_info()
+    :type distro_info: dict
+    :param test: Test object for fail reporting (optional)
+    :type test: avocado.core.test.Test
+    :return: True if fadump is enabled and registered, False otherwise
+    :rtype: bool
+    :raises: TestFail if any check fails
+    """
+    LOG.info("Checking fadump in guest %s", vm.name)
+    session = vm.wait_for_login(timeout=240)
+    problem = None
+    if not is_fadump_supported(session, distro_info):
+        problem = f"fadump is not supported in {vm.name}"
+    elif not is_fadump_param_enabled(session):
+        problem = f"fadump=on is missing from the kernel cmdline in {vm.name}"
+    elif not is_fadump_enabled(session, distro_info):
+        problem = f"fadump is not enabled in {vm.name}"
+    elif not is_fadump_registered(session, distro_info) and not set_fadump_registration(
+        session, distro_info
+    ):
+        problem = f"fadump is not registered in {vm.name}"
+    session.close()
+
+    if problem:
+        LOG.error(problem)
+        if test:
+            test.fail(problem)
+        return False
+    LOG.info("fadump is enabled and registered in %s", vm.name)
+    return True
 
 
 class KdumpManager:  # pylint: disable=too-many-instance-attributes
