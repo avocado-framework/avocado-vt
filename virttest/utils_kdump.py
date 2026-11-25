@@ -280,6 +280,13 @@ def ensure_crash_utility_packages(
 
     missing_packages = []
     for package in debug_packages:
+        if "*" not in package:
+            status = session.cmd_status_output(
+                distro_info["pkg_query_cmd"].format(package=package)
+            )[0]
+            if status:
+                missing_packages.append(package)
+            continue
         pattern = package
         if distro_info["family"] == "debian" and "*" in package:
             pattern = package.replace("*", ".*")
